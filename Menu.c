@@ -15,7 +15,7 @@
 #include "Common.h"
 #include "Menu.h"
 #include "PowerManagement.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "RealTimeClock.h"
 #include "SysEvents.h"
 #include "Summary.h"
@@ -1005,7 +1005,7 @@ void DisplaySplashScreen(void)
 	// Add in Battery Voltage
 	//----------------------------------------------------------------------------------------
 	memset(&buff[0], 0, sizeof(buff));
-	length = (uint8)sprintf((char*)(&buff[0]), "%s: %.2f", getLangText(BATT_VOLTAGE_TEXT), GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
+	length = (uint8)sprintf((char*)(&buff[0]), "%s: %.2f", getLangText(BATT_VOLTAGE_TEXT), (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
 
 	wnd_layout.curr_row = DEFAULT_MENU_ROW_SIX;
 	wnd_layout.curr_col = (uint16)(((wnd_layout.end_col)/2) - ((length * SIX_COL_SIZE)/2));
@@ -1151,6 +1151,9 @@ void DisplaySensorType(void)
 	uint16 sensorTypeTextElement = NULL_TEXT;
 	uint8 acousticSensorType = g_factorySetupRecord.acousticSensorType;
 	char airSensorTypeName[16];
+#if 1 /* temp */
+	UNUSED(acousticSensorType);
+#endif
 
 	if (!g_factorySetupRecord.invalid)
 	{
@@ -1311,22 +1314,22 @@ void DisplayFlashUsageStats(void)
 	uint8 i = 0;
 
 	if (g_sdCardUsageStats.sizeUsed < 1000)
-		sprintf(&sizeUsedStr[0], "%s: %.1fKB (%d%%)", getLangText(USED_TEXT), ((float)g_sdCardUsageStats.sizeUsed / (float)1000), g_sdCardUsageStats.percentUsed);
+		sprintf(&sizeUsedStr[0], "%s: %.1fKB (%d%%)", getLangText(USED_TEXT), (double)((float)g_sdCardUsageStats.sizeUsed / (float)1000), g_sdCardUsageStats.percentUsed);
 	else if (g_sdCardUsageStats.sizeUsed < 1000000)
 		sprintf(&sizeUsedStr[0], "%s: %luKB (%d%%)", getLangText(USED_TEXT), (g_sdCardUsageStats.sizeUsed / 1000), g_sdCardUsageStats.percentUsed);
 	else
-		sprintf(&sizeUsedStr[0], "%s: %.0fMB (%d%%)", getLangText(USED_TEXT), ((float)g_sdCardUsageStats.sizeUsed / (float)1000000), g_sdCardUsageStats.percentUsed);
+		sprintf(&sizeUsedStr[0], "%s: %.0fMB (%d%%)", getLangText(USED_TEXT), (double)((float)g_sdCardUsageStats.sizeUsed / (float)1000000), g_sdCardUsageStats.percentUsed);
 
 #if 0 /* Test (always display in bytes) */
 	sprintf(&sizeUsedStr[0], "%s: %lu B (%d%%)", getLangText(USED_TEXT), g_sdCardUsageStats.sizeUsed, g_sdCardUsageStats.percentUsed);
 #endif
 
 	if (g_sdCardUsageStats.sizeFree < 1000)
-		sprintf(&sizeFreeStr[0], "%s: %.1fKB (%d%%)", getLangText(FREE_TEXT), ((float)g_sdCardUsageStats.sizeFree / (float)1000), g_sdCardUsageStats.percentFree);
+		sprintf(&sizeFreeStr[0], "%s: %.1fKB (%d%%)", getLangText(FREE_TEXT), (double)((float)g_sdCardUsageStats.sizeFree / (float)1000), g_sdCardUsageStats.percentFree);
 	else if (g_sdCardUsageStats.sizeFree < 1000000)
 		sprintf(&sizeFreeStr[0], "%s: %luKB (%d%%)", getLangText(FREE_TEXT), (g_sdCardUsageStats.sizeFree / 1000), g_sdCardUsageStats.percentFree);
 	else
-		sprintf(&sizeFreeStr[0], "%s: %.0fMB (%d%%)", getLangText(FREE_TEXT), ((float)g_sdCardUsageStats.sizeFree / (float)1000000), g_sdCardUsageStats.percentFree);
+		sprintf(&sizeFreeStr[0], "%s: %.0fMB (%d%%)", getLangText(FREE_TEXT), (double)((float)g_sdCardUsageStats.sizeFree / (float)1000000), g_sdCardUsageStats.percentFree);
 
 #if 0 /* Test (always display in bytes) */
 	sprintf(&sizeFreeStr[0], "%s: %lu B (%d%%)", getLangText(FREE_TEXT), g_sdCardUsageStats.sizeFree, g_sdCardUsageStats.percentFree);

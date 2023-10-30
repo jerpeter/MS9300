@@ -19,7 +19,7 @@
 #include "Summary.h"
 #include "SysEvents.h"
 #include "EventProcessing.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Keypad.h"
 #include "TextTypes.h"
 
@@ -548,11 +548,11 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 	memset(&buff[0], 0, sizeof(buff));
 	if (normalize_max_peak >= 100)
-		sprintf(buff, "%05.2f", normalize_max_peak);
+		sprintf(buff, "%05.2f", (double)normalize_max_peak);
 	else if (normalize_max_peak >= 10)
-		sprintf(buff, "%05.3f", normalize_max_peak);
+		sprintf(buff, "%05.3f", (double)normalize_max_peak);
 	else
-		sprintf(buff, "%05.4f", normalize_max_peak);
+		sprintf(buff, "%05.4f", (double)normalize_max_peak);
 
 	// Setup current column, Write string to screen,
 	wnd_layout_ptr->curr_col = wnd_layout_ptr->start_col;
@@ -575,11 +575,11 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 	memset(&buff[0], 0, sizeof(buff));
 	if (normalize_max_peak >= 100)
-		sprintf(buff, "%05.2f", normalize_max_peak);
+		sprintf(buff, "%05.2f", (double)normalize_max_peak);
 	else if (normalize_max_peak >= 10)
-		sprintf(buff, "%05.3f", normalize_max_peak);
+		sprintf(buff, "%05.3f", (double)normalize_max_peak);
 	else
-		sprintf(buff, "%05.4f", normalize_max_peak);
+		sprintf(buff, "%05.4f", (double)normalize_max_peak);
 
 	// Setup current column, Write string to screen,
 	wnd_layout_ptr->curr_col = (uint16)(wnd_layout_ptr->next_col + 6);
@@ -602,11 +602,11 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 	memset(&buff[0], 0, sizeof(buff));
 	if (normalize_max_peak >= 100)
-		sprintf(buff, "%05.2f", normalize_max_peak);
+		sprintf(buff, "%05.2f", (double)normalize_max_peak);
 	else if (normalize_max_peak >= 10)
-		sprintf(buff, "%05.3f", normalize_max_peak);
+		sprintf(buff, "%05.3f", (double)normalize_max_peak);
 	else
-		sprintf(buff, "%05.4f", normalize_max_peak);
+		sprintf(buff, "%05.4f", (double)normalize_max_peak);
 
 	// Setup current column, Write string to screen, Advance to next row
 	wnd_layout_ptr->curr_col = (uint16)(wnd_layout_ptr->next_col + 6);
@@ -620,16 +620,16 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 	((g_summaryList.cachedEntry.mode == COMBO_MODE) && (g_summaryList.cachedEntry.subMode == BARGRAPH_MODE)))
 	{
 		sprintf(buff,"%5.2f %5.2f %5.2f Hz",
-		((float)g_summaryList.cachedEntry.sampleRate / (float)((g_summaryList.cachedEntry.channelSummary.r.frequency * 2) - 1)),
-		((float)g_summaryList.cachedEntry.sampleRate / (float)((g_summaryList.cachedEntry.channelSummary.t.frequency * 2) - 1)),
-		((float)g_summaryList.cachedEntry.sampleRate / (float)((g_summaryList.cachedEntry.channelSummary.v.frequency * 2) - 1)));
+		(double)((float)g_summaryList.cachedEntry.sampleRate / (float)((g_summaryList.cachedEntry.channelSummary.r.frequency * 2) - 1)),
+		(double)((float)g_summaryList.cachedEntry.sampleRate / (float)((g_summaryList.cachedEntry.channelSummary.t.frequency * 2) - 1)),
+		(double)((float)g_summaryList.cachedEntry.sampleRate / (float)((g_summaryList.cachedEntry.channelSummary.v.frequency * 2) - 1)));
 	}
 	else // mode == WAVEFORM_MODE or MANUAL_CAL_MODE
 	{
 		sprintf(buff,"%5.2f %5.2f %5.2f Hz",
-		((float)g_summaryList.cachedEntry.channelSummary.r.frequency / (float)10.0),
-		((float)g_summaryList.cachedEntry.channelSummary.t.frequency / (float)10.0),
-		((float)g_summaryList.cachedEntry.channelSummary.v.frequency / (float)10.0));
+		(double)((float)g_summaryList.cachedEntry.channelSummary.r.frequency / (float)10.0),
+		(double)((float)g_summaryList.cachedEntry.channelSummary.t.frequency / (float)10.0),
+		(double)((float)g_summaryList.cachedEntry.channelSummary.v.frequency / (float)10.0));
 	}
 
 	// Setup current column, Write string to screen,
@@ -658,7 +658,7 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			strcpy(displayFormat, "mm/s");
 		}
 
-		sprintf(buff,"VS %.2f %s", tempVS, displayFormat);
+		sprintf(buff,"VS %.2f %s", (double)tempVS, displayFormat);
 		wnd_layout_ptr->curr_col = wnd_layout_ptr->start_col;
 		WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 		wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
@@ -708,7 +708,7 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			strcpy(displayFormat, "mm");
 		}
 
-		sprintf(buff,"PEAK DISP %5.4f %s", tempPeakDisp, displayFormat);
+		sprintf(buff,"PEAK DISP %5.4f %s", (double)tempPeakDisp, displayFormat);
 		wnd_layout_ptr->curr_col = wnd_layout_ptr->start_col;
 		WndMpWrtString((uint8*)buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 		wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
@@ -754,7 +754,7 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 		strcpy(displayFormat, "g");
 
-		sprintf(buff,"PEAK ACC %5.4f %s", tempPeakAcc, displayFormat);
+		sprintf(buff,"PEAK ACC %5.4f %s", (double)tempPeakAcc, displayFormat);
 		wnd_layout_ptr->curr_col = wnd_layout_ptr->start_col;
 		WndMpWrtString((uint8*)buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 		wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
@@ -781,15 +781,15 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 		// Display based on what the units current setting
 		if (((g_unitConfig.unitsOfAir == MILLIBAR_TYPE) && (g_displayAlternateResultState == DEFAULT_RESULTS)) || ((g_unitConfig.unitsOfAir != MILLIBAR_TYPE) && (g_displayAlternateResultState == DEFAULT_ALTERNATE_RESULTS)))
 		{
-			sprintf(buff,"%0.3f mb", HexToMB(g_summaryList.cachedEntry.channelSummary.a.peak, DATA_NORMALIZED, bitAccuracyScale, acousticSensorType));
+			sprintf(buff,"%0.3f mb", (double)HexToMB(g_summaryList.cachedEntry.channelSummary.a.peak, DATA_NORMALIZED, bitAccuracyScale, acousticSensorType));
 		}
 		else if (((g_unitConfig.unitsOfAir == PSI_TYPE) && (g_displayAlternateResultState == DEFAULT_RESULTS)) || ((g_unitConfig.unitsOfAir != PSI_TYPE) && (g_displayAlternateResultState == SECOND_ALTERNATE_RESULTS)))
 		{
-			sprintf(buff,"%0.3f psi", HexToPSI(g_summaryList.cachedEntry.channelSummary.a.peak, DATA_NORMALIZED, bitAccuracyScale, acousticSensorType));
+			sprintf(buff,"%0.3f psi", (double)HexToPSI(g_summaryList.cachedEntry.channelSummary.a.peak, DATA_NORMALIZED, bitAccuracyScale, acousticSensorType));
 		}
 		else // All other cases report in dB
 		{
-			sprintf(buff,"%0.1f dB", HexToDB(g_summaryList.cachedEntry.channelSummary.a.peak, DATA_NORMALIZED, bitAccuracyScale, acousticSensorType));
+			sprintf(buff,"%0.1f dB", (double)HexToDB(g_summaryList.cachedEntry.channelSummary.a.peak, DATA_NORMALIZED, bitAccuracyScale, acousticSensorType));
 		}
 
 		adjust = (uint8)strlen(buff);
@@ -808,11 +808,11 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 		if ((g_summaryList.cachedEntry.mode == BARGRAPH_MODE) || ((g_summaryList.cachedEntry.mode == COMBO_MODE) && (g_summaryList.cachedEntry.subMode == BARGRAPH_MODE)))
 		{
-			sprintf(buff,"%.1f Hz", ((float)g_summaryList.cachedEntry.sampleRate / (float)((g_summaryList.cachedEntry.channelSummary.a.frequency * 2) - 1)));
+			sprintf(buff,"%.1f Hz", (double)((float)g_summaryList.cachedEntry.sampleRate / (float)((g_summaryList.cachedEntry.channelSummary.a.frequency * 2) - 1)));
 		}
 		else // mode == WAVEFORM_MODE or MANUAL_CAL_MODE
 		{
-			sprintf(buff,"%.1f Hz", (float)(g_summaryList.cachedEntry.channelSummary.a.frequency)/(float)10.0);
+			sprintf(buff,"%.1f Hz", (double)((float)(g_summaryList.cachedEntry.channelSummary.a.frequency)/(float)10.0));
 		}
 
 		// Setup current column, Write string to screen,

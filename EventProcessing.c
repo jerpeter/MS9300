@@ -14,7 +14,7 @@
 #include "Common.h"
 #include "Summary.h"
 #include "Record.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Menu.h"
 #include "TextTypes.h"
 //#include "sd_mmc_spi.h"
@@ -37,7 +37,9 @@
 ///----------------------------------------------------------------------------
 ///	Local Scope Globals
 ///----------------------------------------------------------------------------
+#if 0 /* temp removal while unused */
 static char s_summaryListFileName[] = LOGS_PATH SUMMARY_LIST_FILE;
+#endif
 static uint32 s_addedSizeToSDCard = 0;
 
 ///----------------------------------------------------------------------------
@@ -340,10 +342,12 @@ void DeleteEmptyDirectories(uint8 dirType)
 ///----------------------------------------------------------------------------
 void ManageEventsDirectory(void)
 {
+#if 0 /* temp remove while unused */
 	uint16 navIndex = 0;
 	uint16 eventNumber;
-	uint8 eventsToMigrate = NO;
 	uint8 emptyEventDirs = NO;
+#endif
+	uint8 eventsToMigrate = NO;
 
 	debug("Managing Events directory files and caching event numbers...\r\n");
 
@@ -552,10 +556,13 @@ static uint8 s_lastEventType;
 static uint8 s_lastSearchValid = NO;
 char* GetEventFilenameAndPath(uint16 eventNumber, uint8 eventType)
 {
+#if 0 /* temp remove while unused */
 	uint16 fileEventNumber;
 	uint16 lowerBounds, upperBounds;
 	char directory[20];
 	char fileExtension[4];
+#endif
+
 #if 0 /* Test */
 	uint16 length;
 #endif
@@ -703,7 +710,9 @@ char* GetEventFilenameAndPath(uint16 eventNumber, uint8 eventType)
 ///----------------------------------------------------------------------------
 void DumpSummaryListFileToEventBuffer(void)
 {
+#if 0 /* temp remove while unused */
 	SUMMARY_LIST_ENTRY_STRUCT* summaryListCache = (SUMMARY_LIST_ENTRY_STRUCT*)&g_eventDataBuffer[0];
+#endif
 
 	if (g_summaryList.totalEntries)
 	{
@@ -1046,8 +1055,10 @@ void CacheSummaryEntryByIndex(uint16 index)
 ///----------------------------------------------------------------------------
 SUMMARY_LIST_ENTRY_STRUCT* GetSummaryFromSummaryList(uint16 eventNumber)
 {
+#if 0 /* temp remove while unused */
 	uint32 summaryListIndex = 0;
 	uint16 summaryListIndexEventNumber;
+#endif
 
 	// Check if the current cached entry is not already loaded with the current event request
 	if (eventNumber != g_summaryList.cachedEntry.eventNumber)
@@ -1190,7 +1201,10 @@ void ClearEventListCache(void)
 ///----------------------------------------------------------------------------
 void ParseAndCountSummaryListEntriesWithRewrite(void)
 {
+#if 0 /* temp remove while unused */
 	uint32 startRewriteFileLocation = 0;
+#endif
+
 	SUMMARY_LIST_ENTRY_STRUCT* rewriteSummaryListEntryCachePtr = NULL;
 	uint32 displacedEntries = 0;
 	uint16 totalEntries = 0; //(nav_file_lgt() / sizeof(SUMMARY_LIST_ENTRY_STRUCT));
@@ -1634,8 +1648,10 @@ void GetEventFileInfo(uint16 eventNumber, EVENT_HEADER_STRUCT* eventHeaderPtr, E
 {
 	EVENT_HEADER_STRUCT fileEventHeader;
 	EVENT_SUMMARY_STRUCT fileSummary;
+#if 0 /* temp remove while unused */
 	char* pathAndFilename;
 	int eventFile;
+#endif
 
 	if (g_fileAccessLock != AVAILABLE)
 	{
@@ -1707,9 +1723,11 @@ void GetEventFileInfo(uint16 eventNumber, EVENT_HEADER_STRUCT* eventHeaderPtr, E
 ///----------------------------------------------------------------------------
 int OpenEventFile(uint16 eventNumber)
 {
-	char* pathAndFilename;
 	int eventFile = 0;
+#if 0 /* temp remove while unused */
+	char* pathAndFilename;
 	uint8 dummy;
+#endif
 
 	if (g_fileAccessLock != AVAILABLE)
 	{
@@ -1756,7 +1774,9 @@ void CloseEventFile(int eventFile)
 uint8 CheckCompressedEventDataFileExists(uint16 eventNumber)
 {
 	uint8 fileExistStatus = NO;
+#if 0 /* temp remove while unused */
 	uint16 lowerBounds, upperBounds;
+#endif
 
 	GetSpi1MutexLock(SDMMC_LOCK);
 
@@ -1792,8 +1812,10 @@ uint8 CheckCompressedEventDataFileExists(uint16 eventNumber)
 ///----------------------------------------------------------------------------
 void GetEventFileRecord(uint16 eventNumber, EVT_RECORD* eventRecord)
 {
+#if 0 /* temp remove while unused */
 	char* pathAndFilename;
 	int eventFile;
+#endif
 
 	if (g_fileAccessLock != AVAILABLE)
 	{
@@ -1839,7 +1861,9 @@ void GetEventFileRecord(uint16 eventNumber, EVT_RECORD* eventRecord)
 ///----------------------------------------------------------------------------
 void DeleteEventFileRecord(uint16 eventNumber)
 {
+#if 0 /* temp remove while unused */
 	uint16 lowerBounds, upperBounds;
+#endif
 
 	if (g_fileAccessLock != AVAILABLE)
 	{
@@ -2224,8 +2248,10 @@ void DeleteNonEssentialFiles(void)
 ///----------------------------------------------------------------------------
 void CacheEventDataToBuffer(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffset, uint32 dataSize)
 {
+#if 0 /* temp remove while unused */
 	char* pathAndFilename;
 	int eventFile;
+#endif
 
 	GetSpi1MutexLock(SDMMC_LOCK);
 
@@ -2262,8 +2288,10 @@ void CacheEventDataToBuffer(uint16 eventNumber, uint8* dataBuffer, uint32 dataOf
 uint32 GetEventSize(uint16 eventNumber)
 {
 	uint32 size = 0;
+#if 0 /* temp remove while unused */
 	char* pathAndFilename;
 	int eventFile;
+#endif
 
 	GetSpi1MutexLock(SDMMC_LOCK);
 
@@ -2297,8 +2325,10 @@ uint32 GetEventSize(uint16 eventNumber)
 uint32 GetERDataSize(uint16 eventNumber)
 {
 	uint32 size = 0;
+#if 0 /* temp remove while unused */
 	char* pathAndFilename;
 	int eventFile;
+#endif
 
 	GetSpi1MutexLock(SDMMC_LOCK);
 
@@ -2335,8 +2365,10 @@ uint32 GetERDataSize(uint16 eventNumber)
 ///----------------------------------------------------------------------------
 void CacheERDataToBuffer(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffset, uint32 dataSize)
 {
+#if 0 /* temp remove while unused */
 	char* pathAndFilename;
 	int eventFile;
+#endif
 
 	GetSpi1MutexLock(SDMMC_LOCK);
 
@@ -2372,8 +2404,10 @@ void CacheERDataToBuffer(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffse
 ///----------------------------------------------------------------------------
 void CacheEventDataToRam(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffset, uint32 dataSize)
 {
+#if 0 /* temp remove while unused */
 	char* pathAndFilename;
 	int eventFile;
+#endif
 
 	if (g_fileAccessLock != AVAILABLE)
 	{
@@ -2515,6 +2549,10 @@ uint8 CacheEventToRam(uint16 eventNumber, EVT_RECORD* eventRecordPtr)
 {
 	char* pathAndFilename;
 	int eventFile;
+#if 1 /* temp */
+	UNUSED(pathAndFilename);
+	UNUSED(eventFile);
+#endif
 
 	if (g_fileAccessLock != AVAILABLE)
 	{
@@ -2571,10 +2609,12 @@ uint8 CacheEventToRam(uint16 eventNumber, EVT_RECORD* eventRecordPtr)
 ///----------------------------------------------------------------------------
 BOOLEAN CheckValidEventFile(uint16 eventNumber)
 {
-	EVENT_HEADER_STRUCT fileEventHeader;
 	BOOLEAN validFile = NO;
+#if 0 /* temp remove while unused */
+	EVENT_HEADER_STRUCT fileEventHeader;
 	char* pathAndFilename;
 	int eventFile;
+#endif
 
 	if (g_fileAccessLock != AVAILABLE)
 	{
@@ -2895,9 +2935,12 @@ void RemoveExcessEventsAboveCap(void)
 ///----------------------------------------------------------------------------
 int GetEventFileHandle(uint16 newFileEventNumber, EVENT_FILE_OPTION option)
 {
-	int fileHandle;
+	int fileHandle = -1;
 	int fileOption;
 	uint16 lowerBounds, upperBounds;
+#if 1 /* temp */
+	UNUSED(fileOption);
+#endif
 
 #if 1 /* New feature */
 	if ((option == CREATE_EVENT_FILE) && (g_unitConfig.storedEventsCapMode == ENABLED) && (g_eventNumberCacheValidEntries >= g_unitConfig.storedEventLimit))
@@ -2917,16 +2960,26 @@ int GetEventFileHandle(uint16 newFileEventNumber, EVENT_FILE_OPTION option)
 	// Set the file option flags for the file process
 	switch (option)
 	{
-#if 0 /* old hw */
 		case CREATE_EVENT_FILE: debug("File to create: %s\r\n", g_spareFileName);
-			fileOption = (O_CREAT | O_WRONLY); break;
-		case READ_EVENT_FILE: debug("File to read: %s\r\n", g_spareFileName);
-			fileOption = O_RDONLY; break;
-		case APPEND_EVENT_FILE: debug("File to append: %s\r\n", g_spareFileName);
-			fileOption = O_APPEND; break;
-		case OVERWRITE_EVENT_FILE: debug("File to overwrite: %s\r\n", g_spareFileName);
-			fileOption = O_RDWR; break;
+#if 0 /* old hw */
+			fileOption = (O_CREAT | O_WRONLY);
 #endif
+			break;
+		case READ_EVENT_FILE: debug("File to read: %s\r\n", g_spareFileName);
+#if 0 /* old hw */
+			fileOption = O_RDONLY;
+#endif
+			break;
+		case APPEND_EVENT_FILE: debug("File to append: %s\r\n", g_spareFileName);
+#if 0 /* old hw */
+			fileOption = O_APPEND;
+#endif
+			break;
+		case OVERWRITE_EVENT_FILE: debug("File to overwrite: %s\r\n", g_spareFileName);
+#if 0 /* old hw */
+			fileOption = O_RDWR;
+#endif
+			break;
 	}
 
 #if 0 /* old hw */
@@ -2958,9 +3011,12 @@ int GetEventFileHandle(uint16 newFileEventNumber, EVENT_FILE_OPTION option)
 ///----------------------------------------------------------------------------
 int GetERDataFileHandle(uint16 newFileEventNumber, EVENT_FILE_OPTION option)
 {
-	int fileHandle;
+	int fileHandle = -1;
 	int fileOption;
 	uint16 lowerBounds, upperBounds;
+#if 1 /* temp */
+	UNUSED(fileOption);
+#endif
 
 	GetSubDirLowerAndUpperBounds(newFileEventNumber, &lowerBounds, &upperBounds);
 
@@ -2973,16 +3029,26 @@ int GetERDataFileHandle(uint16 newFileEventNumber, EVENT_FILE_OPTION option)
 	// Set the file option flags for the file process
 	switch (option)
 	{
-#if 0 /* old hw */
 		case CREATE_EVENT_FILE: debug("File to create: %s\r\n", g_spareFileName);
-			fileOption = (O_CREAT | O_WRONLY); break;
-		case READ_EVENT_FILE: debug("File to read: %s\r\n", g_spareFileName);
-			fileOption = O_RDONLY; break;
-		case APPEND_EVENT_FILE: debug("File to append: %s\r\n", g_spareFileName);
-			fileOption = O_APPEND; break;
-		case OVERWRITE_EVENT_FILE: debug("File to overwrite: %s\r\n", g_spareFileName);
-			fileOption = O_RDWR; break;
+#if 0 /* old hw */
+			fileOption = (O_CREAT | O_WRONLY);
 #endif
+			break;
+		case READ_EVENT_FILE: debug("File to read: %s\r\n", g_spareFileName);
+#if 0 /* old hw */
+			fileOption = O_RDONLY;
+#endif
+			break;
+		case APPEND_EVENT_FILE: debug("File to append: %s\r\n", g_spareFileName);
+#if 0 /* old hw */
+			fileOption = O_APPEND;
+#endif
+			break;
+		case OVERWRITE_EVENT_FILE: debug("File to overwrite: %s\r\n", g_spareFileName);
+#if 0 /* old hw */
+			fileOption = O_RDWR;
+#endif
+			break;
 	}
 
 #if 0 /* old hw */
@@ -3431,6 +3497,16 @@ uint8 MigrateLooseFiles(uint8 dirType)
 	uint8 status = 0; //COPY_BUSY;
 #if 0 /* Test */
 	uint16 length;
+#endif
+#if 1 /* temp */
+	UNUSED(fileExtensionStartPtr);
+	UNUSED(originalCreationDateTimeBuffer);
+	UNUSED(originalLastWriteDateTimeBuffer);
+	UNUSED(lowerBounds);
+	UNUSED(upperBounds);
+	UNUSED(duplicateCount);
+	UNUSED(eventNumber);
+	UNUSED(status);
 #endif
 
 	//=========================================================================

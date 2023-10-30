@@ -24,7 +24,7 @@
 #include "Common.h"
 #include "Display.h"
 #include "Menu.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "spi.h"
 #include "ProcessBargraph.h"
 #include "SysEvents.h"
@@ -239,7 +239,7 @@ void LoadFactorySetupRecord(void)
 		ConvertTimeStampToString(buff, &tempTime, REC_DATE_TYPE);
 
 		if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER) { strcpy((char*)&g_spareBuffer, "Acc"); }
-		else { sprintf((char*)&g_spareBuffer, "%3.1f in", (float)g_factorySetupRecord.seismicSensorType / (float)204.8); }
+		else { sprintf((char*)&g_spareBuffer, "%3.1f in", (double)((float)g_factorySetupRecord.seismicSensorType / (float)204.8)); }
 
 		// Check if an older unit doesn't have the Analog Channel Config set
 		if ((g_factorySetupRecord.analogChannelConfig != CHANNELS_R_AND_V_SCHEMATIC) && (g_factorySetupRecord.analogChannelConfig != CHANNELS_R_AND_V_SWAPPED))
@@ -305,7 +305,7 @@ void InitSensorParameters(uint16 seismicSensorType, uint8 sensitivity)
 ///	Function Break
 ///----------------------------------------------------------------------------
 //#include "navigation.h"
-void InitSoftwareSettings_NS8100(void)
+void InitSoftwareSettings_NS9100(void)
 {
 	INPUT_MSG_STRUCT mn_msg;
 

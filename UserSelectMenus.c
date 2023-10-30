@@ -14,7 +14,7 @@
 #include "Record.h"
 #include "Display.h"
 #include "Typedefs.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Keypad.h"
 #include "SysEvents.h"
 #include "EventProcessing.h"
@@ -1373,7 +1373,9 @@ USER_MENU_STRUCT baudRateMenu[BAUD_RATE_MENU_ENTRIES] = {
 #include "RemoteHandler.h"
 void BaudRateMenuHandler(uint8 keyPressed, void* data)
 {
+#if 0 /* temp remove while unused */
 	uint32 usartRetries = 100; //USART_DEFAULT_TIMEOUT;
+#endif
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	uint16 newItemIndex = *((uint16*)data);
 #if 0 /* old hw */

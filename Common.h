@@ -601,11 +601,11 @@ void UsbDisableIfActive(void);
 void CheckExceptionReportLogExists(void);
 
 // Init Hardware prototype extensions
-void InitSystemHardware_NS8100(void);
+void InitSystemHardware_NS9100(void);
 void InitGps232(void);
 
 // Init Interrupts prototype extensions
-void InitInterrupts_NS8100(void);
+void InitInterrupts_NS9100(void);
 void Setup_8100_EIC_External_RTC_ISR(void);
 void Setup_8100_EIC_Keypad_ISR(void);
 void Setup_8100_EIC_System_ISR(void);
@@ -615,7 +615,7 @@ void Setup_8100_Usart1_RS232_ISR(void);
 void Setup_8100_Usart0_RS232_ISR(void);
 
 // Init Software prototype extensions
-void InitSoftwareSettings_NS8100(void);
+void InitSoftwareSettings_NS9100(void);
 
 // ISRs prototype extensions
 void DataIsrInit(uint16 sampleRate);

@@ -77,7 +77,10 @@
         "spi.h": "c",
         "fastmath.h": "c",
         "gpio.h": "c",
-        "adc.h": "c"
+        "adc.h": "c",
+        "board.h": "c",
+        "uart.h": "c",
+        "nvic_table.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "C_Cpp.dimInactiveRegions": false

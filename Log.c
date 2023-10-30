@@ -12,7 +12,7 @@
 #include "Typedefs.h"
 #include "Board.h"
 #include "Record.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Menu.h"
 #include "SysEvents.h"
 #include "TextTypes.h"
@@ -352,10 +352,13 @@ uint16 NumOfNewMonitorLogEntries(uint16 uid)
 #if 0 /* old hw */
 #include "fsaccess.h"
 #endif
+#if 0 /* temp remove while unused */
 static char s_monitorLogFilename[] = LOGS_PATH MONITOR_LOG_BIN_FILE;
 static char s_monitorLogHumanReadableFilename[] = LOGS_PATH MONITOR_LOG_READABLE_FILE;
+#endif
 void AppendMonitorLogEntryFile(void)
 {
+#if 0 /* temp remove while unused */
 	char modeString[10];
 	char statusString[10];
 	char startTimeString[20];
@@ -370,7 +373,8 @@ void AppendMonitorLogEntryFile(void)
 	uint32 airInUnits;
 	int monitorLogFile;
 	int monitorLogHumanReadableFile;
-	
+#endif
+
 	if (g_fileAccessLock != AVAILABLE)
 	{
 		ReportFileSystemAccessProblem("Add monitor log entry");
@@ -516,13 +520,15 @@ void AppendMonitorLogEntryFile(void)
 ///----------------------------------------------------------------------------
 void InitMonitorLogTableFromLogFile(void)
 {
+#if 0 /* temp remove while unused */	
 	MONITOR_LOG_ENTRY_STRUCT monitorLogEntry;
 	int32 bytesRead = 0;
 	uint16 lowestId = 0;
 	uint16 highestId = 0;
 	uint16 foundIds = 0;
 	int monitorLogFile;
-	
+#endif
+
 	if (g_fileAccessLock != AVAILABLE)
 	{
 		ReportFileSystemAccessProblem("Init monitor log");
@@ -604,15 +610,19 @@ void InitMonitorLogTableFromLogFile(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* temp remove while unused */
 static char s_onOffLogHumanReadableFilename[] = LOGS_PATH ON_OFF_READABLE_FILE;
+#endif
 void AddOnOffLogTimestamp(uint8 onOffState)
 {
+#if 0 /* temp remove while unused */
 	DATE_TIME_STRUCT time = GetCurrentTime();
 	float extCharge = GetExternalVoltageLevelAveraged(EXT_CHARGE_VOLTAGE);
 	char onOffStateString[6];
 	char timeString[20];
 	char extChargeString[8];
 	int onOffLogHumanReadableFile;
+#endif
 
 	if (g_fileAccessLock != AVAILABLE)
 	{

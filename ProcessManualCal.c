@@ -19,7 +19,7 @@
 #include "EventProcessing.h"
 #include "Board.h"
 #include "Record.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "RealTimeClock.h"
 #include "ProcessBargraph.h"
 #include "PowerManagement.h"
@@ -52,12 +52,14 @@ void MoveManualCalToFile(void)
 	uint16 lowA = 0xFFFF, lowR = 0xFFFF, lowV = 0xFFFF, lowT = 0xFFFF;
 	uint16* startOfEventPtr;
 	uint16* endOfEventDataPtr;
+#if 0 /* temp remove while unused */
 	uint32 compressSize;
 	int manualCalFileHandle = -1;
-	uint16* aManualCalPeakPtr;
-	uint16* rManualCalPeakPtr;
-	uint16* vManualCalPeakPtr;
-	uint16* tManualCalPeakPtr;
+#endif
+	uint16* aManualCalPeakPtr = NULL;
+	uint16* rManualCalPeakPtr = NULL;
+	uint16* vManualCalPeakPtr = NULL;
+	uint16* tManualCalPeakPtr = NULL;
 
 	debug("Processing Manual Cal to be saved\r\n");
 

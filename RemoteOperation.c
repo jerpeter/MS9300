@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include "RemoteCommon.h"
 #include "RemoteOperation.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Menu.h"
 #include "InitDataBuffers.h"
 #include "SysEvents.h"

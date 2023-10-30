@@ -150,9 +150,9 @@ unsigned char ReadMcp23018(unsigned char chip, unsigned char address)
 	{
 		ResetTWI();
 	}
+#endif
 
 	return(s_twiData[0]);
-#endif
 }
 
 ///----------------------------------------------------------------------------

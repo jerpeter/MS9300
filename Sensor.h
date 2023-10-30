@@ -13,7 +13,7 @@
 ///----------------------------------------------------------------------------
 #include "Typedefs.h"
 #include "Common.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Crc.h"
 #include "Time.h"
 

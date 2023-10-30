@@ -12,7 +12,7 @@
 #include <string.h>
 #include <math.h>
 #include "Menu.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Display.h"
 #include "Common.h"
 #include "InitDataBuffers.h"
@@ -551,7 +551,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 		// Battery Voltage
 		//-----------------------------------------------------------------------
 		memset(&buff[0], 0, sizeof(buff));
-		length = (uint8)sprintf(buff,"%s %.2f", getLangText(BATTERY_TEXT), GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
+		length = (uint8)sprintf(buff,"%s %.2f", getLangText(BATTERY_TEXT), (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
 
 		wnd_layout_ptr->curr_col =(uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
 
@@ -700,19 +700,19 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			if (tempR > 100)
 				sprintf(displayFormat, "%4d|", (int)tempR);
 			else
-				sprintf(displayFormat, "%4.1f|", tempR);
+				sprintf(displayFormat, "%4.1f|", (double)tempR);
 			strcat(buff, displayFormat);
 		
 			if (tempT > 100)
 				sprintf(displayFormat, "%4d|", (int)tempT);
 			else
-				sprintf(displayFormat, "%4.1f|", tempT);
+				sprintf(displayFormat, "%4.1f|", (double)tempT);
 			strcat(buff, displayFormat);
 
 			if (tempV > 100)
 				sprintf(displayFormat, "%4d|", (int)tempV);
 			else
-				sprintf(displayFormat, "%4.1f|", tempV);
+				sprintf(displayFormat, "%4.1f|", (double)tempV);
 			strcat(buff, displayFormat);
 
 			length = 21;
@@ -773,19 +773,19 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 				if (tempR > 100)
 					sprintf(displayFormat, "%4d|", (int)tempR);
 				else
-					sprintf(displayFormat, "%4.1f|", tempR);
+					sprintf(displayFormat, "%4.1f|", (double)tempR);
 				strcat(buff, displayFormat);
 			
 				if (tempT > 100)
 					sprintf(displayFormat, "%4d|", (int)tempT);
 				else
-					sprintf(displayFormat, "%4.1f|", tempT);
+					sprintf(displayFormat, "%4.1f|", (double)tempT);
 				strcat(buff, displayFormat);
 
 				if (tempV > 100)
 					sprintf(displayFormat, "%4d|", (int)tempV);
 				else
-					sprintf(displayFormat, "%4.1f|", tempV);
+					sprintf(displayFormat, "%4.1f|", (double)tempV);
 				strcat(buff, displayFormat);
 
 				length = 21;
@@ -827,7 +827,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 				strcpy(displayFormat, "mm/s");
 			}
 
-			sprintf(buff,"VS %.2f %s", tempVS, displayFormat);
+			sprintf(buff,"VS %.2f %s", (double)tempVS, displayFormat);
 		}
 		else if (g_displayAlternateResultState == PEAK_DISPLACEMENT_RESULTS) // Removing option to check Bar Channel (g_triggerRecord.berec.barChannel != BAR_AIR_CHANNEL)
 		{
@@ -905,7 +905,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 				strcpy(displayFormat, "mm");
 			}
 
-			sprintf(buff, "PEAK DISP %5.4f %s", tempPeakDisp, displayFormat);
+			sprintf(buff, "PEAK DISP %5.4f %s", (double)tempPeakDisp, displayFormat);
 		}
 		else if (g_displayAlternateResultState == PEAK_ACCELERATION_RESULTS) // Removing option to check Bar Channel (g_triggerRecord.berec.barChannel != BAR_AIR_CHANNEL)
 		{
@@ -979,7 +979,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER) { strcpy(displayFormat, "mg/s2"); }
 			else { strcpy(displayFormat, "g"); }
 
-			sprintf(buff,"PEAK ACC %5.4f %s", tempPeakAcc, displayFormat);
+			sprintf(buff,"PEAK ACC %5.4f %s", (double)tempPeakAcc, displayFormat);
 		}
 		else // g_displayAlternateResultState == DEFAULT_RESULTS || g_triggerRecord.berec.barChannel == BAR_AIR_CHANNEL
 		{
@@ -988,9 +988,9 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			{
 				if (g_displayBargraphResultsMode == IMPULSE_RESULTS)
 				{
-					if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) {	sprintf(buff, "%s %0.3f mb", getLangText(PEAK_AIR_TEXT), HexToMB(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
-					else if (g_unitConfig.unitsOfAir == PSI_TYPE) { sprintf(buff, "%s %0.3f psi", getLangText(PEAK_AIR_TEXT), HexToPSI(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
-					else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf(buff, "%s %4.1f dB", getLangText(PEAK_AIR_TEXT), HexToDB(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+					if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) {	sprintf(buff, "%s %0.3f mb", getLangText(PEAK_AIR_TEXT), (double)HexToMB(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+					else if (g_unitConfig.unitsOfAir == PSI_TYPE) { sprintf(buff, "%s %0.3f psi", getLangText(PEAK_AIR_TEXT), (double)HexToPSI(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+					else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf(buff, "%s %4.1f dB", getLangText(PEAK_AIR_TEXT), (double)HexToDB(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
 				}
 				else // (g_displayBargraphResultsMode == SUMMARY_INTERVAL_RESULTS) || (g_displayBargraphResultsMode == JOB_PEAK_RESULTS)
 				{
@@ -1002,9 +1002,9 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 									((float)((g_bargraphSummaryInterval.a.frequency * 2) - 1)));
 						}
 
-						if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) { sprintf(buff, "AIR %0.3f mb ", HexToMB(g_bargraphSummaryInterval.a.peak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType));	}
-						else if (g_unitConfig.unitsOfAir == PSI_TYPE) { sprintf(buff, "AIR %0.3f psi ", HexToPSI(g_bargraphSummaryInterval.a.peak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
-						else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf(buff, "AIR %4.1f dB ", HexToDB(g_bargraphSummaryInterval.a.peak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+						if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) { sprintf(buff, "AIR %0.3f mb ", (double)HexToMB(g_bargraphSummaryInterval.a.peak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType));	}
+						else if (g_unitConfig.unitsOfAir == PSI_TYPE) { sprintf(buff, "AIR %0.3f psi ", (double)HexToPSI(g_bargraphSummaryInterval.a.peak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+						else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf(buff, "AIR %4.1f dB ", (double)HexToDB(g_bargraphSummaryInterval.a.peak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
 					}
 					else // g_displayBargraphResultsMode == JOB_PEAK_RESULTS
 					{
@@ -1014,15 +1014,15 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 									((float)((g_aJobFreq * 2) - 1)));
 						}
 
-						if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) { sprintf(buff, "AIR %0.3f mb ", HexToMB(g_aJobPeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
-						else if (g_unitConfig.unitsOfAir == PSI_TYPE) { sprintf(buff, "AIR %0.3f psi ", HexToPSI(g_aJobPeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
-						else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf(buff, "AIR %4.1f dB ", HexToDB(g_aJobPeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+						if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) { sprintf(buff, "AIR %0.3f mb ", (double)HexToMB(g_aJobPeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+						else if (g_unitConfig.unitsOfAir == PSI_TYPE) { sprintf(buff, "AIR %0.3f psi ", (double)HexToPSI(g_aJobPeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+						else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf(buff, "AIR %4.1f dB ", (double)HexToDB(g_aJobPeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
 					}
 
 					if (tempA > 100)
 						sprintf(displayFormat, "%3d(Hz)", (int)tempA);
 					else
-						sprintf(displayFormat, "%3.1f(Hz)", tempA);
+						sprintf(displayFormat, "%3.1f(Hz)", (double)tempA);
 					strcat(buff, displayFormat);
 				}
 			}

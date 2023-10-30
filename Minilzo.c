@@ -1023,7 +1023,7 @@ static void DVAL_ASSERT(lzo_xint dv, const lzo_bytep p)
 #define DO_COMPRESS     lzo1x_1_compress
 
 #include "Common.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "RemoteCommon.h"
 
 // Holds the hash-type library (64K)

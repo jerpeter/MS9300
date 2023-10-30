@@ -13,7 +13,7 @@
 #include "InitDataBuffers.h"
 #include "SysEvents.h"
 #include "Summary.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "RealTimeClock.h"
 #include "Record.h"
 #include "Menu.h"
@@ -93,7 +93,9 @@ void EndBargraph(void)
 #endif
 void MoveBarIntervalDataToFile(void)
 {
+#if 0 /* temp remove while unused */
 	int bargraphFileHandle = -1;
+#endif
 
 	// If Bar Intervals have been cached
 	if (g_bargraphBarIntervalsCached > 0)
@@ -198,7 +200,9 @@ void CompleteSummaryInterval(void)
 ///----------------------------------------------------------------------------
 void MoveSummaryIntervalDataToFile(void)
 {
+#if 0 /* temp remove while unsued */
 	int bargraphFileHandle = -1;
+#endif
 
 	CompleteSummaryInterval();
 
@@ -369,11 +373,11 @@ void HandleBargraphLiveMonitoringDataTransfer(void)
 			sprintf((char*)g_blmBuffer, "BLM,%d,%d,%d,%d,A,%f,%.1f,R,%f,%.1f,V,%f,%.1f,T,%f,%.1f,VS,%f,%lu,",
 				(g_bargraphBarIntervalLiveMonitoringReadPtr->summaryIntervalCount + 1), g_bargraphBarIntervalLiveMonitoringReadPtr->barIntervalCount,
 				g_bargraphBarIntervalLiveMonitoringReadPtr->currentBargraphEventNumber, g_bargraphBarIntervalLiveMonitoringReadPtr->currentComboWaveformEventNumber,
-				(HexToMB(g_bargraphBarIntervalLiveMonitoringReadPtr->aMax, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)), ((float)g_pendingBargraphRecord.summary.parameters.sampleRate/(float)g_bargraphBarIntervalLiveMonitoringReadPtr->aFreq),
-				(float)(g_bargraphBarIntervalLiveMonitoringReadPtr->rMax/div), ((float)g_pendingBargraphRecord.summary.parameters.sampleRate/(float)g_bargraphBarIntervalLiveMonitoringReadPtr->rFreq),
-				(float)(g_bargraphBarIntervalLiveMonitoringReadPtr->vMax/div), ((float)g_pendingBargraphRecord.summary.parameters.sampleRate/(float)g_bargraphBarIntervalLiveMonitoringReadPtr->vFreq),
-				(float)(g_bargraphBarIntervalLiveMonitoringReadPtr->tMax/div), ((float)g_pendingBargraphRecord.summary.parameters.sampleRate/(float)g_bargraphBarIntervalLiveMonitoringReadPtr->tFreq),
-				(float)(sqrtf((float)g_bargraphBarIntervalLiveMonitoringReadPtr->vsMax)/div), g_bargraphBarIntervalLiveMonitoringReadPtr->epochTime);
+				(double)(HexToMB(g_bargraphBarIntervalLiveMonitoringReadPtr->aMax, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)), (double)((float)g_pendingBargraphRecord.summary.parameters.sampleRate/(float)g_bargraphBarIntervalLiveMonitoringReadPtr->aFreq),
+				(double)(float)(g_bargraphBarIntervalLiveMonitoringReadPtr->rMax/div), (double)((float)g_pendingBargraphRecord.summary.parameters.sampleRate/(float)g_bargraphBarIntervalLiveMonitoringReadPtr->rFreq),
+				(double)(float)(g_bargraphBarIntervalLiveMonitoringReadPtr->vMax/div), (double)((float)g_pendingBargraphRecord.summary.parameters.sampleRate/(float)g_bargraphBarIntervalLiveMonitoringReadPtr->vFreq),
+				(double)(float)(g_bargraphBarIntervalLiveMonitoringReadPtr->tMax/div), (double)((float)g_pendingBargraphRecord.summary.parameters.sampleRate/(float)g_bargraphBarIntervalLiveMonitoringReadPtr->tFreq),
+				(double)(float)(sqrtf((float)g_bargraphBarIntervalLiveMonitoringReadPtr->vsMax)/div), g_bargraphBarIntervalLiveMonitoringReadPtr->epochTime);
 
 			// Advance the read pointer
 			AdvanceBarIntervalBufPtr(BLM_READ_PTR);
@@ -1060,7 +1064,9 @@ uint8 CalculateBargraphData(void)
 ///----------------------------------------------------------------------------
 void MoveStartOfBargraphEventRecordToFile(void)
 {
+#if 0 /* temp remove while unused */
 	int bargraphFileHandle = -1;
+#endif
 
 	if (g_fileAccessLock != AVAILABLE)
 	{
@@ -1108,9 +1114,11 @@ void MoveStartOfBargraphEventRecordToFile(void)
 ///----------------------------------------------------------------------------
 void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 {
+#if 0 /* temp remove while unused */
 	uint32 compressSize;
 	uint32 dataLength;
 	int bargraphFileHandle = -1;
+#endif
 
 	if (g_fileAccessLock != AVAILABLE)
 	{

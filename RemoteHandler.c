@@ -10,7 +10,7 @@
 ///----------------------------------------------------------------------------
 #include <string.h>
 #include "Common.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "SysEvents.h"
 #include "RemoteHandler.h"
 #include "Menu.h"

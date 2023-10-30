@@ -18,7 +18,7 @@
 #include "Record.h"
 #include "InitDataBuffers.h"
 #include "PowerManagement.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Menu.h"
 #include "rtc.h"
 //#include "tc.h"

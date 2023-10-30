@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include "Typedefs.h"
 #include "Common.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "powerManagement.h"
 #include "RealTimeClock.h"
 #include "gpio.h"
@@ -38,7 +38,9 @@ static uint32 s_powerManagement;
 ///----------------------------------------------------------------------------
 void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 {
+#if 0 /* temp remove while unused */
 	uint8 state;
+#endif
 
 	switch (option)
 	{

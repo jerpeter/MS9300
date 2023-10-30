@@ -14,7 +14,7 @@
 #include "Record.h"
 #include "Display.h"
 #include "Typedefs.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Keypad.h"
 #include "SysEvents.h"
 #include "RemoteCommon.h"
@@ -1204,28 +1204,28 @@ void OperatorMenuHandler(uint8 keyPressed, void* data)
 		if (g_factorySetupRecord.seismicSensorType == SENSOR_ACCELEROMETER)
 		{
 			sprintf((char*)&g_menuTags[LOW_SENSITIVITY_MAX_TAG].text, " (%.0fmg)", 
-					(float)g_factorySetupRecord.seismicSensorType / (float)200);
+					(double)((float)g_factorySetupRecord.seismicSensorType / (float)200));
 			sprintf((char*)&g_menuTags[HIGH_SENSITIVITY_MAX_TAG].text, " (%.0fmg)", 
-					(float)g_factorySetupRecord.seismicSensorType / (float)400);
+					(double)((float)g_factorySetupRecord.seismicSensorType / (float)400));
 		}
 		else if ((g_factorySetupRecord.seismicSensorType == SENSOR_ACC_832M1_0200) || (g_factorySetupRecord.seismicSensorType == SENSOR_ACC_832M1_0500))
 		{
-			sprintf((char*)&g_menuTags[LOW_SENSITIVITY_MAX_TAG].text, " (%.0fmg)", (float)g_factorySetupRecord.seismicSensorType * ACC_832M1_SCALER / (float)200);
-			sprintf((char*)&g_menuTags[HIGH_SENSITIVITY_MAX_TAG].text, " (%.0fmg)",	(float)g_factorySetupRecord.seismicSensorType * ACC_832M1_SCALER / (float)400);
+			sprintf((char*)&g_menuTags[LOW_SENSITIVITY_MAX_TAG].text, " (%.0fmg)", (double)((float)g_factorySetupRecord.seismicSensorType * ACC_832M1_SCALER / (float)200));
+			sprintf((char*)&g_menuTags[HIGH_SENSITIVITY_MAX_TAG].text, " (%.0fmg)",	(double)((float)g_factorySetupRecord.seismicSensorType * ACC_832M1_SCALER / (float)400));
 		}
 		else if (g_unitConfig.unitsOfMeasure == IMPERIAL_TYPE)
 		{
 			sprintf((char*)&g_menuTags[LOW_SENSITIVITY_MAX_TAG].text, " (%.2fin)", 
-					(float)g_factorySetupRecord.seismicSensorType / (float)200);
+					(double)((float)g_factorySetupRecord.seismicSensorType / (float)200));
 			sprintf((char*)&g_menuTags[HIGH_SENSITIVITY_MAX_TAG].text, " (%.2fin)", 
-					(float)g_factorySetupRecord.seismicSensorType / (float)400);
+					(double)((float)g_factorySetupRecord.seismicSensorType / (float)400));
 		}
 		else // g_unitConfig.unitsOfMeasure == METRIC_TYPE
 		{
 			sprintf((char*)&g_menuTags[LOW_SENSITIVITY_MAX_TAG].text, " (%.2fmm)", 
-					(float)g_factorySetupRecord.seismicSensorType * (float)25.4 / (float)200);
+					(double)((float)g_factorySetupRecord.seismicSensorType * (float)25.4 / (float)200));
 			sprintf((char*)&g_menuTags[HIGH_SENSITIVITY_MAX_TAG].text, " (%.2fmm)", 
-					(float)g_factorySetupRecord.seismicSensorType * (float)25.4 / (float)400);
+					(double)((float)g_factorySetupRecord.seismicSensorType * (float)25.4 / (float)400));
 		}
 
 		SETUP_USER_MENU_MSG(&sensitivityMenu, g_triggerRecord.srec.sensitivity);

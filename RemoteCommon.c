@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "Common.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Record.h"
 #include "RemoteHandler.h"
 #include "RemoteCommon.h"

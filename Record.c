@@ -14,7 +14,7 @@
 #include "Menu.h"
 #include "Record.h"
 #include "Summary.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "RealTimeClock.h"
 #include "Display.h"
 #include "spi.h"
@@ -362,6 +362,10 @@ uint8 CheckForAvailableTriggerRecordEntry(char* name, uint8* match)
 	REC_EVENT_MN_STRUCT temp_rec;
 	uint8 i;
 	uint8 availableRecord = 0;
+
+#if 1 /* initialize before reference for compiler */
+	temp_rec.validRecord = NO;
+#endif
 
 	// Loop through all the valid saved setup record slots (0 isn't valid, used for the default saved setup)
 	for (i = 1; i <= MAX_NUM_OF_SAVED_SETUPS; i++)
@@ -768,9 +772,9 @@ void GetFlashUserPageFactorySetup(FACTORY_SETUP_STRUCT* factorySetup)
 ///----------------------------------------------------------------------------
 void SaveFlashUserPageFactorySetup(FACTORY_SETUP_STRUCT* factorySetup)
 {
+#if 0 /* old hw */
 	uint32* userPage = (uint32*)FLASH_USER_PAGE_BASE_ADDRESS; // 512 Bytes
 
-#if 0 /* old hw */
 	flashc_memcpy(userPage, factorySetup, sizeof(FACTORY_SETUP_STRUCT), YES);
 #endif
 }
@@ -780,9 +784,9 @@ void SaveFlashUserPageFactorySetup(FACTORY_SETUP_STRUCT* factorySetup)
 ///----------------------------------------------------------------------------
 void EraseFlashUserPageFactorySetup(void)
 {
+#if 0 /* old hw */
 	uint32* userPage = (uint32*)FLASH_USER_PAGE_BASE_ADDRESS; // 512 Bytes
 
-#if 0 /* old hw */
 	flashc_memset32(userPage, 0xFFFFFFFF, sizeof(FACTORY_SETUP_STRUCT), YES);
 #endif
 }

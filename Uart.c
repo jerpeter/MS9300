@@ -12,7 +12,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include "Typedefs.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Menu.h"
 #include "RemoteCommon.h"
 #include "PowerManagement.h"
@@ -154,8 +154,10 @@ extern int usart_write_char(volatile avr32_usart_t *usart, int c);
 #endif
 void UartPutc(uint8 c, int32 channel)
 {
+#if 0 /* temp remove while unused */
 	uint32 retries = 100; //USART_DEFAULT_TIMEOUT;
 	int status;
+#endif
 
 #if 0 /* old hw */
 	if (channel == CRAFT_COM_PORT)

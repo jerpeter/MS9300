@@ -1182,9 +1182,9 @@ void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 ///----------------------------------------------------------------------------
 uint8 Read_display(uint8 lcd_register, uint8 display_half)
 {
-#if 0 /* old hw */
-	uint16 lcd_data;
+	uint16 lcd_data = 0;
 
+#if 0 /* old hw */
 	volatile unsigned short *lcd = ((void *)AVR32_EBI_CS0_ADDRESS);
 
 	if (lcd_register == COMMAND_REGISTER)
@@ -1226,9 +1226,9 @@ uint8 Read_display(uint8 lcd_register, uint8 display_half)
 	//Set RD/WR, CS1, CS2 and RS high
 	lcd_port_image |= (LCD_ENABLE | LCD_CS1 | LCD_CS2 | LCD_RS);
 	*lcd = lcd_port_image;
+#endif
 
 	return((uint8)(lcd_data & 0xFF));
-#endif
 }// End of function
 
 ///----------------------------------------------------------------------------

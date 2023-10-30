@@ -16,7 +16,7 @@
 #include "InitDataBuffers.h"
 #include "ProcessBargraph.h"
 #include "SysEvents.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Keypad.h"
 #include "RealTimeClock.h"
 #include "SoftTimer.h"
@@ -59,7 +59,9 @@ extern uint8 craft_g_input_buffer[];
 ///----------------------------------------------------------------------------
 // Flags and variables to statically defined to prevent creating and clearing stack variables every ISR data process call
 static uint16 s_R_channelReading, s_V_channelReading, s_T_channelReading, s_A_channelReading;
+#if 0 /* temp removed while unused */
 static uint16 s_channelConfigReadBack;
+#endif
 static uint16* s_pretrigPtr;
 static uint16* s_samplePtr;
 static uint16* s_calPtr[3] = {NULL, NULL, NULL};
@@ -110,7 +112,9 @@ static float s_vtDiv;
 static VARIABLE_TRIGGER_FREQ_CHANNEL_BUFFER* s_workingVTChanData;
 #endif
 
+#if 0 /* temp removed while unused */
 static uint32 s_fractionSecondMarker;
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Prototypes
@@ -337,6 +341,10 @@ void Usart_1_rs232_irq(void)
 
 	uint32 usart_1_status;
 	uint8 recieveData;
+#if 1 /* temp */
+	UNUSED(usart_1_status);
+	UNUSED(recieveData);
+#endif
 
 #if 0 /* old hw */
 	// Read control/status register to clear flags
@@ -409,6 +417,10 @@ void Usart_0_rs232_irq(void)
 
 	uint32 usart_0_status;
 	uint8 recieveData;
+#if 1 /* temp */
+	UNUSED(usart_0_status);
+	UNUSED(recieveData);
+#endif
 
 #if 0 /* old hw */
 	// Read control/status register to clear flags
@@ -2543,7 +2555,7 @@ void Tc_sample_irq(void)
 	//___Revert power savings for sleep
 	if (g_powerSavingsForSleepEnabled == YES)
 	{
-extern inline void RevertPowerSavingsAfterSleeping(void);
+extern void RevertPowerSavingsAfterSleeping(void);
 		RevertPowerSavingsAfterSleeping();
 	}
 #endif

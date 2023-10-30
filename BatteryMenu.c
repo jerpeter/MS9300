@@ -13,7 +13,7 @@
 #include "Typedefs.h"
 #include "Menu.h"
 #include "Display.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Display.h"
 #include "Keypad.h"
 #include "TextTypes.h"
@@ -140,7 +140,7 @@ void BatteryMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 	curr_batt_volts = GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE);
 
 	// ********** Print Battery text **********
-	sprintf((char*)g_spareBuffer, "%.2f %s", curr_batt_volts, getLangText(VOLTS_TEXT));
+	sprintf((char*)g_spareBuffer, "%.2f %s", (double)curr_batt_volts, getLangText(VOLTS_TEXT));
 	debug("Battery: %s\r\n", (char*)g_spareBuffer);
 
 	wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_TWO;
@@ -204,7 +204,7 @@ void BatteryMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 		curr_batt_volts = 0;
 	}
 
-	length = (uint8)sprintf((char*)g_spareBuffer, "(%.2f %s)", curr_batt_volts, getLangText(VOLTS_TEXT));
+	length = (uint8)sprintf((char*)g_spareBuffer, "(%.2f %s)", (double)curr_batt_volts, getLangText(VOLTS_TEXT));
 
 	wnd_layout_ptr->curr_col =(uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
 	wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SEVEN;

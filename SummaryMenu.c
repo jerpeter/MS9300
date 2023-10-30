@@ -14,7 +14,7 @@
 #include "Menu.h"
 #include "EventProcessing.h"
 #include "Summary.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Display.h"
 #include "Keypad.h"
 #include "TextTypes.h"

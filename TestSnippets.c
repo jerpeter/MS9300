@@ -23,7 +23,7 @@
 #include "Common.h"
 #include "Display.h"
 #include "Menu.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "spi.h"
 #include "ProcessBargraph.h"
 #include "SysEvents.h"
@@ -527,9 +527,9 @@ void garbage(void)
 	AVR32_PM.gplp[1] = 0x90ABCDEF;
 
 	// Initialize the system
-	InitSystemHardware_NS8100(); TestIntMem("After HW Init");
-	InitInterrupts_NS8100(); TestIntMem("After Int Init");
-	InitSoftwareSettings_NS8100(); TestIntMem("After SW Init");
+	InitSystemHardware_NS9100(); TestIntMem("After HW Init");
+	InitInterrupts_NS9100(); TestIntMem("After Int Init");
+	InitSoftwareSettings_NS9100(); TestIntMem("After SW Init");
 
 	BootLoadManager(); TestIntMem("After BLM Init");
 	DisplayVersionToCraft(); TestIntMem("After DVC Init");

@@ -24,7 +24,7 @@
 #include "SysEvents.h"
 #include "Keypad.h"
 #include "ProcessBargraph.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Sensor.h"
 #include "TextTypes.h"
 

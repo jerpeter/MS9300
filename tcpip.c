@@ -206,7 +206,9 @@ void DoNetworkStuff(void)
           if (!(TransmitControl & SEND_FRAME2))  // buffer free?
           {
 //            TCPSeqNr = ((unsigned long)ISNGenHigh << 16) | TAR; // set local ISN
+#if 0 /* old hw */
             TCPSeqNr = ((unsigned long)ISNGenHigh << 16) | (Get_sys_count() & 0xFFFF); // set local ISN
+#endif
             TCPUNASeqNr = TCPSeqNr;
             TCPAckNr = 0;                                       // we don't know what to ACK!
             TCPUNASeqNr++;                                      // count SYN as a byte
@@ -465,7 +467,9 @@ void ProcessTCPFrame(void)
         {
           TCPAckNr = TCPSegSeq + 1;                           // get remote ISN, next byte we expect
 //          TCPSeqNr = ((unsigned long)ISNGenHigh << 16) | TAR; // set local ISN
+#if 0 /* old hw */
           TCPSeqNr = ((unsigned int)ISNGenHigh << 16) | (Get_sys_count() & 0xFFFF); // set local ISN
+#endif
           TCPUNASeqNr = TCPSeqNr + 1;                         // one byte out -> increase by one
           PrepareTCP_FRAME(TCP_CODE_SYN | TCP_CODE_ACK);
           LastFrameSent = TCP_SYN_ACK_FRAME;

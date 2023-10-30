@@ -19,7 +19,7 @@
 #include "EventProcessing.h"
 #include "Board.h"
 #include "Record.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "RealTimeClock.h"
 #include "ProcessBargraph.h"
 #include "PowerManagement.h"
@@ -62,6 +62,7 @@ void MoveWaveformEventToFile(void)
 	INPUT_MSG_STRUCT msg;
 	uint16* startOfEventPtr;
 	uint16* endOfEventDataPtr;
+#if 0 /* temp remove while unused */
 	uint8 keypadLedConfig;
 	uint32 bytesWritten;
 	uint32 remainingDataLength;
@@ -69,6 +70,7 @@ void MoveWaveformEventToFile(void)
 	uint16* tempDataPtr;
 	int waveformFileHandle = -1;
 	char spaceLeftBuffer[25] = {'\0'};
+#endif
 
 	if ((g_freeEventBuffers < g_maxEventBuffers) && ((g_sdCardUsageStats.waveEventsLeft != 0)))
 	{

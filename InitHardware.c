@@ -9,6 +9,9 @@
 ///	Includes
 ///----------------------------------------------------------------------------
 #include "board.h"
+#include "mxc_errors.h"
+#include "uart.h"
+#include "nvic_table.h"
 //#include "pm.h"
 #include "gpio.h"
 //#include "sdramc.h"
@@ -23,7 +26,7 @@
 #include "Common.h"
 #include "Display.h"
 #include "Menu.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "spi.h"
 #include "ProcessBargraph.h"
 #include "SysEvents.h"
@@ -1248,11 +1251,1020 @@ void PowerDownAndHalt(void)
 #endif
 }
 
+mxc_gpio_cfg_t g_Battery1VoltagePresence;
+mxc_gpio_cfg_t g_Battery2VoltagePresence;
+mxc_gpio_cfg_t g_GaugeAlert;
+mxc_gpio_cfg_t g_BatteryChargerIRQ;
+mxc_gpio_cfg_t g_Enable12V;
+mxc_gpio_cfg_t g_Enable5V;
+mxc_gpio_cfg_t g_Enable2_5_VRef;
+mxc_gpio_cfg_t g_USBSourceEnable;
+mxc_gpio_cfg_t g_USBAuxPowerEnable;
+mxc_gpio_cfg_t g_PowerGood5v;
+mxc_gpio_cfg_t g_PowerGoodBatteryCharge;
+mxc_gpio_cfg_t g_SmartSensorSleep;
+mxc_gpio_cfg_t g_SmartSensorMuxEnable;
+mxc_gpio_cfg_t g_ADCReset;
+mxc_gpio_cfg_t g_ADCConversion;
+mxc_gpio_cfg_t g_CalMuxPreADEnable;
+mxc_gpio_cfg_t g_CalMuxPreADSelect;
+mxc_gpio_cfg_t g_Alert1;
+mxc_gpio_cfg_t g_Alert2;
+mxc_gpio_cfg_t g_ExpansionEnable;
+mxc_gpio_cfg_t g_ExpansionReset;
+mxc_gpio_cfg_t g_ExpansionIRQ;
+mxc_gpio_cfg_t g_USBCI2CIRQ;
+mxc_gpio_cfg_t g_AccelInt1;
+mxc_gpio_cfg_t g_AccelInt2;
+mxc_gpio_cfg_t g_AccelTrig;
+mxc_gpio_cfg_t g_PowerButtonIRQ;
+mxc_gpio_cfg_t g_Button1;
+mxc_gpio_cfg_t g_Button2;
+mxc_gpio_cfg_t g_Button3;
+mxc_gpio_cfg_t g_Button4;
+mxc_gpio_cfg_t g_Button5;
+mxc_gpio_cfg_t g_Button6;
+mxc_gpio_cfg_t g_Button7;
+mxc_gpio_cfg_t g_Button8;
+mxc_gpio_cfg_t g_Button9;
+mxc_gpio_cfg_t g_LED1;
+mxc_gpio_cfg_t g_LED2;
+mxc_gpio_cfg_t g_LED3;
+mxc_gpio_cfg_t g_ExtRTCIntA;
+mxc_gpio_cfg_t g_BLEOTA;
+mxc_gpio_cfg_t g_ExternalTriggerOut;
+mxc_gpio_cfg_t g_ExternalTriggerIn;
+mxc_gpio_cfg_t g_LCDPowerEnable;
+mxc_gpio_cfg_t g_LCDPowerDisplay;
+mxc_gpio_cfg_t g_LCDInt;
+mxc_gpio_cfg_t g_SensorCheckEnable;
+mxc_gpio_cfg_t g_SensorCheck;
+mxc_gpio_cfg_t g_LTEReset;
+mxc_gpio_cfg_t g_BLEReset;
+mxc_gpio_cfg_t g_SmartSensorMux_A0;
+mxc_gpio_cfg_t g_SmartSensorMux_A1;
+mxc_gpio_cfg_t g_Nyquist0_A0;
+mxc_gpio_cfg_t g_Nyquist1_A1;
+mxc_gpio_cfg_t g_Nyquist2_Enable;
+mxc_gpio_cfg_t g_SensorEnable1_Geo1;
+mxc_gpio_cfg_t g_SensorEnable2_Aop1;
+mxc_gpio_cfg_t g_SensorEnable3_Geo2;
+mxc_gpio_cfg_t g_SensorEnable4_Aop2;
+mxc_gpio_cfg_t g_GainPathSelect1_Geo1;
+mxc_gpio_cfg_t g_GainPathSelect2_Aop1;
+mxc_gpio_cfg_t g_GainPathSelect3_Geo2;
+mxc_gpio_cfg_t g_GainPathSelect4_Aop2;
+mxc_gpio_cfg_t g_RTCClock;
+
+void GaugeAlert_ISR(void *cbdata);
+void BatteryCharger_ISR(void *cbdata);
+void Expansion_ISR(void *cbdata);
+void USBCI2C_ISR(void *cbdata);
+void AccelInt1_ISR(void *cbdata);
+void AccelInt2_ISR(void *cbdata);
+void PowerButton_ISR(void *cbdata);
+void Button1_ISR(void *cbdata);
+void Button2_ISR(void *cbdata);
+void Button3_ISR(void *cbdata);
+void Button4_ISR(void *cbdata);
+void Button5_ISR(void *cbdata);
+void Button6_ISR(void *cbdata);
+void Button7_ISR(void *cbdata);
+void Button8_ISR(void *cbdata);
+void Button9_ISR(void *cbdata);
+void ExtRTCIntA_ISR(void *cbdata);
+void ExternalTriggerIn_ISR(void *cbdata);
+void LCD_ISR(void *cbdata);
+void RTCClock_ISR(void *cbdata);
+
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void InitSystemHardware_NS8100(void)
+void SetupGPIO(void)
 {
+	//----------------------------------------------------------------------------------------------------------------------
+	// Battery 1 Voltage Presence: Port 0, Pin 2, Input, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Battery1VoltagePresence.port = MXC_GPIO0;
+	g_Battery1VoltagePresence.mask = MXC_GPIO_PIN_2;
+	g_Battery1VoltagePresence.pad = MXC_GPIO_PAD_NONE;
+	g_Battery1VoltagePresence.func = MXC_GPIO_FUNC_IN;
+	g_Battery1VoltagePresence.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_Battery1VoltagePresence);
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Battery 2 Voltage Presence: Port 0, Pin 3, Input, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Battery2VoltagePresence.port = MXC_GPIO0;
+	g_Battery2VoltagePresence.mask = MXC_GPIO_PIN_3;
+	g_Battery2VoltagePresence.pad = MXC_GPIO_PAD_NONE;
+	g_Battery2VoltagePresence.func = MXC_GPIO_FUNC_IN;
+	g_Battery2VoltagePresence.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_Battery2VoltagePresence);
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Gauge Alert: Port 0, Pin 4, Input, External pullup, Active low, 1.8V, Interrupt
+	//----------------------------------------------------------------------------------------------------------------------
+	g_GaugeAlert.port = MXC_GPIO0;
+	g_GaugeAlert.mask = MXC_GPIO_PIN_4;
+	g_GaugeAlert.pad = MXC_GPIO_PAD_NONE;
+	g_GaugeAlert.func = MXC_GPIO_FUNC_IN;
+	g_GaugeAlert.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_GaugeAlert, GaugeAlert_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_GaugeAlert, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_GaugeAlert.port, g_GaugeAlert.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO0)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Battery Charger IRQ: Port 0, Pin 5, Input, Needs strong internal pullup, Active low, voltage?, Interrupt
+	//----------------------------------------------------------------------------------------------------------------------
+	g_BatteryChargerIRQ.port = MXC_GPIO0;
+	g_BatteryChargerIRQ.mask = MXC_GPIO_PIN_5;
+	g_BatteryChargerIRQ.pad = MXC_GPIO_PAD_STRONG_PULL_UP;
+	g_BatteryChargerIRQ.func = MXC_GPIO_FUNC_IN;
+	g_BatteryChargerIRQ.vssel = MXC_GPIO_VSSEL_VDDIO; // Trying 1.8V
+	MXC_GPIO_RegisterCallback(&g_BatteryChargerIRQ, BatteryCharger_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_BatteryChargerIRQ, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_BatteryChargerIRQ.port, g_BatteryChargerIRQ.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO0)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Enable 12V = Port 0, Pin 6, Output, External pulldown, Active high, 1.8V (minimum 1.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Enable12V.port = MXC_GPIO0;
+	g_Enable12V.mask = MXC_GPIO_PIN_6;
+	g_Enable12V.pad = MXC_GPIO_PAD_NONE;
+	g_Enable12V.func = MXC_GPIO_FUNC_OUT;
+	g_Enable12V.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_Enable12V);
+	MXC_GPIO_OutSet(g_Enable12V.port, g_Enable12V.mask); // Start enabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Enable 5V: Port 0, Pin 7, Output, External pulldown, Active high, 1.8V (minimum 0.9V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Enable5V.port = MXC_GPIO0;
+	g_Enable5V.mask = MXC_GPIO_PIN_7;
+	g_Enable5V.pad = MXC_GPIO_PAD_NONE;
+	g_Enable5V.func = MXC_GPIO_FUNC_OUT;
+	g_Enable5V.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_Enable5V);
+	MXC_GPIO_OutSet(g_Enable5V.port, g_Enable5V.mask); // Start enabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Enable 2.5V Ref: Port 0, Pin 8, Output, External pulldown, Active high, probably 3.3V (minimum 0.7 * Vin)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Enable2_5_VRef.port = MXC_GPIO0;
+	g_Enable2_5_VRef.mask = MXC_GPIO_PIN_8;
+	g_Enable2_5_VRef.pad = MXC_GPIO_PAD_NONE;
+	g_Enable2_5_VRef.func = MXC_GPIO_FUNC_OUT;
+	g_Enable2_5_VRef.vssel = MXC_GPIO_VSSEL_VDDIOH; // Trying 3.3
+    MXC_GPIO_Config(&g_Enable2_5_VRef);
+	MXC_GPIO_OutSet(g_Enable2_5_VRef.port, g_Enable2_5_VRef.mask); // Enabling to start for testing, may delay power later until monitoring setup
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// USB Source Enable: Port 0, Pin 9, Output, External pulldown, Active high, 1.8V (minimum 1.2V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_USBSourceEnable.port = MXC_GPIO0;
+	g_USBSourceEnable.mask = MXC_GPIO_PIN_9;
+	g_USBSourceEnable.pad = MXC_GPIO_PAD_NONE;
+	g_USBSourceEnable.func = MXC_GPIO_FUNC_OUT;
+	g_USBSourceEnable.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_USBSourceEnable);
+	MXC_GPIO_OutClr(g_USBSourceEnable.port, g_USBSourceEnable.mask); // Start disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// USB Aux Power Enable: Port 0, Pin 10, Output, External pulldown, Active high, 1.8V (minimum 0.6V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_USBAuxPowerEnable.port = MXC_GPIO0;
+	g_USBAuxPowerEnable.mask = MXC_GPIO_PIN_10;
+	g_USBAuxPowerEnable.pad = MXC_GPIO_PAD_NONE;
+	g_USBAuxPowerEnable.func = MXC_GPIO_FUNC_OUT;
+	g_USBAuxPowerEnable.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_USBAuxPowerEnable);
+	MXC_GPIO_OutClr(g_USBAuxPowerEnable.port, g_USBAuxPowerEnable.mask); // Start disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Power Good 5v: Port 0, Pin 11, Input, External pullup, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_PowerGood5v.port = MXC_GPIO0;
+	g_PowerGood5v.mask = MXC_GPIO_PIN_11;
+	g_PowerGood5v.pad = MXC_GPIO_PAD_NONE;
+	g_PowerGood5v.func = MXC_GPIO_FUNC_IN;
+	g_PowerGood5v.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_PowerGood5v);
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Power Good Battery Charge: Port 0, Pin 12, Input, External pullup, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_PowerGoodBatteryCharge.port = MXC_GPIO0;
+	g_PowerGoodBatteryCharge.mask = MXC_GPIO_PIN_12;
+	g_PowerGoodBatteryCharge.pad = MXC_GPIO_PAD_NONE;
+	g_PowerGoodBatteryCharge.func = MXC_GPIO_FUNC_IN;
+	g_PowerGoodBatteryCharge.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_PowerGoodBatteryCharge);
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Smart Sensor Sleep: Port 0, Pin 13, Output, No external pull, Active low, 1.8V (minimum 1.3V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_SmartSensorSleep.port = MXC_GPIO0;
+	g_SmartSensorSleep.mask = MXC_GPIO_PIN_13;
+	g_SmartSensorSleep.pad = MXC_GPIO_PAD_NONE;
+	g_SmartSensorSleep.func = MXC_GPIO_FUNC_OUT;
+	g_SmartSensorSleep.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_SmartSensorSleep);
+	MXC_GPIO_OutClr(g_SmartSensorSleep.port, g_SmartSensorSleep.mask); // Start in sleep
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Smart Sensor Mux Enable: Port 0, Pin 14, Output, External pulldown, Active high, 3.3V (minimum 2.0V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_SmartSensorMuxEnable.port = MXC_GPIO0;
+	g_SmartSensorMuxEnable.mask = MXC_GPIO_PIN_14;
+	g_SmartSensorMuxEnable.pad = MXC_GPIO_PAD_NONE;
+	g_SmartSensorMuxEnable.func = MXC_GPIO_FUNC_OUT;
+	g_SmartSensorMuxEnable.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_SmartSensorMuxEnable);
+	MXC_GPIO_OutClr(g_SmartSensorMuxEnable.port, g_SmartSensorMuxEnable.mask); // Start disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// ADC Reset: Port 0, Pin 15, Output, External pulldown, Active low, 1.8V (minimuim 1.26V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_ADCReset.port = MXC_GPIO0;
+	g_ADCReset.mask = MXC_GPIO_PIN_15;
+	g_ADCReset.pad = MXC_GPIO_PAD_NONE;
+	g_ADCReset.func = MXC_GPIO_FUNC_OUT;
+	g_ADCReset.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_ADCReset);
+	MXC_GPIO_OutClr(g_ADCReset.port, g_ADCReset.mask); // Start in reset
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// ADC Conversion: Port 0, Pin 18, Output, External pulldown, Active high, 1.8V (minimuim 1.26V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_ADCConversion.port = MXC_GPIO0;
+	g_ADCConversion.mask = MXC_GPIO_PIN_18;
+	g_ADCConversion.pad = MXC_GPIO_PAD_NONE;
+	g_ADCConversion.func = MXC_GPIO_FUNC_OUT;
+	g_ADCConversion.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_ADCConversion);
+	MXC_GPIO_OutClr(g_ADCConversion.port, g_ADCConversion.mask); // Start as no conversion
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Cal Mux Pre-A/D Enable: Port 0, Pin 22, Output, External pulldown, Active low, 3.3V (minimum 2V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_CalMuxPreADEnable.port = MXC_GPIO0;
+	g_CalMuxPreADEnable.mask = MXC_GPIO_PIN_22;
+	g_CalMuxPreADEnable.pad = MXC_GPIO_PAD_NONE;
+	g_CalMuxPreADEnable.func = MXC_GPIO_FUNC_OUT;
+	g_CalMuxPreADEnable.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_CalMuxPreADEnable);
+	MXC_GPIO_OutSet(g_CalMuxPreADEnable.port, g_CalMuxPreADEnable.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Cal Mux Pre-A/D Select: Port 0, Pin 23, Output, External pulldown, Active high, 3.3V (minimum 2V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_CalMuxPreADSelect.port = MXC_GPIO0;
+	g_CalMuxPreADSelect.mask = MXC_GPIO_PIN_23;
+	g_CalMuxPreADSelect.pad = MXC_GPIO_PAD_NONE;
+	g_CalMuxPreADSelect.func = MXC_GPIO_FUNC_OUT;
+	g_CalMuxPreADSelect.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_CalMuxPreADSelect);
+	MXC_GPIO_OutClr(g_CalMuxPreADSelect.port, g_CalMuxPreADSelect.mask); // Start as 0 (Full sensor group A/1)
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Alert 1: Port 0, Pin 24, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Alert1.port = MXC_GPIO0;
+	g_Alert1.mask = MXC_GPIO_PIN_24;
+	g_Alert1.pad = MXC_GPIO_PAD_NONE;
+	g_Alert1.func = MXC_GPIO_FUNC_OUT;
+	g_Alert1.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_Alert1);
+	MXC_GPIO_OutClr(g_Alert1.port, g_Alert1.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Alert 2: Port 0, Pin 25, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Alert2.port = MXC_GPIO0;
+	g_Alert2.mask = MXC_GPIO_PIN_25;
+	g_Alert2.pad = MXC_GPIO_PAD_NONE;
+	g_Alert2.func = MXC_GPIO_FUNC_OUT;
+	g_Alert2.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_Alert2);
+	MXC_GPIO_OutClr(g_Alert2.port, g_Alert2.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// LTE OTA: Port 0, Pin 30, Input, No external pull, Active unknown, V unknown (device runs 3.3V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_ExpansionIRQ.port = MXC_GPIO0;
+	g_ExpansionIRQ.mask = MXC_GPIO_PIN_30;
+	g_ExpansionIRQ.pad = MXC_GPIO_PAD_NONE;
+	g_ExpansionIRQ.func = MXC_GPIO_FUNC_IN;
+	g_ExpansionIRQ.vssel = MXC_GPIO_VSSEL_VDDIOH;
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Expansion Enable: Port 1, Pin 7, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_ExpansionEnable.port = MXC_GPIO1;
+	g_ExpansionEnable.mask = MXC_GPIO_PIN_7;
+	g_ExpansionEnable.pad = MXC_GPIO_PAD_NONE;
+	g_ExpansionEnable.func = MXC_GPIO_FUNC_OUT;
+	g_ExpansionEnable.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_ExpansionEnable);
+	MXC_GPIO_OutClr(g_ExpansionEnable.port, g_ExpansionEnable.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Expansion Reset: Port 1, Pin 8, Output, External pulldown, Active low, 3.3V (minimum 2V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_ExpansionReset.port = MXC_GPIO1;
+	g_ExpansionReset.mask = MXC_GPIO_PIN_8;
+	g_ExpansionReset.pad = MXC_GPIO_PAD_NONE;
+	g_ExpansionReset.func = MXC_GPIO_FUNC_OUT;
+	g_ExpansionReset.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_ExpansionReset);
+	MXC_GPIO_OutClr(g_ExpansionReset.port, g_ExpansionReset.mask); // Start in reset
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Expansion IRQ: Port 1, Pin 9, Input, External pullup, Active low, 3.3V (minimum 2V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_ExpansionIRQ.port = MXC_GPIO1;
+	g_ExpansionIRQ.mask = MXC_GPIO_PIN_9;
+	g_ExpansionIRQ.pad = MXC_GPIO_PAD_NONE;
+	g_ExpansionIRQ.func = MXC_GPIO_FUNC_IN;
+	g_ExpansionIRQ.vssel = MXC_GPIO_VSSEL_VDDIOH;
+	MXC_GPIO_RegisterCallback(&g_ExpansionIRQ, Expansion_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_ExpansionIRQ, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_ExpansionIRQ.port, g_ExpansionIRQ.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// USBC I2C IRQ: Port 1, Pin 11, Input, External pullup, Active low, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_USBCI2CIRQ.port = MXC_GPIO1;
+	g_USBCI2CIRQ.mask = MXC_GPIO_PIN_11;
+	g_USBCI2CIRQ.pad = MXC_GPIO_PAD_NONE;
+	g_USBCI2CIRQ.func = MXC_GPIO_FUNC_IN;
+	g_USBCI2CIRQ.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_USBCI2CIRQ, USBCI2C_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_USBCI2CIRQ, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_USBCI2CIRQ.port, g_USBCI2CIRQ.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Accel Int 1: Port 1, Pin 12, Input, No external pull, Active high, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_AccelInt1.port = MXC_GPIO1;
+	g_AccelInt1.mask = MXC_GPIO_PIN_12;
+	g_AccelInt1.pad = MXC_GPIO_PAD_NONE;
+	g_AccelInt1.func = MXC_GPIO_FUNC_IN;
+	g_AccelInt1.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_AccelInt1, AccelInt1_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_AccelInt1, MXC_GPIO_INT_RISING);
+    MXC_GPIO_EnableInt(g_AccelInt1.port, g_AccelInt1.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Accel Int 2: Port 1, Pin 13, Input, No external pull, Active high, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_AccelInt2.port = MXC_GPIO1;
+	g_AccelInt2.mask = MXC_GPIO_PIN_13;
+	g_AccelInt2.pad = MXC_GPIO_PAD_NONE;
+	g_AccelInt2.func = MXC_GPIO_FUNC_IN;
+	g_AccelInt2.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_AccelInt2, AccelInt2_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_AccelInt2, MXC_GPIO_INT_RISING);
+    MXC_GPIO_EnableInt(g_AccelInt2.port, g_AccelInt2.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Accel Trig: Port 1, Pin 14, Output, No external pull, Active high, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_AccelTrig.port = MXC_GPIO1;
+	g_AccelTrig.mask = MXC_GPIO_PIN_14;
+	g_AccelTrig.pad = MXC_GPIO_PAD_NONE;
+	g_AccelTrig.func = MXC_GPIO_FUNC_OUT;
+	g_AccelTrig.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_AccelTrig);
+	MXC_GPIO_OutClr(g_AccelTrig.port, g_AccelTrig.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Power Button Int: Port 1, Pin 15, Input, External pullup, Active high, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_PowerButtonIRQ.port = MXC_GPIO1;
+	g_PowerButtonIRQ.mask = MXC_GPIO_PIN_15;
+	g_PowerButtonIRQ.pad = MXC_GPIO_PAD_NONE;
+	g_PowerButtonIRQ.func = MXC_GPIO_FUNC_IN;
+	g_PowerButtonIRQ.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_PowerButtonIRQ, PowerButton_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_PowerButtonIRQ, MXC_GPIO_INT_RISING);
+    MXC_GPIO_EnableInt(g_PowerButtonIRQ.port, g_PowerButtonIRQ.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Button 1: Port 1, Pin 16, Input, External pullup, Active low, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Button1.port = MXC_GPIO1;
+	g_Button1.mask = MXC_GPIO_PIN_16;
+	g_Button1.pad = MXC_GPIO_PAD_NONE;
+	g_Button1.func = MXC_GPIO_FUNC_IN;
+	g_Button1.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_Button1, Button1_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_Button1, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_Button1.port, g_Button1.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Button 2: Port 1, Pin 17, Input, External pullup, Active low, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Button2.port = MXC_GPIO1;
+	g_Button2.mask = MXC_GPIO_PIN_17;
+	g_Button2.pad = MXC_GPIO_PAD_NONE;
+	g_Button2.func = MXC_GPIO_FUNC_IN;
+	g_Button2.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_Button2, Button2_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_Button2, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_Button2.port, g_Button2.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Button 3: Port 1, Pin 18, Input, External pullup, Active low, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Button3.port = MXC_GPIO1;
+	g_Button3.mask = MXC_GPIO_PIN_18;
+	g_Button3.pad = MXC_GPIO_PAD_NONE;
+	g_Button3.func = MXC_GPIO_FUNC_IN;
+	g_Button3.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_Button3, Button3_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_Button3, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_Button3.port, g_Button3.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Button 4: Port 1, Pin 19, Input, External pullup, Active low, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Button4.port = MXC_GPIO1;
+	g_Button4.mask = MXC_GPIO_PIN_19;
+	g_Button4.pad = MXC_GPIO_PAD_NONE;
+	g_Button4.func = MXC_GPIO_FUNC_IN;
+	g_Button4.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_Button4, Button4_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_Button4, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_Button4.port, g_Button4.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Button 5: Port 1, Pin 20, Input, External pullup, Active low, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Button5.port = MXC_GPIO1;
+	g_Button5.mask = MXC_GPIO_PIN_20;
+	g_Button5.pad = MXC_GPIO_PAD_NONE;
+	g_Button5.func = MXC_GPIO_FUNC_IN;
+	g_Button5.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_Button5, Button5_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_Button5, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_Button5.port, g_Button5.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Button 6: Port 1, Pin 21, Input, External pullup, Active low, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Button6.port = MXC_GPIO1;
+	g_Button6.mask = MXC_GPIO_PIN_21;
+	g_Button6.pad = MXC_GPIO_PAD_NONE;
+	g_Button6.func = MXC_GPIO_FUNC_IN;
+	g_Button6.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_Button6, Button6_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_Button6, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_Button6.port, g_Button6.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Button 7: Port 1, Pin 22, Input, External pullup, Active low, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Button7.port = MXC_GPIO1;
+	g_Button7.mask = MXC_GPIO_PIN_22;
+	g_Button7.pad = MXC_GPIO_PAD_NONE;
+	g_Button7.func = MXC_GPIO_FUNC_IN;
+	g_Button7.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_Button7, Button7_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_Button7, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_Button7.port, g_Button7.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Button 8: Port 1, Pin 23, Input, External pullup, Active low, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Button8.port = MXC_GPIO1;
+	g_Button8.mask = MXC_GPIO_PIN_23;
+	g_Button8.pad = MXC_GPIO_PAD_NONE;
+	g_Button8.func = MXC_GPIO_FUNC_IN;
+	g_Button8.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_Button8, Button8_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_Button8, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_Button8.port, g_Button8.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Button 9: Port 1, Pin 24, Input, External pullup, Active low, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Button9.port = MXC_GPIO1;
+	g_Button9.mask = MXC_GPIO_PIN_24;
+	g_Button9.pad = MXC_GPIO_PAD_NONE;
+	g_Button9.func = MXC_GPIO_FUNC_IN;
+	g_Button9.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_Button9, Button9_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_Button9, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_Button9.port, g_Button9.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// LED 1: Port 1, Pin 25, Output, No external pull, Active high, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_LED1.port = MXC_GPIO1;
+	g_LED1.mask = MXC_GPIO_PIN_25;
+	g_LED1.pad = MXC_GPIO_PAD_NONE;
+	g_LED1.func = MXC_GPIO_FUNC_OUT;
+	g_LED1.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_LED1);
+	MXC_GPIO_OutClr(g_LED1.port, g_LED1.mask); // Start as off
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// LED 2: Port 1, Pin 26, Output, No external pull, Active high, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_LED2.port = MXC_GPIO1;
+	g_LED2.mask = MXC_GPIO_PIN_26;
+	g_LED2.pad = MXC_GPIO_PAD_NONE;
+	g_LED2.func = MXC_GPIO_FUNC_OUT;
+	g_LED2.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_LED2);
+	MXC_GPIO_OutClr(g_LED2.port, g_LED2.mask); // Start as off
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// LED 3: Port 1, Pin 27, Output, No external pull, Active high, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_LED3.port = MXC_GPIO1;
+	g_LED3.mask = MXC_GPIO_PIN_27;
+	g_LED3.pad = MXC_GPIO_PAD_NONE;
+	g_LED3.func = MXC_GPIO_FUNC_OUT;
+	g_LED3.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_LED3);
+	MXC_GPIO_OutClr(g_LED3.port, g_LED3.mask); // Start as off
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// RTC Int A: Port 1, Pin 28, Input, External pullup, Active low, 1.8V (minimum 0.66V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_ExtRTCIntA.port = MXC_GPIO1;
+	g_ExtRTCIntA.mask = MXC_GPIO_PIN_28;
+	g_ExtRTCIntA.pad = MXC_GPIO_PAD_NONE;
+	g_ExtRTCIntA.func = MXC_GPIO_FUNC_IN;
+	g_ExtRTCIntA.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_ExtRTCIntA, ExtRTCIntA_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_ExtRTCIntA, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_ExtRTCIntA.port, g_ExtRTCIntA.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// BLE OTA: Port 1, Pin 29, Input, No external pull, Active unknown, V unknown (device runs 3.3V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_BLEOTA.port = MXC_GPIO1;
+	g_BLEOTA.mask = MXC_GPIO_PIN_29;
+	g_BLEOTA.pad = MXC_GPIO_PAD_NONE;
+	g_BLEOTA.func = MXC_GPIO_FUNC_IN;
+	g_BLEOTA.vssel = MXC_GPIO_VSSEL_VDDIOH;
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Trig Out: Port 1, Pin 30, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_ExternalTriggerOut.port = MXC_GPIO1;
+	g_ExternalTriggerOut.mask = MXC_GPIO_PIN_30;
+	g_ExternalTriggerOut.pad = MXC_GPIO_PAD_NONE;
+	g_ExternalTriggerOut.func = MXC_GPIO_FUNC_OUT;
+	g_ExternalTriggerOut.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_ExternalTriggerOut);
+	MXC_GPIO_OutClr(g_ExternalTriggerOut.port, g_ExternalTriggerOut.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Trig In: Port 1, Pin 31, Input, External pullup, Active low, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_ExternalTriggerIn.port = MXC_GPIO1;
+	g_ExternalTriggerIn.mask = MXC_GPIO_PIN_31;
+	g_ExternalTriggerIn.pad = MXC_GPIO_PAD_NONE;
+	g_ExternalTriggerIn.func = MXC_GPIO_FUNC_IN;
+	g_ExternalTriggerIn.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_ExternalTriggerIn, ExternalTriggerIn_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_ExternalTriggerIn, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_ExternalTriggerIn.port, g_ExternalTriggerIn.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// LCD Power Enable: Port 2, Pin 0, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_LCDPowerEnable.port = MXC_GPIO2;
+	g_LCDPowerEnable.mask = MXC_GPIO_PIN_0;
+	g_LCDPowerEnable.pad = MXC_GPIO_PAD_NONE;
+	g_LCDPowerEnable.func = MXC_GPIO_FUNC_OUT;
+	g_LCDPowerEnable.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_LCDPowerEnable);
+	MXC_GPIO_OutClr(g_LCDPowerEnable.port, g_LCDPowerEnable.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// LCD Power Display: Port 2, Pin 1, Output, External pulldown, Active low, 1.8V (minimum 1.7V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_LCDPowerDisplay.port = MXC_GPIO2;
+	g_LCDPowerDisplay.mask = MXC_GPIO_PIN_1;
+	g_LCDPowerDisplay.pad = MXC_GPIO_PAD_NONE;
+	g_LCDPowerDisplay.func = MXC_GPIO_FUNC_OUT;
+	g_LCDPowerDisplay.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_LCDPowerDisplay);
+	MXC_GPIO_OutSet(g_LCDPowerDisplay.port, g_LCDPowerDisplay.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// LCD Int: Port 2, Pin 6, Input, External pullup, Active low, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_LCDInt.port = MXC_GPIO2;
+	g_LCDInt.mask = MXC_GPIO_PIN_6;
+	g_LCDInt.pad = MXC_GPIO_PAD_NONE;
+	g_LCDInt.func = MXC_GPIO_FUNC_IN;
+	g_LCDInt.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_LCDInt, LCD_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_LCDInt, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_LCDInt.port, g_LCDInt.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO2)));
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Sensor Check Enable: Port 2, Pin 9, Output, External pulldown, Active high, 1.8V (minimum 0.65 * Vin)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_SensorCheckEnable.port = MXC_GPIO2;
+	g_SensorCheckEnable.mask = MXC_GPIO_PIN_9;
+	g_SensorCheckEnable.pad = MXC_GPIO_PAD_NONE;
+	g_SensorCheckEnable.func = MXC_GPIO_FUNC_OUT;
+	g_SensorCheckEnable.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_SensorCheckEnable);
+	MXC_GPIO_OutClr(g_SensorCheckEnable.port, g_SensorCheckEnable.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Sensor Check: Port 2, Pin 10, Output, No external pull, Active high, 1.8V (must match Sensor Check enable)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_SensorCheck.port = MXC_GPIO2;
+	g_SensorCheck.mask = MXC_GPIO_PIN_10;
+	g_SensorCheck.pad = MXC_GPIO_PAD_NONE; // Consider weak pulldown?
+	g_SensorCheck.func = MXC_GPIO_FUNC_OUT;
+	g_SensorCheck.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_SensorCheck);
+	MXC_GPIO_OutClr(g_SensorCheck.port, g_SensorCheck.mask); // Start as disabled
+
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// LTE Reset: Port 2, Pin 13, Input, External pull up, Active low, 3.3V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_LTEReset.port = MXC_GPIO2;
+	g_LTEReset.mask = MXC_GPIO_PIN_13;
+	g_LTEReset.pad = MXC_GPIO_PAD_NONE;
+	g_LTEReset.func = MXC_GPIO_FUNC_IN;
+	g_LTEReset.vssel = MXC_GPIO_VSSEL_VDDIOH;
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// BLE Reset: Port 2, 15, Input, External pull up, Active low, 3.3V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_BLEReset.port = MXC_GPIO2;
+	g_BLEReset.mask = MXC_GPIO_PIN_15;
+	g_BLEReset.pad = MXC_GPIO_PAD_NONE;
+	g_BLEReset.func = MXC_GPIO_FUNC_IN;
+	g_BLEReset.vssel = MXC_GPIO_VSSEL_VDDIOH;
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Smart Sensor Mux A0: Port 2, Pin 23, Output, External pulldown, Active high, 3.3V (minimum 2.0V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_SmartSensorMux_A0.port = MXC_GPIO2;
+	g_SmartSensorMux_A0.mask = MXC_GPIO_PIN_23;
+	g_SmartSensorMux_A0.pad = MXC_GPIO_PAD_NONE;
+	g_SmartSensorMux_A0.func = MXC_GPIO_FUNC_OUT;
+	g_SmartSensorMux_A0.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_SmartSensorMux_A0);
+	MXC_GPIO_OutClr(g_SmartSensorMux_A0.port, g_SmartSensorMux_A0.mask); // Start as low
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Smart Sensor Mux A1: Port 2, Pin 25, Output, External pulldown, Active high, 3.3V (minimum 2.0V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_SmartSensorMux_A1.port = MXC_GPIO2;
+	g_SmartSensorMux_A1.mask = MXC_GPIO_PIN_25;
+	g_SmartSensorMux_A1.pad = MXC_GPIO_PAD_NONE;
+	g_SmartSensorMux_A1.func = MXC_GPIO_FUNC_OUT;
+	g_SmartSensorMux_A1.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_SmartSensorMux_A1);
+	MXC_GPIO_OutClr(g_SmartSensorMux_A1.port, g_SmartSensorMux_A1.mask); // Start as low
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Nyquist 0/A0:Port 2, Pin 26, Output, External pulldown, Active high, 3.3V (minimum 2.4V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Nyquist0_A0.port = MXC_GPIO2;
+	g_Nyquist0_A0.mask = MXC_GPIO_PIN_26;
+	g_Nyquist0_A0.pad = MXC_GPIO_PAD_NONE;
+	g_Nyquist0_A0.func = MXC_GPIO_FUNC_OUT;
+	g_Nyquist0_A0.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_Nyquist0_A0);
+	MXC_GPIO_OutClr(g_Nyquist0_A0.port, g_Nyquist0_A0.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Nyquist 1/A1: Port 2, Pin 28, Output, External pulldown, Active high, 3.3V (minimum 2.4V))
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Nyquist1_A1.port = MXC_GPIO2;
+	g_Nyquist1_A1.mask = MXC_GPIO_PIN_28;
+	g_Nyquist1_A1.pad = MXC_GPIO_PAD_NONE;
+	g_Nyquist1_A1.func = MXC_GPIO_FUNC_OUT;
+	g_Nyquist1_A1.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_Nyquist1_A1);
+	MXC_GPIO_OutClr(g_Nyquist1_A1.port, g_Nyquist1_A1.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Nyquist 2/Enable: Port 2, Pin 30, Output, External pulldown, Active low, 3.3V (minimum 2.4V))
+	//----------------------------------------------------------------------------------------------------------------------
+	g_Nyquist2_Enable.port = MXC_GPIO2;
+	g_Nyquist2_Enable.mask = MXC_GPIO_PIN_30;
+	g_Nyquist2_Enable.pad = MXC_GPIO_PAD_NONE;
+	g_Nyquist2_Enable.func = MXC_GPIO_FUNC_OUT;
+	g_Nyquist2_Enable.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_Nyquist2_Enable);
+	MXC_GPIO_OutClr(g_Nyquist2_Enable.port, g_Nyquist2_Enable.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Sensor Enable 1(Geo1): Port 3, Pin 1, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_SensorEnable1_Geo1.port = MXC_GPIO3;
+	g_SensorEnable1_Geo1.mask = MXC_GPIO_PIN_1;
+	g_SensorEnable1_Geo1.pad = MXC_GPIO_PAD_NONE;
+	g_SensorEnable1_Geo1.func = MXC_GPIO_FUNC_OUT;
+	g_SensorEnable1_Geo1.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_SensorEnable1_Geo1);
+	MXC_GPIO_OutClr(g_SensorEnable1_Geo1.port, g_SensorEnable1_Geo1.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Sensor Enable 2(Aop1): Port 3, Pin 2, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_SensorEnable2_Aop1.port = MXC_GPIO3;
+	g_SensorEnable2_Aop1.mask = MXC_GPIO_PIN_2;
+	g_SensorEnable2_Aop1.pad = MXC_GPIO_PAD_NONE;
+	g_SensorEnable2_Aop1.func = MXC_GPIO_FUNC_OUT;
+	g_SensorEnable2_Aop1.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_SensorEnable2_Aop1);
+	MXC_GPIO_OutClr(g_SensorEnable2_Aop1.port, g_SensorEnable2_Aop1.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Sensor Enable 3(Geo2): Port 3, Pin 3, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_SensorEnable3_Geo2.port = MXC_GPIO3;
+	g_SensorEnable3_Geo2.mask = MXC_GPIO_PIN_3;
+	g_SensorEnable3_Geo2.pad = MXC_GPIO_PAD_NONE;
+	g_SensorEnable3_Geo2.func = MXC_GPIO_FUNC_OUT;
+	g_SensorEnable3_Geo2.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_SensorEnable3_Geo2);
+	MXC_GPIO_OutClr(g_SensorEnable3_Geo2.port, g_SensorEnable3_Geo2.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Sensor Enable 4(Aop2): Port 3, Pin 4, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_SensorEnable4_Aop2.port = MXC_GPIO3;
+	g_SensorEnable4_Aop2.mask = MXC_GPIO_PIN_4;
+	g_SensorEnable4_Aop2.pad = MXC_GPIO_PAD_NONE;
+	g_SensorEnable4_Aop2.func = MXC_GPIO_FUNC_OUT;
+	g_SensorEnable4_Aop2.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_SensorEnable4_Aop2);
+	MXC_GPIO_OutClr(g_SensorEnable4_Aop2.port, g_SensorEnable4_Aop2.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Gain/Path Select 1(Geo1): Port 3, Pin 5, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_GainPathSelect1_Geo1.port = MXC_GPIO3;
+	g_GainPathSelect1_Geo1.mask = MXC_GPIO_PIN_5;
+	g_GainPathSelect1_Geo1.pad = MXC_GPIO_PAD_NONE;
+	g_GainPathSelect1_Geo1.func = MXC_GPIO_FUNC_OUT;
+	g_GainPathSelect1_Geo1.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_GainPathSelect1_Geo1);
+	MXC_GPIO_OutClr(g_GainPathSelect1_Geo1.port, g_GainPathSelect1_Geo1.mask); // Start as low
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Gain/Path Select 2(Aop1): Port 3, Pin 6, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_GainPathSelect2_Aop1.port = MXC_GPIO3;
+	g_GainPathSelect2_Aop1.mask = MXC_GPIO_PIN_6;
+	g_GainPathSelect2_Aop1.pad = MXC_GPIO_PAD_NONE;
+	g_GainPathSelect2_Aop1.func = MXC_GPIO_FUNC_OUT;
+	g_GainPathSelect2_Aop1.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_GainPathSelect2_Aop1);
+	MXC_GPIO_OutClr(g_GainPathSelect2_Aop1.port, g_GainPathSelect2_Aop1.mask); // Start as low
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Gain/Path Select 3(Geo2): Port 3, Pin 7,Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_GainPathSelect3_Geo2.port = MXC_GPIO3;
+	g_GainPathSelect3_Geo2.mask = MXC_GPIO_PIN_7;
+	g_GainPathSelect3_Geo2.pad = MXC_GPIO_PAD_NONE;
+	g_GainPathSelect3_Geo2.func = MXC_GPIO_FUNC_OUT;
+	g_GainPathSelect3_Geo2.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_GainPathSelect3_Geo2);
+	MXC_GPIO_OutClr(g_GainPathSelect3_Geo2.port, g_GainPathSelect3_Geo2.mask); // Start as low
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Gain/Path Select 4(Aop2): Port 3, Pin 8, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_GainPathSelect4_Aop2.port = MXC_GPIO3;
+	g_GainPathSelect4_Aop2.mask = MXC_GPIO_PIN_8;
+	g_GainPathSelect4_Aop2.pad = MXC_GPIO_PAD_NONE;
+	g_GainPathSelect4_Aop2.func = MXC_GPIO_FUNC_OUT;
+	g_GainPathSelect4_Aop2.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_GainPathSelect4_Aop2);
+	MXC_GPIO_OutClr(g_GainPathSelect4_Aop2.port, g_GainPathSelect4_Aop2.mask); // Start as low
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// RTC Clock: Port 3, Pin 9, Input, No external pull, Active high, 3.3V (minimum 2.64V)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_RTCClock.port = MXC_GPIO3;
+	g_RTCClock.mask = MXC_GPIO_PIN_9;
+	g_RTCClock.pad = MXC_GPIO_PAD_NONE; // Consider a weak internal pull?
+	g_RTCClock.func = MXC_GPIO_FUNC_IN;
+	g_RTCClock.vssel = MXC_GPIO_VSSEL_VDDIOH;
+	MXC_GPIO_RegisterCallback(&g_RTCClock, RTCClock_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_RTCClock, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_RTCClock.port, g_RTCClock.mask);
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO3)));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void UART0_Read_Callback(mxc_uart_req_t *req, int error)
+{
+    // UART0 receive processing
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void UART1_Read_Callback(mxc_uart_req_t *req, int error)
+{
+    // UART1 receive processing
+}
+
+#define UART_BUFFER_SIZE 512
+uint8_t g_Uart0_RxBuffer[UART_BUFFER_SIZE];
+uint8_t g_Uart0_TxBuffer[UART_BUFFER_SIZE];
+uint8_t g_Uart1_RxBuffer[UART_BUFFER_SIZE];
+uint8_t g_Uart1_TxBuffer[UART_BUFFER_SIZE];
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void UART0_Handler(void)
+{
+    MXC_UART_AsyncHandler(MXC_UART0);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void UART1_Handler(void)
+{
+    MXC_UART_AsyncHandler(MXC_UART1);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetupUART(void)
+{
+	int error;
+
+    error = MXC_UART_Init(MXC_UART0, UART_BAUD);
+    if (error < E_NO_ERROR) { printf("Error! UART0 failed init with code: %d\n", error); }
+
+    // Move to Interrupt init
+	NVIC_ClearPendingIRQ(UART0_IRQn);
+    NVIC_DisableIRQ(UART0_IRQn);
+    MXC_NVIC_SetVector(UART0_IRQn, UART0_Handler);
+    NVIC_EnableIRQ(UART0_IRQn);
+
+    error = MXC_UART_Init(MXC_UART1, UART_BAUD);
+    if (error < E_NO_ERROR) { printf("Error! UART1 failed init with code: %d\n", error); }
+
+    // Move to Interrupt init
+    NVIC_ClearPendingIRQ(UART1_IRQn);
+    NVIC_DisableIRQ(UART1_IRQn);
+    MXC_NVIC_SetVector(UART1_IRQn, UART1_Handler);
+    NVIC_EnableIRQ(UART1_IRQn);
+
+    // Setup the asynchronous request
+    mxc_uart_req_t uart0ReadRequest;
+    uart0ReadRequest.uart = MXC_UART0;
+    uart0ReadRequest.rxData = g_Uart0_RxBuffer;
+    uart0ReadRequest.rxLen = UART_BUFFER_SIZE;
+    uart0ReadRequest.txLen = 0;
+    uart0ReadRequest.callback = UART0_Read_Callback;
+
+    // Setup the asynchronous request
+    mxc_uart_req_t uart1ReadRequest;
+    uart1ReadRequest.uart = MXC_UART1;
+    uart1ReadRequest.rxData = g_Uart1_RxBuffer;
+    uart1ReadRequest.rxLen = UART_BUFFER_SIZE;
+    uart1ReadRequest.txLen = 0;
+    uart1ReadRequest.callback = UART1_Read_Callback;
+
+    error = MXC_UART_TransactionAsync(&uart0ReadRequest);
+    if (error != E_NO_ERROR) { printf("Error! Uart0 Read setup (async) failed with code: %d\n", error); }
+
+    error = MXC_UART_TransactionAsync(&uart1ReadRequest);
+    if (error != E_NO_ERROR) { printf("Error! Uart1 Read setup (async) failed with code: %d\n", error); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+// <uart driver option> int MXC_UART_RevA_Write(mxc_uart_reva_regs_t *uart, uint8_t *byte, int *len)
+void UART0_Write_Blocking(uint8_t* data, uint32_t size)
+{
+	int error;
+
+    mxc_uart_req_t uart0WriteRequest;
+    uart0WriteRequest.uart = MXC_UART0;
+    uart0WriteRequest.txData = data;
+    uart0WriteRequest.txLen = size;
+    uart0WriteRequest.rxLen = 0;
+    uart0WriteRequest.callback = NULL;
+
+    error = MXC_UART_Transaction(&uart0WriteRequest);
+
+    if (error != E_NO_ERROR) { printf("Error! Uart0 write failed with code: %d\n", error); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+// <uart driver option> int MXC_UART_RevA_Write(mxc_uart_reva_regs_t *uart, uint8_t *byte, int *len)
+void UART1_Write_Blocking(uint8_t* data, uint32_t size)
+{
+	int error;
+
+    mxc_uart_req_t uart1WriteRequest;
+    uart1WriteRequest.uart = MXC_UART1;
+    uart1WriteRequest.txData = data;
+    uart1WriteRequest.txLen = size;
+    uart1WriteRequest.rxLen = 0;
+    uart1WriteRequest.callback = NULL;
+
+    error = MXC_UART_Transaction(&uart1WriteRequest);
+
+    if (error != E_NO_ERROR) { printf("Error! Uart0 write failed with code: %d\n", error); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void UART0_Write_Async_ISR(uint8_t* data, uint32_t size)
+{
+	int error;
+
+	memcpy(g_Uart0_TxBuffer, data, (size < UART_BUFFER_SIZE) ? size : UART_BUFFER_SIZE);
+
+    mxc_uart_req_t uart0WriteRequest;
+    uart0WriteRequest.uart = MXC_UART0;
+    uart0WriteRequest.txData = g_Uart0_TxBuffer;
+    uart0WriteRequest.txLen = size;
+    uart0WriteRequest.rxLen = 0;
+    uart0WriteRequest.callback = NULL;
+
+    error = MXC_UART_TransactionAsync(&uart0WriteRequest);
+
+    if (error != E_NO_ERROR) { printf("Error! Uart0 write setup (async) failed with code: %d\n", error); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void UART1_Write_Async_ISR(uint8_t* data, uint32_t size)
+{
+	int error;
+
+	memcpy(g_Uart1_TxBuffer, data, (size < UART_BUFFER_SIZE) ? size : UART_BUFFER_SIZE);
+
+    mxc_uart_req_t uart1WriteRequest;
+    uart1WriteRequest.uart = MXC_UART1;
+    uart1WriteRequest.txData = g_Uart1_TxBuffer;
+    uart1WriteRequest.txLen = size;
+    uart1WriteRequest.rxLen = 0;
+    uart1WriteRequest.callback = NULL;
+
+    error = MXC_UART_TransactionAsync(&uart1WriteRequest);
+
+    if (error != E_NO_ERROR) { printf("Error! Uart1 write setup (async) failed with code: %d\n", error); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void InitSystemHardware_NS9100(void)
+{
+	//-------------------------------------------------------------------------
+	// Setup GPIO
+	//-------------------------------------------------------------------------
+	SetupGPIO();
+
 	//-------------------------------------------------------------------------
 	// Set General Purpose Low-Power registers
 	//-------------------------------------------------------------------------

@@ -15,7 +15,7 @@
 #include "Typedefs.h"
 #include "RealTimeClock.h"
 #include "SoftTimer.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "spi.h"
 
 ///----------------------------------------------------------------------------
@@ -122,6 +122,7 @@ void StartExternalRtcClock(uint16 sampleRate)
 		case 1024	: clockRate = 0x05; break;
 		case 512	: clockRate = 0x05; break;
 		case 1		: clockRate = 0x06; break;
+		default		: clockRate = 0x05; break; // set to 1024
 	}
 
 	rtcMap.clock_out_control = (clockRate);
@@ -490,7 +491,9 @@ void EnableExternalRtcAlarm(uint8 day, uint8 hour, uint8 minute, uint8 second)
 ///----------------------------------------------------------------------------
 void ExternalRtcWrite(uint8 registerAddress, int length, uint8* data)
 {
+#if 0 /* temp remove while unsed */
 	uint16 dataContainer = 0;
+#endif
 
 	if (g_spi1AccessLock != CAL_PULSE_LOCK)
 	{
@@ -528,7 +531,9 @@ void ExternalRtcWrite(uint8 registerAddress, int length, uint8* data)
 ///----------------------------------------------------------------------------
 void ExternalRtcRead(uint8 registerAddress, int length, uint8* data)
 {
+#if 0 /* temp remove while unused */
 	uint16 dataContainer = 0;
+#endif
 
 	if (g_spi1AccessLock != CAL_PULSE_LOCK)
 	{

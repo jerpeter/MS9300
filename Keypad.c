@@ -16,7 +16,7 @@
 #include "SoftTimer.h"
 #include "Display.h"
 #include "PowerManagement.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "SysEvents.h"
 #include "TextTypes.h"
 #include "M23018.h"

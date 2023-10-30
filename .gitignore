@@ -11,3 +11,5 @@ Makefile
 *.bin
 *.log
 *.md
+*.txt
+project_defines.h

@@ -19,7 +19,7 @@
 #include "PowerManagement.h"
 #include "InitDataBuffers.h"
 #include "SysEvents.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Keypad.h"
 #include "RemoteOperation.h"
 #include "ProcessBargraph.h"

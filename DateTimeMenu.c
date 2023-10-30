@@ -14,7 +14,7 @@
 #include "Menu.h"
 #include "RealTimeClock.h"
 #include "Display.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Keypad.h"
 #include "SoftTimer.h"
 #include "PowerManagement.h"
@@ -315,8 +315,8 @@ void DateTimeDvScroll(char dir_key, REC_MN_STRUCT *rec_ptr)
 void DisplayDateTimeMn(REC_MN_STRUCT *rec_ptr, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LAYOUT_STRUCT *mn_layout_ptr)
 {
 	uint8 sbuff[50];
-	uint8 top;
-	uint8 menu_ln;
+	//uint8 top;
+	//uint8 menu_ln;
 	uint8 length = 0;
 	uint32 halfSecTickDiff = 0;
 
@@ -328,8 +328,8 @@ void DisplayDateTimeMn(REC_MN_STRUCT *rec_ptr, WND_LAYOUT_STRUCT *wnd_layout_ptr
 	memset(&(g_mmap[0][0]), 0, sizeof(g_mmap));
 	memset(&sbuff[0], 0, sizeof(sbuff));
 
-	menu_ln = 0;
-	top = (uint8)mn_layout_ptr->top_ln;
+	//menu_ln = 0;
+	//top = (uint8)mn_layout_ptr->top_ln;
 
 	// Add in a title for the menu
 	length = (uint8)sprintf((char*)sbuff, "-%s-", getLangText(DATE_TIME_TEXT));

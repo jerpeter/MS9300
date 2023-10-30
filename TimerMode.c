@@ -21,7 +21,7 @@
 #include "RealTimeClock.h"
 #include "SysEvents.h"
 #include "Keypad.h"
-#include "Uart.h"
+#include "OldUart.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines

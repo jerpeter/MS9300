@@ -15,7 +15,7 @@
 #include "Board.h"
 #include "Common.h"
 #include "PowerManagement.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Record.h"
 #include "lcd.h"
 #include "M23018.h"

@@ -13,7 +13,7 @@
 #include "Common.h"
 #include "Menu.h"
 #include "Display.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Keypad.h"
 #include "TextTypes.h"
 #include "Sensor.h"
@@ -270,7 +270,7 @@ uint8 CheckAndDisplayErrorThatPreventsMonitoring(uint8 messageType)
 		errorCondition = YES;
 		debugWarn("Monitoring unavailable due to low battery voltage\r\n");
 
-		sprintf((char*)g_spareBuffer, "%s %s (%3.2f)", getLangText(BATTERY_VOLTAGE_TEXT), getLangText(LOW_TEXT), (GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE)));
+		sprintf((char*)g_spareBuffer, "%s %s (%3.2f)", getLangText(BATTERY_VOLTAGE_TEXT), getLangText(LOW_TEXT), (double)(GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE)));
 
 		if (g_lcdPowerFlag == ENABLED)
 		{

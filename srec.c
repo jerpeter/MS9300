@@ -37,11 +37,11 @@ uint32  bytes_loaded;
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-static char * Srec_UartGets(char *s, int channel)
+/* static */ char * Srec_UartGets(char *s, int channel)
 {
     char *b = s;
     bool end = FALSE;
-    int  data;
+    int  data = 0;
     int  count = 0;
 
     do

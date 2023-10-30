@@ -14,7 +14,7 @@
 #include "Record.h"
 #include "Display.h"
 #include "Typedefs.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "RealTimeClock.h"
 #include "Keypad.h"
 #include "TextTypes.h"
@@ -1284,12 +1284,12 @@ void CopyDataToMenu(MN_LAYOUT_STRUCT* menu_layout)
 				else if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE)
 				{
 					// Set the specifications line for the float type
-					sprintf(g_userMenuCachePtr[INTEGER_RANGE].text, "(%.3f-%.3f%s,N)", g_userMenuCacheData.floatMinValue, g_userMenuCacheData.floatMaxValue, unitTypes[MB_TYPE].text);
+					sprintf(g_userMenuCachePtr[INTEGER_RANGE].text, "(%.3f-%.3f%s,N)", (double)g_userMenuCacheData.floatMinValue, (double)g_userMenuCacheData.floatMaxValue, unitTypes[MB_TYPE].text);
 				}
 				else // (g_unitConfig.unitsOfAir == PSI_TYPE)
 				{
 					// Set the specifications line for the float type
-					sprintf(g_userMenuCachePtr[INTEGER_RANGE].text, "(%.4f-%.3f%s,N)", g_userMenuCacheData.floatMinValue, g_userMenuCacheData.floatMaxValue, unitTypes[PSI_UNIT_TYPE].text);
+					sprintf(g_userMenuCachePtr[INTEGER_RANGE].text, "(%.4f-%.3f%s,N)", (double)g_userMenuCacheData.floatMinValue, (double)g_userMenuCacheData.floatMaxValue, unitTypes[PSI_UNIT_TYPE].text);
 				}
 				// Check if the data is NO_TRIGGER
 				if (g_userMenuCacheData.numLongData == NO_TRIGGER_CHAR)
@@ -1306,7 +1306,7 @@ void CopyDataToMenu(MN_LAYOUT_STRUCT* menu_layout)
 					}
 					else // (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) || (g_unitConfig.unitsOfAir == PSI_TYPE)
 					{
-						sprintf(g_userMenuCachePtr[tempRow].text, "%.4f", g_userMenuCacheData.floatData);
+						sprintf(g_userMenuCachePtr[tempRow].text, "%.4f", (double)g_userMenuCacheData.floatData);
 					}
 				}
 			}
@@ -1341,57 +1341,57 @@ void CopyDataToMenu(MN_LAYOUT_STRUCT* menu_layout)
 					((g_factorySetupRecord.seismicSensorType == SENSOR_10_IN) && (g_triggerRecord.srec.sensitivity == LOW)))
 				{
 					sprintf(g_userMenuCachePtr[INTEGER_RANGE].text, "(%.3f-%.3f%s,N)",
-						g_userMenuCacheData.floatMinValue, g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
+						(double)g_userMenuCacheData.floatMinValue, (double)g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
 					sprintf(g_userMenuCachePtr[INTEGER_RANGE+1].text, "(+/- %.4f%s)",
-						g_userMenuCacheData.floatIncrement, g_userMenuCacheData.unitText);
+						(double)g_userMenuCacheData.floatIncrement, g_userMenuCacheData.unitText);
 
 					if (g_userMenuCacheData.numLongData == NO_TRIGGER_CHAR)
 						sprintf(g_userMenuCachePtr[tempRow].text, "N");
 					else
-						sprintf(g_userMenuCachePtr[tempRow].text, "%.4f", g_userMenuCacheData.floatData);
+						sprintf(g_userMenuCachePtr[tempRow].text, "%.4f", (double)g_userMenuCacheData.floatData);
 				}
 				else if (((g_factorySetupRecord.seismicSensorType == SENSOR_10_IN) && (g_triggerRecord.srec.sensitivity == HIGH)) ||
 						((g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER) && (g_triggerRecord.srec.sensitivity == HIGH)) ||
 						((g_factorySetupRecord.seismicSensorType == SENSOR_5_IN) && (g_triggerRecord.srec.sensitivity == LOW)))
 				{
 					sprintf(g_userMenuCachePtr[INTEGER_RANGE].text, "(%.4f-%.3f%s,N)",
-						g_userMenuCacheData.floatMinValue, g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
+						(double)g_userMenuCacheData.floatMinValue, (double)g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
 					sprintf(g_userMenuCachePtr[INTEGER_RANGE+1].text, "(+/- %.5f%s)",
-						g_userMenuCacheData.floatIncrement, g_userMenuCacheData.unitText);
+						(double)g_userMenuCacheData.floatIncrement, g_userMenuCacheData.unitText);
 
 					if (g_userMenuCacheData.numLongData == NO_TRIGGER_CHAR)
 						sprintf(g_userMenuCachePtr[tempRow].text, "N");
 					else
-						sprintf(g_userMenuCachePtr[tempRow].text, "%.5f", g_userMenuCacheData.floatData);
+						sprintf(g_userMenuCachePtr[tempRow].text, "%.5f", (double)g_userMenuCacheData.floatData);
 				}
 				else if (((g_factorySetupRecord.seismicSensorType == SENSOR_5_IN) && (g_triggerRecord.srec.sensitivity == HIGH)) ||
 						((g_factorySetupRecord.seismicSensorType == SENSOR_2_5_IN) && (g_triggerRecord.srec.sensitivity == LOW)))
 				{
 					sprintf(g_userMenuCachePtr[INTEGER_RANGE].text, "(%.5f-%.3f%s,N)",
-						g_userMenuCacheData.floatMinValue, g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
+						(double)g_userMenuCacheData.floatMinValue, (double)g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
 					sprintf(g_userMenuCachePtr[INTEGER_RANGE+1].text, "(+/- %.6f%s)",
-						g_userMenuCacheData.floatIncrement, g_userMenuCacheData.unitText);
+						(double)g_userMenuCacheData.floatIncrement, g_userMenuCacheData.unitText);
 
 					if (g_userMenuCacheData.numLongData == NO_TRIGGER_CHAR)
 						sprintf(g_userMenuCachePtr[tempRow].text, "N");
 					else
-						sprintf(g_userMenuCachePtr[tempRow].text, "%.6f", g_userMenuCacheData.floatData);
+						sprintf(g_userMenuCachePtr[tempRow].text, "%.6f", (double)g_userMenuCacheData.floatData);
 				}
 				else // ((g_factorySetupRecord.seismicSensorType == SENSOR_2_5_IN) && (g_triggerRecord.srec.sensitivity == HIGH))
 				{
 					if (g_unitConfig.unitsOfMeasure == IMPERIAL_TYPE)
 						sprintf(g_userMenuCachePtr[INTEGER_RANGE].text, "(%.6f-%.3f%s,N)",
-							g_userMenuCacheData.floatMinValue, g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
+							(double)g_userMenuCacheData.floatMinValue, (double)g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
 					else
 						sprintf(g_userMenuCachePtr[INTEGER_RANGE].text, "(%0.6f-%.3f%s,N)",
-							g_userMenuCacheData.floatMinValue, g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
+							(double)g_userMenuCacheData.floatMinValue, (double)g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
 					sprintf(g_userMenuCachePtr[INTEGER_RANGE+1].text, "(+/- %.7f%s)",
-						g_userMenuCacheData.floatIncrement, g_userMenuCacheData.unitText);
+						(double)g_userMenuCacheData.floatIncrement, g_userMenuCacheData.unitText);
 
 					if (g_userMenuCacheData.numLongData == NO_TRIGGER_CHAR)
 						sprintf(g_userMenuCachePtr[tempRow].text, "N");
 					else
-						sprintf(g_userMenuCachePtr[tempRow].text, "%.7f", g_userMenuCacheData.floatData);
+						sprintf(g_userMenuCachePtr[tempRow].text, "%.7f", (double)g_userMenuCacheData.floatData);
 				}
 			}
 			else //(USER_MENU_TYPE(g_userMenuCachePtr) != INTEGER_SPECIAL_TYPE, INTEGER_COUNT_TYPE
@@ -1438,55 +1438,55 @@ void CopyDataToMenu(MN_LAYOUT_STRUCT* menu_layout)
 			{
 				// Set the specifications line
 				sprintf(g_userMenuCachePtr[FLOAT_RANGE].text, "(%.2f-%.2f%s,N)",
-					g_userMenuCacheData.floatMinValue, g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
+					(double)g_userMenuCacheData.floatMinValue, (double)g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
 				sprintf(g_userMenuCachePtr[FLOAT_RANGE+1].text, "(+/- %.3f%s)",
-					g_userMenuCacheData.floatIncrement, g_userMenuCacheData.unitText);
+					(double)g_userMenuCacheData.floatIncrement, g_userMenuCacheData.unitText);
 
 				if (g_userMenuCacheData.floatData == NO_TRIGGER_CHAR)
 					sprintf(g_userMenuCachePtr[tempRow].text, "N");
 				else
-					sprintf(g_userMenuCachePtr[tempRow].text, "%.2f", g_userMenuCacheData.floatData);
+					sprintf(g_userMenuCachePtr[tempRow].text, "%.2f", (double)g_userMenuCacheData.floatData);
 			}
 			else if (USER_MENU_TYPE(g_userMenuCachePtr) == FLOAT_WITH_N_TYPE)
 			{
 				sprintf(g_userMenuCachePtr[FLOAT_RANGE].text, "%s: N,%.0f-%.0f %s", getLangText(RANGE_TEXT),
-					(g_userMenuCacheData.floatMinValue + 1), g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
+					(double)(g_userMenuCacheData.floatMinValue + 1), (double)g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
 
 				if (g_userMenuCacheData.floatData == 0.0)
 					sprintf(g_userMenuCachePtr[tempRow].text, "N");
 				else
-					sprintf(g_userMenuCachePtr[tempRow].text, "%.0f", g_userMenuCacheData.floatData);
+					sprintf(g_userMenuCachePtr[tempRow].text, "%.0f", (double)g_userMenuCacheData.floatData);
 			}
 			// The following auto adjusts the formats based on the increment value
 			else if (g_userMenuCacheData.floatIncrement >= (float)(1.0))
 			{
 				sprintf(g_userMenuCachePtr[FLOAT_RANGE].text, "%s: %.0f-%.0f %s", getLangText(RANGE_TEXT),
-					g_userMenuCacheData.floatMinValue, g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
-				sprintf(g_userMenuCachePtr[tempRow].text, "%.0f", g_userMenuCacheData.floatData);
+					(double)g_userMenuCacheData.floatMinValue, (double)g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
+				sprintf(g_userMenuCachePtr[tempRow].text, "%.0f", (double)g_userMenuCacheData.floatData);
 			}
 			else if (g_userMenuCacheData.floatIncrement >= (float)(0.1))
 			{
 				sprintf(g_userMenuCachePtr[FLOAT_RANGE].text, "%s: %.1f-%.1f %s", getLangText(RANGE_TEXT),
-					g_userMenuCacheData.floatMinValue, g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
-				sprintf(g_userMenuCachePtr[tempRow].text, "%.1f", g_userMenuCacheData.floatData);
+					(double)g_userMenuCacheData.floatMinValue, (double)g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
+				sprintf(g_userMenuCachePtr[tempRow].text, "%.1f", (double)g_userMenuCacheData.floatData);
 			}
 			else if (g_userMenuCacheData.floatIncrement >= (float)(0.01))
 			{
 				sprintf(g_userMenuCachePtr[FLOAT_RANGE].text, "%s: %.2f-%.2f %s", getLangText(RANGE_TEXT),
-					g_userMenuCacheData.floatMinValue, g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
-				sprintf(g_userMenuCachePtr[tempRow].text, "%.2f", g_userMenuCacheData.floatData);
+					(double)g_userMenuCacheData.floatMinValue, (double)g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
+				sprintf(g_userMenuCachePtr[tempRow].text, "%.2f", (double)g_userMenuCacheData.floatData);
 			}
 			else if (g_userMenuCacheData.floatIncrement >= (float)(0.001))
 			{
 				sprintf(g_userMenuCachePtr[FLOAT_RANGE].text, "%s: %.3f-%.3f %s", getLangText(RANGE_TEXT),
-					g_userMenuCacheData.floatMinValue, g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
-				sprintf(g_userMenuCachePtr[tempRow].text, "%.3f", g_userMenuCacheData.floatData);
+					(double)g_userMenuCacheData.floatMinValue, (double)g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
+				sprintf(g_userMenuCachePtr[tempRow].text, "%.3f", (double)g_userMenuCacheData.floatData);
 			}
 			else
 			{
 				sprintf(g_userMenuCachePtr[FLOAT_RANGE].text, "%s: %.4f-%.4f %s", getLangText(RANGE_TEXT),
-					g_userMenuCacheData.floatMinValue, g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
-				sprintf(g_userMenuCachePtr[tempRow].text, "%.4f", g_userMenuCacheData.floatData);
+					(double)g_userMenuCacheData.floatMinValue, (double)g_userMenuCacheData.floatMaxValue, g_userMenuCacheData.unitText);
+				sprintf(g_userMenuCachePtr[tempRow].text, "%.4f", (double)g_userMenuCacheData.floatData);
 			}
 		break;
 		

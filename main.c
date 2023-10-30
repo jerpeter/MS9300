@@ -23,7 +23,7 @@
 #include "Common.h"
 #include "Display.h"
 #include "Menu.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "spi.h"
 #include "ProcessBargraph.h"
 #include "SysEvents.h"
@@ -148,7 +148,7 @@ void SystemEventManager(void)
 		}
 
 		sprintf((char*)g_spareBuffer, "%s %s (%3.2f) %s", getLangText(BATTERY_VOLTAGE_TEXT), getLangText(LOW_TEXT),
-				(GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE)), getLangText(PLEASE_CHARGE_BATTERY_TEXT));
+				(double)(GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE)), getLangText(PLEASE_CHARGE_BATTERY_TEXT));
 		OverlayMessage(getLangText(WARNING_TEXT), (char*)g_spareBuffer, (1 * SOFT_SECS));
 
 		g_lowBatteryState = YES;
@@ -613,11 +613,12 @@ extern Bool ushell_cmd_syncevents(uint8, uint16_t*, uint16_t*, uint16_t*, uint16
 void UsbDeviceManager(void)
 {
 	INPUT_MSG_STRUCT mn_msg;
+#if 0 /* temp remove while unused */
 	uint16 totalFilesCopied;
 	uint16 totalFilesSkipped;
 	uint16 totalFilesReplaced;
 	uint16 totalFilesDuplicated;
-
+#endif
 	//___________________________________________________________________________________________
 	//
 	// USB Driver Init
@@ -1203,8 +1204,10 @@ void BootLoadManager(void)
 {
 	static void (*func)(void);
 	func = (void(*)())APPLICATION;
+#if 0 /* temp remove while unused */
 	int file = -1;
 	uint32 baudRate;
+#endif
 
 	// Check if requested to jump to boot
 	if (g_quickBootEntryJump)
@@ -1369,7 +1372,8 @@ void BootLoadManager(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-static uint8 rs232PutToSleepState = NO;
+/* static removed from rs232PutToSleepState since inline functons which reference aren't static */
+uint8 rs232PutToSleepState = NO;
 inline void SetupPowerSavingsBeforeSleeping(void)
 {
 	// Check if Rs232 power savings is enabled
@@ -1396,7 +1400,7 @@ inline void SetupPowerSavingsBeforeSleeping(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-inline void RevertPowerSavingsAfterSleeping(void)
+/* inline */ void RevertPowerSavingsAfterSleeping(void)
 {
 #if 0 /* old hw */
 	// Disable pull ups on the data lines
@@ -1554,7 +1558,9 @@ void TestExternalSamplingSource(void)
 #include "fsaccess.h"
 #endif
 
+#if 0 /* temp remove while unused */
 static char s_errorReportFilename[] = LOGS_PATH EXCEPTION_REPORT_FILE;
+#endif
 void CheckExceptionReportLogExists(void)
 {
 #if 0 /* old hw */
@@ -1584,6 +1590,9 @@ void exception(uint32_t r12, uint32_t r11, uint32_t r10, uint32_t r9, uint32_t e
 	int LCPT = -1;
 	int exceptionReportFile;
 	uint16 loops = 5;
+#if 1 /* temp */
+	UNUSED(exceptionReportFile);
+#endif
 
 	// Adjust Stack pointer to pre-exception value (PC and SR are 4 bytes each)
 	sp += 8;
@@ -1801,9 +1810,9 @@ void EnableGlobalException(void)
 int main(void)
 {
 	// Initialize the system
-	InitSystemHardware_NS8100();
-	InitInterrupts_NS8100();
-	InitSoftwareSettings_NS8100();
+	InitSystemHardware_NS9100();
+	InitInterrupts_NS9100();
+	InitSoftwareSettings_NS9100();
 	EnableGlobalException();
 
  	// ==============

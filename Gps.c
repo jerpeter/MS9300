@@ -14,7 +14,7 @@
 #include <stdarg.h>
 #include <math.h>
 #include "Common.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Menu.h"
 #include "SoftTimer.h"
 #include "PowerManagement.h"
@@ -1087,7 +1087,7 @@ int nmea_scanf(const char *buff, int buff_sz, const char *format, ...)
 			beg_fmt = format;
 			tok_type = NMEA_TOKS_WIDTH;
 			case NMEA_TOKS_WIDTH:
-			if(isdigit(*format))
+			if(isdigit((int)*format))
 			break;
 			{
 				tok_type = NMEA_TOKS_TYPE;
@@ -1243,6 +1243,10 @@ void GpsSendBinaryMessage(uint8* binaryMessage, uint16 messageLength)
 {
 	uint8 checksum = 0;
 	uint16 i = 4;
+#if 1 /* temp */
+	UNUSED(checksum);
+	UNUSED(i);
+#endif
 
 	// Calculate checksum of the message payload which starts with the 5th byte
 #if 0

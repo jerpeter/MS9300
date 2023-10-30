@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "Common.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Display.h"
 #include "Menu.h"
 #include "SoftTimer.h"
@@ -566,11 +566,16 @@ void InitVersionMsg(void)
 void BuildLanguageLinkTable(uint8 languageSelection)
 {
 	uint16 i, currIndex;
-	int languageFile = -1;
 	char languageFilename[50];
 	char promptTitle[25];
+#if 0 /* temp remove while unused */
+	int languageFile = -1;
+#endif
 	uint16 sizeCheck;
-	uint32 fileSize;
+	uint32 fileSize = 0;
+#if 1 /* temp */
+	UNUSED(sizeCheck);
+#endif
 
 	memset((char*)&languageFilename[0], 0, sizeof(languageFilename));
 	strcpy((char*)&languageFilename[0], LANGUAGE_PATH);
@@ -724,7 +729,9 @@ void BuildLanguageLinkTable(uint8 languageSelection)
 extern const char default_boot_name[];
 void CheckBootloaderAppPresent(void)
 {
+#if 0 /* temp remove while unused */
 	int file = -1;
+#endif
 
 	if (g_fileAccessLock != AVAILABLE)
 	{
@@ -763,7 +770,9 @@ void CheckBootloaderAppPresent(void)
 #define DISABLE_OCD_MODULE	0
 void AdjustPowerSavings(void)
 {
+#if 0 /* temp remove while unused */
 	uint32 usartRetries = 100; //USART_DEFAULT_TIMEOUT;
+#endif
 	uint8 powerSavingsLevel = POWER_SAVINGS_NORMAL;
 
 #if (GLOBAL_DEBUG_PRINT_ENABLED)

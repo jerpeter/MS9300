@@ -13,7 +13,7 @@
 #include "Typedefs.h"
 #include "Board.h"
 #include "Sensor.h"
-#include "Uart.h"
+#include "OldUart.h"
 #include "Crc.h"
 #include "string.h"
 #include "PowerManagement.h"
@@ -834,6 +834,11 @@ void SmartSensorDebug(SMART_SENSOR_TYPE sensor)
 	uint32 crc32 = 0;
 	uint32 crc16 = 0;
 	uint32 crc16seed0 = 0;
+#if 1 /* temp */
+	UNUSED(crc32);
+	UNUSED(crc16);
+	UNUSED(crc16seed0);
+#endif
 
 	debugRaw("\r\n--------%s Sensor Data-------\r\n\n", (sensor == SEISMIC_SENSOR) ? "Seismic" : "Acoustic");
 
@@ -948,7 +953,7 @@ void DisplaySmartSensorInfo(SMART_SENSOR_INFO situation)
 		// ST(0) = 2.5 = X8, ST(1) = 5.12 = X4, ST(2) = 10.24 = X2, ST(3) = 20.48 = X1
 		sprintf((char*)g_spareBuffer, "%s: %s %s, %s: X%d (%4.2f %s)", getLangText(DISCOVERED_TEXT), getLangText(SEISMIC_TEXT), getLangText(SMART_SENSOR_TEXT), getLangText(TYPE_TEXT),
 				(uint8)(8 / pow(2, g_seismicSmartSensorMemory.sensorType)),
-				(g_seismicSmartSensorMemory.sensorType < 0x80) ? (pow(2,g_seismicSmartSensorMemory.sensorType) * 2.56) : ((pow(2, (g_seismicSmartSensorMemory.sensorType - 0x80)) * 65.535)),
+				(g_seismicSmartSensorMemory.sensorType < 0x80) ? (pow(2,g_seismicSmartSensorMemory.sensorType) * (double)2.56) : ((pow(2, (g_seismicSmartSensorMemory.sensorType - 0x80)) * (double)65.535)),
 				(g_seismicSmartSensorMemory.sensorType < 0x80) ? ("IN") : ("MM"));
 		debug("Discovered: Seismic smart sensor, type: X%d (%4.2f %s)\r\n", (uint8)(8 / pow(2, g_seismicSmartSensorMemory.sensorType)), (pow(2,g_seismicSmartSensorMemory.sensorType) * 2.56), ("IN"));
 	}
@@ -998,7 +1003,7 @@ void DisplaySmartSensorSerialNumber(SMART_SENSOR_TYPE sensor)
 		sprintf(serialNumber, "%d%d%d%d%d%d", serialNumBuffer[0], serialNumBuffer[1], serialNumBuffer[2], serialNumBuffer[3], serialNumBuffer[4], serialNumBuffer[5]);
 		sprintf((char*)g_spareBuffer, "%s SN#: %s, %s: X%d (%4.2f %s)", getLangText(SEISMIC_TEXT), serialNumber, getLangText(TYPE_TEXT),
 				(uint8)(8 / pow(2, g_seismicSmartSensorMemory.sensorType)),
-				(g_seismicSmartSensorMemory.sensorType < 0x80) ? (pow(2,g_seismicSmartSensorMemory.sensorType) * 2.56) : ((pow(2, (g_seismicSmartSensorMemory.sensorType - 0x80)) * 65.535)),
+				(g_seismicSmartSensorMemory.sensorType < 0x80) ? (pow(2,g_seismicSmartSensorMemory.sensorType) * (double)2.56) : ((pow(2, (g_seismicSmartSensorMemory.sensorType - 0x80)) * (double)65.535)),
 				(g_seismicSmartSensorMemory.sensorType < 0x80) ? ("IN") : ("MM"));
 		MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK);
 	}
