@@ -397,6 +397,11 @@ typedef enum {
 	EEPROM_LOCK
 } SPI1_LOCK_TYPE;
 
+typedef enum {
+	BLOCKING = 1,
+	ASYNC_ISR
+} HANDLING_METHOD;
+
 typedef struct
 {
 	uint16 freq_count;

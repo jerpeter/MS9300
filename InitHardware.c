@@ -1834,11 +1834,6 @@ void SetupWatchdog(void)
 #define SPI_SPEED_LCD 10000000 // Bit Rate
 //#define SPI_WIDTH_DUAL	2
 
-enum {
-	BLOCKING = 1,
-	ASYNC_ISR
-};
-
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -1866,7 +1861,7 @@ void SPI_Callback(mxc_spi_req_t *req, int result)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataSize, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method)
+void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method)
 {
 	mxc_spi_req_t spiRequest;
 	IRQn_Type spiIrq;
@@ -1883,7 +1878,8 @@ void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataSize, uint8_t* writeDat
 	spiRequest.rxCnt = 0;
 	spiRequest.completeCB = (spi_complete_cb_t)SPI_Callback;
 
-	MXC_SPI_SetDataSize(spiPort, dataSize);
+	// Set the number of data bits for the transfer
+	MXC_SPI_SetDataSize(spiPort, dataBits);
 
 	if (method == BLOCKING)
 	{

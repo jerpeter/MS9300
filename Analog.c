@@ -24,6 +24,7 @@
 //#include "tc.h"
 //#include "twi.h"
 #include "spi.h"
+#include "mxc_delay.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -895,4 +896,238 @@ void ZeroingSensorCalibration(void)
 	StopADDataCollectionForCalibration();
 
 	clearSystemEventFlag(UPDATE_OFFSET_EVENT);
+}
+
+///============================================================================
+///----------------------------------------------------------------------------
+///	External ADC - AD4695
+///----------------------------------------------------------------------------
+///============================================================================
+uint8_t TEST_DATA = 0x1f; //can be changed
+
+uint8_t WBuf[3];
+uint8_t WBuf2[3];
+uint8_t RBuf[3];
+uint8_t TestData;
+
+uint8_t TestRegisterAccessModeCTR;
+uint8_t TestBusyState;
+uint8_t TestSTD_Sq_Mode_OSR;
+uint8_t TestSet_STD_Mode;
+uint8_t TestSetRef;
+uint8_t TestSTD_En_Channels;
+uint8_t TestEnterConservationMode;
+uint8_t TestSDO_State;
+
+AD4695_Init_Error_Struct AD4695_Init_Error;
+
+extern void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method);
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD4695_Test() //test the SPI com
+{
+	while(TestData != TEST_DATA)
+	{
+		SPI_Write_Reg_AD4695(AD4695_REG_SCRATCH_PAD, TEST_DATA);
+		SPI_Read_Reg_AD4695(AD4695_REG_SCRATCH_PAD, &TestData);
+
+		// Delay 100ms?
+		MXC_Delay(MXC_DELAY_MSEC(100));
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SPI_Write_Reg_AD4695(uint16_t reg_addr, uint8_t reg_data)
+{
+	WBuf[0] = ((reg_addr >> 8) & 0x7F);
+	WBuf[1] = 0xFF & reg_addr;
+	WBuf[2] = reg_data;
+
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, WBuf, sizeof(WBuf), NULL, 0, BLOCKING);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SPI_Read_Reg_AD4695(uint16_t reg_addr, uint8_t* reg_data)
+{
+	WBuf2[0] = (1 << 7) | ((reg_addr >> 8) & 0x7F);
+	WBuf2[1] = 0xFF & reg_addr;
+	WBuf2[2] = 0xFF;
+
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, WBuf2, sizeof(WBuf2), RBuf, sizeof(RBuf), BLOCKING);
+	*reg_data = RBuf[2];
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SPI_Read_Mask(uint16_t reg_addr, uint8_t mask, uint8_t* data)
+{
+	uint8_t Reg_Data[3];
+
+	SPI_Read_Reg_AD4695(reg_addr, Reg_Data);
+	*data = (Reg_Data[2] & mask);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SPI_Write_Mask(uint16_t reg_addr, uint8_t mask, uint8_t data)
+{
+	uint8_t Reg_Data;
+
+	SPI_Read_Reg_AD4695(reg_addr, &Reg_Data);
+	Reg_Data &= ~mask;
+	Reg_Data |= data;
+	SPI_Write_Reg_AD4695(reg_addr, Reg_Data);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD5695_Register_Access_Mode(enum ad4695_reg_access access)
+{
+	SPI_Write_Mask(AD4695_REG_SPI_CONFIG_C, AD4695_REG_SPI_CONFIG_C_MB_STRICT_MASK, AD4695_REG_SPI_CONFIG_C_MB_STRICT(access));
+	SPI_Read_Reg_AD4695(AD4695_REG_SPI_CONFIG_C, &TestRegisterAccessModeCTR);
+
+	if(TestRegisterAccessModeCTR != WBuf[2]) { AD4695_Init_Error.RegisterAccessMode = TRUE; }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD4695_Set_Busy_State(/*enum ad4695_busy_gpio_sel gp_sel*/)
+{
+	SPI_Write_Mask(AD4695_REG_GP_MODE, AD4695_GP_MODE_BUSY_GP_EN_MASK, AD4695_GP_MODE_BUSY_GP_EN(1));
+	//SPI_Write_Mask(AD4695_REG_GP_MODE, AD4695_GP_MODE_BUSY_GP_SEL_MASK, AD4695_GP_MODE_BUSY_GP_SEL(gp_sel));
+	SPI_Read_Reg_AD4695(AD4695_REG_GP_MODE, &TestBusyState);
+
+	if(TestBusyState != WBuf[2]) { AD4695_Init_Error.BusyState = TRUE; }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD4695_Set_SDO_Mode(void)
+{
+	uint8_t verify;
+
+	SPI_Write_Mask(AD4695_REG_GP_MODE, AD4695_GP_MODE_SDO_BUSY_MASK, AD4695_GP_MODE_SDO_BUSY_SEL(AD4695_DUAL_SDO_MODE));
+	SPI_Read_Reg_AD4695(AD4695_REG_GP_MODE, &verify);
+
+	if(verify != WBuf[2]) { /* report error */ }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD4695_Standart_Seq_MODEandOSR(enum ad4695_osr_ratios ratio) /*over sampling ratio in standard sequencer mode*/
+{
+	SPI_Write_Mask(AD4695_REG_CONFIG_IN(0), AD4695_REG_CONFIG_IN_OSR_MASK, AD4695_REG_CONFIG_IN_OSR(ratio));
+	SPI_Read_Reg_AD4695(AD4695_REG_CONFIG_IN(0), &TestSTD_Sq_Mode_OSR);
+
+	if(TestSTD_Sq_Mode_OSR != WBuf[2]){ AD4695_Init_Error.STD_Sq_Mode_OSR = TRUE; }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD4695_Standart_MODE_SET() /*Standard Sequencer Enable Bit*/
+{
+	SPI_Write_Mask(AD4695_REG_SEQ_CTRL, AD4695_SEQ_CTRL_STD_SEQ_EN_MASK, AD4695_SEQ_CTRL_STD_SEQ_EN(1));
+	SPI_Read_Reg_AD4695(AD4695_REG_SEQ_CTRL, &TestSet_STD_Mode);
+
+	if(TestSet_STD_Mode != WBuf[2]) { AD4695_Init_Error.Set_STD_Mode = TRUE; }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD4695_RefControl(enum ad4695_ref REF)
+{
+	/*Reference Input Range Control  0x0: 2.4 V ≤ VREF ≤ 2.75 V.
+		0x1: 2.75 V < VREF ≤ 3.25 V.
+		0x2: 3.25 V < VREF ≤ 3.75 V.
+		0x3: 3.75 V < VREF ≤ 4.50 V.
+		0x4: 4.5 V < VREF ≤ 5.10 V.*/
+
+	SPI_Write_Mask(AD4695_REG_REF_CTRL, AD4695_REG_REF_CTRL_MASK, AD4695_REG_REF_CTRL_EN(REF));
+	SPI_Read_Reg_AD4695(AD4695_REG_REF_CTRL, &TestSetRef);
+
+	if(TestSetRef != WBuf[2]) { AD4695_Init_Error.SetRef = TRUE; }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD4695_STD_SEQ_EN_Channels(uint16_t reg_addr)
+{
+	//uint8_t Reg_Data;
+
+	SPI_Write_Reg_AD4695(reg_addr, (AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_AOP_1));
+	//SPI_Write_Reg_AD4695(reg_addr, (AD4695_STD_SEQ_GEO_2 | AD4695_STD_SEQ_AOP_2));
+	//SPI_Write_Reg_AD4695(reg_addr, (AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_GEO_2));
+	//SPI_Write_Reg_AD4695(reg_addr, (AD4695_STD_SEQ_AOP_1 | AD4695_STD_SEQ_AOP_2));
+	//SPI_Write_Reg_AD4695(reg_addr, (AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_AOP_1 | AD4695_STD_SEQ_GEO_2 | AD4695_STD_SEQ_AOP_2));
+
+	SPI_Read_Reg_AD4695(reg_addr, &TestSTD_En_Channels);
+
+	if(TestSTD_En_Channels != WBuf[2]) { AD4695_Init_Error.STD_En_Channels = TRUE; }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD4695_Autocycle_MODE_SET(uint16_t reg_addr)
+{
+	uint8_t Reg_Data;
+
+	SPI_Write_Reg_AD4695(reg_addr, 0x01);
+	SPI_Read_Reg_AD4695(reg_addr, &Reg_Data);;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD4695_Init()
+{
+	//This field disables the CRC
+	AD5695_Register_Access_Mode(AD4695_BYTE_ACCESS); //individual bytes in multibyte registers are read from or written to in individual data phases
+	//AD4695_Set_Busy_State();
+	AD4695_Standart_Seq_MODEandOSR(AD4695_OSR_1); //16 bit not 17,18 or 19
+	AD4695_Standart_MODE_SET(); //Standard mode is set
+	AD4695_RefControl(R2V4_2V7); /*Setting the reference voltage */
+	AD4695_STD_SEQ_EN_Channels(AD4695_REG_STD_SEQ_CONFIG); /*Enables selected channels*/
+	AD4695_Enter_Conservation_Mode(); /*Enters conservation mode*/
+
+	// Delay 100ms?
+	MXC_Delay(MXC_DELAY_MSEC(100));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD4695_Enter_Conservation_Mode() /*Enter conversion mode*/
+{
+	SPI_Write_Mask(AD4695_REG_SETUP, AD4695_SETUP_IF_SDO_STATE_MASK, AD4695_SETUP_IF_SDO_STATE);
+	SPI_Read_Reg_AD4695(AD4695_REG_SETUP, &TestSDO_State);
+
+	if(TestSDO_State != WBuf[2]) { AD4695_Init_Error.SDO_State = TRUE; }
+
+	SPI_Write_Mask(AD4695_REG_SETUP, AD4695_SETUP_IF_MODE_MASK, AD4695_SETUP_IF_MODE_CONV);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD4695_Exit_Conservation_Mode() /*To pass from conservaiton mode to register configuration mode */
+{
+	uint8_t command = AD4695_CMD_REG_CONFIG_MODE;
+
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, &command, sizeof(command), NULL, 0, BLOCKING);
 }
