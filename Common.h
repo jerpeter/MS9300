@@ -696,6 +696,6 @@ uint8 CheckTriggerSourceExists(void);
 void ProcessUsbCoreHandling(void);
 
 // Wrapper to help I2C slave device comms
-void WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize);
+int WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize);
 
 #endif // _COMMON_H_

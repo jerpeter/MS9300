@@ -1723,7 +1723,7 @@ void UART1_Write_Async_ISR(uint8_t* data, uint32_t size)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize)
+int WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize)
 {
 	int status;
 
@@ -1739,6 +1739,8 @@ void WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* writ
 
     status = MXC_I2C_MasterTransaction(&masterRequest);
 	if (status != E_SUCCESS) { printf("Error! I2C%d Master transaction to Slave (%02x) failed with code: %d\n", ((i2cChannel == MXC_I2C0) ? 0 : 1), slaveAddr, status); }
+
+	return (status);
 }
 
 #if 0 /* Used if setting up the MXC I2C as a slave */

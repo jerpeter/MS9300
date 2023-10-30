@@ -9,6 +9,7 @@
 ///	Includes
 ///----------------------------------------------------------------------------
 #include <stdio.h>
+#include <string.h>
 #include "Typedefs.h"
 #include "Common.h"
 #include "OldUart.h"
@@ -18,6 +19,7 @@
 #include "M23018.h"
 #include "lcd.h"
 
+#include "mxc_errors.h"
 #include "i2c.h"
 //#include "navigation.h"
 
@@ -511,6 +513,11 @@ void PowerUnitOff(uint8 powerOffMode)
 	while (1) { /* do nothing */ };
 }
 
+///============================================================================
+///----------------------------------------------------------------------------
+///	Battery charger - MP2651
+///----------------------------------------------------------------------------
+///============================================================================
 /*
 MP2651 REGISTER MAP
 -------------------------------------------------------------------------------------------------------------
@@ -875,4 +882,379 @@ uint16_t GetBattChargerOutputCurrentInDischargeMode(void)
 
 	// Result units: mA
 	return ((uint16_t)result);
+}
+
+///============================================================================
+///----------------------------------------------------------------------------
+///	Fuel Guage - LTC2944
+///----------------------------------------------------------------------------
+///============================================================================
+/*
+ADDR NAME REGISTER DESCRIPTION R/W DEFAULT
+00h	A	Status	R	See Table 2
+01h	B	Control	R/W	3Ch
+02h	C	Accumulated Charge MSB	R/W	7Fh
+03h	D	Accumulated Charge LSB	R/W	FFh
+04h	E	Charge Threshold High MSB	R/W	FFh
+05h	F	Charge Threshold High LSB	R/W	FFh
+06h	G	Charge Threshold Low MSB	R/W	00h
+07h	H	Charge Threshold Low LSB	R/W	00h
+08h	I	Voltage MSB	R	00h
+09h	J	Voltage LSB	R	00h
+0Ah	K	Voltage Threshold High MSB	R/W	FFh
+0Bh	L	Voltage Threshold High LSB	R/W	FFh
+0Ch	M	Voltage Threshold Low MSB	R/W	00h
+0Dh	N	Voltage Threshold Low LSB	R/W	00h
+0Eh	O	Current MSB	R	00h
+0Fh	P	Current LSB	R	00h
+10h	Q	Current Threshold High MSB	R/W	FFh
+11h	R	Current Threshold High LSB	R/W	FFh
+12h	S	Current Threshold Low MSB	R/W	00h
+13h	T	Current Threshold Low LSB	R/W	00h
+14h	U	Temperature MSB	R	00h
+15h	V	Temperature LSB	R	00h
+16h	W	Temperature Threshold High	R/W	FFh
+17h	X	Temperature Threshold Low	R/W	00h
+*/
+/*
+ * I2C client/driver for the Linear Technology LTC2941, LTC2942, LTC2943 and LTC2944 Battery Gas Gauge IC
+ * Copyright (C) 2014 Topic Embedded Systems
+ * Author: Auryn Verwegen
+ * Author: Mike Looijmans
+ */
+
+#define I16_MSB(x)			((x >> 8) & 0xFF)
+#define I16_LSB(x)			(x & 0xFF)
+
+//#define LTC294X_WORK_DELAY		10	/* Update delay in seconds */
+
+#define LTC294X_MAX_VALUE		0xFFFF
+#define LTC294X_MID_SUPPLY		0x7FFF
+
+enum ltc294x_reg {
+	LTC294X_REG_STATUS					= 0x00,
+	LTC294X_REG_CONTROL					= 0x01,
+	LTC294X_REG_ACC_CHARGE_MSB			= 0x02,
+	LTC294X_REG_ACC_CHARGE_LSB			= 0x03,
+	LTC294X_REG_CHARGE_THR_HIGH_MSB		= 0x04,
+	LTC294X_REG_CHARGE_THR_HIGH_LSB		= 0x05,
+	LTC294X_REG_CHARGE_THR_LOW_MSB		= 0x06,
+	LTC294X_REG_CHARGE_THR_LOW_LSB		= 0x07,
+	LTC294X_REG_VOLTAGE_MSB				= 0x08,
+	LTC294X_REG_VOLTAGE_LSB				= 0x09,
+	LTC294X_REG_VOLTAGE_THR_HIGH_MSB 	= 0x0A,
+	LTC294X_REG_VOLTAGE_THR_HIGH_LSB 	= 0x0B,
+	LTC294X_REG_VOLTAGE_THR_LOW_MSB 	= 0x0C,
+	LTC294X_REG_VOLTAGE_THR_LOW_LSB 	= 0x0D,
+	LTC2943_REG_CURRENT_MSB				= 0x0E,
+	LTC2943_REG_CURRENT_LSB				= 0x0F,
+	LTC2943_REG_CURRENT_THR_HIGH_MSB	= 0x10,
+	LTC2943_REG_CURRENT_THR_HIGH_LSB	= 0x11,
+	LTC2943_REG_CURRENT_THR_LOW_MSB		= 0x12,
+	LTC2943_REG_CURRENT_THR_LOW_LSB		= 0x13,
+	LTC2943_REG_TEMPERATURE_MSB			= 0x14,
+	LTC2943_REG_TEMPERATURE_LSB			= 0x15,
+	LTC2943_REG_TEMPERATURE_THR_HIGH 	= 0x16,
+	LTC2943_REG_TEMPERATURE_THR_LOW 	= 0x17
+};
+
+#define LTC2941_REG_STATUS_CHIP_ID	(1 << 7)
+
+#define LTC2942_REG_CONTROL_MODE_SCAN	((1 << 7) | (1 << 6))
+#define LTC2943_REG_CONTROL_MODE_SCAN	(1 << 7)
+#define LTC294X_REG_CONTROL_PRESCALER_MASK	((1 << 5) | (1 << 4) | (1 << 3))
+#define LTC294X_REG_CONTROL_SHUTDOWN_MASK	((1 << 0))
+#define LTC294X_REG_CONTROL_PRESCALER_SET(x)	((x << 3) & LTC294X_REG_CONTROL_PRESCALER_MASK)
+#define LTC294X_REG_CONTROL_ALCC_CONFIG_DISABLED	0
+#define LTC294X_REG_CONTROL_ADC_DISABLE(x)	((x) & ~((1 << 7) | (1 << 6)))
+
+#define LTC294X_PRESCALER_1		0x0
+#define LTC294X_PRESCALER_4		0x1
+#define LTC294X_PRESCALER_16	0x2
+#define LTC294X_PRESCALER_64	0x3
+#define LTC294X_PRESCALER_256	0x4
+#define LTC294X_PRESCALER_1024	0x5
+#define LTC294X_PRESCALER_4096	0x6
+#define LTC294X_MAX_PRESCALER	4096
+
+
+struct ltc294x_info {
+	//struct power_supply *supply; // Supply pointer
+	//struct power_supply_desc supply_desc; // Supply description
+	//struct delayed_work work; // Work scheduler
+	//enum ltc294x_id id; // Chip type
+	int charge; // Last charge register content
+	int r_sense; // mOhm
+	int Qlsb; // nAh
+};
+struct ltc294x_info ltc2944_device;
+
+inline int convert_bin_to_uAh(const struct ltc294x_info *info, int Q)
+{
+	return (((Q * (info->Qlsb / 10))) / 100);
+}
+
+inline int convert_uAh_to_bin(const struct ltc294x_info *info, int uAh)
+{
+	int Q;
+
+	Q = (uAh * 100) / (info->Qlsb/10);
+	return ((Q < LTC294X_MAX_VALUE) ? Q : LTC294X_MAX_VALUE);
+}
+
+int ltc294x_read_regs(enum ltc294x_reg reg, uint8_t *buf, int bufSize)
+{
+	return (WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GUAGE, &reg, sizeof(uint8_t), buf, bufSize));
+}
+
+int ltc294x_write_regs(enum ltc294x_reg reg, const uint8_t *buf, int bufSize)
+{
+	g_spareBuffer[0] = reg;
+	memcpy(&g_spareBuffer[1], buf, bufSize);
+
+	return (WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GUAGE, &reg, (bufSize + 1), NULL, 0));
+}
+
+int ltc294x_reset(int prescaler_exp)
+{
+	int ret;
+	uint8_t value;
+	uint8_t control;
+
+	// Read status and control registers
+	ret = ltc294x_read_regs(LTC294X_REG_CONTROL, &value, 1);
+	if (ret < 0) { return ret; }
+
+	control = LTC294X_REG_CONTROL_PRESCALER_SET(prescaler_exp) | LTC294X_REG_CONTROL_ALCC_CONFIG_DISABLED;
+	control |= LTC2943_REG_CONTROL_MODE_SCAN; // 2944 measures every 10 sec
+
+	if (value != control)
+	{
+		ret = ltc294x_write_regs(LTC294X_REG_CONTROL, &control, 1);
+		if (ret < 0) { return ret; }
+	}
+
+	return (0);
+}
+
+int ltc294x_read_charge_register(const struct ltc294x_info *info, enum ltc294x_reg reg)
+ {
+	int ret;
+	uint8_t datar[2];
+
+	ret = ltc294x_read_regs(reg, &datar[0], 2);
+
+	if (ret < 0) { return ret; }
+	return ((datar[0] << 8) + datar[1]);
+}
+
+int ltc294x_get_charge(const struct ltc294x_info *info, enum ltc294x_reg reg, int *val)
+{
+	int value = ltc294x_read_charge_register(info, reg);
+
+	if (value < 0) { return value; }
+
+	/* When r_sense < 0, this counts up when the battery discharges */
+	if (info->Qlsb < 0) { value -= 0xFFFF; }
+
+	*val = convert_bin_to_uAh(info, value);
+	return (0);
+}
+
+int ltc294x_set_charge_now(const struct ltc294x_info *info, int val)
+{
+	int ret;
+	uint8_t dataw[2];
+	uint8_t ctrl_reg;
+	int32_t value;
+
+	value = convert_uAh_to_bin(info, val);
+	// Direction depends on how sense +/- were connected
+	if (info->Qlsb < 0) { value += 0xFFFF; }
+
+	if ((value < 0) || (value > 0xFFFF)) { return E_INVALID; } // Input validation
+
+	// Read control register
+	ret = ltc294x_read_regs(LTC294X_REG_CONTROL, &ctrl_reg, 1);
+	if (ret < 0) { return ret; }
+
+	// Disable analog section
+	ctrl_reg |= LTC294X_REG_CONTROL_SHUTDOWN_MASK;
+	ret = ltc294x_write_regs(LTC294X_REG_CONTROL, &ctrl_reg, 1);
+	if (ret < 0) { return ret; }
+
+	// Set new charge value
+	dataw[0] = I16_MSB(value);
+	dataw[1] = I16_LSB(value);
+	ret = ltc294x_write_regs(LTC294X_REG_ACC_CHARGE_MSB, &dataw[0], 2);
+	if (ret < 0) { goto error_exit; }
+	// Enable analog section
+
+error_exit:
+	ctrl_reg &= ~LTC294X_REG_CONTROL_SHUTDOWN_MASK;
+	ret = ltc294x_write_regs(LTC294X_REG_CONTROL, &ctrl_reg, 1);
+
+	return ((ret < 0) ? ret : 0);
+}
+
+int ltc294x_set_charge_thr(const struct ltc294x_info *info, enum ltc294x_reg reg, int val)
+{
+	uint8_t dataw[2];
+	int32_t value;
+
+	value = convert_uAh_to_bin(info, val);
+	// Direction depends on how sense +/- were connected
+	if (info->Qlsb < 0) { value += 0xFFFF; }
+	if ((value < 0) || (value > 0xFFFF)) { return E_INVALID; } // input validation
+
+	// Set new charge value
+	dataw[0] = I16_MSB(value);
+	dataw[1] = I16_LSB(value);
+
+	return (ltc294x_write_regs(reg, &dataw[0], 2));
+}
+
+int ltc294x_get_charge_counter( const struct ltc294x_info *info, int *val)
+{
+	int value = ltc294x_read_charge_register(info, LTC294X_REG_ACC_CHARGE_MSB);
+
+	if (value < 0) { return value; }
+
+	value -= LTC294X_MID_SUPPLY;
+	*val = convert_bin_to_uAh(info, value);
+
+	return (0);
+}
+
+int ltc294x_get_voltage(const struct ltc294x_info *info, int *val)
+{
+	int ret;
+	uint8_t datar[2];
+	uint32_t value;
+
+	ret = ltc294x_read_regs(LTC294X_REG_VOLTAGE_MSB, &datar[0], 2);
+	value = ((datar[0] << 8) | datar[1]);
+
+	value *= 70800 / 5*4; // Max value can be clipped in uint32, scale down
+	value /= 0xFFFF;
+#if 1 /* Results in uV */
+	value *= 1000 * 5/4; // Reverse the scale down
+#else /* Results in mV */
+	value *= 5/4; // Reverse the scale down
+#endif
+
+	*val = value;
+	return (ret);
+}
+
+int ltc294x_get_current(const struct ltc294x_info *info, int *val)
+{
+	int ret;
+	uint8_t datar[2];
+	int32_t value;
+
+	ret = ltc294x_read_regs(LTC2943_REG_CURRENT_MSB, &datar[0], 2);
+	value = ((datar[0] << 8) | datar[1]);
+	value -= 0x7FFF;
+	value *= 64000;
+
+	// Value is in range -32k..+32k, r_sense is usually 10..50 mOhm, the formula below keeps everything in s32 range while preserving enough digits
+	*val = (1000 * (value / (info->r_sense * 0x7FFF))); // Units in uA
+
+	return (ret);
+}
+
+int ltc294x_get_temperature(const struct ltc294x_info *info, int *val)
+{
+	int ret;
+	uint8_t datar[2];
+	uint32_t value;
+
+	value = 510 * 10; // Full-scale is 510 Kelvin, shift up for tenths
+
+	ret = ltc294x_read_regs(LTC2943_REG_TEMPERATURE_MSB, &datar[0], 2);
+	value *= ((datar[0] << 8) | datar[1]);
+
+#if 0 /* Results in C */
+	// Convert to tenths of degree Celsius
+	*val = value / 0xFFFF - 2732 // C = K - 273.15, in tenths is 2732 // old reference value was 2722;
+#else /* Results in F */
+	// Convert to F, F = (C * (9/5)) + 32
+	*val = (((value / 0xFFFF - 2732) * (9/5)) + 32);
+#endif
+
+	return (ret);
+}
+
+void ltc294x_update(struct ltc294x_info *info)
+{
+	int charge = ltc294x_read_charge_register(info, LTC294X_REG_ACC_CHARGE_MSB);
+
+	if (charge != info->charge)
+	{
+		info->charge = charge;
+		
+		// Power supply changed
+		// Action?
+	}
+}
+
+int ltc294x_i2c_probe(void)
+{
+	//struct power_supply_config psy_cfg = {};
+	//struct ltc294x_info *info;
+	//struct device_node *np;
+	int ret;
+	uint32_t prescaler_exp;
+	int32_t r_sense;
+	//uint8_t status;
+
+	//info = devm_kzalloc(sizeof(*info), GFP_KERNEL);
+	//if (info == NULL) { return -ENOMEM; }
+
+	//np = of_node_get();
+
+	//info->supply_desc.name = np->name;
+
+	// r_sense can be negative, when sense+ is connected to the battery instead of the sense-, this results in reversed measurements
+	// Set r_sense value, which should be less than or equal to 50mV / I(max)
+	// r_sense is usually 10..50 mOhm
+	r_sense = 10; // Attempting wrong value for now (to compile), must fill in with right value
+
+	ltc2944_device.r_sense = r_sense;
+
+	prescaler_exp = LTC294X_PRESCALER_4096;
+
+	ltc2944_device.Qlsb = ((340 * 50000) / r_sense) * (prescaler_exp / LTC294X_MAX_PRESCALER);
+
+	//info->supply_desc.external_power_changed = NULL;
+
+	//psy_cfg.drv_data = info;
+
+	//ret = devm_delayed_work_autocancel(&info->work, ltc294x_work);
+	//if (ret) { return ret; }
+
+	ret = ltc294x_reset(prescaler_exp);
+	if (ret < 0) { return (ret); }
+
+	//info->supply = devm_power_supply_register(&info->supply_desc, &psy_cfg);
+
+	//schedule_delayed_work(&info->work, LTC294X_WORK_DELAY * HZ);
+
+	return 0;
+}
+
+void ltc294x_i2c_shutdown(void)
+{
+	int ret;
+	uint8_t value;
+	uint8_t control;
+
+	// Read control register
+	ret = ltc294x_read_regs(LTC294X_REG_CONTROL, &value, 1);
+	if (ret < 0) { return; }
+
+	// Disable continuous ADC conversion as this drains the battery
+	control = LTC294X_REG_CONTROL_ADC_DISABLE(value);
+	if (control != value) { ltc294x_write_regs(LTC294X_REG_CONTROL, &control, 1); }
 }
