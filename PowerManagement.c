@@ -628,3 +628,251 @@ void InitBattChargerRegister(uint8_t registerAddress, uint16_t registerContents)
 	// Int Mask setting (default)
 	//SetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_1, 0x0000);
 }
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t GetBattChargerInputVoltage(void)
+{
+	uint16_t registerValue;
+	uint16_t result = 0;
+	uint8_t i;
+
+	GetBattChargerRegister(BATT_CHARGER_ADC_RESULT_OF_THE_INPUT_VOLTAGE, &registerValue);
+
+	for (i = 0; i < 10; i++)
+	{
+		if (registerValue & 0x0001)
+		{
+			result += (20 * (2^i));
+			registerValue >>= 1;
+		}
+	}
+
+	// Result units: mV
+	return (result);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t GetBattChargerInputCurrent(void)
+{
+	uint16_t registerValue;
+	float result = 0;
+	uint8_t i;
+
+	GetBattChargerRegister(BATT_CHARGER_ADC_RESULT_OF_THE_INPUT_CURRENT, &registerValue);
+
+	for (i = 0; i < 10; i++)
+	{
+		if (registerValue & 0x0001)
+		{
+			result += (6.25 * (2^i));
+			registerValue >>= 1;
+		}
+	}
+
+	// Result units: mA
+	return ((uint16_t)result);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t GetBattChargerBatteryVoltagePerCell(void)
+{
+	uint16_t registerValue;
+	uint16_t result = 0;
+	uint8_t i;
+
+	GetBattChargerRegister(BATT_CHARGER_ADC_RESULT_OF_THE_BATTERY_VOLTAGE, &registerValue);
+
+	for (i = 0; i < 10; i++)
+	{
+		if (registerValue & 0x0001)
+		{
+			result += (5 * (2^i));
+			registerValue >>= 1;
+		}
+	}
+
+	// Result units: mV/cell
+	return (result);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t GetBattChargerBatteryChargeCurrent(void)
+{
+	uint16_t registerValue;
+	float result = 0;
+	uint8_t i;
+
+	GetBattChargerRegister(BATT_CHARGER_ADC_RESULT_OF_THE_BATTERY_CURRENT, &registerValue);
+
+	for (i = 0; i < 10; i++)
+	{
+		if (registerValue & 0x0001)
+		{
+			result += (12.5 * (2^i));
+			registerValue >>= 1;
+		}
+	}
+
+	// Result units: mA
+	return ((uint16_t)result);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t GetBattChargerNTCSenseRatio(void)
+{
+	uint16_t registerValue;
+	float result = 0;
+	uint8_t i;
+
+	GetBattChargerRegister(BATT_CHARGER_ADC_RESULT_OF_THE_NTC_VOLTAGE_RATIO, &registerValue);
+
+	for (i = 0; i < 10; i++)
+	{
+		if (registerValue & 0x0001)
+		{
+			result += (1 * (2^i));
+			registerValue >>= 1;
+		}
+	}
+
+	// Create ratio and percentage	
+	result /= 1024;
+	result *= 100;
+	// Result units: % of Vntc
+	return ((uint16_t)result);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t GetBattChargerTSSenseRatio(void)
+{
+	uint16_t registerValue;
+	float result = 0;
+	uint8_t i;
+
+	GetBattChargerRegister(BATT_CHARGER_ADC_RESULT_OF_THE_TS_VOLTAGE_RATIO, &registerValue);
+
+	for (i = 0; i < 10; i++)
+	{
+		if (registerValue & 0x0001)
+		{
+			result += (1 * (2^i));
+			registerValue >>= 1;
+		}
+	}
+
+	// Create ratio and percentage	
+	result /= 1024;
+	result *= 100;
+	// Result units: % of Vntc
+	return ((uint16_t)result);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t GetBattChargerJunctionTemperature(void)
+{
+	uint16_t registerValue;
+	float result = 0;
+	uint8_t i;
+
+	GetBattChargerRegister(BATT_CHARGER_ADC_RESULT_OF_THE_JUNCTION_TEMPERATURE, &registerValue);
+
+	for (i = 0; i < 10; i++)
+	{
+		if (registerValue & 0x0001)
+		{
+			result += (1 * (2^i));
+			registerValue >>= 1;
+		}
+	}
+
+	// Temperature conversion equation
+	result = (314 - (0.5703 * result));
+	// Result units: Assume temp in C and not F, unconfirmed
+	return ((uint16_t)result);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t GetBattChargerBatteryDischargeCurrent(void)
+{
+	uint16_t registerValue;
+	float result = 0;
+	uint8_t i;
+
+	GetBattChargerRegister(BATT_CHARGER_ADC_RESULT_OF_THE_BATTERY_DISCHARGE_CURRENT, &registerValue);
+
+	for (i = 0; i < 10; i++)
+	{
+		if (registerValue & 0x0001)
+		{
+			result += (12.5 * (2^i));
+			registerValue >>= 1;
+		}
+	}
+
+	// Result units: mA
+	return ((uint16_t)result);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t GetBattChargerInputVoltageInDischargeMode(void)
+{
+	uint16_t registerValue;
+	uint16_t result = 0;
+	uint8_t i;
+
+	GetBattChargerRegister(BATT_CHARGER_ADC_RESULT_OF_THE_INPUT_VOLTAGE_IN_DISCHARGE_MODE, &registerValue);
+
+	for (i = 0; i < 10; i++)
+	{
+		if (registerValue & 0x0001)
+		{
+			result += (20 * (2^i));
+			registerValue >>= 1;
+		}
+	}
+
+	// Result units: mV
+	return (result);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t GetBattChargerOutputCurrentInDischargeMode(void)
+{
+	uint16_t registerValue;
+	float result = 0;
+	uint8_t i;
+
+	GetBattChargerRegister(BATT_CHARGER_ADC_RESULT_OF_THE_OUTPUT_CURRENT_IN_DISCHARGE_MODE, &registerValue);
+
+	for (i = 0; i < 10; i++)
+	{
+		if (registerValue & 0x0001)
+		{
+			result += (6.25 * (2^i));
+			registerValue >>= 1;
+		}
+	}
+
+	// Result units: mA
+	return ((uint16_t)result);
+}

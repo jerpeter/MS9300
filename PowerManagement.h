@@ -117,4 +117,18 @@ BOOLEAN GetPowerControlState(POWER_MGMT_OPTIONS option);
 void setMcorePwMgntDefaults(void);
 void PowerUnitOff(uint8 powerOffMode);
 
+void GetBattChargerRegister(uint8_t registerAddress, uint16_t* registerContents);
+void SetBattChargerRegister(uint8_t registerAddress, uint16_t registerContents);
+void InitBattChargerRegister(uint8_t registerAddress, uint16_t registerContents);
+uint16_t GetBattChargerInputVoltage(void);
+uint16_t GetBattChargerInputCurrent(void);
+uint16_t GetBattChargerBatteryVoltagePerCell(void);
+uint16_t GetBattChargerBatteryChargeCurrent(void);
+uint16_t GetBattChargerNTCSenseRatio(void);
+uint16_t GetBattChargerTSSenseRatio(void);
+uint16_t GetBattChargerJunctionTemperature(void);
+uint16_t GetBattChargerBatteryDischargeCurrent(void);
+uint16_t GetBattChargerInputVoltageInDischargeMode(void);
+uint16_t GetBattChargerOutputCurrentInDischargeMode(void);
+
 #endif //_POWER_MANAGEMENT_H_
