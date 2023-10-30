@@ -1,0 +1,13 @@
+Makefile
+*.o
+*.d
+*.s
+*.eep
+*.elf
+*.hex
+*.lss
+*.map
+*.srec
+*.bin
+*.log
+*.md
