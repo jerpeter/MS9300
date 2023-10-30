@@ -1,6 +1,7 @@
 Makefile
 *.o
 *.d
+*.a
 *.s
 *.eep
 *.elf
@@ -9,7 +10,11 @@ Makefile
 *.map
 *.srec
 *.bin
+*.sbin
+*.sig
 *.log
 *.md
 *.txt
 project_defines.h
+*.packet
+*.list

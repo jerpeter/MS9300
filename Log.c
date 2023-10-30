@@ -18,6 +18,8 @@
 #include "TextTypes.h"
 #include "string.h"
 #include "Common.h"
+
+#include "ff.h"
 //#include "navigation.h"
 
 ///----------------------------------------------------------------------------
@@ -352,18 +354,16 @@ uint16 NumOfNewMonitorLogEntries(uint16 uid)
 #if 0 /* old hw */
 #include "fsaccess.h"
 #endif
-#if 0 /* temp remove while unused */
 static char s_monitorLogFilename[] = LOGS_PATH MONITOR_LOG_BIN_FILE;
 static char s_monitorLogHumanReadableFilename[] = LOGS_PATH MONITOR_LOG_READABLE_FILE;
-#endif
+
 void AppendMonitorLogEntryFile(void)
 {
-#if 0 /* temp remove while unused */
 	char modeString[10];
-	char statusString[10];
+	char statusString[16];
 	char startTimeString[20];
 	char stopTimeString[20];
-	char seisString[25];
+	char seisString[30];
 	char airString[15];
 	char seisSensorString[10];
 	char airSensorString[15];
@@ -371,147 +371,119 @@ void AppendMonitorLogEntryFile(void)
 	float tempSesmicTriggerInUnits;
 	float unitsDiv;
 	uint32 airInUnits;
-	int monitorLogFile;
-	int monitorLogHumanReadableFile;
-#endif
 
-	if (g_fileAccessLock != AVAILABLE)
+	FIL file;
+	uint32_t writeSize;
+
+	// -------------------------------------
+	// Monitor Log Binary file write
+	// -------------------------------------
+    if ((f_open(&file, (const TCHAR*)s_monitorLogFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
-		ReportFileSystemAccessProblem("Add monitor log entry");
+		printf("Error opening file: %s\n", s_monitorLogFilename);
 	}
-	else // (g_fileAccessLock == AVAILABLE)
+	else // File created or exists
 	{
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		monitorLogFile = open(s_monitorLogFilename, O_APPEND);
-		if (monitorLogFile == -1)
+		if (f_size(&file) % sizeof(MONITOR_LOG_ENTRY_STRUCT) != 0)
 		{
-			nav_setcwd(s_monitorLogFilename, TRUE, TRUE);
-			monitorLogFile = open(s_monitorLogFilename, O_APPEND);
+			debugWarn("Monitor Log File size does not comprise all whole entries\r\n");
 		}
 
-		// Verify file ID
-		if (monitorLogFile == -1)
+		debug("Writing Monitor log entry to log file...\r\n");
+
+		f_write(&file, (uint8*)&(__monitorLogTbl[__monitorLogTblIndex]), sizeof(MONITOR_LOG_ENTRY_STRUCT), (UINT*)&writeSize);
+
+		// Done writing, close the monitor log file
+		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+		f_close(&file);
+		SetFileTimestamp(s_monitorLogFilename);
+
+		debug("Monitor log entry appended to log file\r\n");
+	}
+
+	// -------------------------------------
+	// Monitor Log Human Readable file write
+	// -------------------------------------
+    if ((f_open(&file, (const TCHAR*)s_monitorLogHumanReadableFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
+	{
+		printf("Error opening file: %s\n", s_monitorLogHumanReadableFilename);
+	}
+	else // File created or exists
+	{
+		mle = &__monitorLogTbl[__monitorLogTblIndex];
+
+		debug("Writing Monitor log entry to readable log file...\r\n");
+
+		if (mle->mode == WAVEFORM_MODE) { strcpy((char*)&modeString, "Waveform"); }
+		else if (mle->mode == BARGRAPH_MODE) { strcpy((char*)&modeString, "Bargraph"); }
+		else if (mle->mode == COMBO_MODE) { strcpy((char*)&modeString, "Combo"); }
+
+		if (mle->status == COMPLETED_LOG_ENTRY) { strcpy((char*)&statusString, "Completed"); }
+		else if (mle->status == PARTIAL_LOG_ENTRY) { strcpy((char*)&statusString, "Partial"); }
+		else if (mle->status == INCOMPLETE_LOG_ENTRY) { strcpy((char*)&statusString, "Incomplete"); }
+
+		sprintf((char*)&startTimeString, "%02d-%02d-%02d %02d:%02d:%02d", mle->startTime.day, mle->startTime.month, mle->startTime.year, mle->startTime.hour, mle->startTime.min, mle->startTime.sec);
+		sprintf((char*)&stopTimeString, "%02d-%02d-%02d %02d:%02d:%02d", mle->stopTime.day, mle->stopTime.month, mle->stopTime.year, mle->stopTime.hour, mle->stopTime.min, mle->stopTime.sec);
+
+		if (g_triggerRecord.trec.seismicTriggerLevel == NO_TRIGGER_CHAR) {strcpy((char*)seisString, "None"); }
+		else if (g_triggerRecord.trec.variableTriggerEnable == YES)
 		{
-			DisplayFileNotFound(s_monitorLogFilename);
-		}
-		else // Monitor log file contains entries
-		{
-			if (fsaccess_file_get_size(monitorLogFile) % sizeof(MONITOR_LOG_ENTRY_STRUCT) != 0)
+			switch (g_triggerRecord.trec.variableTriggerVibrationStandard)
 			{
-				debugWarn("Monitor Log File size does not comprise all whole entries\r\n");
+				case USBM_RI_8507_DRYWALL_STANDARD: strcpy((char*)seisString, "VT (USBM Drywall)"); break;
+				case USBM_RI_8507_PLASTER_STANDARD: strcpy((char*)seisString, "VT (USBM Plaster)"); break;
+				case OSM_REGULATIONS_STANDARD: strcpy((char*)seisString, "VT (OSM Regulations)"); break;
+				case CUSTOM_STEP_THRESHOLD: strcpy((char*)seisString, "VT (Custom Step Threshold)"); break;
+				case CUSTOM_STEP_LIMITING: strcpy((char*)seisString, "VT (Custom Step Limiting)"); break;
+				default: strcpy((char*)seisString, "VT (No VS/error)"); break;
 			}
-
-			debug("Writing Monitor log entry to log file...\r\n");
-
-			write(monitorLogFile, (uint8*)&(__monitorLogTbl[__monitorLogTblIndex]), sizeof(MONITOR_LOG_ENTRY_STRUCT));
-
-			SetFileDateTimestamp(FS_DATE_LAST_WRITE);
-
-			// Done writing, close the monitor log file
-			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(monitorLogFile);
-
-			debug("Monitor log entry appended to log file\r\n");
 		}
-
-		monitorLogHumanReadableFile = open(s_monitorLogHumanReadableFilename, O_APPEND);
-		if (monitorLogHumanReadableFile == -1)
+		else
 		{
-			nav_setcwd(s_monitorLogHumanReadableFilename, TRUE, TRUE);
-			monitorLogHumanReadableFile = open(s_monitorLogHumanReadableFilename, O_APPEND);
+			// Calculate the divider used for converting stored A/D peak counts to units of measure
+			if ((g_factorySetupRecord.seismicSensorType == SENSOR_ACC_832M1_0200) || (g_factorySetupRecord.seismicSensorType == SENSOR_ACC_832M1_0500))
+			{
+				unitsDiv = (float)(g_bitAccuracyMidpoint * SENSOR_ACCURACY_100X_SHIFT * ((g_triggerRecord.srec.sensitivity == LOW) ? 2 : 4)) / (float)(g_factorySetupRecord.seismicSensorType * ACC_832M1_SCALER);
+			}
+			else unitsDiv = (float)(g_bitAccuracyMidpoint * SENSOR_ACCURACY_100X_SHIFT * ((g_triggerRecord.srec.sensitivity == LOW) ? 2 : 4)) / (float)(g_factorySetupRecord.seismicSensorType);
+
+			tempSesmicTriggerInUnits = (float)(g_triggerRecord.trec.seismicTriggerLevel >> g_bitShiftForAccuracy) / (float)unitsDiv;
+			if ((g_factorySetupRecord.seismicSensorType < SENSOR_ACC_RANGE_DIVIDER) && (g_unitConfig.unitsOfMeasure == METRIC_TYPE)) { tempSesmicTriggerInUnits *= (float)METRIC; }
+
+			sprintf((char*)seisString, "%05.2f %s", (double)tempSesmicTriggerInUnits, (g_unitConfig.unitsOfMeasure == METRIC_TYPE ? "mm" : "in"));
 		}
 
-		// Verify file ID
-		if (monitorLogHumanReadableFile == -1)
+		if (g_triggerRecord.trec.airTriggerLevel == NO_TRIGGER_CHAR) {strcpy((char*)airString, "None"); }
+		else
 		{
-			DisplayFileNotFound(s_monitorLogHumanReadableFilename);
+			airInUnits = AirTriggerConvertToUnits(g_triggerRecord.trec.airTriggerLevel);
+			if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) { sprintf((char*)airString, "%05.3f mb", ((double)airInUnits / 10000)); }
+			else if (g_unitConfig.unitsOfAir == PSI_TYPE) { sprintf((char*)airString, "%05.3f psi", ((double)airInUnits / 10000)); }
+			else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf((char*)airString, "%d dB", (uint16)airInUnits); }
 		}
-		else // File successfully created or opened
-		{
-			mle = &__monitorLogTbl[__monitorLogTblIndex];
 
-			debug("Writing Monitor log entry to readable log file...\r\n");
+		if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER) { strcpy((char*)&seisSensorString, "Acc"); }
+		else { sprintf((char*)&seisSensorString, "%3.1f in", (double)g_factorySetupRecord.seismicSensorType / (double)204.8); }
 
-			if (mle->mode == WAVEFORM_MODE) { strcpy((char*)&modeString, "Waveform"); }
-			else if (mle->mode == BARGRAPH_MODE) { strcpy((char*)&modeString, "Bargraph"); }
-			else if (mle->mode == COMBO_MODE) { strcpy((char*)&modeString, "Combo"); }
+		if (g_factorySetupRecord.acousticSensorType == SENSOR_MIC_160_DB) { strcpy((char*)&airSensorString, "Mic 160 dB"); }
+		else if (g_factorySetupRecord.acousticSensorType == SENSOR_MIC_5_PSI) { strcpy((char*)&airSensorString, "Mic 5 PSI"); }
+		else if (g_factorySetupRecord.acousticSensorType == SENSOR_MIC_10_PSI) { strcpy((char*)&airSensorString, "Mic 10 PSI"); }
+		else { strcpy((char*)&airSensorString, "Mic 148 dB"); }
 
-			if (mle->status == COMPLETED_LOG_ENTRY) { strcpy((char*)&statusString, "Completed"); }
-			else if (mle->status == PARTIAL_LOG_ENTRY) { strcpy((char*)&statusString, "Partial"); }
-			else if (mle->status == INCOMPLETE_LOG_ENTRY) { strcpy((char*)&statusString, "Incomplete"); }
+		sprintf((char*)g_spareBuffer, "Log ID: %03d --> Status: %10s, Mode: %8s, Start Time: %s, Stop Time: %s\r\n\tEvents: %3d, Start Evt #: %4d, "\
+				"Seismic Trig: %10s, Air Trig: %11s\r\n\tBit Acc: %d, Temp Adjust: %3s, Seismic Sensor: %8s, Acoustic Sensor: %8s, Sensitivity: %6s\r\n\n",
+				mle->uniqueEntryId, (char*)statusString, (char*)modeString, (char*)startTimeString, (char*)stopTimeString, mle->eventsRecorded, mle->startEventNumber,
+				(char*)seisString, (char*)airString, mle->bitAccuracy, ((mle->adjustForTempDrift == YES) ? "YES" : "NO"),
+				(char*)seisSensorString, (char*)airSensorString, ((mle->sensitivity == LOW) ? "NORMAL" : "HIGH"));
 
-			sprintf((char*)&startTimeString, "%02d-%02d-%02d %02d:%02d:%02d", mle->startTime.day, mle->startTime.month, mle->startTime.year,
-					mle->startTime.hour, mle->startTime.min, mle->startTime.sec);
-			sprintf((char*)&stopTimeString, "%02d-%02d-%02d %02d:%02d:%02d", mle->stopTime.day, mle->stopTime.month, mle->stopTime.year,
-					mle->stopTime.hour, mle->stopTime.min, mle->stopTime.sec);
+		f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
 
-			if (g_triggerRecord.trec.seismicTriggerLevel == NO_TRIGGER_CHAR) {strcpy((char*)seisString, "None"); }
-			else if (g_triggerRecord.trec.variableTriggerEnable == YES)
-			{
-				switch (g_triggerRecord.trec.variableTriggerVibrationStandard)
-				{
-					case USBM_RI_8507_DRYWALL_STANDARD: strcpy((char*)seisString, "VT (USBM Drywall)"); break;
-					case USBM_RI_8507_PLASTER_STANDARD: strcpy((char*)seisString, "VT (USBM Plaster)"); break;
-					case OSM_REGULATIONS_STANDARD: strcpy((char*)seisString, "VT (OSM Regulations)"); break;
-					case CUSTOM_STEP_THRESHOLD: strcpy((char*)seisString, "VT (Custom Step Threshold)"); break;
-					case CUSTOM_STEP_LIMITING: strcpy((char*)seisString, "VT (Custom Step Limiting)"); break;
-					default: strcpy((char*)seisString, "VT (No VS/error)"); break;
-				}
-			}
-			else
-			{
-				// Calculate the divider used for converting stored A/D peak counts to units of measure
-				if ((g_factorySetupRecord.seismicSensorType == SENSOR_ACC_832M1_0200) || (g_factorySetupRecord.seismicSensorType == SENSOR_ACC_832M1_0500))
-				{
-					unitsDiv = (float)(g_bitAccuracyMidpoint * SENSOR_ACCURACY_100X_SHIFT * ((g_triggerRecord.srec.sensitivity == LOW) ? 2 : 4)) / (float)(g_factorySetupRecord.seismicSensorType * ACC_832M1_SCALER);
-				}
-				else unitsDiv = (float)(g_bitAccuracyMidpoint * SENSOR_ACCURACY_100X_SHIFT * ((g_triggerRecord.srec.sensitivity == LOW) ? 2 : 4)) / (float)(g_factorySetupRecord.seismicSensorType);
+		// Done writing, close the monitor log file
+		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+		f_close(&file);
+		SetFileTimestamp(s_monitorLogHumanReadableFilename);
 
-				tempSesmicTriggerInUnits = (float)(g_triggerRecord.trec.seismicTriggerLevel >> g_bitShiftForAccuracy) / (float)unitsDiv;
-				if ((g_factorySetupRecord.seismicSensorType < SENSOR_ACC_RANGE_DIVIDER) && (g_unitConfig.unitsOfMeasure == METRIC_TYPE)) { tempSesmicTriggerInUnits *= (float)METRIC; }
-
-				sprintf((char*)seisString, "%05.2f %s", tempSesmicTriggerInUnits, (g_unitConfig.unitsOfMeasure == METRIC_TYPE ? "mm" : "in"));
-			}
-
-			if (g_triggerRecord.trec.airTriggerLevel == NO_TRIGGER_CHAR) {strcpy((char*)airString, "None"); }
-			else
-			{
-				airInUnits = AirTriggerConvertToUnits(g_triggerRecord.trec.airTriggerLevel);
-				if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) { sprintf((char*)airString, "%05.3f mb", ((float)airInUnits / 10000)); }
-				else if (g_unitConfig.unitsOfAir == PSI_TYPE) { sprintf((char*)airString, "%05.3f psi", ((float)airInUnits / 10000)); }
-				else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf((char*)airString, "%d dB", (uint16)airInUnits); }
-			}
-
-			if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER) { strcpy((char*)&seisSensorString, "Acc"); }
-			else { sprintf((char*)&seisSensorString, "%3.1f in", (float)g_factorySetupRecord.seismicSensorType / (float)204.8); }
-
-			if (g_factorySetupRecord.acousticSensorType == SENSOR_MIC_160_DB) { strcpy((char*)&airSensorString, "Mic 160 dB"); }
-			else if (g_factorySetupRecord.acousticSensorType == SENSOR_MIC_5_PSI) { strcpy((char*)&airSensorString, "Mic 5 PSI"); }
-			else if (g_factorySetupRecord.acousticSensorType == SENSOR_MIC_10_PSI) { strcpy((char*)&airSensorString, "Mic 10 PSI"); }
-			else { strcpy((char*)&airSensorString, "Mic 148 dB"); }
-
-			sprintf((char*)g_spareBuffer, "Log ID: %03d --> Status: %10s, Mode: %8s, Start Time: %s, Stop Time: %s\r\n\tEvents: %3d, Start Evt #: %4d, "\
-					"Seismic Trig: %10s, Air Trig: %11s\r\n\tBit Acc: %d, Temp Adjust: %3s, Seismic Sensor: %8s, Acoustic Sensor: %8s, Sensitivity: %6s\r\n\n",
-					mle->uniqueEntryId, (char*)statusString, (char*)modeString, (char*)startTimeString, (char*)stopTimeString, mle->eventsRecorded, mle->startEventNumber,
-					(char*)seisString, (char*)airString, mle->bitAccuracy, ((mle->adjustForTempDrift == YES) ? "YES" : "NO"),
-					(char*)seisSensorString, (char*)airSensorString, ((mle->sensitivity == LOW) ? "NORMAL" : "HIGH"));
-
-			write(monitorLogHumanReadableFile, g_spareBuffer, strlen((char*)g_spareBuffer));
-
-			SetFileDateTimestamp(FS_DATE_LAST_WRITE);
-
-			// Done writing, close the monitor log file
-			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(monitorLogHumanReadableFile);
-
-			debug("Monitor log readable entry appended to log file\r\n");
-		}
-#endif
-		ReleaseSpi1MutexLock();
+		debug("Monitor log readable entry appended to log file\r\n");
 	}
 }
 
@@ -520,35 +492,27 @@ void AppendMonitorLogEntryFile(void)
 ///----------------------------------------------------------------------------
 void InitMonitorLogTableFromLogFile(void)
 {
-#if 0 /* temp remove while unused */	
+#if 1 /* temp remove while unused */	
 	MONITOR_LOG_ENTRY_STRUCT monitorLogEntry;
-	int32 bytesRead = 0;
 	uint16 lowestId = 0;
 	uint16 highestId = 0;
 	uint16 foundIds = 0;
-	int monitorLogFile;
 #endif
+	FIL file;
+	uint32_t readSize;
 
-	if (g_fileAccessLock != AVAILABLE)
-	{
-		ReportFileSystemAccessProblem("Init monitor log");
+	// -------------------------------------
+	// Monitor Log Binary file write
+	// -------------------------------------
+    if ((f_stat((const TCHAR*)s_monitorLogFilename, NULL)) == FR_NO_FILE)
+	{ 
+		debugWarn("Warning: Monitor Log File not found or has not yet been created\r\n");
 	}
-	else // (g_fileAccessLock == AVAILABLE)
+	else // File exists
 	{
-		GetSpi1MutexLock(SDMMC_LOCK);
+		if ((f_open(&file, (const TCHAR*)s_monitorLogFilename, FA_READ)) != FR_OK) { printf("<Error> Unable to open file: %s\n", s_monitorLogFilename); }
 
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		monitorLogFile = open(s_monitorLogFilename, O_RDONLY);
-
-		// Verify file ID
-		if (monitorLogFile == -1)
-		{
-			debugWarn("Warning: Monitor Log File not found or has not yet been created\r\n");
-		}
-		// Verify file is big enough
-		else if (fsaccess_file_get_size(monitorLogFile) < sizeof(MONITOR_LOG_ENTRY_STRUCT))
+		if (f_size(&file) < sizeof(MONITOR_LOG_ENTRY_STRUCT))
 		{
 			DisplayFileCorrupt(s_monitorLogFilename);
 		}
@@ -556,10 +520,10 @@ void InitMonitorLogTableFromLogFile(void)
 		{
 			OverlayMessage(getLangText(MONITOR_LOG_TEXT), getLangText(INITIALIZING_MONITOR_LOG_WITH_SAVED_ENTRIES_TEXT), 1 * SOFT_SECS);
 
-			bytesRead = ReadWithSizeFix(monitorLogFile, (uint8*)&monitorLogEntry, sizeof(MONITOR_LOG_ENTRY_STRUCT));
+			f_read(&file, (uint8*)&monitorLogEntry, sizeof(MONITOR_LOG_ENTRY_STRUCT), (UINT*)&readSize);
 
 			// Loop while data continues to be read from MONITOR log file
-			while (bytesRead > 0)
+			while (readSize > 0)
 			{
 				if ((monitorLogEntry.status == COMPLETED_LOG_ENTRY) || (monitorLogEntry.status == INCOMPLETE_LOG_ENTRY))
 				{
@@ -593,89 +557,63 @@ void InitMonitorLogTableFromLogFile(void)
 				}
 
 				// Always read the next entry
-				bytesRead = ReadWithSizeFix(monitorLogFile, (uint8*)&monitorLogEntry, sizeof(MONITOR_LOG_ENTRY_STRUCT));
+				f_read(&file, (uint8*)&monitorLogEntry, sizeof(MONITOR_LOG_ENTRY_STRUCT), (UINT*)&readSize);
 			}
 
 			// Done reading, close the monitor log file
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(monitorLogFile);
 
 			debug("Found Valid Monitor Log Entries, ID's: %d --> %d\r\n", lowestId, highestId);
 		}
-#endif
-		ReleaseSpi1MutexLock();
+
+		f_close(&file);
 	}
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* temp remove while unused */
 static char s_onOffLogHumanReadableFilename[] = LOGS_PATH ON_OFF_READABLE_FILE;
-#endif
+
 void AddOnOffLogTimestamp(uint8 onOffState)
 {
-#if 0 /* temp remove while unused */
 	DATE_TIME_STRUCT time = GetCurrentTime();
 	float extCharge = GetExternalVoltageLevelAveraged(EXT_CHARGE_VOLTAGE);
 	char onOffStateString[6];
 	char timeString[20];
 	char extChargeString[8];
-	int onOffLogHumanReadableFile;
-#endif
 
-	if (g_fileAccessLock != AVAILABLE)
+	FIL file;
+	uint32_t writeSize;
+
+    if ((f_open(&file, (const TCHAR*)s_onOffLogHumanReadableFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
-		ReportFileSystemAccessProblem("Add On/Off log timestamp");
+		printf("Error opening file: %s\n", s_onOffLogHumanReadableFilename);
 	}
-	else // (g_fileAccessLock == AVAILABLE)
+	else // File successfully created or opened
 	{
-		GetSpi1MutexLock(SDMMC_LOCK);
+		if (onOffState == ON) { strcpy((char*)onOffStateString, "On"); }
+		else if (onOffState == OFF) { strcpy((char*)onOffStateString, "Off"); }
+		else if (onOffState == JUMP_TO_BOOT) { strcpy((char*)onOffStateString, "J2B"); }
+		else if (onOffState == OFF_EXCEPTION) { strcpy((char*)onOffStateString, "OfE"); }
+		else if (onOffState == FORCED_OFF) { strcpy((char*)onOffStateString, "FOf"); }
 
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
+		if (extCharge > EXTERNAL_VOLTAGE_PRESENT) { sprintf((char*)&extChargeString, "%4.2fv", (double)extCharge); }
+		else { sprintf((char*)&extChargeString, "<none>"); }
 
-		onOffLogHumanReadableFile = open(s_onOffLogHumanReadableFilename, O_APPEND);
+		sprintf((char*)&timeString, "%02d-%02d-%02d %02d:%02d:%02d", time.day, time.month, time.year, time.hour, time.min, time.sec);
 
-		if (onOffLogHumanReadableFile == -1)
-		{
-			nav_setcwd(s_onOffLogHumanReadableFilename, TRUE, TRUE);
-			onOffLogHumanReadableFile = open(s_onOffLogHumanReadableFilename, O_APPEND);
-		}
+		sprintf((char*)g_spareBuffer, "Unit <%s>: %3s, Version: %s, Mode: %6s, Time: %s, Battery: %3.2fv, Ext charge: %6s\r\n",
+				(char*)&g_factorySetupRecord.unitSerialNumber, (char*)onOffStateString, (char*)g_buildVersion,
+				((g_unitConfig.timerMode == ENABLED) ? "Timer" : "Normal"), (char*)timeString,
+				(double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE), extChargeString);
 
-		// Verify file ID
-		if (onOffLogHumanReadableFile == -1)
-		{
-			DisplayFileNotFound(s_onOffLogHumanReadableFilename);
-		}
-		else // File successfully created or opened
-		{
-			if (onOffState == ON) { strcpy((char*)onOffStateString, "On"); }
-			else if (onOffState == OFF) { strcpy((char*)onOffStateString, "Off"); }
-			else if (onOffState == JUMP_TO_BOOT) { strcpy((char*)onOffStateString, "J2B"); }
-			else if (onOffState == OFF_EXCEPTION) { strcpy((char*)onOffStateString, "OfE"); }
-			else if (onOffState == FORCED_OFF) { strcpy((char*)onOffStateString, "FOf"); }
+		f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
 
-			if (extCharge > EXTERNAL_VOLTAGE_PRESENT) { sprintf((char*)&extChargeString, "%4.2fv", extCharge); }
-			else { sprintf((char*)&extChargeString, "<none>"); }
-
-			sprintf((char*)&timeString, "%02d-%02d-%02d %02d:%02d:%02d", time.day, time.month, time.year, time.hour, time.min, time.sec);
-
-			sprintf((char*)g_spareBuffer, "Unit <%s>: %3s, Version: %s, Mode: %6s, Time: %s, Battery: %3.2fv, Ext charge: %6s\r\n",
-					(char*)&g_factorySetupRecord.unitSerialNumber, (char*)onOffStateString, (char*)g_buildVersion,
-					((g_unitConfig.timerMode == ENABLED) ? "Timer" : "Normal"), (char*)timeString,
-					GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE), extChargeString);
-
-			write(onOffLogHumanReadableFile, g_spareBuffer, strlen((char*)g_spareBuffer));
-
-			SetFileDateTimestamp(FS_DATE_LAST_WRITE);
-
-			// Done writing, close the on/off log file
-			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(onOffLogHumanReadableFile);
-		}
-#endif
-		ReleaseSpi1MutexLock();
+		// Done writing, close the on/off log file
+		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+		f_close(&file);
+		SetFileTimestamp(s_onOffLogHumanReadableFilename);
 	}
 }
 

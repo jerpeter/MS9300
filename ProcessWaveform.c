@@ -26,6 +26,8 @@
 #include "RemoteCommon.h"
 #include "M23018.h"
 #include "Minilzo.h"
+
+#include "ff.h"
 //#include "fsaccess.h"
 
 ///----------------------------------------------------------------------------
@@ -62,15 +64,19 @@ void MoveWaveformEventToFile(void)
 	INPUT_MSG_STRUCT msg;
 	uint16* startOfEventPtr;
 	uint16* endOfEventDataPtr;
-#if 0 /* temp remove while unused */
+
+#if 0 /* old hw */
 	uint8 keypadLedConfig;
-	uint32 bytesWritten;
+#endif
 	uint32 remainingDataLength;
 	uint32 compressSize;
 	uint16* tempDataPtr;
-	int waveformFileHandle = -1;
 	char spaceLeftBuffer[25] = {'\0'};
-#endif
+
+	FIL file;
+	uint32_t bytesWritten;
+
+	UNUSED(compressSize); // Depends on debug on/off
 
 	if ((g_freeEventBuffers < g_maxEventBuffers) && ((g_sdCardUsageStats.waveEventsLeft != 0)))
 	{
@@ -242,107 +248,107 @@ void MoveWaveformEventToFile(void)
 				break;
 
 			case WAVE_STORE:
-				if ((g_spi1AccessLock == AVAILABLE) && (g_fileAccessLock == AVAILABLE))
+				// Setup new event file name
+				GetEventFileHandle(g_pendingEventRecord.summary.eventNumber, CREATE_EVENT_FILE);
+
+				if (f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
 				{
-					GetSpi1MutexLock(SDMMC_LOCK);
+					printf("<Error> Unable to create event file: %s, mode: %s\n", g_spareFileName, (g_triggerRecord.opMode == WAVEFORM_MODE) ? "Waveform" : "Combo - Waveform");
+				}
+				else // File created, write out the event
+				{
+					ActivateDisplayShortDuration(1);
+					sprintf((char*)g_spareBuffer, "%s %s #%d %s... (%s)", (g_triggerRecord.opMode == WAVEFORM_MODE) ? getLangText(WAVEFORM_TEXT) : getLangText(COMBO_WAVEFORM_TEXT), getLangText(EVENT_TEXT),
+							g_pendingEventRecord.summary.eventNumber, getLangText(BEING_SAVED_TEXT), getLangText(MAY_TAKE_TIME_TEXT));
 
+					if (g_sdCardUsageStats.waveEventsLeft < 100)
+					{
+						sprintf((char*)spaceLeftBuffer, "%d EVTS TILL FULL", (g_sdCardUsageStats.waveEventsLeft - 1));
+						OverlayMessage((char*)spaceLeftBuffer, (char*)g_spareBuffer, 0);
+					}
+					else
+					{
+						OverlayMessage(getLangText(EVENT_COMPLETE_TEXT), (char*)g_spareBuffer, 0);
+					}
+
+					// Write the event record header and summary
+					f_write(&file, &g_pendingEventRecord, sizeof(EVT_RECORD), (UINT*)&bytesWritten);
+
+					if (bytesWritten != sizeof(EVT_RECORD))
+					{
+						debugErr("Waveform Event Record written size incorrect (%d)\r\n", bytesWritten);
+					}
+
+					remainingDataLength = (g_wordSizeInEvent * 2);
+
+					// Check if there are multiple chunks to write
+					if (remainingDataLength > WAVEFORM_FILE_WRITE_CHUNK_SIZE)
+					{
 #if 0 /* old hw */
-					nav_select(FS_NAV_ID_DEFAULT);
+						// Get the current state of the keypad LED
+						keypadLedConfig = ReadMcp23018(IO_ADDRESS_KPD, GPIOA);
+#endif
+					}
 
-					// Get new event file handle
-					waveformFileHandle = GetEventFileHandle(g_pendingEventRecord.summary.eventNumber, CREATE_EVENT_FILE);
+					tempDataPtr = g_currentEventStartPtr;
 
-					if (waveformFileHandle == -1)
+					while (remainingDataLength)
 					{
-						debugErr("Failed to get a new file handle for the current %s event\r\n", (g_triggerRecord.opMode == WAVEFORM_MODE) ? "Waveform" : "Combo - Waveform");
-					}					
-					else // Write the file event to the SD card
-					{
-						ActivateDisplayShortDuration(1);
-						sprintf((char*)g_spareBuffer, "%s %s #%d %s... (%s)", (g_triggerRecord.opMode == WAVEFORM_MODE) ? getLangText(WAVEFORM_TEXT) : getLangText(COMBO_WAVEFORM_TEXT), getLangText(EVENT_TEXT),
-								g_pendingEventRecord.summary.eventNumber, getLangText(BEING_SAVED_TEXT), getLangText(MAY_TAKE_TIME_TEXT));
-
-						if (g_sdCardUsageStats.waveEventsLeft < 100)
-						{
-							sprintf((char*)spaceLeftBuffer, "%d EVTS TILL FULL", (g_sdCardUsageStats.waveEventsLeft - 1));
-							OverlayMessage((char*)spaceLeftBuffer, (char*)g_spareBuffer, 0);
-						}
-						else
-						{
-							OverlayMessage(getLangText(EVENT_COMPLETE_TEXT), (char*)g_spareBuffer, 0);
-						}
-
-						// Write the event record header and summary
-						bytesWritten = write(waveformFileHandle, &g_pendingEventRecord, sizeof(EVT_RECORD));
-
-						if (bytesWritten != sizeof(EVT_RECORD))
-						{
-							debugErr("Waveform Event Record written size incorrect (%d)\r\n", bytesWritten);
-						}
-
-						remainingDataLength = (g_wordSizeInEvent * 2);
-
-						// Check if there are multiple chunks to write
 						if (remainingDataLength > WAVEFORM_FILE_WRITE_CHUNK_SIZE)
 						{
-							// Get the current state of the keypad LED
-							keypadLedConfig = ReadMcp23018(IO_ADDRESS_KPD, GPIOA);
-						}
+							// Write the event data, containing the Pretrigger, event and cal
+							f_write(&file, tempDataPtr, WAVEFORM_FILE_WRITE_CHUNK_SIZE, (UINT*)&bytesWritten);
 
-						tempDataPtr = g_currentEventStartPtr;
-
-						while (remainingDataLength)
-						{
-							if (remainingDataLength > WAVEFORM_FILE_WRITE_CHUNK_SIZE)
+							if (bytesWritten != WAVEFORM_FILE_WRITE_CHUNK_SIZE)
 							{
-								// Write the event data, containing the Pretrigger, event and cal
-								bytesWritten = write(waveformFileHandle, tempDataPtr, WAVEFORM_FILE_WRITE_CHUNK_SIZE);
-
-								if (bytesWritten != WAVEFORM_FILE_WRITE_CHUNK_SIZE)
-								{
-									debugErr("Waveform Event Data written size incorrect (%d)\r\n", bytesWritten);
-								}
-
-								remainingDataLength -= WAVEFORM_FILE_WRITE_CHUNK_SIZE;
-								tempDataPtr += (WAVEFORM_FILE_WRITE_CHUNK_SIZE / 2);
-
-								// Quickly toggle the green LED to show status of saving a waveform event (while too busy to update LCD)
-								if (keypadLedConfig & GREEN_LED_PIN) { keypadLedConfig &= ~GREEN_LED_PIN; }
-								else { keypadLedConfig |= GREEN_LED_PIN; }
-
-								WriteMcp23018(IO_ADDRESS_KPD, GPIOA, keypadLedConfig);
+								debugErr("Waveform Event Data written size incorrect (%d)\r\n", bytesWritten);
 							}
-							else // Remaining data size is less than the file write chunk size
-							{
-								// Write the event data, containing the Pretrigger, event and cal
-								bytesWritten = write(waveformFileHandle, tempDataPtr, remainingDataLength);
 
-								if (bytesWritten != remainingDataLength)
-								{
-									debugErr("Waveform Event Data written size incorrect (%d)\r\n", bytesWritten);
-								}
+							remainingDataLength -= WAVEFORM_FILE_WRITE_CHUNK_SIZE;
+							tempDataPtr += (WAVEFORM_FILE_WRITE_CHUNK_SIZE / 2);
 
-								remainingDataLength = 0;
-							}
+							// Quickly toggle the green LED to show status of saving a waveform event (while too busy to update LCD)
+#if 0 /* old hw */
+							if (keypadLedConfig & GREEN_LED_PIN) { keypadLedConfig &= ~GREEN_LED_PIN; }
+							else { keypadLedConfig |= GREEN_LED_PIN; }
+							WriteMcp23018(IO_ADDRESS_KPD, GPIOA, keypadLedConfig);
+#endif
 						}
-
-						SetFileDateTimestamp(FS_DATE_LAST_WRITE);
-
-						// Update the remaining space left
-						UpdateSDCardUsageStats(nav_file_lgt());
-
-						// Done writing the event file, close the file handle
-						g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-						close(waveformFileHandle);
-
-						//==========================================================================================================
-						// Save compressed data file
-						//----------------------------------------------------------------------------------------------------------
-						if (g_unitConfig.saveCompressedData != DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA)
+						else // Remaining data size is less than the file write chunk size
 						{
-							// Get new event file handle
-							g_globalFileHandle = GetERDataFileHandle(g_pendingEventRecord.summary.eventNumber, CREATE_EVENT_FILE);
+							// Write the event data, containing the Pretrigger, event and cal
+							f_write(&file, tempDataPtr, remainingDataLength, (UINT*)&bytesWritten);
 
+							if (bytesWritten != remainingDataLength)
+							{
+								debugErr("Waveform Event Data written size incorrect (%d)\r\n", bytesWritten);
+							}
+
+							remainingDataLength = 0;
+						}
+					}
+
+					// Update the remaining space left
+					UpdateSDCardUsageStats(f_size(&file));
+
+					// Done writing the event file, close the file handle
+					g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+					f_close(&file);
+					SetFileTimestamp(g_spareFileName);
+
+					//==========================================================================================================
+					// Save compressed data file
+					//----------------------------------------------------------------------------------------------------------
+					if (g_unitConfig.saveCompressedData != DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA)
+					{
+						// Get new ERData compressed event file name
+						GetERDataFileHandle(g_pendingEventRecord.summary.eventNumber, CREATE_EVENT_FILE);
+						if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
+						{
+							printf("<Error> Unable to create ERdata event file: %s\n", g_spareFileName);
+						}
+						else // File created, write out the event
+						{
 							g_spareBufferIndex = 0;
 							compressSize = lzo1x_1_compress((void*)g_currentEventStartPtr, (g_wordSizeInEvent * 2), OUT_FILE);
 
@@ -350,28 +356,26 @@ void MoveWaveformEventToFile(void)
 							if (g_spareBufferIndex)
 							{
 								// Finish writing the remaining compressed data
-								write(g_globalFileHandle, g_spareBuffer, g_spareBufferIndex);
+								f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesWritten);
 								g_spareBufferIndex = 0;
 							}
-							debug("Wave Compressed Data length: %d (Matches file: %s)\r\n", compressSize, (compressSize == nav_file_lgt()) ? "Yes" : "No");
 
-							SetFileDateTimestamp(FS_DATE_LAST_WRITE);
+							debug("Wave Compressed Data length: %d (Matches file: %s)\r\n", compressSize, (compressSize == f_size(&file)) ? "Yes" : "No");
 
 							// Update the remaining space left
-							UpdateSDCardUsageStats(nav_file_lgt());
+							UpdateSDCardUsageStats(f_size(&file));
 
 							// Done writing the event file, close the file handle
 							g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-							close(g_globalFileHandle);
+							f_close(&file);
+							SetFileTimestamp(g_spareFileName);
 						}
-						//==========================================================================================================
-
-						debug("Waveform Event file closed\r\n");
 					}
-#endif
-					AddEventToSummaryList(&g_pendingEventRecord);
+					//==========================================================================================================
 
-					ReleaseSpi1MutexLock();
+					debug("Waveform Event file closed\r\n");
+
+					AddEventToSummaryList(&g_pendingEventRecord);
 
 					waveformProcessingState = WAVE_COMPLETE;
 				}

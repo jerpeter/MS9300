@@ -51,7 +51,12 @@
         "${config:MAXIM_PATH}/Libraries/MiscDrivers/LED",
         "${config:MAXIM_PATH}/Libraries/MiscDrivers/PMIC",
         "${config:MAXIM_PATH}/Libraries/MiscDrivers/PushButton",
-        "${config:MAXIM_PATH}/Libraries/MiscDrivers/Touchscreen"
+        "${config:MAXIM_PATH}/Libraries/MiscDrivers/Touchscreen",
+        "${config:MAXIM_PATH}/Libraries/MAXUSB/include/core",
+        "${config:MAXIM_PATH}/Libraries/MAXUSB/include/devclass",
+        "${config:MAXIM_PATH}/Libraries/MAXUSB/include/enumerate",
+        "${config:MAXIM_PATH}/Libraries/SDHC/Include",
+        "${config:MAXIM_PATH}/Libraries/SDHC/ff14/Source"
     ],
     "C_Cpp.default.browse.path": [
         "${workspaceFolder}",
@@ -80,7 +85,12 @@
         "adc.h": "c",
         "board.h": "c",
         "uart.h": "c",
-        "nvic_table.h": "c"
+        "nvic_table.h": "c",
+        "descriptors.h": "c",
+        "mxc_sys.h": "c",
+        "mxc_errors.h": "c",
+        "wdt.h": "c",
+        "sdhc_lib.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "C_Cpp.dimInactiveRegions": false

@@ -25,6 +25,8 @@
 #include "PowerManagement.h"
 #include "RemoteCommon.h"
 #include "Minilzo.h"
+
+#include "ff.h"
 //#include "fsaccess.h"
 
 ///----------------------------------------------------------------------------
@@ -52,14 +54,16 @@ void MoveManualCalToFile(void)
 	uint16 lowA = 0xFFFF, lowR = 0xFFFF, lowV = 0xFFFF, lowT = 0xFFFF;
 	uint16* startOfEventPtr;
 	uint16* endOfEventDataPtr;
-#if 0 /* temp remove while unused */
 	uint32 compressSize;
-	int manualCalFileHandle = -1;
-#endif
 	uint16* aManualCalPeakPtr = NULL;
 	uint16* rManualCalPeakPtr = NULL;
 	uint16* vManualCalPeakPtr = NULL;
 	uint16* tManualCalPeakPtr = NULL;
+
+	FIL file;
+	uint32_t bytesWritten;
+
+	UNUSED(compressSize); // Depends on debug on/off
 
 	debug("Processing Manual Cal to be saved\r\n");
 
@@ -154,55 +158,46 @@ void MoveManualCalToFile(void)
 
 		CacheResultsEventInfo((EVT_RECORD*)&g_pendingEventRecord);
 
-		if (g_fileAccessLock != AVAILABLE)
+		// Get new event file name
+		GetEventFileHandle(g_pendingEventRecord.summary.eventNumber, CREATE_EVENT_FILE);
+
+		if (f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
 		{
-			ReportFileSystemAccessProblem("Save Manual Cal");
+			printf("<Error> Unable to create cal event file: %s\n", g_spareFileName);
 		}
-		else // (g_fileAccessLock == AVAILABLE)
+		else // File created, write out the event
 		{
-			GetSpi1MutexLock(SDMMC_LOCK);
+			sprintf((char*)g_spareBuffer, "%s %s #%d %s...", getLangText(CALIBRATION_TEXT), getLangText(EVENT_TEXT),
+					g_pendingEventRecord.summary.eventNumber, getLangText(BEING_SAVED_TEXT));
+			OverlayMessage(getLangText(EVENT_COMPLETE_TEXT), (char*)g_spareBuffer, 0);
 
-#if 0 /* old hw */
-			nav_select(FS_NAV_ID_DEFAULT);
+			// Write the event record header and summary
+			f_write(&file, &g_pendingEventRecord, sizeof(EVT_RECORD), (UINT*)&bytesWritten);
 
-			// Get new event file handle
-			manualCalFileHandle = GetEventFileHandle(g_pendingEventRecord.summary.eventNumber, CREATE_EVENT_FILE);
+			// Write the event data, containing the Pretrigger, event and cal
+			f_write(&file, g_currentEventStartPtr, (g_wordSizeInCal * 2), (UINT*)&bytesWritten);
 
-			if (manualCalFileHandle == -1)
+			// Update the remaining space left
+			UpdateSDCardUsageStats(f_size(&file));
+
+			// Done writing the event file, close the file handle
+			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+			f_close(&file);
+			SetFileTimestamp(g_spareFileName);
+
+			//==========================================================================================================
+			// Save compressed data file
+			//----------------------------------------------------------------------------------------------------------
+			if (g_unitConfig.saveCompressedData != DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA)
 			{
-				ReleaseSpi1MutexLock();
-
-				debugErr("Failed to get a new file handle for the Manual Cal event\r\n");
-			}
-			else // Write the file event to the SD card
-			{
-				sprintf((char*)g_spareBuffer, "%s %s #%d %s...", getLangText(CALIBRATION_TEXT), getLangText(EVENT_TEXT),
-						g_pendingEventRecord.summary.eventNumber, getLangText(BEING_SAVED_TEXT));
-				OverlayMessage(getLangText(EVENT_COMPLETE_TEXT), (char*)g_spareBuffer, 0);
-
-				// Write the event record header and summary
-				write(manualCalFileHandle, &g_pendingEventRecord, sizeof(EVT_RECORD));
-
-				// Write the event data, containing the Pretrigger, event and cal
-				write(manualCalFileHandle, g_currentEventStartPtr, (g_wordSizeInCal * 2));
-
-				SetFileDateTimestamp(FS_DATE_LAST_WRITE);
-
-				// Update the remaining space left
-				UpdateSDCardUsageStats(nav_file_lgt());
-
-				// Done writing the event file, close the file handle
-				g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-				close(manualCalFileHandle);
-
-				//==========================================================================================================
-				// Save compressed data file
-				//----------------------------------------------------------------------------------------------------------
-				if (g_unitConfig.saveCompressedData != DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA)
+				// Get new ERData compressed event file name
+				GetERDataFileHandle(g_pendingEventRecord.summary.eventNumber, CREATE_EVENT_FILE);
+				if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
 				{
-					// Get new event file handle
-					g_globalFileHandle = GetERDataFileHandle(g_pendingEventRecord.summary.eventNumber, CREATE_EVENT_FILE);
-
+					printf("<Error> Unable to create ERdata event file: %s\n", g_spareFileName);
+				}
+				else // File created, write out the event
+				{
 					g_spareBufferIndex = 0;
 					compressSize = lzo1x_1_compress((void*)g_currentEventStartPtr, (g_wordSizeInCal * 2), OUT_FILE);
 
@@ -210,60 +205,59 @@ void MoveManualCalToFile(void)
 					if (g_spareBufferIndex)
 					{
 						// Finish writing the remaining compressed data
-						write(g_globalFileHandle, g_spareBuffer, g_spareBufferIndex);
+						f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesWritten);
 						g_spareBufferIndex = 0;
 					}
-					debug("Manual Cal Compressed Data length: %d (Matches file: %s)\r\n", compressSize, (compressSize == nav_file_lgt()) ? "Yes" : "No");
 
-					SetFileDateTimestamp(FS_DATE_LAST_WRITE);
+					debug("Manual Cal Compressed Data length: %d (Matches file: %s)\r\n", compressSize, (compressSize == f_size(&file)) ? "Yes" : "No");
 
 					// Update the remaining space left
-					UpdateSDCardUsageStats(nav_file_lgt());
+					UpdateSDCardUsageStats(f_size(&file));
 
 					// Done writing the event file, close the file handle
 					g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-					close(g_globalFileHandle);
+					f_close(&file);
+					SetFileTimestamp(g_spareFileName);
 				}
-				//==========================================================================================================
-				ReleaseSpi1MutexLock();
-
-				debug("Manual Cal Event file closed\r\n");
-
-				AddEventToSummaryList(&g_pendingEventRecord);
-
-				// Don't log a monitor entry for Manual Cal
-				//UpdateMonitorLogEntry();
-
-				// After event numbers have been saved, store current event number in persistent storage.
-				AddEventNumberToCache(g_pendingEventRecord.summary.eventNumber);
-				StoreCurrentEventNumber();
-
-				// Now store the updated event number in the universal ram storage.
-				g_pendingEventRecord.summary.eventNumber = g_nextEventNumberToUse;
 			}
-#endif
+			//==========================================================================================================
+			ReleaseSpi1MutexLock();
 
-			if (++g_eventBufferReadIndex == g_maxEventBuffers)
-			{
-				g_eventBufferReadIndex = 0;
-				g_currentEventSamplePtr = g_startOfEventBufferPtr;
-			}
-			else
-			{
-				g_currentEventSamplePtr = g_startOfEventBufferPtr + (g_eventBufferReadIndex * g_wordSizeInEvent);
-			}
+			debug("Manual Cal Event file closed\r\n");
 
-			clearSystemEventFlag(MANUAL_CAL_EVENT);
+			AddEventToSummaryList(&g_pendingEventRecord);
 
-			// Set flag to display calibration results if not monitoring or monitoring in waveform
-			if ((g_sampleProcessing == IDLE_STATE) || ((g_sampleProcessing == ACTIVE_STATE) && (g_triggerRecord.opMode == WAVEFORM_MODE)))
-			{
-				// Set printout mode to allow the results menu processing to know this is a manual cal pulse
-				raiseMenuEventFlag(RESULTS_MENU_EVENT);
-			}
+			// Don't log a monitor entry for Manual Cal
+			//UpdateMonitorLogEntry();
 
-			g_freeEventBuffers++;
+			// After event numbers have been saved, store current event number in persistent storage.
+			AddEventNumberToCache(g_pendingEventRecord.summary.eventNumber);
+			StoreCurrentEventNumber();
+
+			// Now store the updated event number in the universal ram storage.
+			g_pendingEventRecord.summary.eventNumber = g_nextEventNumberToUse;
 		}
+
+		if (++g_eventBufferReadIndex == g_maxEventBuffers)
+		{
+			g_eventBufferReadIndex = 0;
+			g_currentEventSamplePtr = g_startOfEventBufferPtr;
+		}
+		else
+		{
+			g_currentEventSamplePtr = g_startOfEventBufferPtr + (g_eventBufferReadIndex * g_wordSizeInEvent);
+		}
+
+		clearSystemEventFlag(MANUAL_CAL_EVENT);
+
+		// Set flag to display calibration results if not monitoring or monitoring in waveform
+		if ((g_sampleProcessing == IDLE_STATE) || ((g_sampleProcessing == ACTIVE_STATE) && (g_triggerRecord.opMode == WAVEFORM_MODE)))
+		{
+			// Set printout mode to allow the results menu processing to know this is a manual cal pulse
+			raiseMenuEventFlag(RESULTS_MENU_EVENT);
+		}
+
+		g_freeEventBuffers++;
 	}
 	else
 	{

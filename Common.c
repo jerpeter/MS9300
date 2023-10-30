@@ -22,8 +22,10 @@
 #include "SysEvents.h"
 #include "TextTypes.h"
 #include "adc.h"
-//#include "usart.h"
 #include "ctype.h"
+
+#include "ff.h"
+//#include "usart.h"
 //#include "usb_drv.h"
 //#include "usb_task.h"
 //#include "device_mass_storage_task.h"
@@ -568,14 +570,12 @@ void BuildLanguageLinkTable(uint8 languageSelection)
 	uint16 i, currIndex;
 	char languageFilename[50];
 	char promptTitle[25];
-#if 0 /* temp remove while unused */
-	int languageFile = -1;
-#endif
 	uint16 sizeCheck;
 	uint32 fileSize = 0;
-#if 1 /* temp */
-	UNUSED(sizeCheck);
-#endif
+
+	FIL file;
+	FILINFO fno;
+	uint32_t readSize;
 
 	memset((char*)&languageFilename[0], 0, sizeof(languageFilename));
 	strcpy((char*)&languageFilename[0], LANGUAGE_PATH);
@@ -626,98 +626,86 @@ void BuildLanguageLinkTable(uint8 languageSelection)
 	}
 #endif
 
-	if (g_fileAccessLock != AVAILABLE)
+	// Attempt to find the file on the SD file system
+    if ((f_stat((const TCHAR*)&languageFilename[0], &fno)) == FR_NO_FILE)
 	{
-		ReportFileSystemAccessProblem("Build language table");
+		printf("<Warning> Language file not found: %s\n", &languageFilename[0]);
 	}
-	else // (g_fileAccessLock == AVAILABLE)
+	else // File exists
 	{
-		GetSpi1MutexLock(SDMMC_LOCK);
+		if ((f_open(&file, (const TCHAR*)&languageFilename[0], FA_READ)) != FR_OK) { printf("Error opening file: %s\n", &languageFilename[0]); }
+		debug("Loading language table from file: %s, Length: %d\r\n", (char*)&languageFilename[0], f_size(&file));
 
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
+		memset(&g_languageTable[0], '\0', sizeof(g_languageTable));
 
-		// Attempt to find the file on the SD file system
-		languageFile = open((char*)&languageFilename[0], O_RDONLY);
-
-		if (languageFile != -1)
+		if (f_size(&file) > LANGUAGE_TABLE_MAX_SIZE)
 		{
-			debug("Loading language table from file: %s, Length: %d\r\n", (char*)&languageFilename[0], fsaccess_file_get_size(languageFile));
-			fileSize = fsaccess_file_get_size(languageFile);
-
-			memset(&g_languageTable[0], '\0', sizeof(g_languageTable));
-
-			if (fsaccess_file_get_size(languageFile) > LANGUAGE_TABLE_MAX_SIZE)
-			{
-				// Error case - Just read the maximum buffer size and pray
-				ReadWithSizeFix(languageFile, (uint8*)&g_languageTable[0], LANGUAGE_TABLE_MAX_SIZE);
-			}
-			else
-			{
-				// Check if the language file is slightly smaller than the default updated language file for this build (allowing some room for change/reduced text)
-				if (fsaccess_file_get_size(languageFile) < sizeCheck)
-				{
-					// Prompt the user
-					OverlayMessage(promptTitle, (char*)g_spareBuffer, (5 * SOFT_SECS));
-				}
-
-				ReadWithSizeFix(languageFile, (uint8*)&g_languageTable[0], fsaccess_file_get_size(languageFile));
-			}
-
-			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(languageFile);
+			// Error case - Just read the maximum buffer size and pray
+			f_read(&file, (uint8*)&g_languageTable[0], LANGUAGE_TABLE_MAX_SIZE, (UINT*)&readSize);
 		}
-#endif
-		ReleaseSpi1MutexLock();
-
-		// Loop and convert all line feeds and carriage returns to nulls, and leaving the last char element as a null
-		for (i = 1; i < (LANGUAGE_TABLE_MAX_SIZE - 1); i++)
+		else
 		{
-			// Check if a CR or LF was used as an element separator
-			if ((g_languageTable[i] == '\r') || (g_languageTable[i] == '\n'))
+			// Check if the language file is slightly smaller than the default updated language file for this build (allowing some room for change/reduced text)
+			if (f_size(&file) < sizeCheck)
 			{
-				// Convert the CR of LF to a Null
-				g_languageTable[i] = '\0';
-
-				// Check if a CR/LF or LF/CR combo was used to as the element separator
-				if ((g_languageTable[i + 1] == '\r') || (g_languageTable[i + 1] == '\n'))
-				{
-					// Skip the second character of the combo separator
-					i++;
-				}
+				// Prompt the user
+				OverlayMessage(promptTitle, (char*)g_spareBuffer, (5 * SOFT_SECS));
 			}
+
+			f_read(&file, (uint8*)&g_languageTable[0], f_size(&file), (UINT*)&readSize);
 		}
 
-		// Set the first element of the link table to the start of the language table
-		g_languageLinkTable[0] = &g_languageTable[0];
+		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+		f_close(&file);
+	}
+
+	// Loop and convert all line feeds and carriage returns to nulls, and leaving the last char element as a null
+	for (i = 1; i < (LANGUAGE_TABLE_MAX_SIZE - 1); i++)
+	{
+		// Check if a CR or LF was used as an element separator
+		if ((g_languageTable[i] == '\r') || (g_languageTable[i] == '\n'))
+		{
+			// Convert the CR of LF to a Null
+			g_languageTable[i] = '\0';
+
+			// Check if a CR/LF or LF/CR combo was used to as the element separator
+			if ((g_languageTable[i + 1] == '\r') || (g_languageTable[i + 1] == '\n'))
+			{
+				// Skip the second character of the combo separator
+				i++;
+			}
+		}
+	}
+
+	// Set the first element of the link table to the start of the language table
+	g_languageLinkTable[0] = &g_languageTable[0];
 
 #if 0 /* Test debug output */
-		length = sprintf((char*)g_spareBuffer, "Language File Table Link\r\n(%d) %s\r\n", 1, (char*)g_languageLinkTable[0]);
-		ModemPuts(g_spareBuffer, length, NO_CONVERSION);
+	length = sprintf((char*)g_spareBuffer, "Language File Table Link\r\n(%d) %s\r\n", 1, (char*)g_languageLinkTable[0]);
+	ModemPuts(g_spareBuffer, length, NO_CONVERSION);
 #endif
 	
-		// Build the language link table by pointing to the start of every string following a Null
-		for (i = 1, currIndex = 0; i < TOTAL_TEXT_STRINGS; i++)
-		{
-			while (g_languageTable[currIndex++] != '\0')
-			{ /* spin */
-				if (currIndex == fileSize) break;
-			};
+	// Build the language link table by pointing to the start of every string following a Null
+	for (i = 1, currIndex = 0; i < TOTAL_TEXT_STRINGS; i++)
+	{
+		while (g_languageTable[currIndex++] != '\0')
+		{ /* spin */
+			if (currIndex == fileSize) break;
+		};
 
-			if (currIndex < fileSize) {	g_languageLinkTable[i] = g_languageTable + currIndex; }
+		if (currIndex < fileSize) {	g_languageLinkTable[i] = g_languageTable + currIndex; }
 
 #if 0 /* Test debug output */
-			length = sprintf((char*)g_spareBuffer, "(%d) %s\r\n", (i + 1), (char*)g_languageLinkTable[i]);
-			ModemPuts(g_spareBuffer, length, NO_CONVERSION);
+		length = sprintf((char*)g_spareBuffer, "(%d) %s\r\n", (i + 1), (char*)g_languageLinkTable[i]);
+		ModemPuts(g_spareBuffer, length, NO_CONVERSION);
 #endif
-		}
+	}
 
-		// Check if the null text is actually empty covering the case where a newer language table is loaded but using older firmware where the null entry is populated
-		if (g_languageLinkTable[NULL_TEXT][0] != '\0')
-		{
-			// Set the null text to the last element of the language table, reserved for null
-			g_languageLinkTable[NULL_TEXT] = &g_languageTable[(LANGUAGE_TABLE_MAX_SIZE - 1)];
-		}
+	// Check if the null text is actually empty covering the case where a newer language table is loaded but using older firmware where the null entry is populated
+	if (g_languageLinkTable[NULL_TEXT][0] != '\0')
+	{
+		// Set the null text to the last element of the language table, reserved for null
+		g_languageLinkTable[NULL_TEXT] = &g_languageTable[(LANGUAGE_TABLE_MAX_SIZE - 1)];
 	}
 
 	debug("Language Link Table built.\r\n");
@@ -729,38 +717,17 @@ void BuildLanguageLinkTable(uint8 languageSelection)
 extern const char default_boot_name[];
 void CheckBootloaderAppPresent(void)
 {
-#if 0 /* temp remove while unused */
-	int file = -1;
-#endif
+	FILINFO fno;
 
-	if (g_fileAccessLock != AVAILABLE)
+	sprintf((char*)g_spareBuffer, "%s%s", SYSTEM_PATH, default_boot_name);
+
+	if ((f_stat((const TCHAR*)g_spareBuffer, &fno)) == FR_NO_FILE)
 	{
-		ReportFileSystemAccessProblem("Check bootloader available");
+		debugWarn("Bootloader not found\r\n");
 	}
-	else // (g_fileAccessLock == AVAILABLE)
+	else
 	{
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		sprintf((char*)g_spareBuffer, "%s%s", SYSTEM_PATH, default_boot_name);
-
-		file = open((char*)g_spareBuffer, O_RDONLY);
-
-		if (file != -1)
-		{
-			debug("Bootloader found and available\r\n");
-
-			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(file);
-		}
-		else
-		{
-			debugWarn("Bootloader not found\r\n");
-		}
-#endif
-		ReleaseSpi1MutexLock();
+		debug("Bootloader found and available\r\n");
 	}
 }
 

@@ -21,6 +21,8 @@
 #include "PowerManagement.h"
 #include "Sensor.h"
 #include "lcd.h"
+
+#include "ff.h"
 //#include "navigation.h"
 //#include "fsaccess.h"
 //#include "fat.h"
@@ -37,9 +39,7 @@
 ///----------------------------------------------------------------------------
 ///	Local Scope Globals
 ///----------------------------------------------------------------------------
-#if 0 /* temp removal while unused */
 static char s_summaryListFileName[] = LOGS_PATH SUMMARY_LIST_FILE;
-#endif
 static uint32 s_addedSizeToSDCard = 0;
 
 ///----------------------------------------------------------------------------
@@ -284,13 +284,14 @@ void SortRamSummaryTable2(void)
 ///----------------------------------------------------------------------------
 void DeleteEmptyDirectories(uint8 dirType)
 {
-#if 0 /* old hw */
+#if 0
 	uint16 navIndex;
 	uint8 dirDeleted = NO;
 	uint8 firstDirNotEmpty = NO;
 
 	nav_select(FS_NAV_ID_DEFAULT);
-	if (dirType == EVENT_FILE_TYPE) { nav_setcwd(EVENTS_PATH, TRUE, TRUE); }
+	if (dirType == EVENT_FILE_TYPE) 
+	{ nav_setcwd(EVENTS_PATH, TRUE, TRUE); }
 	else { nav_setcwd(ER_DATA_PATH, TRUE, TRUE); }
 
 	// Check all entries in the current directory
@@ -471,97 +472,19 @@ void ManageEventsDirectory(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* Poor performance 564 events (of 1100 objects) took ~3.5 seconds */
-void CountExistingEvents(void)
-{
-	uint16 navIndex = 0;
-	uint16 eventsFound = 0;
-	uint32 msCountTime;
-
-	if (g_fileAccessLock != AVAILABLE)
-	{
-		ReportFileSystemAccessProblem("Cache event numbers");
-	}
-	else // (g_fileAccessLock == AVAILABLE)
-	{
-
-		// Start the key timer
-		Start_Data_Clock(TC_MILLISECOND_TIMER_CHANNEL);
-
-		msCountTime = g_msTimerTicks;
-
-		GetSpi1MutexLock(SDMMC_LOCK);
-		nav_select(FS_NAV_ID_DEFAULT);
-		nav_setcwd(EVENTS_PATH, TRUE, TRUE);
-
-		// Check all entries in the Events directory
-		while (nav_filelist_set(0 , FS_FIND_NEXT))
-		{
-			// Check if the entry is a directory (sub-directory of the Events directory)
-			if (nav_file_isdir())
-			{
-				nav_file_name((FS_STRING)g_spareBuffer, 80, FS_NAME_GET, FALSE);
-
-				sprintf((char*)g_spareFileName, "%s%s\\", EVENTS_PATH, (char*)g_spareBuffer);
-				nav_setcwd((char*)g_spareFileName, TRUE, TRUE);
-
-				while (nav_filelist_set(0 , FS_FIND_NEXT))
-				{
-					// Check if sub directory element is a file
-					if (!nav_file_isdir())
-					{
-						// Check if the file has the correct event file extension
-						if (nav_file_checkext("ns8"))
-						{
-							eventsFound++;
-						}
-					}
-				}
-
-				nav_setcwd(EVENTS_PATH, TRUE, TRUE);
-				nav_filelist_set(navIndex, FS_FIND_NEXT);
-			}
-			else // (!nav_file_isdir()) // Entry is a file (in the root of the Events dir)
-			{
-				// Check if the file has the correct event file extension
-				if (nav_file_checkext("ns8"))
-				{
-					eventsFound++;
-				}
-			}
-
-			// Keep track of file list index for returning from a sub directory search
-			navIndex++;
-		}
-
-		ReleaseSpi1MutexLock();
-
-		msCountTime = (g_msTimerTicks - msCountTime);
-
-		// Disable the key timer
-		Stop_Data_Clock(TC_MILLISECOND_TIMER_CHANNEL);
-	}
-
-	uint16 length;
-	length = sprintf((char*)g_spareBuffer, "CountExistingEvents Total: %d, Time: %lu ms", eventsFound, msCountTime);
-	ModemPuts(g_spareBuffer, length, NO_CONVERSION);
-}
-#endif
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 static uint16 s_lastEventNumber;
 static uint8 s_lastEventType;
 static uint8 s_lastSearchValid = NO;
 char* GetEventFilenameAndPath(uint16 eventNumber, uint8 eventType)
 {
-#if 0 /* temp remove while unused */
 	uint16 fileEventNumber;
 	uint16 lowerBounds, upperBounds;
 	char directory[20];
 	char fileExtension[4];
-#endif
+
+	FRESULT res;
+	DIR dir;
+	FILINFO fno;
 
 #if 0 /* Test */
 	uint16 length;
@@ -582,9 +505,6 @@ char* GetEventFilenameAndPath(uint16 eventNumber, uint8 eventType)
 	s_lastEventNumber = eventNumber;
 	s_lastEventType = eventType;
 
-#if 0 /* old hw */
-	nav_select(FS_NAV_ID_DEFAULT);
-
 	GetSubDirLowerAndUpperBounds(eventNumber, &lowerBounds, &upperBounds);
 
 	if (eventType == EVENT_FILE_TYPE)
@@ -598,11 +518,15 @@ char* GetEventFilenameAndPath(uint16 eventNumber, uint8 eventType)
 		strcpy(fileExtension, "nsD");
 	}
 
+	//--------------------------------------
+	// If not cached, check primary location
+	//--------------------------------------
+
 	// Create Primary location path and filename
-	sprintf((char*)g_eventPathAndFilename, "%s%s %d-%d\\%s%d.%s", directory, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, eventNumber, fileExtension);
+	sprintf((char*)g_eventPathAndFilename, "%s%s %d-%d/%s%d.%s", directory, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, eventNumber, fileExtension);
 
 	// Check if Primary location is valid
-	if (nav_setcwd((char*)g_eventPathAndFilename, TRUE, FALSE))
+	if ((f_stat((const TCHAR*)g_eventPathAndFilename, NULL)) == FR_OK)
 	{
 #if 0 /* Test */
 		length = sprintf((char*)g_debugBuffer, "Get Path and File: Primary location found for Event(%d): %s\r\n", eventNumber, g_eventPathAndFilename);
@@ -613,11 +537,15 @@ char* GetEventFilenameAndPath(uint16 eventNumber, uint8 eventType)
 		return (&g_eventPathAndFilename[0]);
 	}
 
-	// Create Primary location path and filename
+	//------------------------------------------------------------
+	// If not cached or primary location, check secondary location
+	//------------------------------------------------------------
+
+	// Create Secondary location path and filename
 	sprintf((char*)g_eventPathAndFilename, "%s%s%d.%s", directory, EVT_FILE, eventNumber, fileExtension);
 
 	// Check if Secondary location is valid
-	if (nav_setcwd((char*)g_eventPathAndFilename, TRUE, FALSE))
+	if ((f_stat((const TCHAR*)g_eventPathAndFilename, NULL)) == FR_OK)
 	{
 #if 0 /* Test */
 		length = sprintf((char*)g_debugBuffer, "Get Path and File: Secondary location found for Event(%d): %s\r\n", eventNumber, g_eventPathAndFilename);
@@ -628,78 +556,88 @@ char* GetEventFilenameAndPath(uint16 eventNumber, uint8 eventType)
 		return (&g_eventPathAndFilename[0]);
 	}
 
+	//------------------------------------------------------------------
+	// If still not found, check primary dir contents for wrong filename
+	//------------------------------------------------------------------
+
 	// Create Primary location directory
-	sprintf((char*)g_eventPathAndFilename, "%s%s %d-%d\\\r\n", directory, EVTS_SUB_DIR, lowerBounds, upperBounds);
+	sprintf((char*)g_eventPathAndFilename, "%s%s %d-%d/", directory, EVTS_SUB_DIR, lowerBounds, upperBounds);
 
-	// Change to Primary location directory (if it exists)
-	if (nav_setcwd((char*)g_eventPathAndFilename, TRUE, TRUE))
+	// Open Primary location directory (if it exists)
+	if(f_opendir(&dir, g_eventPathAndFilename) == FR_OK)
 	{
-		// Search through all the directory elements
-		while (nav_filelist_set(0, FS_FIND_NEXT))
+		while(1)
 		{
-			// Check if the current element is a file
-			if (!nav_file_isdir())
-			{
-				// Check if the file has the correct event file extension
-				if (nav_file_checkext(fileExtension))
-				{
-					// Get the event number from the filename
-					nav_file_name((FS_STRING)g_spareFileName, 255, FS_NAME_GET, FALSE);
-					fileEventNumber = GetEventNumberFromFilename((char*)g_spareFileName, LOOSE_EVENT_NAME_FORMAT);
+			res = f_readdir(&dir, &fno);
+			if ((res != FR_OK) || (fno.fname[0] == 0)) { break; }
 
-					// Check if the event number is valid
-					if (fileEventNumber == eventNumber)
-					{
-						// Found file
-						strcat(g_eventPathAndFilename, (char*)g_spareFileName);
+			// Check if not a directory, thus a file
+			if ((fno.fattrib & AM_DIR) == 0)
+			{
+				strcpy(g_spareFileName, fno.fname);
+				fileEventNumber = GetEventNumberFromFilename((char*)g_spareFileName, LOOSE_EVENT_NAME_FORMAT);
+
+				// Check if the event number is valid
+				if (fileEventNumber == eventNumber)
+				{
+					// Found file
+					strcat(g_eventPathAndFilename, (char*)g_spareFileName);
 #if 0 /* Test */
-						length = sprintf((char*)g_debugBuffer, "Get Path and File: Primary directory found for Event(%d): %s\r\n", eventNumber, g_eventPathAndFilename);
-						ModemPuts(g_debugBuffer, length, NO_CONVERSION);
+					length = sprintf((char*)g_debugBuffer, "Get Path and File: Primary directory found for Event(%d): %s\r\n", eventNumber, g_eventPathAndFilename);
+					ModemPuts(g_debugBuffer, length, NO_CONVERSION);
 #endif
-						s_lastSearchValid = YES;
-						return (&g_eventPathAndFilename[0]);
-					}
+					s_lastSearchValid = YES;
+					return (&g_eventPathAndFilename[0]);
 				}
 			}
 		}
+
+		f_closedir(&dir);
 	}
+
+	//--------------------------------------------------------------------
+	// If still not found, check secondary dir contents for wrong filename
+	//--------------------------------------------------------------------
 
 	// Create Secondary location directory
 	sprintf((char*)g_eventPathAndFilename, directory);
 
-	// Change to Secondary location directory (if it exists)
-	if (nav_setcwd((char*)g_eventPathAndFilename, TRUE, TRUE))
+	// Open Secondary location directory (if it exists)
+	if(f_opendir(&dir, g_eventPathAndFilename) == FR_OK)
 	{
-		// Search through all the directory elements
-		while (nav_filelist_set(0, FS_FIND_NEXT))
+		while(1)
 		{
-			// Check if the current element is a file
-			if (!nav_file_isdir())
-			{
-				// Check if the file has the correct event file extension
-				if (nav_file_checkext(fileExtension))
-				{
-					// Get the event number from the filename
-					nav_file_name((FS_STRING)g_spareFileName, 255, FS_NAME_GET, FALSE);
-					fileEventNumber = GetEventNumberFromFilename((char*)g_spareFileName, LOOSE_EVENT_NAME_FORMAT);
+			res = f_readdir(&dir, &fno);
+			if ((res != FR_OK) || (fno.fname[0] == 0)) { break; }
 
-					// Check if the event number is valid
-					if (fileEventNumber == eventNumber)
-					{
-						// Found file
-						strcat(g_eventPathAndFilename, (char*)g_spareFileName);
+			// Check if not a directory, thus a file
+			if ((fno.fattrib & AM_DIR) == 0)
+			{
+				strcpy(g_spareFileName, fno.fname);
+				fileEventNumber = GetEventNumberFromFilename((char*)g_spareFileName, LOOSE_EVENT_NAME_FORMAT);
+
+				// Check if the event number is valid
+				if (fileEventNumber == eventNumber)
+				{
+					// Found file
+					strcat(g_eventPathAndFilename, (char*)g_spareFileName);
 #if 0 /* Test */
-						length = sprintf((char*)g_debugBuffer, "Get Path and File: Secondary directory found for Event(%d): %s\r\n", eventNumber, g_eventPathAndFilename);
-						ModemPuts(g_debugBuffer, length, NO_CONVERSION);
+					length = sprintf((char*)g_debugBuffer, "Get Path and File: Primary directory found for Event(%d): %s\r\n", eventNumber, g_eventPathAndFilename);
+					ModemPuts(g_debugBuffer, length, NO_CONVERSION);
 #endif
-						s_lastSearchValid = YES;
-						return (&g_eventPathAndFilename[0]);
-					}
+					s_lastSearchValid = YES;
+					return (&g_eventPathAndFilename[0]);
 				}
 			}
 		}
+
+		f_closedir(&dir);
 	}
-#endif
+
+	//------------------------------
+	// Failed to find the event file
+	//------------------------------
+
 	// If execution reaches here then the event file was not found
 	g_eventPathAndFilename[0] = '\0';
 	return (&g_eventPathAndFilename[0]);
@@ -710,33 +648,25 @@ char* GetEventFilenameAndPath(uint16 eventNumber, uint8 eventType)
 ///----------------------------------------------------------------------------
 void DumpSummaryListFileToEventBuffer(void)
 {
-#if 0 /* temp remove while unused */
 	SUMMARY_LIST_ENTRY_STRUCT* summaryListCache = (SUMMARY_LIST_ENTRY_STRUCT*)&g_eventDataBuffer[0];
-#endif
+
+	FIL file;
+	uint32_t readSize;
 
 	if (g_summaryList.totalEntries)
 	{
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		if (nav_setcwd(s_summaryListFileName, TRUE, FALSE))
+		if ((f_open(&file, (const TCHAR*)s_summaryListFileName, FA_READ)) != FR_OK)
 		{
-			g_summaryList.file = open(s_summaryListFileName, O_RDONLY);
+			printf("<Error> File access problem, Dump Summary List: %s\n", s_summaryListFileName);
+		}
+		else // File successfully opened
+		{
+			debug("Dumping Summary list with file size: %d\r\n", f_size(&file));
 
-			debug("Dumping Summary list with file size: %d\r\n", nav_file_lgt());
-
-			ReadWithSizeFix(g_summaryList.file, summaryListCache, nav_file_lgt());
+			f_read(&file, summaryListCache, f_size(&file), (UINT*)&readSize);
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(g_summaryList.file);
+			f_close(&file);
 		}
-		else
-		{
-			debugErr("File access problem: Dump Summary List\r\n");
-		}
-#endif
-		ReleaseSpi1MutexLock();
 	}
 }
 
@@ -745,6 +675,9 @@ void DumpSummaryListFileToEventBuffer(void)
 ///----------------------------------------------------------------------------
 void AddEventToSummaryList(EVT_RECORD* event)
 {
+	FIL file;
+	uint32_t writeSize;
+
 	memset(&g_summaryList.cachedEntry, 0, sizeof(g_summaryList.cachedEntry));
 
 	g_summaryList.cachedEntry.eventNumber = event->summary.eventNumber;
@@ -768,27 +701,24 @@ void AddEventToSummaryList(EVT_RECORD* event)
 	g_summaryList.cachedEntry.channelSummary.a.acceleration = event->summary.parameters.airSensorType;
 #endif
 
-	// Parent handles GetSpi1MutexLock(SDMMC_LOCK)
+	// Parent handles mutex locking (if necessary)
 
-#if 0 /* old hw */
-	nav_select(FS_NAV_ID_DEFAULT);
-
-	if (nav_setcwd(s_summaryListFileName, TRUE, TRUE))
+    if ((f_open(&file, (const TCHAR*)s_summaryListFileName, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
-		g_summaryList.file = open(s_summaryListFileName, O_APPEND);
-		//file_seek(0, FS_SEEK_END);
-		write(g_summaryList.file, &g_summaryList.cachedEntry, sizeof(SUMMARY_LIST_ENTRY_STRUCT));
+		printf("<Error> File access problem: Add Event to Summary list with: %s\n", s_summaryListFileName);
+		//debugErr("File access problem: Add Event to Summary list\r\n");
+	}
+	else // File successfully created or opened
+	{
+		// FA_OPEN_APPEND should set write pointer to the end
+		f_write(&file, &g_summaryList.cachedEntry, sizeof(SUMMARY_LIST_ENTRY_STRUCT), (UINT*)&writeSize);
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-		close(g_summaryList.file);
-	}
-	else
-	{
-		debugErr("File access problem: Add Event to Summary list\r\n");
-	}
-#endif
-	// Parent handles ReleaseSpi1MutexLock()
+		f_close(&file);
 
-	debug("Added Event: %d to Summary List file\r\n", g_summaryList.cachedEntry.eventNumber);
+		debug("Added Event: %d to Summary List file\r\n", g_summaryList.cachedEntry.eventNumber);
+	}
+
+	// Parent handles mutex lock release (if necessary)
 
 	g_summaryList.totalEntries++;
 	g_summaryList.validEntries++;
@@ -799,266 +729,13 @@ void AddEventToSummaryList(EVT_RECORD* event)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0
-void CacheNextSummaryListEntry(void)
-{
-	SUMMARY_LIST_ENTRY_STRUCT* summaryListCache = (SUMMARY_LIST_ENTRY_STRUCT*)&g_eventDataBuffer[???];
-
-	// Check if able to use the summary list cache generated by the dump summary file to cache call
-	if ((g_summaryList.totalEntries < SUMMARY_LIST_CACHE_ENTRIES_LIMIT) &&
-		((g_summaryListMenuActive == YES) || ((g_modemStatus.xferState == DQMx_CMD) && (g_sampleProcessing == IDLE_STATE))))
-	{
-		// Clear the cached entry
-		memset(&g_summaryList.cachedEntry, 0, sizeof(g_summaryList.cachedEntry));
-
-		while (++g_summaryList.currentEntryIndex < g_summaryList.totalEntries)
-		{
-			memcpy(&g_summaryList.cachedEntry, &summaryListCache[g_summaryList.currentEntryIndex], sizeof(SUMMARY_LIST_ENTRY_STRUCT));
-
-			if (g_summaryList.cachedEntry.eventNumber)
-			{
-				break;
-			}
-		}
-
-		if (g_summaryList.currentEntryIndex == g_summaryList.totalEntries)
-		{
-			debug("End of Summary list cache\r\n");
-		}
-	}
-	else
-	{
-		// Clear the cached entry
-		memset(&g_summaryList.cachedEntry, 0, sizeof(g_summaryList.cachedEntry));
-
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		if (nav_setcwd(s_summaryListFileName, TRUE, FALSE))
-		{
-			g_summaryList.file = open(s_summaryListFileName, O_RDONLY);
-
-			while (file_seek(++g_summaryList.currentEntryIndex * sizeof(SUMMARY_LIST_ENTRY_STRUCT), FS_SEEK_SET) == TRUE)
-			{
-				ReadWithSizeFix(g_summaryList.file, &g_summaryList.cachedEntry, sizeof(SUMMARY_LIST_ENTRY_STRUCT));
-
-				if (g_summaryList.cachedEntry.eventNumber)
-				{
-					break;
-				}
-
-				if (g_summaryList.currentEntryIndex == g_summaryList.totalEntries)
-				{
-					debug("End of Summary list entries\r\n");
-					break;
-				}
-			}
-
-			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(g_summaryList.file);
-		}
-		else
-		{
-			debugErr("File access problem: Cache Next Summary List\r\n");
-		}
-
-		ReleaseSpi1MutexLock();
-	}
-}
-#endif
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-#if 0
-void CachePreviousSummaryListEntry(void)
-{
-	SUMMARY_LIST_ENTRY_STRUCT* summaryListCache = (SUMMARY_LIST_ENTRY_STRUCT*)&g_eventDataBuffer[???];
-
-	// Check if able to use the summary list cache generated by the dump summary file to cache call
-	if ((g_summaryList.totalEntries < SUMMARY_LIST_CACHE_ENTRIES_LIMIT) &&
-		((g_summaryListMenuActive == YES) || ((g_modemStatus.xferState == DQMx_CMD) && (g_sampleProcessing == IDLE_STATE))))
-	{
-		// Clear the cached entry
-		memset(&g_summaryList.cachedEntry, 0, sizeof(g_summaryList.cachedEntry));
-
-		if (g_summaryList.currentEntryIndex)
-		{
-			while (--g_summaryList.currentEntryIndex)
-			{
-				memcpy(&g_summaryList.cachedEntry, &summaryListCache[g_summaryList.currentEntryIndex], sizeof(SUMMARY_LIST_ENTRY_STRUCT));
-
-				if (g_summaryList.cachedEntry.eventNumber)
-				{
-					break;
-				}
-			}
-		}
-		else
-		{
-			memcpy(&g_summaryList.cachedEntry, &summaryListCache[0], sizeof(SUMMARY_LIST_ENTRY_STRUCT));
-		}
-
-		if (g_summaryList.currentEntryIndex == 0)
-		{
-			debug("Start of Summary list cache\r\n");
-		}
-	}
-	else
-	{
-		// Clear the cached entry
-		memset(&g_summaryList.cachedEntry, 0, sizeof(g_summaryList.cachedEntry));
-
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		if (nav_setcwd(s_summaryListFileName, TRUE, FALSE))
-		{
-			g_summaryList.file = open(s_summaryListFileName, O_RDONLY);
-
-			if (g_summaryList.currentEntryIndex)
-			{
-				while (file_seek(--g_summaryList.currentEntryIndex * sizeof(SUMMARY_LIST_ENTRY_STRUCT), FS_SEEK_SET) == TRUE)
-				{
-					ReadWithSizeFix(g_summaryList.file, &g_summaryList.cachedEntry, sizeof(SUMMARY_LIST_ENTRY_STRUCT));
-
-					if (g_summaryList.cachedEntry.eventNumber)
-					{
-						break;
-					}
-
-					if (g_summaryList.currentEntryIndex == 0)
-					{
-						debug("Start of Summary list entries\r\n");
-						break;
-					}
-				}
-			}
-			else
-			{
-				file_seek(0, FS_SEEK_SET);
-				ReadWithSizeFix(g_summaryList.file, &g_summaryList.cachedEntry, sizeof(SUMMARY_LIST_ENTRY_STRUCT));
-				debug("Start of Summary list entries\r\n");
-			}
-
-			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(g_summaryList.file);
-		}
-		else
-		{
-			debugErr("File access problem: Cache Previous Summary List\r\n");
-		}
-
-		ReleaseSpi1MutexLock();
-	}
-}
-#endif
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-#if 0
-void CacheSummaryEntryByIndex(uint16 index)
-{
-	SUMMARY_LIST_ENTRY_STRUCT* summaryListCache = (SUMMARY_LIST_ENTRY_STRUCT*)&g_eventDataBuffer[???];
-
-	// Check if able to use the summary list cache generated by the dump summary file to cache call
-	if ((g_summaryList.totalEntries < SUMMARY_LIST_CACHE_ENTRIES_LIMIT) &&
-		((g_summaryListMenuActive == YES) || ((g_modemStatus.xferState == DQMx_CMD) && (g_sampleProcessing == IDLE_STATE))))
-	{
-		// Clear the cached entry
-		memset(&g_summaryList.cachedEntry, 0, sizeof(g_summaryList.cachedEntry));
-
-		while (index < g_summaryList.totalEntries)
-		{
-			memcpy(&g_summaryList.cachedEntry, &summaryListCache[index], sizeof(SUMMARY_LIST_ENTRY_STRUCT));
-
-			// Check if a valid entry was found
-			if (g_summaryList.cachedEntry.eventNumber)
-			{
-				g_summaryList.currentEntryIndex = index;
-				break;
-			}
-			else // Deleted entry, move to next entry
-			{
-				//debug("Skipping deleted entry\r\n");
-				index++;
-			}
-		}
-
-		// Check if no entry was found
-		if (index == g_summaryList.totalEntries)
-		{
-			debugErr("Cache Summary Entry reached end\r\n");
-		}
-	}
-	else // Resort to file access
-	{
-		// Clear the cached entry
-		memset(&g_summaryList.cachedEntry, 0, sizeof(g_summaryList.cachedEntry));
-
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		if (nav_setcwd(s_summaryListFileName, TRUE, FALSE))
-		{
-			g_summaryList.file = open(s_summaryListFileName, O_RDONLY);
-
-			if (index < g_summaryList.totalEntries)
-			{
-				while (file_seek((index * sizeof(SUMMARY_LIST_ENTRY_STRUCT)), FS_SEEK_SET) == TRUE)
-				{
-					ReadWithSizeFix(g_summaryList.file, &g_summaryList.cachedEntry, sizeof(SUMMARY_LIST_ENTRY_STRUCT));
-
-					// Check if no entry was found
-					if (g_summaryList.cachedEntry.eventNumber == 0)
-					{
-						//debug("Skipping deleted entry\r\n");
-						index++;
-					}
-					else
-					{
-						g_summaryList.currentEntryIndex = index;
-						break;
-					}
-				}
-			}
-
-			// Check if no entry was found
-			if (g_summaryList.cachedEntry.eventNumber == 0)
-			{
-				debugErr("Cache Summary Entry failed using index: %d\r\n", index);
-			}
-			else
-			{
-				//debug("Caching Summary File event: %d\r\n", g_summaryList.cachedEntry.eventNumber);
-			}
-
-			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(g_summaryList.file);
-		}
-		else
-		{
-			debugErr("File access problem: Cache Summary Entry by Index\r\n");
-		}
-
-		ReleaseSpi1MutexLock();
-	}
-}
-#endif
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 SUMMARY_LIST_ENTRY_STRUCT* GetSummaryFromSummaryList(uint16 eventNumber)
 {
-#if 0 /* temp remove while unused */
 	uint32 summaryListIndex = 0;
 	uint16 summaryListIndexEventNumber;
-#endif
+
+	FIL file;
+	uint32_t readSize;
 
 	// Check if the current cached entry is not already loaded with the current event request
 	if (eventNumber != g_summaryList.cachedEntry.eventNumber)
@@ -1066,24 +743,21 @@ SUMMARY_LIST_ENTRY_STRUCT* GetSummaryFromSummaryList(uint16 eventNumber)
 		// Clear the cached entry
 		memset(&g_summaryList.cachedEntry, 0, sizeof(g_summaryList.cachedEntry));
 
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		if (nav_setcwd(s_summaryListFileName, TRUE, FALSE))
+		if ((f_open(&file, (const TCHAR*)s_summaryListFileName, FA_READ)) != FR_OK)
 		{
-			g_summaryList.file = open(s_summaryListFileName, O_RDONLY);
-
-			while (file_seek(summaryListIndex * sizeof(SUMMARY_LIST_ENTRY_STRUCT), FS_SEEK_SET) == TRUE)
+			printf("<Error> File access problem: Get Summary from Summary List: %s\n", s_summaryListFileName);
+			//debugErr("File access problem: Get Summary from Summary List\r\n");
+		}
+		else // File successfully opened
+		{
+			while (f_lseek(&file, summaryListIndex * sizeof(SUMMARY_LIST_ENTRY_STRUCT)) == FR_OK)
 			{
-				ReadWithSizeFix(g_summaryList.file, &summaryListIndexEventNumber, 2);
+				f_read(&file, &summaryListIndexEventNumber, 2, (UINT*)&readSize);
 
 				if (summaryListIndexEventNumber == eventNumber)
 				{
-					file_seek(summaryListIndex * sizeof(SUMMARY_LIST_ENTRY_STRUCT), FS_SEEK_SET);
-					ReadWithSizeFix(g_summaryList.file, &g_summaryList.cachedEntry, sizeof(SUMMARY_LIST_ENTRY_STRUCT));
-
+					f_lseek(&file, summaryListIndex * sizeof(SUMMARY_LIST_ENTRY_STRUCT));
+					f_read(&file, &g_summaryList.cachedEntry, sizeof(SUMMARY_LIST_ENTRY_STRUCT), (UINT*)&readSize);
 					break;
 				}
 				else
@@ -1099,14 +773,8 @@ SUMMARY_LIST_ENTRY_STRUCT* GetSummaryFromSummaryList(uint16 eventNumber)
 			}
 
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(g_summaryList.file);
+			f_close(&file);
 		}
-		else
-		{
-			debugErr("File access problem: Get Summary from Summary List\r\n");
-		}
-#endif
-		ReleaseSpi1MutexLock();
 	}
 
 	return (&g_summaryList.cachedEntry);
@@ -1201,25 +869,27 @@ void ClearEventListCache(void)
 ///----------------------------------------------------------------------------
 void ParseAndCountSummaryListEntriesWithRewrite(void)
 {
-#if 0 /* temp remove while unused */
 	uint32 startRewriteFileLocation = 0;
-#endif
 
 	SUMMARY_LIST_ENTRY_STRUCT* rewriteSummaryListEntryCachePtr = NULL;
 	uint32 displacedEntries = 0;
-	uint16 totalEntries = 0; //(nav_file_lgt() / sizeof(SUMMARY_LIST_ENTRY_STRUCT));
+	uint16 totalEntries = 0;
 	uint32 halfSecondCompare = 0;
 
+	FIL file;
+	uint32_t rwSize;
+
 	ClearEventListCache();
+
+	f_open(&file, (const TCHAR*)s_summaryListFileName, (FA_READ | FA_WRITE));
+	f_lseek(&file, 0); // Necessary?
+	totalEntries = (f_size(&file) / sizeof(SUMMARY_LIST_ENTRY_STRUCT));
 
 	sprintf((char*)g_spareBuffer, "%s %s (%d of %d)", getLangText(EVENT_TEXT), getLangText(SYNC_IN_PROGRESS_TEXT), 1, totalEntries);
 	OverlayMessage(getLangText(SUMMARY_LIST_TEXT), (char*)g_spareBuffer, 0);
 	halfSecondCompare = g_lifetimeHalfSecondTickCount + 1;
 
-#if 0 /* old hw */
-	file_seek(0, FS_SEEK_SET);
-#endif
-	while (ReadWithSizeFix(g_summaryList.file, (uint8*)&g_summaryList.cachedEntry, sizeof(SUMMARY_LIST_ENTRY_STRUCT)) != -1)
+	while (f_read(&file, (uint8*)&g_summaryList.cachedEntry, sizeof(SUMMARY_LIST_ENTRY_STRUCT), (UINT*)&rwSize) == FR_OK)
 	{
 		// Check if a second has passed
 		if (g_lifetimeHalfSecondTickCount > halfSecondCompare)
@@ -1246,9 +916,7 @@ void ParseAndCountSummaryListEntriesWithRewrite(void)
 			else
 			{
 				// Update the position of the last known good string of valid event summaries
-#if 0 /* old hw */
-				startRewriteFileLocation = file_getpos();
-#endif
+				startRewriteFileLocation = f_tell(&file);
 			}
 		}
 		else // Event file is missing or erased, need to clear summary list entry
@@ -1264,19 +932,19 @@ void ParseAndCountSummaryListEntriesWithRewrite(void)
 	if (g_summaryList.deletedEntries)
 	{
 		// Reset to the marked rewrite location of the summary list file
-#if 0 /* old hw */
-		file_seek(startRewriteFileLocation, FS_SEEK_SET);
-#endif
+		f_lseek(&file, startRewriteFileLocation);
+
 		// Re-write the summary list minus the deleted entries
-		WriteWithSizeFix(g_summaryList.file, &g_eventDataBuffer[0], (displacedEntries * sizeof(SUMMARY_LIST_ENTRY_STRUCT)));
+		f_write(&file, &g_eventDataBuffer[0], (displacedEntries * sizeof(SUMMARY_LIST_ENTRY_STRUCT)), (UINT*)&rwSize);
 
 		// Set the end of the file after the write to clip the blank space now at the end
-#if 0 /* old hw */
-		file_set_eof();
-#endif
+		f_lseek(&file, f_size(&file));
+
 		// Reset the deleted entry count
 		g_summaryList.deletedEntries = 0;
 	}
+
+	f_close(&file);
 
 	// Set the summary list total entries
 	g_summaryList.totalEntries = g_summaryList.validEntries;
@@ -1289,8 +957,6 @@ void ParseAndCountSummaryListEntriesWithRewrite(void)
 	{
 		debug("Summary List file: Valid Entires: %d, Deleted Entries: %d (Total: %d)\r\n", g_summaryList.validEntries, g_summaryList.deletedEntries, g_summaryList.totalEntries);
 	}
-
-	//nav_select(FS_NAV_ID_DEFAULT);
 }
 
 ///----------------------------------------------------------------------------
@@ -1298,33 +964,29 @@ void ParseAndCountSummaryListEntriesWithRewrite(void)
 ///----------------------------------------------------------------------------
 void InitSummaryListFile(void)
 {
+	//FIL file;
+	FILINFO fno;
+	//uint32_t readSize;
+
 	memset(&g_summaryList, 0, sizeof(g_summaryList));
 
-	GetSpi1MutexLock(SDMMC_LOCK);
-
-#if 0 /* old hw */
-	nav_select(FS_NAV_ID_DEFAULT);
-
-	if (nav_setcwd(s_summaryListFileName, TRUE, TRUE))
+    if ((f_stat((const TCHAR*)s_summaryListFileName, &fno)) == FR_NO_FILE)
+	{ 
+		debugWarn("Warning: Summary List file not found or has not yet been created\r\n");
+	}
+	else
 	{
-		g_summaryList.file = open(s_summaryListFileName, O_RDWR);
-
-		if (nav_file_lgt() % sizeof(SUMMARY_LIST_ENTRY_STRUCT) != 0)
+		if (fno.fsize % sizeof(SUMMARY_LIST_ENTRY_STRUCT) != 0)
 		{
 			debugErr("Summary List file contains a corrupted entry\r\n");
 		}
 
-		ParseAndCountSummaryListEntriesWithRewrite();
+		// Check if the file has contents before processing
+		if (fno.fsize)
+		{
+			ParseAndCountSummaryListEntriesWithRewrite();
+		}
 	}
-	else
-	{
-		ReportFileAccessProblem(s_summaryListFileName);
-	}
-
-	g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-	close(g_summaryList.file);
-#endif
-	ReleaseSpi1MutexLock();
 }
 
 ///----------------------------------------------------------------------------
@@ -1648,63 +1310,48 @@ void GetEventFileInfo(uint16 eventNumber, EVENT_HEADER_STRUCT* eventHeaderPtr, E
 {
 	EVENT_HEADER_STRUCT fileEventHeader;
 	EVENT_SUMMARY_STRUCT fileSummary;
-#if 0 /* temp remove while unused */
 	char* pathAndFilename;
-	int eventFile;
-#endif
 
-	if (g_fileAccessLock != AVAILABLE)
-	{
-		ReportFileSystemAccessProblem("Check event file");
+	FIL file;
+	uint32_t readSize;
+
+	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
+
+    if (f_stat((const TCHAR*)pathAndFilename, NULL) == FR_NO_FILE)
+	{ 
+		DisplayFileNotFound(pathAndFilename);
 	}
-	else // (g_fileAccessLock == AVAILABLE)
+	else // File exists
 	{
-		GetSpi1MutexLock(SDMMC_LOCK);
+		f_open(&file, pathAndFilename, FA_READ);
 
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-#if 0 /* Original */
-		sprintf(fileName, "%sEvt%d.ns8", EVENTS_PATH, eventNumber);
-#else
-		pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
-#endif
-		eventFile = open(pathAndFilename, O_RDONLY);
-
-		// Verify file ID
-		if (eventFile == -1)
-		{
-			DisplayFileNotFound(pathAndFilename);
-		}
 		// Verify file is big enough
-		else if (fsaccess_file_get_size(eventFile) < sizeof(EVENT_HEADER_STRUCT))
+		if (f_size(&file) < sizeof(EVENT_HEADER_STRUCT))
 		{
 			DisplayFileCorrupt(pathAndFilename);
 		}
-		else
+		else // File good
 		{
-			ReadWithSizeFix(eventFile, (uint8*)&fileEventHeader, sizeof(EVENT_HEADER_STRUCT));
+			f_read(&file, (uint8*)&fileEventHeader, sizeof(EVENT_HEADER_STRUCT), (UINT*)&readSize);
 
 			// If we find the EVENT_RECORD_START_FLAG followed by the encodeFlag2, then assume this is the start of an event
 			if ((fileEventHeader.startFlag == EVENT_RECORD_START_FLAG) &&
-			((fileEventHeader.recordVersion & EVENT_MAJOR_VERSION_MASK) == (EVENT_RECORD_VERSION & EVENT_MAJOR_VERSION_MASK)) &&
-			(fileEventHeader.headerLength == sizeof(EVENT_HEADER_STRUCT)))
+				((fileEventHeader.recordVersion & EVENT_MAJOR_VERSION_MASK) == (EVENT_RECORD_VERSION & EVENT_MAJOR_VERSION_MASK)) &&
+				(fileEventHeader.headerLength == sizeof(EVENT_HEADER_STRUCT)))
 			{
 				debug("Found Valid Event File: %s\r\n", pathAndFilename);
 
-				ReadWithSizeFix(eventFile, (uint8*)&fileSummary, sizeof(EVENT_SUMMARY_STRUCT));
+				f_read(&file, (uint8*)&fileSummary, sizeof(EVENT_SUMMARY_STRUCT), (UINT*)&readSize);
 			
 				if (cacheDataToRamBuffer == YES)
 				{
-					ReadWithSizeFix(eventFile, (uint8*)&g_eventDataBuffer[0], (fsaccess_file_get_size(eventFile) - (sizeof(EVENT_HEADER_STRUCT) - sizeof(EVENT_SUMMARY_STRUCT))));
+					f_read(&file, (uint8*)&g_eventDataBuffer[0], (f_size(&file) - (sizeof(EVENT_HEADER_STRUCT) - sizeof(EVENT_SUMMARY_STRUCT))), (UINT*)&readSize);
 				}
 			}
-
-			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(eventFile);
 		}
-#endif
-		ReleaseSpi1MutexLock();
+
+		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+		f_close(&file);
 	}
 
 	if (eventHeaderPtr != NULL)
@@ -1721,74 +1368,18 @@ void GetEventFileInfo(uint16 eventNumber, EVENT_HEADER_STRUCT* eventHeaderPtr, E
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int OpenEventFile(uint16 eventNumber)
-{
-	int eventFile = 0;
-#if 0 /* temp remove while unused */
-	char* pathAndFilename;
-	uint8 dummy;
-#endif
-
-	if (g_fileAccessLock != AVAILABLE)
-	{
-		ReportFileSystemAccessProblem("Get event file");
-	}
-	else // (g_fileAccessLock == AVAILABLE)
-	{
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-#if 0 /* Original */
-		sprintf(fileName, "%sEvt%d.ns8", EVENTS_PATH, eventNumber);
-#else
-		pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
-#endif
-		eventFile = open(pathAndFilename, O_RDONLY);
-
-		// Dummy read to cache first sector and set up globals
-		dummy = file_getc();
-		file_seek(0, FS_SEEK_SET);
-#endif
-	}
-
-	return (eventFile);
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void CloseEventFile(int eventFile)
-{
-	g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-#if 0 /* old hw */
-	close(eventFile);
-#endif
-	ReleaseSpi1MutexLock();
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 uint8 CheckCompressedEventDataFileExists(uint16 eventNumber)
 {
 	uint8 fileExistStatus = NO;
-#if 0 /* temp remove while unused */
 	uint16 lowerBounds, upperBounds;
-#endif
 
-	GetSpi1MutexLock(SDMMC_LOCK);
-
-#if 0 /* old hw */
-	nav_select(FS_NAV_ID_DEFAULT);
+	FILINFO fno;
 
 	GetSubDirLowerAndUpperBounds(eventNumber, &lowerBounds, &upperBounds);
 
 	sprintf(g_spareFileName, "%s%s %d-%d\\%s%d.nsD", ER_DATA_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, eventNumber);
 
-	// Check if the Compressed data file is present
-	if (nav_setcwd(g_spareFileName, TRUE, FALSE) == TRUE)
+	if (f_stat((const TCHAR*)g_spareFileName, &fno) == FR_OK)
 	{
 		fileExistStatus = YES;
 	}
@@ -1796,14 +1387,12 @@ uint8 CheckCompressedEventDataFileExists(uint16 eventNumber)
 	{
 		sprintf(g_spareFileName, "%s%s%d.nsD", ER_DATA_PATH, EVT_FILE, eventNumber);
 
-		if (nav_setcwd(g_spareFileName, TRUE, FALSE) == TRUE)
+		if (f_stat((const TCHAR*)g_spareFileName, &fno) == FR_OK)
 		{
 			fileExistStatus = YES;
 		}
 	}
-#endif
-	ReleaseSpi1MutexLock();
-	
+
 	return (fileExistStatus);
 }
 
@@ -1812,47 +1401,33 @@ uint8 CheckCompressedEventDataFileExists(uint16 eventNumber)
 ///----------------------------------------------------------------------------
 void GetEventFileRecord(uint16 eventNumber, EVT_RECORD* eventRecord)
 {
-#if 0 /* temp remove while unused */
 	char* pathAndFilename;
-	int eventFile;
-#endif
 
-	if (g_fileAccessLock != AVAILABLE)
-	{
-		ReportFileSystemAccessProblem("Get event file");
+	FIL file;
+	uint32_t readSize;
+
+	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
+
+    if (f_stat((const TCHAR*)pathAndFilename, NULL) == FR_NO_FILE)
+	{ 
+		DisplayFileNotFound(pathAndFilename);
 	}
-	else // (g_fileAccessLock == AVAILABLE)
+	else // File exists
 	{
-		GetSpi1MutexLock(SDMMC_LOCK);
+		f_open(&file, pathAndFilename, FA_READ);
 
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-#if 0 /* Original */
-		sprintf(fileName, "%sEvt%d.ns8", EVENTS_PATH, eventNumber);
-#else
-		pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
-#endif
-		eventFile = open(pathAndFilename, O_RDONLY);
-
-		// Verify file ID
-		if (eventFile == -1)
-		{
-			DisplayFileNotFound(pathAndFilename);
-		}
 		// Verify file is big enough
-		else if (fsaccess_file_get_size(eventFile) < sizeof(EVENT_HEADER_STRUCT))
+		if (f_size(&file) < sizeof(EVT_RECORD))
 		{
 			DisplayFileCorrupt(pathAndFilename);
 		}
-		else
+		else // File good
 		{
-			ReadWithSizeFix(eventFile, (uint8*)eventRecord, sizeof(EVT_RECORD));
-			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(eventFile);
+			f_read(&file, (uint8*)eventRecord, sizeof(EVT_RECORD), (UINT*)&readSize);
 		}
-#endif
-		ReleaseSpi1MutexLock();
+
+		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+		f_close(&file);
 	}
 }
 
@@ -1861,48 +1436,32 @@ void GetEventFileRecord(uint16 eventNumber, EVT_RECORD* eventRecord)
 ///----------------------------------------------------------------------------
 void DeleteEventFileRecord(uint16 eventNumber)
 {
-#if 0 /* temp remove while unused */
 	uint16 lowerBounds, upperBounds;
-#endif
 
-	if (g_fileAccessLock != AVAILABLE)
+	GetSubDirLowerAndUpperBounds(eventNumber, &lowerBounds, &upperBounds);
+
+	sprintf(g_spareFileName, "%s%s %d-%d\\%s%d.ns8", EVENTS_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, eventNumber);
+
+	if (f_stat((const TCHAR*)g_spareFileName, NULL) == FR_OK)
 	{
-		ReportFileSystemAccessProblem("Delete event file");
-	}
-	else // (g_fileAccessLock == AVAILABLE)
-	{
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		GetSubDirLowerAndUpperBounds(eventNumber, &lowerBounds, &upperBounds);
-
-		sprintf(g_spareFileName, "%s%s %d-%d\\%s%d.ns8", EVENTS_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, eventNumber);
-
-		if (nav_setcwd(g_spareFileName, TRUE, FALSE) == TRUE)
+		if (f_unlink((const TCHAR*)g_spareFileName) != FR_OK)
 		{
-			if (nav_file_del(TRUE) == FALSE)
+			sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(EVENT_TEXT));
+			OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
+		}
+	}
+	else
+	{
+		sprintf(g_spareFileName, "%sEvt%d.ns8", EVENTS_PATH, eventNumber);
+
+		if (f_stat((const TCHAR*)g_spareFileName, NULL) == FR_OK)
+		{
+			if (f_unlink((const TCHAR*)g_spareFileName) != FR_OK)
 			{
 				sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(EVENT_TEXT));
 				OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
 			}
 		}
-		else
-		{
-			sprintf(g_spareFileName, "%sEvt%d.ns8", EVENTS_PATH, eventNumber);
-
-			if (nav_setcwd(g_spareFileName, TRUE, FALSE) == TRUE)
-			{
-				if (nav_file_del(TRUE) == FALSE)
-				{
-					sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(EVENT_TEXT));
-					OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
-				}
-			}
-		}
-#endif
-		ReleaseSpi1MutexLock();
 	}
 }
 
@@ -2015,9 +1574,66 @@ void DeleteEventFileRecords(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+static uint16 filesDeleted;
+FRESULT RecursiveDeleteDirectoryContents(char* path)
+{
+	FRESULT res;
+	DIR dir;
+	UINT i;
+	static FILINFO fno;
+
+	// Open directory
+	res = f_opendir(&dir, path);
+
+	if (res == FR_OK)
+	{
+		while (1)
+		{
+			// Find next directory item
+			res = f_readdir(&dir, &fno);
+
+			// Check if failed or at end of directory contents
+			if (res != FR_OK || fno.fname[0] == 0) { break; }
+
+			// Check if a directory
+			if (fno.fattrib & AM_DIR)
+			{
+				// Mark current path
+				i = strlen(path);
+
+				// Add sub-directory to path
+				sprintf(&path[i], "/%s", fno.fname);
+
+				// Enter sub-directory to repeat process
+				res = RecursiveDeleteDirectoryContents(path);
+				if (res != FR_OK) { break; }
+
+				// Delete sub-directory
+				if (f_unlink(path) != FR_OK) { break; }
+				
+				// Cut off added sub-directory to path
+				path[i] = 0;
+			}
+			else // File
+			{
+				// Delete, need full path?
+				if (f_unlink(fno.fname) != FR_OK) { break; }
+				filesDeleted++;
+			}
+		}
+
+		f_closedir(&dir);
+	}
+
+	return res;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void DeleteNonEssentialFiles(void)
 {
-	uint16 filesDeleted = 0;
+	filesDeleted = 0;
 
 	debug("Deleting Non-Essential Files...\r\n");
 
@@ -2028,6 +1644,21 @@ void DeleteNonEssentialFiles(void)
 	else // (g_fileAccessLock == AVAILABLE)
 	{
 		GetSpi1MutexLock(SDMMC_LOCK);
+
+		//-----------------------------------------------------------------------------
+		// Handle removing event files
+		//-----------------------------------------------------------------------------
+		RecursiveDeleteDirectoryContents(EVENTS_PATH);
+
+		//-----------------------------------------------------------------------------
+		// Handle removing compressed event data files
+		//-----------------------------------------------------------------------------
+		RecursiveDeleteDirectoryContents(ER_DATA_PATH);
+
+		//-----------------------------------------------------------------------------
+		// Handle removing Log files
+		//-----------------------------------------------------------------------------
+		RecursiveDeleteDirectoryContents(LOGS_PATH);
 
 #if 0 /* old hw */
 		nav_select(FS_NAV_ID_DEFAULT);
@@ -2248,38 +1879,27 @@ void DeleteNonEssentialFiles(void)
 ///----------------------------------------------------------------------------
 void CacheEventDataToBuffer(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffset, uint32 dataSize)
 {
-#if 0 /* temp remove while unused */
 	char* pathAndFilename;
-	int eventFile;
-#endif
 
-	GetSpi1MutexLock(SDMMC_LOCK);
+	FIL file;
+	uint32_t readSize;	
 
-#if 0 /* old hw */
-	nav_select(FS_NAV_ID_DEFAULT);
-
-#if 0 /* Original */
-	sprintf(fileName, "%sEvt%d.ns8", EVENTS_PATH, eventNumber);
-#else
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
-#endif
-	eventFile = open(pathAndFilename, O_RDONLY);
 
 	// Verify file ID
-	if (eventFile == -1)
+	if (f_stat((const TCHAR*)pathAndFilename, NULL) != FR_OK)
 	{
 		DisplayFileNotFound(pathAndFilename);
 	}
-	else
+	else // File exists
 	{
-		file_seek(dataOffset, FS_SEEK_SET);
-		ReadWithSizeFix(eventFile, dataBuffer, dataSize);
+		f_open(&file, pathAndFilename, FA_READ);
+		f_lseek(&file, dataOffset);
+		f_read(&file, dataBuffer, dataSize, (UINT*)&readSize);
 
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-		close(eventFile);
+		f_close(&file);
 	}
-#endif
-	ReleaseSpi1MutexLock();
 }
 
 ///----------------------------------------------------------------------------
@@ -2288,33 +1908,21 @@ void CacheEventDataToBuffer(uint16 eventNumber, uint8* dataBuffer, uint32 dataOf
 uint32 GetEventSize(uint16 eventNumber)
 {
 	uint32 size = 0;
-#if 0 /* temp remove while unused */
 	char* pathAndFilename;
-	int eventFile;
-#endif
 
-	GetSpi1MutexLock(SDMMC_LOCK);
-
-#if 0 /* old hw */
-	nav_select(FS_NAV_ID_DEFAULT);
+	FILINFO fno;
 
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
-	eventFile = open(pathAndFilename, O_RDONLY);
 
 	// Verify file ID
-	if (eventFile == -1)
+	if (f_stat((const TCHAR*)pathAndFilename, &fno) != FR_OK)
 	{
 		DisplayFileNotFound(pathAndFilename);
 	}
-	else
+	else // File exists
 	{
-		size = nav_file_lgt();
-
-		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-		close(eventFile);
+		size = fno.fsize;
 	}
-#endif
-	ReleaseSpi1MutexLock();
 
 	return (size);
 }
@@ -2325,37 +1933,21 @@ uint32 GetEventSize(uint16 eventNumber)
 uint32 GetERDataSize(uint16 eventNumber)
 {
 	uint32 size = 0;
-#if 0 /* temp remove while unused */
 	char* pathAndFilename;
-	int eventFile;
-#endif
 
-	GetSpi1MutexLock(SDMMC_LOCK);
+	FILINFO fno;
 
-#if 0 /* old hw */
-	nav_select(FS_NAV_ID_DEFAULT);
-
-#if 0 /* Original */
-	sprintf(fileName, "%sEvt%d.nsD", ER_DATA_PATH, eventNumber);
-#else
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, ER_DATA_FILE_TYPE);
-#endif
-	eventFile = open(pathAndFilename, O_RDONLY);
 
 	// Verify file ID
-	if (eventFile == -1)
+	if (f_stat((const TCHAR*)pathAndFilename, &fno) != FR_OK)
 	{
 		DisplayFileNotFound(pathAndFilename);
 	}
-	else
+	else // File exists
 	{
-		size = nav_file_lgt();
-
-		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-		close(eventFile);
+		size = fno.fsize;
 	}
-#endif
-	ReleaseSpi1MutexLock();
 
 	return (size);
 }
@@ -2365,38 +1957,27 @@ uint32 GetERDataSize(uint16 eventNumber)
 ///----------------------------------------------------------------------------
 void CacheERDataToBuffer(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffset, uint32 dataSize)
 {
-#if 0 /* temp remove while unused */
 	char* pathAndFilename;
-	int eventFile;
-#endif
 
-	GetSpi1MutexLock(SDMMC_LOCK);
+	FIL file;
+	uint32_t readSize;
 
-#if 0 /* old hw */
-	nav_select(FS_NAV_ID_DEFAULT);
-
-#if 0 /* Original */
-	sprintf(fileName, "%sEvt%d.nsD", ER_DATA_PATH, eventNumber);
-#else
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, ER_DATA_FILE_TYPE);
-#endif
-	eventFile = open(pathAndFilename, O_RDONLY);
 
-	// Verify file ID
-	if (eventFile == -1)
-	{
+    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) == FR_NO_FILE)
+	{ 
 		DisplayFileNotFound(pathAndFilename);
 	}
-	else
+	else // File exists
 	{
-		file_seek(dataOffset, FS_SEEK_SET);
-		ReadWithSizeFix(eventFile, dataBuffer, dataSize);
+		f_open(&file, pathAndFilename, FA_READ);
+
+		f_lseek(&file, dataOffset);
+		f_read(&file, dataBuffer, dataSize, (UINT*)&readSize);
 
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-		close(eventFile);
+		f_close(&file);
 	}
-#endif
-	ReleaseSpi1MutexLock();
 }
 
 ///----------------------------------------------------------------------------
@@ -2404,143 +1985,37 @@ void CacheERDataToBuffer(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffse
 ///----------------------------------------------------------------------------
 void CacheEventDataToRam(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffset, uint32 dataSize)
 {
-#if 0 /* temp remove while unused */
 	char* pathAndFilename;
-	int eventFile;
-#endif
 
-	if (g_fileAccessLock != AVAILABLE)
-	{
-		ReportFileSystemAccessProblem("Cache event data");
+	FIL file;
+	uint32_t readSize;
+
+	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
+
+    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) == FR_NO_FILE)
+	{ 
+		DisplayFileNotFound(pathAndFilename);
 	}
-	else // (g_fileAccessLock == AVAILABLE)
+	else // File exists
 	{
-		GetSpi1MutexLock(SDMMC_LOCK);
+		f_open(&file, pathAndFilename, FA_READ);
 
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-#if 0 /* Original */
-		sprintf(fileName, "%sEvt%d.ns8", EVENTS_PATH, eventNumber);
-#else
-		pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
-#endif
-
-		eventFile = open(pathAndFilename, O_RDONLY);
-
-		// Verify file ID
-		if (eventFile == -1)
-		{
-			DisplayFileNotFound(pathAndFilename);
-		}
 		// Verify file is big enough
-		else if (fsaccess_file_get_size(eventFile) < sizeof(EVENT_HEADER_STRUCT))
+		if (f_size(&file) < sizeof(EVENT_HEADER_STRUCT))
 		{
 			DisplayFileCorrupt(pathAndFilename);
 		}
 		else
 		{
-			file_seek((sizeof(EVT_RECORD) + dataOffset), FS_SEEK_SET);
-			ReadWithSizeFix(eventFile, dataBuffer, dataSize);
+			f_lseek(&file, (sizeof(EVT_RECORD) + dataOffset));
+			f_read(&file, dataBuffer, dataSize, (UINT*)&readSize);
 
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(eventFile);
 		}
-#endif
-		ReleaseSpi1MutexLock();
+
+		f_close(&file);
 	}
 }
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-#if 0
-#define VERIFY_CHUNK_SIZE	1024
-void VerifyCacheEventToRam(uint16 eventNumber, char* subMessage)
-{
-	uint16 i = 0;
-	uint32 remainingData = 0;
-	uint32 index = 0;
-	uint32 readCount = 0;
-	uint16 errorCount = 0;
-	uint8* dataPtr = (uint8*)&g_eventDataBuffer[0];
-	uint8* verifyPtr = (uint8*)&g_spareBuffer[(SPARE_BUFFER_SIZE - VERIFY_CHUNK_SIZE - 1)];
-	int eventFile;
-	char fileName[50];
-
-	sprintf(fileName, "%sEvt%d.ns8", EVENTS_PATH, eventNumber);
-
-	nav_select(FS_NAV_ID_DEFAULT);
-
-	eventFile = open(fileName, O_RDONLY);
-
-	file_seek(0, FS_SEEK_SET);
-	remainingData = nav_file_lgt();
-
-	debug("Verify Cache data bytes: %d\r\n", remainingData);
-
-	while (remainingData)
-	{
-		if (remainingData > VERIFY_CHUNK_SIZE)
-		{
-			readCount = read(eventFile, verifyPtr, VERIFY_CHUNK_SIZE);
-
-			if (readCount != VERIFY_CHUNK_SIZE)
-			{
-				debugErr("CacheEventToRam Read Data size incorrect (%d)\r\n", readCount);
-				close (eventFile);
-				return;
-			}
-
-			for (i = 0; i < VERIFY_CHUNK_SIZE; i++)
-			{
-				if (verifyPtr[i] != dataPtr[index])
-				{
-					debugErr("CacheEventToRam verification failed: %x != %x, index: %d\r\n", verifyPtr[i], dataPtr[index], index);
-
-					if (errorCount++ > 1024) { debugErr("Too many errors, bailing\r\n\r\n"); close (eventFile); return; }
-				}
-
-				index++;
-			}
-
-			remainingData -= VERIFY_CHUNK_SIZE;
-		}
-		else // Remaining data size is less than the access limit
-		{
-			readCount = read(eventFile, &verifyPtr[0], remainingData);
-
-			if (readCount != remainingData)
-			{
-				debugErr("CacheEventToRam Read Data size incorrect (%d)\r\n", readCount);
-				close (eventFile);
-				return;
-			}
-
-			for (i = 0; i < remainingData; i++)
-			{
-				if (verifyPtr[(index % VERIFY_CHUNK_SIZE)] != dataPtr[index])
-				{
-					debugErr("CacheEventToRam verification failed: %x != %x, index: %d\r\n", verifyPtr[(index % 8192)], dataPtr[index], index);
-
-					if (errorCount++ > 1024) { debugErr("Too many errors, bailing\r\n\r\n"); close (eventFile); return; }
-				}
-
-				index++;
-			}
-
-			remainingData = 0;
-		}
-	}
-
-	if (errorCount)
-	{
-		debugErr("Event %d cache verify failed (%s SEND)\r\n", eventNumber, subMessage);
-	}
-
-	close (eventFile);
-}
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -2548,60 +2023,38 @@ void VerifyCacheEventToRam(uint16 eventNumber, char* subMessage)
 uint8 CacheEventToRam(uint16 eventNumber, EVT_RECORD* eventRecordPtr)
 {
 	char* pathAndFilename;
-	int eventFile;
-#if 1 /* temp */
-	UNUSED(pathAndFilename);
-	UNUSED(eventFile);
-#endif
+	uint8 status = EVENT_CACHE_FAILURE;
 
-	if (g_fileAccessLock != AVAILABLE)
-	{
-		ReportFileSystemAccessProblem("Cache event");
-		return EVENT_CACHE_FAILURE;
+	FIL file;
+	uint32_t readSize;
+
+	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
+
+    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) == FR_NO_FILE)
+	{ 
+		DisplayFileNotFound(pathAndFilename);
 	}
-	else // (g_fileAccessLock == AVAILABLE)
+	else // File exists
 	{
-		GetSpi1MutexLock(SDMMC_LOCK);
+		f_open(&file, pathAndFilename, FA_READ);
 
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-#if 0 /* Original */
-		sprintf(fileName, "%sEvt%d.ns8", EVENTS_PATH, eventNumber);
-#else
-		pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
-#endif
-
-		eventFile = open(pathAndFilename, O_RDONLY);
-
-		// Verify file ID
-		if (eventFile == -1)
-		{
-			DisplayFileNotFound(pathAndFilename);
-
-			ReleaseSpi1MutexLock();
-			return EVENT_CACHE_FAILURE;
-		}
 		// Verify file is big enough
-		else if (fsaccess_file_get_size(eventFile) < sizeof(EVT_RECORD))
+		if (f_size(&file) < sizeof(EVT_RECORD))
 		{
 			DisplayFileCorrupt(pathAndFilename);
-
-			ReleaseSpi1MutexLock();
-			return EVENT_CACHE_FAILURE;
 		}
-		else
+		else // File good
 		{
-			ReadWithSizeFix(eventFile, (uint8*)eventRecordPtr, sizeof(EVT_RECORD));
-			ReadWithSizeFix(eventFile, (uint8*)&g_eventDataBuffer[0], (fsaccess_file_get_size(eventFile) - sizeof(EVT_RECORD)));
+			f_read(&file, (uint8*)eventRecordPtr, sizeof(EVT_RECORD), (UINT*)&readSize);
+			f_read(&file, (uint8*)&g_eventDataBuffer[0], (f_size(&file) - sizeof(EVT_RECORD)), (UINT*)&readSize);
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(eventFile);
+			status = EVENT_CACHE_SUCCESS;
 		}
-#endif
-		ReleaseSpi1MutexLock();
 
-		return EVENT_CACHE_SUCCESS;
+		f_close(&file);
 	}
+
+	return (status);
 }
 
 ///----------------------------------------------------------------------------
@@ -2610,43 +2063,30 @@ uint8 CacheEventToRam(uint16 eventNumber, EVT_RECORD* eventRecordPtr)
 BOOLEAN CheckValidEventFile(uint16 eventNumber)
 {
 	BOOLEAN validFile = NO;
-#if 0 /* temp remove while unused */
 	EVENT_HEADER_STRUCT fileEventHeader;
 	char* pathAndFilename;
-	int eventFile;
-#endif
 
-	if (g_fileAccessLock != AVAILABLE)
-	{
-		ReportFileSystemAccessProblem("Check valid event");
+	FIL file;
+	uint32_t readSize;
+
+	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
+
+    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) == FR_NO_FILE)
+	{ 
+		DisplayFileNotFound(pathAndFilename);
 	}
-	else // (g_fileAccessLock == AVAILABLE)
+	else // File exists
 	{
-		GetSpi1MutexLock(SDMMC_LOCK);
+		f_open(&file, pathAndFilename, FA_READ);
 
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-#if 0 /* Original */
-		sprintf(fileName, "%sEvt%d.ns8", EVENTS_PATH, eventNumber);
-#else
-		pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
-#endif
-		eventFile = open(pathAndFilename, O_RDONLY);
-
-		// Verify file ID
-		if (eventFile == -1)
-		{
-			DisplayFileNotFound(pathAndFilename);
-		}
 		// Verify file is big enough
-		else if (fsaccess_file_get_size(eventFile) < sizeof(EVENT_HEADER_STRUCT))
+		if (f_size(&file) < sizeof(EVENT_HEADER_STRUCT))
 		{
 			DisplayFileCorrupt(pathAndFilename);
 		}
-		else
+		else // File good
 		{
-			ReadWithSizeFix(eventFile, (uint8*)&fileEventHeader, sizeof(EVENT_HEADER_STRUCT));
+			f_read(&file, (uint8*)&fileEventHeader, sizeof(EVENT_HEADER_STRUCT), (UINT*)&readSize);
 
 			// If we find the EVENT_RECORD_START_FLAG followed by the encodeFlag2, then assume this is the start of an event
 			if ((fileEventHeader.startFlag == EVENT_RECORD_START_FLAG) &&
@@ -2659,10 +2099,9 @@ BOOLEAN CheckValidEventFile(uint16 eventNumber)
 			}
 
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(eventFile);
 		}
-#endif
-		ReleaseSpi1MutexLock();
+
+		f_close(&file);
 	}
 
 	return(validFile);
@@ -2825,9 +2264,30 @@ void SetFileDateTimestamp(uint8 option)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint32_t SetFileTimestamp(char* filename)
+{
+	DATE_TIME_STRUCT time;
+	FILINFO fno;
+
+	time = GetCurrentTime();
+
+	// Note: Need to sync up base year of system time to rebase against 1980 here
+	// Currently expect system year is from 2000
+	fno.fdate = (WORD)((((time.year + 20) - 1980) * 512U) | time.month * 32U | time.day);
+	fno.ftime = (WORD)(time.hour * 2048U | time.min * 32U | time.sec / 2U);
+
+	return f_utime(filename, &fno);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void RemoveEventFile(uint16 eventNumber)
 {
 	uint16 lowerBounds, upperBounds;
+
+	//FIL file;
+	//uint32_t readSize;
 
 	GetSubDirLowerAndUpperBounds(eventNumber, &lowerBounds, &upperBounds);
 
@@ -2840,11 +2300,10 @@ void RemoveEventFile(uint16 eventNumber)
 	sprintf(g_spareFileName, "%s%s %d-%d\\%s%d.ns8", EVENTS_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, eventNumber);
 
 	// Check if the Event data file is in the normal location
-#if 0 /* old hw */
-	if (nav_setcwd(g_spareFileName, TRUE, FALSE) == TRUE)
+	if ((f_stat((const TCHAR*)g_spareFileName, NULL)) == FR_OK)
 	{
 		// Delete the file and check if successful
-		if (nav_file_del(TRUE) == FALSE)
+		if (f_unlink((const TCHAR*)g_spareFileName) != FR_OK)
 		{
 			sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(EVENT_TEXT));
 			OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
@@ -2854,28 +2313,27 @@ void RemoveEventFile(uint16 eventNumber)
 	{
 		sprintf(g_spareFileName, "%s%s%d.ns8", EVENTS_PATH, EVT_FILE, eventNumber);
 
-		if (nav_setcwd(g_spareFileName, TRUE, FALSE) == TRUE)
+		if ((f_stat((const TCHAR*)g_spareFileName, NULL)) == FR_OK)
 		{
 			// Delete the file and check if successful
-			if (nav_file_del(TRUE) == FALSE)
+			if (f_unlink((const TCHAR*)g_spareFileName) != FR_OK)
 			{
 				sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(EVENT_TEXT));
 				OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
 			}
 		}
 	}
-#endif
+
 	//-------------------------------------------------------------------------
 	// Remove compressed data file (if it exists)
 	//-------------------------------------------------------------------------
 	sprintf(g_spareFileName, "%s%s %d-%d\\%s%d.nsD", ER_DATA_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, eventNumber);
 
-#if 0 /* old hw */
 	// Check if the Compressed Event data file is in the normal location
-	if (nav_setcwd(g_spareFileName, TRUE, FALSE) == TRUE)
+	if ((f_stat((const TCHAR*)g_spareFileName, NULL)) == FR_OK)
 	{
 		// Delete the file and check if successful
-		if (nav_file_del(TRUE) == FALSE)
+		if (f_unlink((const TCHAR*)g_spareFileName) != FR_OK)
 		{
 			sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(EVENT_TEXT));
 			OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
@@ -2885,17 +2343,16 @@ void RemoveEventFile(uint16 eventNumber)
 	{
 		sprintf(g_spareFileName, "%s%s%d.nsD", ER_DATA_PATH, EVT_FILE, eventNumber);
 
-		if (nav_setcwd(g_spareFileName, TRUE, FALSE) == TRUE)
+		if ((f_stat((const TCHAR*)g_spareFileName, NULL)) == FR_OK)
 		{
 			// Delete the file and check if successful
-			if (nav_file_del(TRUE) == FALSE)
+			if (f_unlink((const TCHAR*)g_spareFileName) != FR_OK)
 			{
 				sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(EVENT_TEXT));
 				OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
 			}
 		}
 	}
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -3474,16 +2931,6 @@ void SaveRemoteEventDownloadStreamToFile(uint16 eventNumber)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SetNavDefault(void)
-{
-#if 0 /* old hw */
-	nav_select(FS_NAV_ID_DEFAULT);
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 uint8 MigrateLooseFiles(uint8 dirType)
 {
 	char baseDirPath[MAX_BASE_PATH_CHARS];
@@ -3734,10 +3181,6 @@ void ValidateSummaryListFileWithEventCache(void)
 
 						GetEventFileRecord(i, &tempEventRecord);
 
-						GetSpi1MutexLock(SDMMC_LOCK);
-#if 0 /* old hw */
-						nav_select(FS_NAV_ID_DEFAULT);
-#endif
 						AddEventToSummaryList(&tempEventRecord);
 						ReleaseSpi1MutexLock();
 						g_eventNumberCache[i] = EVENT_REFERENCE_VALID;
@@ -3745,10 +3188,7 @@ void ValidateSummaryListFileWithEventCache(void)
 					}
 				}
 
-				// Make sure contents are written to file
-#if 0 /* old hw */
-				fat_cache_flush();
-#endif
+				// Make sure contents are written to file (old system, new f_sync to flush cached data is essentally f_close of a file)
 			}
 		}
 
@@ -3766,11 +3206,7 @@ void ValidateSummaryListFileWithEventCache(void)
 					if (g_eventNumberCache[i] == INVALID_EVENT_FILE_FOUND)
 					{
 						GetEventFileRecord(i, &tempEventRecord);
-
-						GetSpi1MutexLock(SDMMC_LOCK);
-						nav_select(FS_NAV_ID_DEFAULT);
 						AddEventToSummaryList(&tempEventRecord);
-						ReleaseSpi1MutexLock();
 						g_eventNumberCache[i] = EVENT_REFERENCE_VALID;
 						invalidEventFileCount--;
 					}

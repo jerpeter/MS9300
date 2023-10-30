@@ -21,11 +21,19 @@
 #define SOFT_DATE		"6-22-2004"
 #define SOFT_TIME		"08:35pm"
 
+#if 0 /* old FS */
 #define SYSTEM_PATH		"A:\\System\\"
 #define EVENTS_PATH		"A:\\Events\\"
 #define ER_DATA_PATH	"A:\\ERData\\"
 #define LANGUAGE_PATH	"A:\\Language\\"
 #define LOGS_PATH		"A:\\Logs\\"
+#else /* new FS */
+#define SYSTEM_PATH		"0:System/"
+#define EVENTS_PATH		"0:Events/"
+#define ER_DATA_PATH	"0:ERData/"
+#define LANGUAGE_PATH	"0:Language/"
+#define LOGS_PATH		"0:Logs/"
+#endif
 
 #define EVT_FILE		"Evt"
 #define EVTS_SUB_DIR	"Evts"

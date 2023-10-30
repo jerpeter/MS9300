@@ -551,7 +551,6 @@ void LooseEventMigrationTimerCallBack(void)
 				fileMoveStatus = MigrateLooseFiles(ER_DATA_FILE_TYPE);
 			}
 
-			SetNavDefault();
 			ReleaseSpi1MutexLock();
 		}
 	}

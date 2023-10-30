@@ -22,6 +22,11 @@
 #include "Minilzo.h"
 #include "Math.h"
 
+#include "ff.h"
+#if 0 /* old hw */
+#include "fsaccess.h"
+#endif
+
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
@@ -88,32 +93,22 @@ void EndBargraph(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* old hw */
-#include "fsaccess.h"
-#endif
 void MoveBarIntervalDataToFile(void)
 {
-#if 0 /* temp remove while unused */
-	int bargraphFileHandle = -1;
-#endif
+	FIL file;
+	uint32_t bytesWritten;
 
 	// If Bar Intervals have been cached
 	if (g_bargraphBarIntervalsCached > 0)
 	{
-		if (g_fileAccessLock != AVAILABLE)
+		GetEventFileHandle(g_pendingBargraphRecord.summary.eventNumber, APPEND_EVENT_FILE);
+
+		if (f_open(&file, (const TCHAR*)g_spareFileName, FA_OPEN_APPEND | FA_WRITE) != FR_OK)
 		{
-			if (g_triggerRecord.opMode == BARGRAPH_MODE) { ReportFileSystemAccessProblem("Save Bar Interval"); }
-			else { ReportFileSystemAccessProblem("Save Combo Bar Interval"); }
+			printf("<Error> Unable to re-open event file for appending BI's: %s\n", g_spareFileName);
 		}
-		else // (g_fileAccessLock == AVAILABLE)
+		else // File opened, append event info
 		{
-			GetSpi1MutexLock(SDMMC_LOCK);
-
-#if 0 /* old hw */
-			nav_select(FS_NAV_ID_DEFAULT);
-
-			bargraphFileHandle = GetEventFileHandle(g_pendingBargraphRecord.summary.eventNumber, APPEND_EVENT_FILE);
-
 			while (g_bargraphBarIntervalsCached)
 			{
 #if 0 /* Original */
@@ -123,13 +118,13 @@ void MoveBarIntervalDataToFile(void)
 #else /* New BI with options */
 				if (g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE)
 				{
-					write(bargraphFileHandle, g_bargraphBarIntervalReadPtr, BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE);
+					f_write(&file, g_bargraphBarIntervalReadPtr, BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE, (UINT*)&bytesWritten);
 				}
 				else // New Bar Interval data type option, store A max, then R, V, T max, then A, R, V, T freq (if selected), and finally VS max
 				{
-					write(bargraphFileHandle, &g_bargraphBarIntervalReadPtr->aMax, sizeof(g_bargraphBarIntervalReadPtr->aMax));
-					write(bargraphFileHandle, &g_bargraphBarIntervalReadPtr->rMax, (sizeof(g_bargraphBarIntervalReadPtr->rMax) * ((g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE) ? 3 : 7)));
-					write(bargraphFileHandle, &g_bargraphBarIntervalReadPtr->vsMax, sizeof(g_bargraphBarIntervalReadPtr->vsMax));
+					f_write(&file, &g_bargraphBarIntervalReadPtr->aMax, sizeof(g_bargraphBarIntervalReadPtr->aMax), (UINT*)&bytesWritten);
+					f_write(&file, &g_bargraphBarIntervalReadPtr->rMax, (sizeof(g_bargraphBarIntervalReadPtr->rMax) * ((g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE) ? 3 : 7)), (UINT*)&bytesWritten);
+					f_write(&file, &g_bargraphBarIntervalReadPtr->vsMax, sizeof(g_bargraphBarIntervalReadPtr->vsMax), (UINT*)&bytesWritten);
 				}
 
 				// Increment based on the size of the Bar Interval data type
@@ -142,14 +137,11 @@ void MoveBarIntervalDataToFile(void)
 				g_bargraphBarIntervalsCached--;
 			}
 
-			SetFileDateTimestamp(FS_DATE_LAST_WRITE);
-
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(bargraphFileHandle);
+			f_close(&file);
+			SetFileTimestamp(g_spareFileName);
 
 			debug("%s event file closed\r\n", (g_triggerRecord.opMode == BARGRAPH_MODE) ? "Bargraph" : "Combo - Bargraph");
-#endif
-			ReleaseSpi1MutexLock();
 		}
 	}
 }
@@ -200,26 +192,19 @@ void CompleteSummaryInterval(void)
 ///----------------------------------------------------------------------------
 void MoveSummaryIntervalDataToFile(void)
 {
-#if 0 /* temp remove while unsued */
-	int bargraphFileHandle = -1;
-#endif
+	FIL file;
+	uint32_t bytesWritten;
 
 	CompleteSummaryInterval();
 
-	if (g_fileAccessLock != AVAILABLE)
+	GetEventFileHandle(g_pendingBargraphRecord.summary.eventNumber, APPEND_EVENT_FILE);
+
+	if (f_open(&file, (const TCHAR*)g_spareFileName, FA_OPEN_APPEND | FA_WRITE) != FR_OK)
 	{
-		if (g_triggerRecord.opMode == BARGRAPH_MODE) { ReportFileSystemAccessProblem("Save Sum Interval"); }
-		else { ReportFileSystemAccessProblem("Save Combo Sum Interval"); }
+		printf("<Error> Unable to re-open event file for appending SI: %s\n", g_spareFileName);
 	}
-	else // (g_fileAccessLock == AVAILABLE)
+	else // File opened, append event info
 	{
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		bargraphFileHandle = GetEventFileHandle(g_pendingBargraphRecord.summary.eventNumber, APPEND_EVENT_FILE);
-
 		// Write any cached bar intervals before storing the summary interval (may not match with bar interval write threshold)
 		while (g_bargraphBarIntervalsCached)
 		{
@@ -230,13 +215,13 @@ void MoveSummaryIntervalDataToFile(void)
 #else /* New BI with options */
 			if (g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE)
 			{
-				write(bargraphFileHandle, g_bargraphBarIntervalReadPtr, BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE);
+				f_write(&file, g_bargraphBarIntervalReadPtr, BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE, (UINT*)&bytesWritten);
 			}
 			else // New Bar Interval data type option, store A max, then R, V, T max, then A, R, V, T freq (if selected), and finally VS max
 			{
-				write(bargraphFileHandle, &g_bargraphBarIntervalReadPtr->aMax, sizeof(g_bargraphBarIntervalReadPtr->aMax));
-				write(bargraphFileHandle, &g_bargraphBarIntervalReadPtr->rMax, (sizeof(g_bargraphBarIntervalReadPtr->rMax) * ((g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE) ? 3 : 7)));
-				write(bargraphFileHandle, &g_bargraphBarIntervalReadPtr->vsMax, sizeof(g_bargraphBarIntervalReadPtr->vsMax));
+				f_write(&file, &g_bargraphBarIntervalReadPtr->aMax, sizeof(g_bargraphBarIntervalReadPtr->aMax), (UINT*)&bytesWritten);
+				f_write(&file, &g_bargraphBarIntervalReadPtr->rMax, (sizeof(g_bargraphBarIntervalReadPtr->rMax) * ((g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE) ? 3 : 7)), (UINT*)&bytesWritten);
+				f_write(&file, &g_bargraphBarIntervalReadPtr->vsMax, sizeof(g_bargraphBarIntervalReadPtr->vsMax), (UINT*)&bytesWritten);
 			}
 
 			// Increment based on the size of the Bar Interval data type
@@ -249,18 +234,15 @@ void MoveSummaryIntervalDataToFile(void)
 			g_bargraphBarIntervalsCached--;
 		}
 
-		write(bargraphFileHandle, &g_bargraphSummaryInterval, sizeof(CALCULATED_DATA_STRUCT));
+		f_write(&file, &g_bargraphSummaryInterval, sizeof(CALCULATED_DATA_STRUCT), (UINT*)&bytesWritten);
 
 		g_pendingBargraphRecord.header.dataLength += sizeof(CALCULATED_DATA_STRUCT);
 
-		SetFileDateTimestamp(FS_DATE_LAST_WRITE);
-
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-		close(bargraphFileHandle);
+		f_close(&file);
+		SetFileTimestamp(g_spareFileName);
 
 		debug("%s event file closed\r\n", (g_triggerRecord.opMode == BARGRAPH_MODE) ? "Bargraph" : "Combo - Bargraph");
-#endif
-		ReleaseSpi1MutexLock();
 	}
 
 	// Update the job totals.
@@ -1064,48 +1046,37 @@ uint8 CalculateBargraphData(void)
 ///----------------------------------------------------------------------------
 void MoveStartOfBargraphEventRecordToFile(void)
 {
-#if 0 /* temp remove while unused */
-	int bargraphFileHandle = -1;
-#endif
+	FIL file;
+	uint32_t bytesWritten;
 
-	if (g_fileAccessLock != AVAILABLE)
+	// Create new Bargraph event name
+	GetEventFileHandle(g_pendingBargraphRecord.summary.eventNumber, CREATE_EVENT_FILE);
+
+	if (f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
 	{
-		if (g_triggerRecord.opMode == BARGRAPH_MODE) { ReportFileSystemAccessProblem("Save Bar Start"); }
-		else { ReportFileSystemAccessProblem("Save Combo Bar Start"); }
+		printf("<Error> Unable to create event file: %s, mode: %s\n", g_spareFileName, (g_triggerRecord.opMode == BARGRAPH_MODE) ? "Bargraph" : "Combo - Bargraph");
+		//debugErr("Failed to get a new file handle for the current %s event\r\n", (g_triggerRecord.opMode == BARGRAPH_MODE) ? "Bargraph" : "Combo - Bargraph");
 	}
-	else // (g_fileAccessLock == AVAILABLE)
+	else // File created, write out the event
 	{
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		// Create new Bargraph event file
-		bargraphFileHandle = GetEventFileHandle(g_pendingBargraphRecord.summary.eventNumber, CREATE_EVENT_FILE);
-
-		if (bargraphFileHandle == -1)
-		{ debugErr("Failed to get a new file handle for the current %s event\r\n", (g_triggerRecord.opMode == BARGRAPH_MODE) ? "Bargraph" : "Combo - Bargraph"); }
-
 		// Write in the current but unfinished event record to provide an offset to start writing in the data
-		write(bargraphFileHandle, &g_pendingBargraphRecord, sizeof(EVT_RECORD));
-		SetFileDateTimestamp(FS_DATE_LAST_WRITE);
+		f_write(&file, &g_pendingBargraphRecord, sizeof(EVT_RECORD), (UINT*)&bytesWritten);
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-		close(bargraphFileHandle);
+		f_close(&file);
+		SetFileTimestamp(g_spareFileName);
 
 		debug("%s event file closed\r\n", (g_triggerRecord.opMode == BARGRAPH_MODE) ? "Bargraph" : "Combo - Bargraph");
-#endif
-		ReleaseSpi1MutexLock();
+	}
 
-		// Event validation in the Event number cache will happen at the end of Bargraph (to prevent DQM from picking up the Active Bargraph event early)
+	// Event validation in the Event number cache will happen at the end of Bargraph (to prevent DQM from picking up the Active Bargraph event early)
 
-		// Consume event number (also allow other events to be recorded during a Combo - Bargraph session)
-		StoreCurrentEventNumber();
+	// Consume event number (also allow other events to be recorded during a Combo - Bargraph session)
+	StoreCurrentEventNumber();
 
-		if (g_triggerRecord.opMode == COMBO_MODE)
-		{
-			// Update the Waveform pending record with the new event number to use
-			g_pendingEventRecord.summary.eventNumber = g_nextEventNumberToUse;
-		}
+	if (g_triggerRecord.opMode == COMBO_MODE)
+	{
+		// Update the Waveform pending record with the new event number to use
+		g_pendingEventRecord.summary.eventNumber = g_nextEventNumberToUse;
 	}
 }
 
@@ -1114,61 +1085,57 @@ void MoveStartOfBargraphEventRecordToFile(void)
 ///----------------------------------------------------------------------------
 void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 {
-#if 0 /* temp remove while unused */
 	uint32 compressSize;
-	uint32 dataLength;
-	int bargraphFileHandle = -1;
-#endif
+	uint32 dataLength = 0;
 
-	if (g_fileAccessLock != AVAILABLE)
+	FIL file;
+	uint32_t bytesMoved;
+
+	UNUSED(compressSize); // Depends on debug on/off
+
+	// The following data will be filled in when the data has been moved over to flash.
+	g_pendingBargraphRecord.header.summaryChecksum = 0xAABB;
+	g_pendingBargraphRecord.header.dataChecksum = 0xCCDD;
+	g_pendingBargraphRecord.header.dataCompression = 0;
+
+	g_pendingBargraphRecord.summary.captured.endTime = GetCurrentTime();
+
+	if (status == BARPGRAPH_SESSION_COMPLETE)
 	{
-		if (g_triggerRecord.opMode == BARGRAPH_MODE) { ReportFileSystemAccessProblem("Save Bar End"); }
-		else { ReportFileSystemAccessProblem("Save Combo Bar End"); }
+		g_pendingBargraphRecord.summary.captured.bargraphSessionComplete = YES;
 	}
-	else // (g_fileAccessLock == AVAILABLE)
+
+	if (g_triggerRecord.opMode == COMBO_MODE)
 	{
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		// The following data will be filled in when the data has been moved over to flash.
-		g_pendingBargraphRecord.header.summaryChecksum = 0xAABB;
-		g_pendingBargraphRecord.header.dataChecksum = 0xCCDD;
-		g_pendingBargraphRecord.header.dataCompression = 0;
-
-		g_pendingBargraphRecord.summary.captured.endTime = GetCurrentTime();
-
-		if (status == BARPGRAPH_SESSION_COMPLETE)
+		// Mark Combo - Waveform event numbers captured
+		if ((g_pendingBargraphRecord.summary.eventNumber + 1) == g_nextEventNumberToUse)
 		{
-			g_pendingBargraphRecord.summary.captured.bargraphSessionComplete = YES;
+			debug("Combo - Bargraph: No other events recorded during session\r\n");
 		}
-
-		if (g_triggerRecord.opMode == COMBO_MODE)
+		else // ((g_pendingBargraphRecord.summary.eventNumber + 1) != g_nextEventNumberToUse)
 		{
-			// Mark Combo - Waveform event numbers captured
-			if ((g_pendingBargraphRecord.summary.eventNumber + 1) == g_nextEventNumberToUse)
-			{
-				debug("Combo - Bargraph: No other events recorded during session\r\n");
-			}
-			else // ((g_pendingBargraphRecord.summary.eventNumber + 1) != g_nextEventNumberToUse)
-			{
-				g_pendingBargraphRecord.summary.captured.comboEventsRecordedDuringSession = (g_nextEventNumberToUse - (g_pendingBargraphRecord.summary.eventNumber + 1));
-				g_pendingBargraphRecord.summary.captured.comboEventsRecordedStartNumber = (g_pendingBargraphRecord.summary.eventNumber + 1);
-				g_pendingBargraphRecord.summary.captured.comboEventsRecordedEndNumber = (g_nextEventNumberToUse - 1);
+			g_pendingBargraphRecord.summary.captured.comboEventsRecordedDuringSession = (g_nextEventNumberToUse - (g_pendingBargraphRecord.summary.eventNumber + 1));
+			g_pendingBargraphRecord.summary.captured.comboEventsRecordedStartNumber = (g_pendingBargraphRecord.summary.eventNumber + 1);
+			g_pendingBargraphRecord.summary.captured.comboEventsRecordedEndNumber = (g_nextEventNumberToUse - 1);
 
-				debug("Combo - Bargraph: Events recorded during session, Total: %d (%d to %d)\r\n", g_pendingBargraphRecord.summary.captured.comboEventsRecordedDuringSession,
-						g_pendingBargraphRecord.summary.captured.comboEventsRecordedStartNumber, g_pendingBargraphRecord.summary.captured.comboEventsRecordedEndNumber);
-			}
+			debug("Combo - Bargraph: Events recorded during session, Total: %d (%d to %d)\r\n", g_pendingBargraphRecord.summary.captured.comboEventsRecordedDuringSession,
+					g_pendingBargraphRecord.summary.captured.comboEventsRecordedStartNumber, g_pendingBargraphRecord.summary.captured.comboEventsRecordedEndNumber);
 		}
+	}
 
-		bargraphFileHandle = GetEventFileHandle(g_pendingBargraphRecord.summary.eventNumber, OVERWRITE_EVENT_FILE);
+	GetEventFileHandle(g_pendingBargraphRecord.summary.eventNumber, OVERWRITE_EVENT_FILE);
 
+	if (f_open(&file, (const TCHAR*)g_spareFileName, FA_OPEN_APPEND | FA_READ | FA_WRITE) != FR_OK)
+	{
+		printf("<Error> Unable to re-open event file for overwritting summary: %s\n", g_spareFileName);
+	}
+	else // File opened, overwrite event summary
+	{
 		// Make sure at the beginning of the file
-		file_seek(0, FS_SEEK_SET);
+		f_lseek(&file, 0);
 
 		// Rewrite the event record
-		write(bargraphFileHandle, &g_pendingBargraphRecord, sizeof(EVT_RECORD));
+		f_write(&file, &g_pendingBargraphRecord, sizeof(EVT_RECORD), (UINT*)&bytesMoved);
 
 		// Setup for saving data compressed (if Bargraph session is complete)
 		if (status == BARPGRAPH_SESSION_COMPLETE)
@@ -1176,19 +1143,18 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 			if (g_unitConfig.saveCompressedData != DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA)
 			{
 				// Make sure at the beginning of the data
-				file_seek(sizeof(EVT_RECORD), FS_SEEK_SET);
+				f_lseek(&file, sizeof(EVT_RECORD));
 
-				dataLength = (nav_file_lgt() - sizeof(EVT_RECORD));
+				dataLength = (f_size(&file) - sizeof(EVT_RECORD));
 
 				// Cache the Bargraph data for compression event file creation below
-				ReadWithSizeFix(bargraphFileHandle, (uint8*)&g_eventDataBuffer[0], dataLength);
+				f_read(&file, (uint8*)&g_eventDataBuffer[0], dataLength, (UINT*)&bytesMoved);
 			}
 		}
 
-		SetFileDateTimestamp(FS_DATE_LAST_WRITE);
-
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-		close(bargraphFileHandle);
+		f_close(&file);
+		SetFileTimestamp(g_spareFileName);
 
 		debug("%s event file closed\r\n", (g_triggerRecord.opMode == BARGRAPH_MODE) ? "Bargraph" : "Combo - Bargraph");
 
@@ -1198,29 +1164,34 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 			if (g_unitConfig.saveCompressedData != DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA)
 			{
 				// Get new event file handle
-				g_globalFileHandle = GetERDataFileHandle(g_pendingBargraphRecord.summary.eventNumber, CREATE_EVENT_FILE);
+				GetERDataFileHandle(g_pendingBargraphRecord.summary.eventNumber, CREATE_EVENT_FILE);
 
-				g_spareBufferIndex = 0;
-				compressSize = lzo1x_1_compress((void*)&g_eventDataBuffer[0], dataLength, OUT_FILE);
-
-				// Check if any remaining compressed data is queued
-				if (g_spareBufferIndex)
+				if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
 				{
-					// Finish writing the remaining compressed data
-					write(g_globalFileHandle, g_spareBuffer, g_spareBufferIndex);
-					g_spareBufferIndex = 0;
+					printf("<Error> Unable to create ERdata event file: %s\n", g_spareFileName);
 				}
-				debug("Bargraph Compressed Data length: %d (Matches file: %s)\r\n", compressSize, (compressSize == nav_file_lgt()) ? "Yes" : "No");
+				else // File created, write out the event
+				{
+					g_spareBufferIndex = 0;
+					compressSize = lzo1x_1_compress((void*)&g_eventDataBuffer[0], dataLength, OUT_FILE);
 
-				SetFileDateTimestamp(FS_DATE_LAST_WRITE);
+					// Check if any remaining compressed data is queued
+					if (g_spareBufferIndex)
+					{
+						// Finish writing the remaining compressed data
+						f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesMoved);
+						g_spareBufferIndex = 0;
+					}
+					debug("Bargraph Compressed Data length: %d (Matches file: %s)\r\n", compressSize, (compressSize == nav_file_lgt()) ? "Yes" : "No");
 
-				// Done writing the event file, close the file handle
-				g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-				close(g_globalFileHandle);
+					// Done writing the event file, close the file handle
+					g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+					f_close(&file);
+					SetFileTimestamp(g_spareFileName);
+				}
 			}
-			AddEventToSummaryList(&g_pendingBargraphRecord);
 
-			ReleaseSpi1MutexLock();
+			AddEventToSummaryList(&g_pendingBargraphRecord);
 
 			// Delay the addition of the valid event until the end of Bargraph (to prevent DQM from picking up the Active Bargraph event early)
 			AddEventNumberToCache(g_pendingBargraphRecord.summary.eventNumber);
@@ -1232,11 +1203,6 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 			CheckAutoDialoutStatusAndFlagIfAvailable();
 #endif
 		}
-		else // (status == BARGRAPH_SESSION_IN_PROGRESS)
-		{
-			ReleaseSpi1MutexLock();
-		}
-#endif
 	}
 }
 

@@ -8,6 +8,11 @@
 ///----------------------------------------------------------------------------
 ///	Includes
 ///----------------------------------------------------------------------------
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdint.h>
+
 #include "board.h"
 #include "mxc_errors.h"
 #include "uart.h"
@@ -18,6 +23,28 @@
 #include "wdt.h"
 #include "spi.h"
 //#include "spi_reva1.h" // try without
+// USB includes
+#include "mxc_sys.h"
+#include "usb.h"
+#include "usb_event.h"
+#include "enumerate.h"
+#include "cdc_acm.h"
+#include "msc.h"
+#include "descriptors.h"
+#include "mscmem.h"
+#include "mxc_delay.h"
+//#include "usb_protocol.h"
+// SDHC includes
+#include "mxc_device.h"
+#include "mxc_sys.h"
+#include "sdhc_regs.h"
+#include "tmr.h"
+#include "sdhc_lib.h"
+#include "ff.h"
+//#include "mxc_delay.h"
+//#include "mxc_errors.h"
+//#include "uart.h"
+//#include "gpio.h"
 
 //#include "pm.h"
 //#include "sdramc.h"
@@ -25,9 +52,6 @@
 //#include "usart.h"
 //#include "print_funcs.h"
 #include "lcd.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "Typedefs.h"
 #include "Common.h"
 #include "Display.h"
@@ -2414,9 +2438,82 @@ void SetupWatchdog(void)
 
 #define SPI_SPEED_ADC 10000000 // Bit Rate
 #define SPI_SPEED_LCD 10000000 // Bit Rate
-#define SPI_WIDTH_DUAL	2
+//#define SPI_WIDTH_DUAL	2
 
-<Add a master transasction>
+enum {
+	BLOCKING = 1,
+	ASYNC_ISR
+};
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SPI3_IRQHandler(void)
+{
+    MXC_SPI_AsyncHandler(MXC_SPI3);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SPI2_IRQHandler(void)
+{
+    MXC_SPI_AsyncHandler(MXC_SPI2);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SPI_Callback(mxc_spi_req_t *req, int result)
+{
+    // SPI data processing
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataSize, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method)
+{
+	mxc_spi_req_t spiRequest;
+	IRQn_Type spiIrq;
+	void (*irqHandler)(void);
+
+	spiRequest.spi = spiPort;
+	spiRequest.txData = writeData;
+	spiRequest.txLen = writeSize;
+	spiRequest.rxData = readData;
+	spiRequest.rxLen = readSize;
+	spiRequest.ssIdx = 0; // Both ADC and LCD Slave Selects are 0
+	spiRequest.ssDeassert = 1;
+	spiRequest.txCnt = 0;
+	spiRequest.rxCnt = 0;
+	spiRequest.completeCB = (spi_complete_cb_t)SPI_Callback;
+
+	MXC_SPI_SetDataSize(spiPort, dataSize);
+
+	if (method == BLOCKING)
+	{
+		MXC_SPI_MasterTransaction(&spiRequest);
+	}
+	else if (method == ASYNC_ISR)
+	{
+		// Check if selecting the ADC
+		if (spiPort == MXC_SPI3)
+		{
+			spiIrq = SPI3_IRQn;
+			irqHandler = SPI3_IRQHandler;
+		}
+		else // Selecting the LCD
+		{
+			spiIrq = SPI2_IRQn;
+			irqHandler = SPI2_IRQHandler;
+		}
+
+		MXC_NVIC_SetVector(spiIrq, irqHandler);
+		NVIC_EnableIRQ(spiIrq);
+		MXC_SPI_MasterTransactionAsync(&spiRequest);
+	}
+}
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -2432,6 +2529,919 @@ void SetupSPI(void)
 
 	status = MXC_SPI_Init(MXC_SPI2, 1, 0, 1, 0, SPI_SPEED_LCD);
 	if (status != E_SUCCESS) { printf("<Error> SPI2 (LCD) Init failed with code: %d\n", status); }
+
+	MXC_SPI_SetWidth(MXC_SPI2, SPI_WIDTH_STANDARD);
+}
+
+// USB Definitions
+#define EVENT_ENUM_COMP MAXUSB_NUM_EVENTS
+#define EVENT_REMOTE_WAKE (EVENT_ENUM_COMP + 1)
+
+#define BUFFER_SIZE 64
+
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+
+// USB Global Data
+volatile int configured;
+volatile int suspended;
+volatile unsigned int event_flags;
+int remote_wake_en;
+
+// USB Function Prototypes
+static int setconfigCallback(MXC_USB_SetupPkt *sud, void *cbdata);
+static int setfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata);
+static int clrfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata);
+static int eventCallback(maxusb_event_t evt, void *data);
+static void usbAppSleep(void);
+static void usbAppWakeup(void);
+static int usbReadCallback(void);
+int usbStartupCallback();
+int usbShutdownCallback();
+static void echoUSB(void);
+
+// This EP assignment must match the Configuration Descriptor
+static msc_cfg_t msc_cfg = {
+    1, /* EP OUT */
+    MXC_USBHS_MAX_PACKET, /* OUT max packet size */
+    2, /* EP IN */
+    MXC_USBHS_MAX_PACKET, /* IN max packet size */
+};
+
+static const msc_idstrings_t ids = {
+    "NOMIS", /* Vendor string.  Maximum of 8 bytes */
+    "MSC FLASH DRIVE", /* Product string.  Maximum of 16 bytes */
+    "1.0" /* Version string.  Maximum of 4 bytes */
+};
+
+// This EP assignment must match the Configuration Descriptor
+static acm_cfg_t acm_cfg = {
+    2, /* EP OUT */
+    MXC_USBHS_MAX_PACKET, /* OUT max packet size */
+    3, /* EP IN */
+    MXC_USBHS_MAX_PACKET, /* IN max packet size */
+    4, /* EP Notify */
+    MXC_USBHS_MAX_PACKET, /* Notify max packet size */
+};
+
+static volatile int usb_read_complete;
+
+// Functions to control "disk" memory. See msc.h for definitions
+static const msc_mem_t mem = { mscmem_Init, mscmem_Start, mscmem_Stop, mscmem_Ready,
+                               mscmem_Size, mscmem_Read,  mscmem_Write };
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void delay_us(unsigned int usec)
+{
+    /* mxc_delay() takes unsigned long, so can't use it directly */
+    MXC_Delay(usec);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetupUSBComposite(void)
+{
+    maxusb_cfg_options_t usb_opts;
+
+    printf("Waiting for VBUS...\n");
+
+    // Initialize state
+    configured = 0;
+    suspended = 0;
+    event_flags = 0;
+    remote_wake_en = 0;
+
+    // Start out in full speed
+    usb_opts.enable_hs = 1; // 0 for Full Speed, 1 for High Speed
+    usb_opts.delay_us = delay_us; // Function used for delays
+    usb_opts.init_callback = usbStartupCallback;
+    usb_opts.shutdown_callback = usbShutdownCallback;
+
+    // Initialize the usb module
+    if (MXC_USB_Init(&usb_opts) != 0) { printf("<Error> USB Init failed\n"); }
+
+    // Initialize the enumeration module
+    if (enum_init() != 0) { printf("<Error> Enumeration Init failed\n"); }
+
+    // Register enumeration data
+    enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&composite_device_descriptor, 0);
+    enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&composite_config_descriptor, 0);
+    if (usb_opts.enable_hs) {
+        // Two additional descriptors needed for high-speed operation
+        enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&composite_config_descriptor_hs, 0);
+        enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&composite_device_qualifier_descriptor,
+                                 0);
+    }
+    enum_register_descriptor(ENUM_DESC_STRING, lang_id_desc, 0);
+    enum_register_descriptor(ENUM_DESC_STRING, mfg_id_desc, 1);
+    enum_register_descriptor(ENUM_DESC_STRING, prod_id_desc, 2);
+    enum_register_descriptor(ENUM_DESC_STRING, serial_id_desc, 3);
+    enum_register_descriptor(ENUM_DESC_STRING, cdcacm_func_desc, 4);
+    enum_register_descriptor(ENUM_DESC_STRING, msc_func_desc, 5);
+
+    // Handle configuration
+    enum_register_callback(ENUM_SETCONFIG, setconfigCallback, NULL);
+
+    // Handle feature set/clear
+    enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
+    enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
+
+    // Initialize the class driver
+    if (msc_init(&composite_config_descriptor.msc_interface_descriptor, &ids, &mem) != 0) { printf("<Error> MSC Init failed\n"); }
+    if (acm_init(&composite_config_descriptor.comm_interface_descriptor) != 0) { printf("<Error> CDC/ACM Init failed\n"); }
+
+    // Register callbacks
+    MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, eventCallback, NULL);
+    MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, eventCallback, NULL);
+    acm_register_callback(ACM_CB_READ_READY, usbReadCallback);
+    usb_read_complete = 0;
+
+    // Start with USB in low power mode
+    usbAppSleep();
+    NVIC_EnableIRQ(USB_IRQn);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+static void echoUSB(void)
+{
+    int chars;
+    uint8_t buffer[BUFFER_SIZE];
+    //uint8_t echoText[32];
+
+    if ((chars = acm_canread()) > 0) {
+        if (chars > BUFFER_SIZE) {
+            chars = BUFFER_SIZE;
+        }
+
+        // Read the data from USB
+        if (acm_read(buffer, chars) != chars) {
+            printf("acm_read() failed\n");
+            return;
+        }
+
+        // Echo it back
+        if (acm_present()) {
+            //sprintf((char*)&echoText[0], "Echo: ");
+            //acm_write(&echoText[0], (unsigned int)strlen((char*)&echoText[0]));
+            if (acm_write(buffer, chars) != chars) {
+                printf("acm_write() failed\n");
+            }
+        }
+    }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int usbStartupCallback()
+{
+    // Startup the HIRC96M clock if it's not on already
+    if (!(MXC_GCR->clk_ctrl & MXC_F_GCR_CLK_CTRL_HIRC96_EN)) {
+        MXC_GCR->clk_ctrl |= MXC_F_GCR_CLK_CTRL_HIRC96_EN;
+
+        if (MXC_SYS_Clock_Timeout(MXC_F_GCR_CLK_CTRL_HIRC96_RDY) != E_NO_ERROR) {
+            return E_TIME_OUT;
+        }
+    }
+
+    MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_USB);
+
+    return E_NO_ERROR;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int usbShutdownCallback()
+{
+    MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_USB);
+
+    return E_NO_ERROR;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+static int setconfigCallback(MXC_USB_SetupPkt *sud, void *cbdata)
+{
+    /* Confirm the configuration value */
+    if (sud->wValue == composite_config_descriptor.config_descriptor.bConfigurationValue) {
+        //      on++;
+        configured = 1;
+        MXC_SETBIT(&event_flags, EVENT_ENUM_COMP);
+        if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) { ///
+            msc_cfg.out_ep = composite_config_descriptor_hs.endpoint_descriptor_1.bEndpointAddress &
+                             0x7;
+            msc_cfg.out_maxpacket =
+                composite_config_descriptor_hs.endpoint_descriptor_1.wMaxPacketSize;
+            msc_cfg.in_ep = composite_config_descriptor_hs.endpoint_descriptor_2.bEndpointAddress &
+                            0x7;
+            msc_cfg.in_maxpacket =
+                composite_config_descriptor_hs.endpoint_descriptor_2.wMaxPacketSize;
+        } else {
+            msc_cfg.out_ep = composite_config_descriptor.endpoint_descriptor_1.bEndpointAddress &
+                             0x7;
+            msc_cfg.out_maxpacket =
+                composite_config_descriptor.endpoint_descriptor_1.wMaxPacketSize;
+            msc_cfg.in_ep = composite_config_descriptor.endpoint_descriptor_2.bEndpointAddress &
+                            0x7;
+            msc_cfg.in_maxpacket = composite_config_descriptor.endpoint_descriptor_2.wMaxPacketSize;
+        }
+
+        acm_cfg.out_ep = composite_config_descriptor.endpoint_descriptor_4.bEndpointAddress & 0x7;
+        acm_cfg.out_maxpacket = composite_config_descriptor.endpoint_descriptor_4.wMaxPacketSize;
+        acm_cfg.in_ep = composite_config_descriptor.endpoint_descriptor_5.bEndpointAddress & 0x7;
+        acm_cfg.in_maxpacket = composite_config_descriptor.endpoint_descriptor_5.wMaxPacketSize;
+        acm_cfg.notify_ep = composite_config_descriptor.endpoint_descriptor_3.bEndpointAddress &
+                            0x7;
+        acm_cfg.notify_maxpacket = composite_config_descriptor.endpoint_descriptor_3.wMaxPacketSize;
+
+        msc_configure(&msc_cfg);
+        return acm_configure(&acm_cfg);
+        /* Configure the device class */
+    } else if (sud->wValue == 0) {
+        configured = 0;
+        msc_deconfigure();
+        return acm_deconfigure();
+    }
+
+    return -1;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+static int setfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata)
+{
+    if (sud->wValue == FEAT_REMOTE_WAKE) {
+        remote_wake_en = 1;
+    } else {
+        // Unknown callback
+        return -1;
+    }
+
+    return 0;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+static int clrfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata)
+{
+    if (sud->wValue == FEAT_REMOTE_WAKE) {
+        remote_wake_en = 0;
+    } else {
+        // Unknown callback
+        return -1;
+    }
+
+    return 0;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+static void usbAppSleep(void)
+{
+    /* TODO: Place low-power code here */
+    suspended = 1;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+static void usbAppWakeup(void)
+{
+    /* TODO: Place low-power code here */
+    suspended = 0;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+static int eventCallback(maxusb_event_t evt, void *data)
+{
+    /* Set event flag */
+    MXC_SETBIT(&event_flags, evt);
+
+    switch (evt) {
+    case MAXUSB_EVENT_NOVBUS:
+        MXC_USB_EventDisable(MAXUSB_EVENT_BRST);
+        MXC_USB_EventDisable(MAXUSB_EVENT_SUSP);
+        MXC_USB_EventDisable(MAXUSB_EVENT_DPACT);
+        MXC_USB_Disconnect();
+        configured = 0;
+        enum_clearconfig();
+        msc_deconfigure();
+        acm_deconfigure();
+        usbAppSleep();
+        break;
+    case MAXUSB_EVENT_VBUS:
+        MXC_USB_EventClear(MAXUSB_EVENT_BRST);
+        MXC_USB_EventEnable(MAXUSB_EVENT_BRST, eventCallback, NULL);
+        MXC_USB_EventClear(MAXUSB_EVENT_BRSTDN); ///
+        MXC_USB_EventEnable(MAXUSB_EVENT_BRSTDN, eventCallback, NULL); ///
+        MXC_USB_EventClear(MAXUSB_EVENT_SUSP);
+        MXC_USB_EventEnable(MAXUSB_EVENT_SUSP, eventCallback, NULL);
+        MXC_USB_Connect();
+        usbAppSleep();
+        break;
+    case MAXUSB_EVENT_BRST:
+        usbAppWakeup();
+        enum_clearconfig();
+        msc_deconfigure();
+        acm_deconfigure();
+        configured = 0;
+        suspended = 0;
+        break;
+    case MAXUSB_EVENT_BRSTDN: ///
+        if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
+            enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&composite_config_descriptor_hs,
+                                     0);
+            enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&composite_config_descriptor, 0);
+        } else {
+            enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&composite_config_descriptor, 0);
+            enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&composite_config_descriptor_hs,
+                                     0);
+        }
+        break;
+    case MAXUSB_EVENT_SUSP:
+        usbAppSleep();
+        break;
+    case MAXUSB_EVENT_DPACT:
+        usbAppWakeup();
+        break;
+    default:
+        break;
+    }
+
+    return 0;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void USB_IRQHandler(void)
+{
+    MXC_USB_EventHandler();
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+static int usbReadCallback(void)
+{
+    usb_read_complete = 1;
+    return 0;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void UsbWaitForEvents(void)
+{
+	/* Wait for events */
+    while (1) {
+        echoUSB();
+
+        if (suspended || !configured) {
+            // Suspended or not configured, alert debug
+        } else {
+            // Configured, alert debug
+        }
+
+        if (event_flags) {
+            /* Display events */
+            if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_NOVBUS)) {
+                MXC_CLRBIT(&event_flags, MAXUSB_EVENT_NOVBUS);
+                printf("VBUS Disconnect\n");
+            } else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_VBUS)) {
+                MXC_CLRBIT(&event_flags, MAXUSB_EVENT_VBUS);
+                printf("VBUS Connect\n");
+            } else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRST)) {
+                MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRST);
+                printf("Bus Reset\n");
+            } else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRSTDN)) { ///
+                MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRSTDN);
+                printf("Bus Reset Done: %s speed\n",
+                       (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) ? "High" : "Full");
+            } else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_SUSP)) {
+                MXC_CLRBIT(&event_flags, MAXUSB_EVENT_SUSP);
+                printf("Suspended\n");
+            } else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_DPACT)) {
+                MXC_CLRBIT(&event_flags, MAXUSB_EVENT_DPACT);
+                printf("Resume\n");
+            } else if (MXC_GETBIT(&event_flags, EVENT_ENUM_COMP)) {
+                MXC_CLRBIT(&event_flags, EVENT_ENUM_COMP);
+                printf("Enumeration complete...\n");
+            } else if (MXC_GETBIT(&event_flags, EVENT_REMOTE_WAKE)) {
+                MXC_CLRBIT(&event_flags, EVENT_REMOTE_WAKE);
+                printf("Remote Wakeup\n");
+            }
+        }
+    }
+}
+
+// Defined with SPI
+//#define STRINGIFY(x) #x
+//#define TOSTRING(x) STRINGIFY(x)
+
+#define MAXLEN 256
+
+// Globals
+FATFS *fs; //FFat Filesystem Object
+FATFS fs_obj;
+FIL file; //FFat File Object
+FRESULT err; //FFat Result (Struct)
+FILINFO fno; //FFat File Information Object
+DIR dir; //FFat Directory Object
+TCHAR message[MAXLEN], directory[MAXLEN], cwd[MAXLEN], filename[MAXLEN], volume_label[24],
+    volume = '0';
+TCHAR *FF_ERRORS[20];
+DWORD clusters_free = 0, sectors_free = 0, sectors_total = 0, volume_sn = 0;
+UINT bytes_written = 0, bytes_read = 0, mounted = 0;
+BYTE work[4096];
+static char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,.-#'?!";
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void generateMessage(unsigned length)
+{
+    for (int i = 0; i < length; i++) {
+        /*Generate some random data to put in file*/
+        message[i] = charset[rand() % (sizeof(charset) - 1)];
+    }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int mount(void)
+{
+    fs = &fs_obj;
+    if ((err = f_mount(fs, "", 1)) != FR_OK) { //Mount the default drive to fs now
+        printf("Error opening SD card: %s\n", FF_ERRORS[err]);
+        f_mount(NULL, "", 0);
+    } else {
+        printf("SD card mounted.\n");
+        mounted = 1;
+    }
+
+    f_getcwd(cwd, sizeof(cwd)); //Set the Current working directory
+
+    return err;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int umount(void)
+{
+    if ((err = f_mount(NULL, "", 0)) != FR_OK) { //Unmount the default drive from its mount point
+        printf("Error unmounting volume: %s\n", FF_ERRORS[err]);
+    } else {
+        printf("SD card unmounted.\n");
+        mounted = 0;
+    }
+
+    return err;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int formatSDHC(void)
+{
+    printf("\n\n*****THE DRIVE WILL BE FORMATTED IN 5 SECONDS*****\n");
+    printf("**************PRESS ANY KEY TO ABORT**************\n\n");
+    MXC_UART_ClearRXFIFO(MXC_UART2);
+    MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(5000));
+    if (MXC_UART_GetRXFIFOAvailable(MXC_UART2) > 0) {
+        return E_ABORT;
+    }
+
+    printf("FORMATTING DRIVE\n");
+
+    if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) !=
+        FR_OK) { //Format the default drive to FAT32
+        printf("<Error> Formatting SD card/device failed: %s\n", FF_ERRORS[err]);
+    } else {
+        printf("Drive formatted\n");
+    }
+
+    mount();
+
+    if ((err = f_setlabel("NOMIS")) != FR_OK) {
+        printf("<Error> Setting drive label failed: %s\n", FF_ERRORS[err]);
+        f_mount(NULL, "", 0);
+    }
+
+    umount();
+
+    return err;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int getSize(void)
+{
+    if (!mounted) {
+        mount();
+    }
+
+    if ((err = f_getfree(&volume, &clusters_free, &fs)) != FR_OK) {
+        printf("Error finding free size of card: %s\n", FF_ERRORS[err]);
+        f_mount(NULL, "", 0);
+    }
+
+    sectors_total = (fs->n_fatent - 2) * fs->csize;
+    sectors_free = clusters_free * fs->csize;
+
+    printf("Disk Size: %u bytes\n", sectors_total / 2);
+    printf("Available: %u bytes\n", sectors_free / 2);
+
+    return err;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ls(void)
+{
+    if (!mounted) {
+        mount();
+    }
+
+    printf("Listing Contents of %s - \n", cwd);
+
+    if ((err = f_opendir(&dir, cwd)) == FR_OK) {
+        while (1) {
+            err = f_readdir(&dir, &fno);
+            if (err != FR_OK || fno.fname[0] == 0)
+                break;
+
+            printf("%s/%s", cwd, fno.fname);
+
+            if (fno.fattrib & AM_DIR) {
+                printf("/");
+            }
+
+            printf("\n");
+        }
+        f_closedir(&dir);
+    } else {
+        printf("Error opening directory!\n");
+        return err;
+    }
+
+    printf("\nFinished listing contents\n");
+
+    return err;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int createFile(void)
+{
+    unsigned int length = 128;
+
+    if (!mounted) {
+        mount();
+    }
+
+    printf("Enter the name of the text file: \n");
+    scanf("%255s", filename);
+    printf("Enter the length of the file: (256 max)\n");
+    scanf("%d", &length);
+    printf("Creating file %s with length %d\n", filename, length);
+
+    if ((err = f_open(&file, (const TCHAR *)filename, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) {
+        printf("Error opening file: %s\n", FF_ERRORS[err]);
+        f_mount(NULL, "", 0);
+        return err;
+    }
+    printf("File opened!\n");
+
+    generateMessage(length);
+
+    if ((err = f_write(&file, &message, length, &bytes_written)) != FR_OK) {
+        printf("Error writing file: %s\n", FF_ERRORS[err]);
+        f_mount(NULL, "", 0);
+        return err;
+    }
+    printf("%d bytes written to file!\n", bytes_written);
+
+    if ((err = f_close(&file)) != FR_OK) {
+        printf("Error closing file: %s\n", FF_ERRORS[err]);
+        f_mount(NULL, "", 0);
+        return err;
+    }
+    printf("File Closed!\n");
+    return err;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int appendFile(void)
+{
+    unsigned int length = 0;
+
+    if (!mounted) {
+        mount();
+    }
+
+    printf("Type name of file to append: \n");
+    scanf("%255s", filename);
+    printf("Type length of random data to append: \n");
+    scanf("%d", &length);
+
+    if ((err = f_stat((const TCHAR *)filename, &fno)) == FR_NO_FILE) {
+        printf("File %s doesn't exist!\n", (const TCHAR *)filename);
+        return err;
+    }
+    if ((err = f_open(&file, (const TCHAR *)filename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK) {
+        printf("Error opening file %s\n", FF_ERRORS[err]);
+        return err;
+    }
+    printf("File opened!\n");
+
+    generateMessage(length);
+
+    if ((err = f_write(&file, &message, length, &bytes_written)) != FR_OK) {
+        printf("Error writing file: %s\n", FF_ERRORS[err]);
+        return err;
+    }
+    printf("%d bytes written to file\n", bytes_written);
+
+    if ((err = f_close(&file)) != FR_OK) {
+        printf("Error closing file: %s\n", FF_ERRORS[err]);
+        return err;
+    }
+    printf("File closed.\n");
+    return err;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int mkdir(void)
+{
+    if (!mounted) {
+        mount();
+    }
+
+    printf("Enter directory name: \n");
+    scanf("%255s", directory);
+
+    err = f_stat((const TCHAR *)directory, &fno);
+    if (err == FR_NO_FILE) {
+        printf("Creating directory...\n");
+
+        if ((err = f_mkdir((const TCHAR *)directory)) != FR_OK) {
+            printf("Error creating directory: %s\n", FF_ERRORS[err]);
+            f_mount(NULL, "", 0);
+            return err;
+        } else {
+            printf("Directory %s created.\n", directory);
+        }
+
+    } else {
+        printf("Directory already exists.\n");
+    }
+    return err;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int cd(void)
+{
+    if (!mounted) {
+        mount();
+    }
+
+    printf("Directory to change into: \n");
+    scanf("%255s", directory);
+
+    if ((err = f_stat((const TCHAR *)directory, &fno)) == FR_NO_FILE) {
+        printf("Directory doesn't exist (Did you mean mkdir?)\n");
+        return err;
+    }
+
+    if ((err = f_chdir((const TCHAR *)directory)) != FR_OK) {
+        printf("Error in chdir: %s\n", FF_ERRORS[err]);
+        f_mount(NULL, "", 0);
+        return err;
+    }
+
+    printf("Changed to %s\n", directory);
+    f_getcwd(cwd, sizeof(cwd));
+
+    return err;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int delete(void)
+{
+    if (!mounted) {
+        mount();
+    }
+
+    printf("File or directory to delete (always recursive!)\n");
+    scanf("%255s", filename);
+
+    if ((err = f_stat((const TCHAR *)filename, &fno)) == FR_NO_FILE) {
+        printf("File or directory doesn't exist\n");
+        return err;
+    }
+
+    if ((err = f_unlink(filename)) != FR_OK) {
+        printf("Error deleting file\n");
+        return err;
+    }
+    printf("Deleted file %s\n", filename);
+    return err;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int example(void)
+{
+    unsigned int length = 256;
+
+    if ((err = formatSDHC()) != FR_OK) {
+        printf("Error Formatting SD Card: %s\n", FF_ERRORS[err]);
+        return err;
+    }
+
+    //open SD Card
+    if ((err = mount()) != FR_OK) { printf("Error opening SD Card: %s\n", FF_ERRORS[err]); return err; }
+    printf("SD Card Opened!\n");
+
+    if ((err = f_setlabel("NOMIS")) != FR_OK) { printf("Error setting drive label: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+
+    if ((err = f_getfree(&volume, &clusters_free, &fs)) != FR_OK) { printf("Error finding free size of card: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+
+    if ((err = f_getlabel(&volume, volume_label, &volume_sn)) != FR_OK) { printf("Error reading drive label: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err;  }
+
+    if ((err = f_open(&file, "0:HelloWorld.txt", FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { printf("Error opening file: %s\n", FF_ERRORS[err]);f_mount(NULL, "", 0); return err; }
+    printf("File opened!\n");
+
+    generateMessage(length);
+
+    if ((err = f_write(&file, &message, length, &bytes_written)) != FR_OK) { printf("Error writing file: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+    printf("%d bytes written to file!\n", bytes_written);
+
+    if ((err = f_close(&file)) != FR_OK) { printf("Error closing file: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+    printf("File Closed!\n");
+
+    if ((err = f_chmod("HelloWorld.txt", 0, AM_RDO | AM_ARC | AM_SYS | AM_HID)) != FR_OK) { printf("Error in chmod: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+
+    err = f_stat("MaximSDHC", &fno);
+    if (err == FR_NO_FILE) {
+        printf("Creating Directory...\n");
+        if ((err = f_mkdir("MaximSDHC")) != FR_OK) { printf("Error creating directory: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+    }
+
+    printf("Renaming File...\n");
+    if ((err = f_rename("0:HelloWorld.txt", "0:MaximSDHC/HelloMaxim.txt")) != FR_OK) { /* /cr: clearify 0:file notation */ printf("Error moving file: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+
+    if ((err = f_chdir("/MaximSDHC")) != FR_OK) { printf("Error in chdir: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+
+    printf("Attempting to read back file...\n");
+    if ((err = f_open(&file, "HelloMaxim.txt", FA_READ)) != FR_OK) { printf("Error opening file: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+
+    if ((err = f_read(&file, &message, bytes_written, &bytes_read)) != FR_OK) { printf("Error reading file: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+
+    printf("Read Back %d bytes\n", bytes_read);
+    printf("Message: ");
+    printf("%s", message);
+    printf("\n");
+
+    if ((err = f_close(&file)) != FR_OK) { printf("Error closing file: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+    printf("File Closed!\n");
+
+    //unmount SD Card
+    //f_mount(fs, "", 0);
+    if ((err = f_mount(NULL, "", 0)) != FR_OK) { printf("Error unmounting volume: %s\n", FF_ERRORS[err]); return err; }
+
+    return 0;
+}
+
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetupSDHCeMMC(void)
+{
+    mxc_sdhc_cfg_t cfg;
+
+    FF_ERRORS[0] = "FR_OK";
+    FF_ERRORS[1] = "FR_DISK_ERR";
+    FF_ERRORS[2] = "FR_INT_ERR";
+    FF_ERRORS[3] = "FR_NOT_READY";
+    FF_ERRORS[4] = "FR_NO_FILE";
+    FF_ERRORS[5] = "FR_NO_PATH";
+    FF_ERRORS[6] = "FR_INVLAID_NAME";
+    FF_ERRORS[7] = "FR_DENIED";
+    FF_ERRORS[8] = "FR_EXIST";
+    FF_ERRORS[9] = "FR_INVALID_OBJECT";
+    FF_ERRORS[10] = "FR_WRITE_PROTECTED";
+    FF_ERRORS[11] = "FR_INVALID_DRIVE";
+    FF_ERRORS[12] = "FR_NOT_ENABLED";
+    FF_ERRORS[13] = "FR_NO_FILESYSTEM";
+    FF_ERRORS[14] = "FR_MKFS_ABORTED";
+    FF_ERRORS[15] = "FR_TIMEOUT";
+    FF_ERRORS[16] = "FR_LOCKED";
+    FF_ERRORS[17] = "FR_NOT_ENOUGH_CORE";
+    FF_ERRORS[18] = "FR_TOO_MANY_OPEN_FILES";
+    FF_ERRORS[19] = "FR_INVALID_PARAMETER";
+    srand(12347439);
+    int run = 1, input = -1;
+
+    // Initialize SDHC peripheral
+    cfg.bus_voltage = MXC_SDHC_Bus_Voltage_1_8;
+    cfg.block_gap = 0;
+    cfg.clk_div = 0x0b0; // Maximum divide ratio, frequency must be >= 400 kHz during Card Identification phase
+
+    if (MXC_SDHC_Init(&cfg) != E_NO_ERROR) { printf("<Error> SDHC/eMMC initialization failed\n"); }
+
+    // Set up card to get it ready for a transaction
+    if (MXC_SDHC_Lib_InitCard(10) == E_NO_ERROR) { printf("SDHC: Card/device Initialized\n"); }
+	else { printf("<Error> SDHC: No card/device response\n"); }
+
+    if (MXC_SDHC_Lib_Get_Card_Type() == CARD_MMC) { printf("SDHC: Card type discovered is MMC/eMMC\n"); }
+	else /* CARD_SDHC */ { printf("SDHC: Card type discovered is SD/SDHC\n"); }
+
+    // Configure for fastest possible clock, must not exceed 52 MHz for eMMC
+    if (SystemCoreClock > 96000000)
+	{
+        printf("SD clock ratio (at card/device) is 4:1 (eMMC not to exceed 52 MHz)\n");
+        MXC_SDHC_Set_Clock_Config(1);
+    }
+	else
+	{
+        printf("SD clock ratio (at card/device) is 2:1\n");
+        MXC_SDHC_Set_Clock_Config(0);
+    }
+
+    while (run)
+	{
+        f_getcwd(cwd, sizeof(cwd));
+
+        printf("\nChoose one of the following options: \n");
+        printf("0. Find the Size of the SD Card and Free Space\n");
+        printf("1. Format the Card\n");
+        printf("2. Manually Mount Card\n");
+        printf("3. List Contents of Current Directory\n");
+        printf("4. Create a Directory\n");
+        printf("5. Move into a Directory (cd)\n");
+        printf("6. Create a File of Random Data\n");
+        printf("7. Add Random Data to an Existing File\n");
+        printf("8. Delete a File\n");
+        printf("9. Format Card and Run Exmaple of FatFS Operations\n");
+        printf("10. Unmount Card and Quit\n");
+        printf("%s>>", cwd);
+
+        input = -1;
+        scanf("%d", &input);
+        printf("%d\n", input);
+
+        err = 0;
+
+        switch (input)
+		{
+			case 0: getSize(); break;
+			case 1: formatSDHC(); break;
+			case 2: mount(); break;
+			case 3: ls(); break;
+			case 4: mkdir(); break;
+			case 5: cd(); break;
+			case 6: createFile(); break;
+			case 7: appendFile(); break;
+			case 8: delete(); break;
+			case 9: example(); break;
+			case 10: umount(); run = 0; break;
+			default: printf("Invalid Selection %d!\n", input); err = -1; break;
+		}
+
+        if (err >= 0 && err <= 20) { printf("Function Returned with code: %d\n", FF_ERRORS[err]); }
+		else { printf("Function Returned with code: %d\n", err); }
+
+        MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
+    }
 }
 
 ///----------------------------------------------------------------------------
@@ -2476,6 +3486,16 @@ void InitSystemHardware_NS9100(void)
 	// Setup SPI3 (ADC) and SPI2 (LCD)
 	//-------------------------------------------------------------------------
 	SetupSPI();
+
+	//-------------------------------------------------------------------------
+	// Setup USB Composite (MSC + CDC/ACM)
+	//-------------------------------------------------------------------------
+	SetupUSBComposite();
+
+	//-------------------------------------------------------------------------
+	// Setup HDSC/eMMC
+	//-------------------------------------------------------------------------
+	SetupSDHCeMMC();
 
 	//-------------------------------------------------------------------------
 	// Set General Purpose Low-Power registers

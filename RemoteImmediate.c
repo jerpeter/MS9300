@@ -1366,10 +1366,7 @@ void HandleDER(CMD_BUFFER_STRUCT* inCmd)
 		}
 		else // No memory space to work, must save compressed data as a file
 		{
-			GetSpi1MutexLock(SDMMC_LOCK);
 #if 0 /* old hw */
-			nav_select(FS_NAV_ID_DEFAULT);
-
 			// Get new event file handle
 			g_globalFileHandle = GetERDataFileHandle(g_derXferStruct.dloadEventRec.eventRecord.summary.eventNumber, CREATE_EVENT_FILE);
 
@@ -1390,8 +1387,6 @@ void HandleDER(CMD_BUFFER_STRUCT* inCmd)
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 			close(g_globalFileHandle);
 #endif
-			ReleaseSpi1MutexLock();
-
 			g_derXferStruct.compressedEventDataFilePresent = YES;
 		}
 	}

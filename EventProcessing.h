@@ -125,11 +125,8 @@ uint32 AirTriggerConvertToUnits(uint32 airTriggerToConvert);
 void ManageEventsDirectory(void);
 uint8 MigrateLooseFiles(uint8 dirType);
 void ValidateSummaryListFileWithEventCache(void);
-void SetNavDefault(void);
 char* GetEventFilenameAndPath(uint16 eventNumber, uint8 eventType);
 
-int OpenEventFile(uint16 eventNumber);
-void CloseEventFile(int);
 void DisplayFileNotFound(char* filename);
 void DisplayFileCorrupt(char* filename);
 
@@ -146,18 +143,17 @@ void CacheResultsEventInfo(EVT_RECORD* eventRecordToCache);
 
 void DumpSummaryListFileToEventBuffer(void);
 SUMMARY_LIST_ENTRY_STRUCT* GetSummaryFromSummaryList(uint16 eventNumber);
-void CacheNextSummaryListEntry(void);
-void CachePreviousSummaryListEntry(void);
-void CacheSummaryEntryByIndex(uint16 index);
 void ParseAndCountSummaryListEntriesWithRewrite(void);
 void AddEventToSummaryList(EVT_RECORD* event);
 void InitSummaryListFile(void);
 
-void VerifyCacheEventToRam(uint16 eventNumber, char* subMessage);
 void SaveRemoteEventDownloadStreamToFile(uint16 eventNumber);
 
 uint8 CacheSerialNumberAndReturnIndex(char* serialNumberString);
 void CacheSummaryListEntryToEventList(uint8 entryType);
 void ClearEventListCache(void);
+
+// Custom function to set the file timestamp
+uint32_t SetFileTimestamp(char* filename);
 
 #endif // _FLASHEVTS_H_

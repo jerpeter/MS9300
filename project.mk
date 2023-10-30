@@ -16,4 +16,10 @@
 # If you have secure version of MCU (MAX32651), set SBT=1 to generate signed binary
 # For more information on how sing process works, see
 # https://www.analog.com/en/education/education-library/videos/6313214207112.html
-SBT=0
+SBT=1
+
+# Enable MAXUSB library
+LIB_MAXUSB=1
+
+# Enable the SDHC library
+LIB_SDHC=1
