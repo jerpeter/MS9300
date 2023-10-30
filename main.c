@@ -9,8 +9,9 @@
 ///	Includes
 ///----------------------------------------------------------------------------
 #include "board.h"
-//#include "pm.h"
 #include "gpio.h"
+#include "wdt.h"
+//#include "pm.h"
 //#include "sdramc.h"
 //#include "intc.h"
 //#include "usart.h"
@@ -1846,6 +1847,9 @@ int main(void)
 
 		// Count Exec cycles
 		g_execCycles++;
+
+		//Reset watchdog
+		MXC_WDT_ResetTimer(MXC_WDT0);
 	}
 	// End of NS8100 Main
 

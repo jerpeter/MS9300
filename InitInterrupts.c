@@ -526,5 +526,7 @@ void InitInterrupts_NS9100(void)
 	
 	Enable_global_interrupt();
 #endif
+
+    __enable_irq();
 }
 
