@@ -18,12 +18,24 @@
 #include "RealTimeClock.h"
 #include "Display.h"
 #include "spi.h"
+
+#include "i2c.h"
 //#include "flashc.h"
+
+/* Specific M24128 EEPROM details
+Page read/write allows up to 64 bytes (if all on the same page), Pages are determined by A15 to A6
+Write byte/page: dev select, byte address MSB, byte address LSB, data_in[0] .. up to data_in[63] if same page
+Read byte/page: <write> dev select, byte address MSB, byte address LSB, <read> data_out[0] .. up to data_out[63] or more (unclear if restricted to 1 page rollover or not)
+Device codes
+Memory write: 0xA0
+Memory read: 0xA1
+ID write: 0xB0
+ID read: 0xB1
+*/
 
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
-#define RECORD_STORAGE_SIZE_x16	FLASH_BOOT_SECTOR_SIZE_x16
 
 ///----------------------------------------------------------------------------
 ///	Externs
@@ -596,45 +608,22 @@ void ValidateModemSetupParameters(void)
 ///----------------------------------------------------------------------------
 void GetParameterMemory(uint8* dataDest, uint16 startAddr, uint16 dataLength)
 {
-#if 0 /* old hw */
-	uint16 tempData;
-	
+	uint8 address[2];
+
 	//debugRaw("\nGPM: Addr: %x -> ", startAddr);
 
-	GetSpi1MutexLock(EEPROM_LOCK);
-
-	spi_selectChip(&AVR32_SPI1, EEPROM_SPI_NPCS);
-
-	// Write Command
-	spi_write(&AVR32_SPI1, EEPROM_READ_DATA);
-	spi_write(&AVR32_SPI1, (startAddr >> 8) & 0xFF);
-	spi_write(&AVR32_SPI1, startAddr & 0xFF);
-
-	while(dataLength--)
-	{
-		spi_write(&AVR32_SPI1, 0xFF);
-		spi_read(&AVR32_SPI1, &tempData);
-
-		//debugRaw("%02x ", (uint8)(tempData));
-
-		// Store the byte data into the data array and inc the pointer			
-		*dataDest++ = (uint8)tempData;
-	}
-
-	spi_unselectChip(&AVR32_SPI1, EEPROM_SPI_NPCS);
-
-	ReleaseSpi1MutexLock();
-#endif
+	// Address transfered as Big endian
+	address[0] = startAddr >> 8;
+	address[1] = startAddr & 0x00FF;
+	WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM, address, sizeof(address), dataDest, dataLength);
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#define EEPROM_PAGE_SIZE	32
+#define EEPROM_PAGE_SIZE	64
 void SaveParameterMemory(uint8* dataSrc, uint16 startAddr, uint16 dataLength)
 {
-#if 0 /* old hw */
-	uint16 tempData;
 	uint16 writeLength;
 	uint8 checkForPartialFirstPage = YES;
 	uint8 lengthToPageBoundary = 0;
@@ -643,27 +632,18 @@ void SaveParameterMemory(uint8* dataSrc, uint16 startAddr, uint16 dataLength)
 	{
 		//debug("SPM: Addr: %x Len: %04d -> ", startAddr, dataLength);
 
-		GetSpi1MutexLock(EEPROM_LOCK);
-
-		// Activate write enable
-		spi_selectChip(&AVR32_SPI1, EEPROM_SPI_NPCS);
-		spi_write(&AVR32_SPI1, EEPROM_WRITE_ENABLE); // Write Command
-		spi_unselectChip(&AVR32_SPI1, EEPROM_SPI_NPCS);
-
-		// Write data
-		spi_selectChip(&AVR32_SPI1, EEPROM_SPI_NPCS);
-		spi_write(&AVR32_SPI1, EEPROM_WRITE_DATA); // Write Command
-		spi_write(&AVR32_SPI1, (startAddr >> 8) & 0xFF);
-		spi_write(&AVR32_SPI1, startAddr & 0xFF);
+		// Address transfered as Big endian
+		g_spareBuffer[0] = ((startAddr >> 8) & 0xFF);
+		g_spareBuffer[1] = (startAddr & 0xFF);
 
 		// Adjust for page boundaries
 		if (checkForPartialFirstPage == YES)
 		{
 			checkForPartialFirstPage = NO;
 			
-			lengthToPageBoundary = (EEPROM_PAGE_SIZE - (startAddr % 32));
+			lengthToPageBoundary = (EEPROM_PAGE_SIZE - (startAddr % EEPROM_PAGE_SIZE));
 			
-			// Check data length against remaining length of 32 page boundary
+			// Check data length against remaining length of 64 page boundary
 			if (dataLength <= lengthToPageBoundary)
 			{
 				// Complete data storage within first/partial page
@@ -689,20 +669,12 @@ void SaveParameterMemory(uint8* dataSrc, uint16 startAddr, uint16 dataLength)
 			startAddr += EEPROM_PAGE_SIZE;
 		}			
 			
-		while(writeLength--)
-		{
-			//debugRaw("%02x ", *dataSrc);
+		memcpy(&g_spareBuffer[2], dataSrc, writeLength);
+		WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM, g_spareBuffer, (writeLength + 2), NULL, 0);
+		dataSrc += writeLength;
 
-			tempData = *dataSrc++;
-			spi_write(&AVR32_SPI1, tempData);
-		}
-
-		spi_unselectChip(&AVR32_SPI1, EEPROM_SPI_NPCS);
-		SoftUsecWait(5 * SOFT_MSECS);
-
-		ReleaseSpi1MutexLock();
+		// Old system used delay, needed?
 	}
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -710,51 +682,32 @@ void SaveParameterMemory(uint8* dataSrc, uint16 startAddr, uint16 dataLength)
 ///----------------------------------------------------------------------------
 void EraseParameterMemory(uint16 startAddr, uint16 dataLength)
 {
-#if 0 /* old hw */
-	uint16 tempData = 0x00FF;
 	uint16 pageSize;
 
 	while(dataLength)
 	{
-		GetSpi1MutexLock(EEPROM_LOCK);
+		// Address transfered as Big endian
+		g_spareBuffer[0] = ((startAddr >> 8) & 0xFF);
+		g_spareBuffer[1] = (startAddr & 0xFF);
 
-		// Activate write enable
-		spi_selectChip(&AVR32_SPI1, EEPROM_SPI_NPCS);
-		spi_write(&AVR32_SPI1, EEPROM_WRITE_ENABLE); // Write Command
-		spi_unselectChip(&AVR32_SPI1, EEPROM_SPI_NPCS);
-
-		// Write data
-		spi_selectChip(&AVR32_SPI1, EEPROM_SPI_NPCS);
-		spi_write(&AVR32_SPI1, EEPROM_WRITE_DATA); // Write Command
-		spi_write(&AVR32_SPI1, (startAddr >> 8) & 0xFF);
-		spi_write(&AVR32_SPI1, startAddr & 0xFF);
-
-		// Check if current data length is less than 32 and can be finished in a page
-		if (dataLength <= 32)
+		// Check if current data length is less than 64 and can be finished in a page
+		if (dataLength <= EEPROM_PAGE_SIZE)
 		{
 			pageSize = dataLength;
 			dataLength = 0;
 		}
 		else // While loop will run again
 		{
-			pageSize = 32;
-			dataLength -= 32;	
-			startAddr += 32;
+			pageSize = EEPROM_PAGE_SIZE;
+			dataLength -= EEPROM_PAGE_SIZE;	
+			startAddr += EEPROM_PAGE_SIZE;
 		}			
-			
-		while(pageSize--)
-		{
-			spi_write(&AVR32_SPI1, tempData);
-			
-			SoftUsecWait(1 * SOFT_MSECS);
-		}
+		
+		memset(&g_spareBuffer[2], 0xFF, pageSize);
+		WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM, g_spareBuffer, (pageSize + 2), NULL, 0);
 
-		spi_unselectChip(&AVR32_SPI1, EEPROM_SPI_NPCS);
-		SoftUsecWait(5 * SOFT_MSECS);
-
-		ReleaseSpi1MutexLock();
+		// Old system used delay, needed?
 	}
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -762,9 +715,10 @@ void EraseParameterMemory(uint16 startAddr, uint16 dataLength)
 ///----------------------------------------------------------------------------
 void GetFlashUserPageFactorySetup(FACTORY_SETUP_STRUCT* factorySetup)
 {
-	uint32* userPage = (uint32*)FLASH_USER_PAGE_BASE_ADDRESS; // 512 Bytes
-
-	memcpy(factorySetup, userPage, sizeof(FACTORY_SETUP_STRUCT));
+	// Address transfered as Big endian
+	g_spareBuffer[0] = ((FLASH_USER_PAGE_BASE_ADDRESS >> 8) & 0xFF);
+	g_spareBuffer[1] = (FLASH_USER_PAGE_BASE_ADDRESS & 0xFF);
+	WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM_ID, g_spareBuffer, 2, (uint8_t*)factorySetup, sizeof(FACTORY_SETUP_STRUCT));
 }
 
 ///----------------------------------------------------------------------------
@@ -772,11 +726,11 @@ void GetFlashUserPageFactorySetup(FACTORY_SETUP_STRUCT* factorySetup)
 ///----------------------------------------------------------------------------
 void SaveFlashUserPageFactorySetup(FACTORY_SETUP_STRUCT* factorySetup)
 {
-#if 0 /* old hw */
-	uint32* userPage = (uint32*)FLASH_USER_PAGE_BASE_ADDRESS; // 512 Bytes
-
-	flashc_memcpy(userPage, factorySetup, sizeof(FACTORY_SETUP_STRUCT), YES);
-#endif
+	// Address transfered as Big endian
+	g_spareBuffer[0] = ((FLASH_USER_PAGE_BASE_ADDRESS >> 8) & 0xFF);
+	g_spareBuffer[1] = (FLASH_USER_PAGE_BASE_ADDRESS & 0xFF);
+	memcpy(&g_spareBuffer[2], factorySetup, sizeof(FACTORY_SETUP_STRUCT));
+	WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM_ID, g_spareBuffer, (sizeof(FACTORY_SETUP_STRUCT) + 2), NULL, 0);
 }
 
 ///----------------------------------------------------------------------------
@@ -784,9 +738,9 @@ void SaveFlashUserPageFactorySetup(FACTORY_SETUP_STRUCT* factorySetup)
 ///----------------------------------------------------------------------------
 void EraseFlashUserPageFactorySetup(void)
 {
-#if 0 /* old hw */
-	uint32* userPage = (uint32*)FLASH_USER_PAGE_BASE_ADDRESS; // 512 Bytes
-
-	flashc_memset32(userPage, 0xFFFFFFFF, sizeof(FACTORY_SETUP_STRUCT), YES);
-#endif
+	// Address transfered as Big endian
+	g_spareBuffer[0] = ((FLASH_USER_PAGE_BASE_ADDRESS >> 8) & 0xFF);
+	g_spareBuffer[1] = (FLASH_USER_PAGE_BASE_ADDRESS & 0xFF);
+	memset(&g_spareBuffer[2], 0xFF, sizeof(FACTORY_SETUP_STRUCT));
+	WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM_ID, g_spareBuffer, (sizeof(FACTORY_SETUP_STRUCT) + 2), NULL, 0);
 }

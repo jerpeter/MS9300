@@ -214,7 +214,8 @@ void LoadFactorySetupRecord(void)
 		OverlayMessage(getLangText(ERROR_TEXT), getLangText(FACTORY_SETUP_DATA_COULD_NOT_BE_FOUND_TEXT), (2 * SOFT_SECS));
 
 		// Check if the Shadow Factory setup is valid
-		if (!SHADOW_FACTORY_SETUP_CLEARED)
+		GetFlashUserPageFactorySetup(&g_shadowFactorySetupRecord);
+		if (!g_shadowFactorySetupRecord.invalid)
 		{
 			// Warn the user
 			debugWarn("Factory setup shadow copy exists.\r\n");

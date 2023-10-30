@@ -1776,7 +1776,7 @@ void SetupI2C(void)
     error = MXC_I2C_Init(MXC_I2C1, 1, 0);
     if (error != E_NO_ERROR) { printf("Error! I2C1 init (master) failed to initialize with code: %d\n", error); }
 
-#if 0 /* Needed setting up the MXC I2C as a slave */
+#if 0 /* Needed if setting up the MXC I2C as a slave */
     MXC_NVIC_SetVector(I2C0_IRQn, I2C0_IRQHandler);
     NVIC_EnableIRQ(I2C0_IRQn);
     MXC_NVIC_SetVector(I2C1_IRQn, I2C1_IRQHandler);

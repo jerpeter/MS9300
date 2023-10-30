@@ -107,6 +107,7 @@ extern SENSOR_PARAMETERS_STRUCT g_sensorInfo;
 extern EVT_RECORD g_pendingEventRecord;
 extern EVT_RECORD g_pendingBargraphRecord;
 extern FACTORY_SETUP_STRUCT g_factorySetupRecord;
+extern FACTORY_SETUP_STRUCT g_shadowFactorySetupRecord;
 extern REC_EVENT_MN_STRUCT g_triggerRecord;
 extern uint8 g_externalTriggerMenuActiveForSetup;
 extern uint8 g_activeMenu;

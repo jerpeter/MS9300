@@ -159,7 +159,8 @@ void MoveManualCalToFile(void)
 		CacheResultsEventInfo((EVT_RECORD*)&g_pendingEventRecord);
 
 		// Get new event file name
-		GetEventFileHandle(g_pendingEventRecord.summary.eventNumber, CREATE_EVENT_FILE);
+		CheckStoredEventsCapEventsLimit();
+		GetEventFilename(g_pendingEventRecord.summary.eventNumber);
 
 		if (f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
 		{
@@ -191,7 +192,7 @@ void MoveManualCalToFile(void)
 			if (g_unitConfig.saveCompressedData != DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA)
 			{
 				// Get new ERData compressed event file name
-				GetERDataFileHandle(g_pendingEventRecord.summary.eventNumber, CREATE_EVENT_FILE);
+				GetERDataFilename(g_pendingEventRecord.summary.eventNumber);
 				if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
 				{
 					printf("<Error> Unable to create ERdata event file: %s\n", g_spareFileName);

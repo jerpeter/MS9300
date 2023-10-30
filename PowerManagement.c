@@ -17,6 +17,8 @@
 #include "gpio.h"
 #include "M23018.h"
 #include "lcd.h"
+
+#include "i2c.h"
 //#include "navigation.h"
 
 ///----------------------------------------------------------------------------
@@ -507,4 +509,122 @@ void PowerUnitOff(uint8 powerOffMode)
 	}
 
 	while (1) { /* do nothing */ };
+}
+
+/*
+MP2651 REGISTER MAP
+-------------------------------------------------------------------------------------------------------------
+Reg		Address	OTP R/W	Description
+-------------------------------------------------------------------------------------------------------------
+REG05h	0x05	Yes	R/W	Device Address Setting
+REG06h	0x06	Yes	R/W	Input Minimum Voltage Limit Setting
+REG08h	0x08	Yes	R/W	Input Current Limit Setting
+REG09h	0x09	No	R/W	Output Voltage Setting in Source Mode
+REG0Ah	0x0A	No	R/W	Battery Impedance Compensation and Output Current Limit Setting in Source Mode
+REG0Bh	0x0B	Yes	R/W	Battery Low Voltage Threshold and Battery Discharge Current Regulation in Source Mode
+REG0Ch	0x0C	No	R/W	JEITA Action Setting
+REG0Dh	0x0D	Yes	R/W	Temperature Protection Setting
+REG0Eh	0x0E	Yes	R/W	Configuration Register 0
+REG0Fh	0x0F	Yes	R/W	Configuration Register 1
+REG10h	0x10	Yes	R/W	Configuration Register 2
+REG11h	0x11	Yes	R/W	Configuration Register 3
+REG12h	0x12	Yes	R/W	Configuration Register 4
+REG14h	0x14	Yes	R/W	Charge Current Setting
+REG15h	0x15	Yes	R/W	Battery Regulation Voltage Setting
+REG16h	0x16	No	R	Status and Fault Register 0
+REG17h	0x17	No	R	Status and Fault Register 1
+REG18h	0x18	No	R/W	INT Mask Setting Register 0
+REG19h	0x19	No	R/W	INT Mask Setting Register 1
+REG22h	0x22	No	R	Internal DAC Output of the Input Current Limit Setting
+REG23h	0x23	No	R	ADC Result of the Input Voltage
+REG24h	0x24	No	R	ADC Result of the Input Current
+REG25h	0x25	No	R	ADC Result of the Battery Voltage
+REG27h	0x27	No	R	ADC Result of the Battery Current
+REG28h	0x28	No	R	ADC Result of the NTC Voltage Ratio
+REG29h	0x29	No	R	ADC Result of the TS Voltage Ratio
+REG2Ah	0x2A	No	R	ADC Result of the Junction Temperature
+REG2Bh	0x2B	No	R	ADC Result of the Battery Discharge Current
+REG2Ch	0x2C	No	R	ADC Result of the Input Voltage in Discharge Mode
+REG2Dh	0x2D	No	R	ADC Result of the Output Current in Discharge Mode
+*/
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void GetBattChargerRegister(uint8_t registerAddress, uint16_t* registerContents)
+{
+	// Word data read back in Little endian format
+	WriteI2CDevice(MXC_I2C0, I2C_ADDR_BATT_CHARGER, &registerAddress, sizeof(uint8_t), (uint8_t*)registerContents, sizeof(uint16_t));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetBattChargerRegister(uint8_t registerAddress, uint16_t registerContents)
+{
+	uint8_t writeData[3];
+
+	// Word data written in Little endian format
+	writeData[0] = registerAddress;
+	writeData[1] = (registerContents & 0xFF);
+	writeData[2] = ((registerAddress >> 8) & 0xFF);
+
+	WriteI2CDevice(MXC_I2C0, I2C_ADDR_BATT_CHARGER, writeData, sizeof(writeData), NULL, 0);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void InitBattChargerRegister(uint8_t registerAddress, uint16_t registerContents)
+{
+	// Device setting, disable watchdog
+	SetBattChargerRegister(BATT_CHARGER_DEVICE_ADDRESS_SETTING, 0x00E9);
+
+	// Input min V limit (default)
+	//SetBattChargerRegister(BATT_CHARGER_INPUT_MINIMUM_VOLTAGE_LIMIT_SETTING, 0x0039);
+
+	// Input Current limit (default)
+	//SetBattChargerRegister(BATT_CHARGER_INPUT_CURRENT_LIMIT_SETTING, 0x000A);
+
+	// Output V setting in Source mode (default)
+	//SetBattChargerRegister(BATT_CHARGER_OUTPUT_VOLTAGE_SETTING_IN_SOURCE_MODE, 0x00F9);
+
+	// Batt Impedance Comp and Output Current Limit in Source mode (default)
+	//SetBattChargerRegister(BATT_CHARGER_BATTERY_IMPEDANCE_COMPENSATION_AND_OUTPUT_CURRENT_LIMIT_SETTING_IN_SOURCE_MODE, 0x0028);
+
+	// Batt low V setting and Batt Discharge Current Reg in Source mode (default)
+	//SetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, 0x3080);
+
+	// JEITA Action (default)
+	//SetBattChargerRegister(BATT_CHARGER_JEITA_ACTION_SETTING, 0x3410);
+
+	// Temp Protection (default)
+	//SetBattChargerRegister(BATT_CHARGER_TEMPERATURE_PROTECTION_SETTING, 0xB399);
+
+	// Config Reg 0 (default)
+	//SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0010);
+
+	// Config Reg 1 (default)
+	//SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF244);
+
+	// Config Reg 2 (default)
+	//SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_2, 0x0A40);
+
+	// Config Reg 3 (default)
+	//SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_3, 0x50E8);
+
+	// Config Reg 4 (default)
+	//SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, 0x3C53);
+
+	// Charge Current (default)
+	//SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x0A00);
+
+	// Batt Reg V (default)
+	//SetBattChargerRegister(BATT_CHARGER_BATTERY_REGULATION_VOLTAGE_SETTING, 0x3480);
+
+	// Int Mask setting (default)
+	//SetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_0, 0x0000);
+
+	// Int Mask setting (default)
+	//SetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_1, 0x0000);
 }

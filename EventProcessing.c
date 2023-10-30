@@ -1848,146 +1848,34 @@ void RemoveExcessEventsAboveCap(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int GetEventFileHandle(uint16 newFileEventNumber, EVENT_FILE_OPTION option)
+void CheckStoredEventsCapEventsLimit(void)
 {
-	int fileHandle = -1;
-	int fileOption;
-	uint16 lowerBounds, upperBounds;
-#if 1 /* temp */
-	UNUSED(fileOption);
-#endif
-
-#if 1 /* New feature */
-	if ((option == CREATE_EVENT_FILE) && (g_unitConfig.storedEventsCapMode == ENABLED) && (g_eventNumberCacheValidEntries >= g_unitConfig.storedEventLimit))
+	if ((g_unitConfig.storedEventsCapMode == ENABLED) && (g_eventNumberCacheValidEntries >= g_unitConfig.storedEventLimit))
 	{
 		RemoveExcessEventsAboveCap();
 	}
-#endif
-
-	GetSubDirLowerAndUpperBounds(newFileEventNumber, &lowerBounds, &upperBounds);
-
-#if 0 /* Original */
-	sprintf(g_spareFileName, "%sEvt%d.ns8", EVENTS_PATH, newFileEventNumber);
-#else
-	sprintf(g_spareFileName, "%s%s %d-%d\\%s%d.ns8", EVENTS_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, newFileEventNumber);
-#endif
-
-	// Set the file option flags for the file process
-	switch (option)
-	{
-		case CREATE_EVENT_FILE: debug("File to create: %s\r\n", g_spareFileName);
-#if 0 /* old hw */
-			fileOption = (O_CREAT | O_WRONLY);
-#endif
-			break;
-		case READ_EVENT_FILE: debug("File to read: %s\r\n", g_spareFileName);
-#if 0 /* old hw */
-			fileOption = O_RDONLY;
-#endif
-			break;
-		case APPEND_EVENT_FILE: debug("File to append: %s\r\n", g_spareFileName);
-#if 0 /* old hw */
-			fileOption = O_APPEND;
-#endif
-			break;
-		case OVERWRITE_EVENT_FILE: debug("File to overwrite: %s\r\n", g_spareFileName);
-#if 0 /* old hw */
-			fileOption = O_RDWR;
-#endif
-			break;
-	}
-
-#if 0 /* old hw */
-	fileHandle = open(g_spareFileName, fileOption);
-
-	// Check if trying to create a new event file and one already exists
-	if ((fileHandle == -1) && (option == CREATE_EVENT_FILE))
-	{
-		// Delete the existing file and check if the operation was successful
-		if (nav_file_del(TRUE) == TRUE)
-		{
-			fileHandle = open(g_spareFileName, fileOption);
-		}
-	}
-#endif
-
-	if (option == CREATE_EVENT_FILE)
-	{
-#if 0 /* old hw */
-		SetFileDateTimestamp(FS_DATE_CREATION);
-#endif
-	}
-
-	return (fileHandle);
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int GetERDataFileHandle(uint16 newFileEventNumber, EVENT_FILE_OPTION option)
+void GetEventFilename(uint16 newFileEventNumber)
 {
-	int fileHandle = -1;
-	int fileOption;
 	uint16 lowerBounds, upperBounds;
-#if 1 /* temp */
-	UNUSED(fileOption);
-#endif
 
 	GetSubDirLowerAndUpperBounds(newFileEventNumber, &lowerBounds, &upperBounds);
+	sprintf(g_spareFileName, "%s%s %d-%d\\%s%d.ns8", EVENTS_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, newFileEventNumber);
+}
 
-#if 0 /* Original */
-	sprintf(g_spareFileName, "%sEvt%d.nsD", ER_DATA_PATH, newFileEventNumber);
-#else
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void GetERDataFilename(uint16 newFileEventNumber)
+{
+	uint16 lowerBounds, upperBounds;
+
+	GetSubDirLowerAndUpperBounds(newFileEventNumber, &lowerBounds, &upperBounds);
 	sprintf(g_spareFileName, "%s%s %d-%d\\%s%d.nsD", ER_DATA_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, newFileEventNumber);
-#endif
-
-	// Set the file option flags for the file process
-	switch (option)
-	{
-		case CREATE_EVENT_FILE: debug("File to create: %s\r\n", g_spareFileName);
-#if 0 /* old hw */
-			fileOption = (O_CREAT | O_WRONLY);
-#endif
-			break;
-		case READ_EVENT_FILE: debug("File to read: %s\r\n", g_spareFileName);
-#if 0 /* old hw */
-			fileOption = O_RDONLY;
-#endif
-			break;
-		case APPEND_EVENT_FILE: debug("File to append: %s\r\n", g_spareFileName);
-#if 0 /* old hw */
-			fileOption = O_APPEND;
-#endif
-			break;
-		case OVERWRITE_EVENT_FILE: debug("File to overwrite: %s\r\n", g_spareFileName);
-#if 0 /* old hw */
-			fileOption = O_RDWR;
-#endif
-			break;
-	}
-
-#if 0 /* old hw */
-	fileHandle = open(g_spareFileName, fileOption);
-
-	// Check if trying to create a new event file and one already exists
-	if ((fileHandle == -1) && (option == CREATE_EVENT_FILE))
-	{
-		// Delete the existing file and check if the operation was successful
-		if (nav_file_del(TRUE) == TRUE)
-		{
-			fileHandle = open(g_spareFileName, fileOption);
-		}
-	}
-#endif
-
-	if (option == CREATE_EVENT_FILE)
-	{
-#if 0 /* old hw */
-		SetFileDateTimestamp(FS_DATE_CREATION);
-#endif
-	}
-
-	return (fileHandle);
 }
 
 ///----------------------------------------------------------------------------
@@ -2336,7 +2224,7 @@ void SaveRemoteEventDownloadStreamToFile(uint16 eventNumber)
 	uint8* dataPtr = (uint8*)&g_eventDataBuffer[(EVENT_BUFF_SIZE_IN_WORDS / 2)];
 
 	// Get new event file handle
-	fileHandle = GetEventFileHandle(eventNumber, CREATE_EVENT_FILE);
+	GetEventFilename(eventNumber);
 
 	if (fileHandle == -1)
 	{

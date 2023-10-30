@@ -133,8 +133,9 @@ void SetFileDateTimestamp(uint8 option);
 int ReadWithSizeFix(int file, void* bufferPtr, uint32 length);
 int WriteWithSizeFix(int file, void* bufferPtr, uint32 length);
 
-int GetEventFileHandle(uint16 newFileEventNumber, EVENT_FILE_OPTION option);
-int GetERDataFileHandle(uint16 newFileEventNumber, EVENT_FILE_OPTION option);
+void CheckStoredEventsCapEventsLimit(void);
+void GetEventFilename(uint16 newFileEventNumber);
+void GetERDataFilename(uint16 newFileEventNumber);
 
 void CacheResultsEventInfo(EVT_RECORD* eventRecordToCache);
 

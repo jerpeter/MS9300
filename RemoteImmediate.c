@@ -1368,7 +1368,7 @@ void HandleDER(CMD_BUFFER_STRUCT* inCmd)
 		{
 #if 0 /* old hw */
 			// Get new event file handle
-			g_globalFileHandle = GetERDataFileHandle(g_derXferStruct.dloadEventRec.eventRecord.summary.eventNumber, CREATE_EVENT_FILE);
+			GetERDataFilename(g_derXferStruct.dloadEventRec.eventRecord.summary.eventNumber);
 
 			g_spareBufferIndex = 0;
 			g_derXferStruct.compressedEventDataSize = lzo1x_1_compress((void*)&g_eventDataBuffer[0], g_derXferStruct.dloadEventRec.eventRecord.header.dataLength, OUT_FILE);

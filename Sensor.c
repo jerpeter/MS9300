@@ -1079,3 +1079,21 @@ void UpdateWorkingCalibrationDate(void)
 		}
 	}
 }
+
+/*
+1) Device Reset, Command: F0h, Param: None
+2) Set Read Pointer, Command: E1h, Param: Pointer code
+	-Pointer codes-
+	Device Configuration Register = C3h
+	Status Register = F0h
+	Read Data Register = E1h
+	Port Configuration Register = B4h
+3) Write Device Configuration, Command: D2h, Param: Config byte
+4) Adjust 1-Wire Port, Command: C3h, Param, Control byte
+5) 1-Wire Reset, Command: B4h, Param: None
+6) 1-Wire Single Bit, Command: 87h, Param: Bit byte
+7) 1-Wire Write Byte, Command: A5h, Param: Data byte
+8) 1-Wire Read Byte, Command: 96h, Param: None
+	Generates 8 read data time slots on the 1-wire
+9) 1-Wire Triplet, Command: 78h, Param: Direction byte
+*/

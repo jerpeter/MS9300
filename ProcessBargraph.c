@@ -101,7 +101,7 @@ void MoveBarIntervalDataToFile(void)
 	// If Bar Intervals have been cached
 	if (g_bargraphBarIntervalsCached > 0)
 	{
-		GetEventFileHandle(g_pendingBargraphRecord.summary.eventNumber, APPEND_EVENT_FILE);
+		GetEventFilename(g_pendingBargraphRecord.summary.eventNumber);
 
 		if (f_open(&file, (const TCHAR*)g_spareFileName, FA_OPEN_APPEND | FA_WRITE) != FR_OK)
 		{
@@ -111,11 +111,7 @@ void MoveBarIntervalDataToFile(void)
 		{
 			while (g_bargraphBarIntervalsCached)
 			{
-#if 0 /* Original */
-				write(bargraphFileHandle, g_bargraphBarIntervalReadPtr, sizeof(BARGRAPH_BAR_INTERVAL_DATA));
-
-				g_pendingBargraphRecord.header.dataLength += sizeof(BARGRAPH_BAR_INTERVAL_DATA);
-#else /* New BI with options */
+				// New BI with options
 				if (g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE)
 				{
 					f_write(&file, g_bargraphBarIntervalReadPtr, BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE, (UINT*)&bytesWritten);
@@ -129,7 +125,6 @@ void MoveBarIntervalDataToFile(void)
 
 				// Increment based on the size of the Bar Interval data type
 				g_pendingBargraphRecord.header.dataLength += g_pendingBargraphRecord.summary.parameters.barIntervalDataType;
-#endif
 
 				// Advance the Bar Interval global buffer pointer
 				AdvanceBarIntervalBufPtr(READ_PTR);
@@ -197,7 +192,7 @@ void MoveSummaryIntervalDataToFile(void)
 
 	CompleteSummaryInterval();
 
-	GetEventFileHandle(g_pendingBargraphRecord.summary.eventNumber, APPEND_EVENT_FILE);
+	GetEventFilename(g_pendingBargraphRecord.summary.eventNumber);
 
 	if (f_open(&file, (const TCHAR*)g_spareFileName, FA_OPEN_APPEND | FA_WRITE) != FR_OK)
 	{
@@ -208,11 +203,7 @@ void MoveSummaryIntervalDataToFile(void)
 		// Write any cached bar intervals before storing the summary interval (may not match with bar interval write threshold)
 		while (g_bargraphBarIntervalsCached)
 		{
-#if 0 /* Original */
-			write(bargraphFileHandle, g_bargraphBarIntervalReadPtr, sizeof(BARGRAPH_BAR_INTERVAL_DATA));
-
-			g_pendingBargraphRecord.header.dataLength += sizeof(BARGRAPH_BAR_INTERVAL_DATA);
-#else /* New BI with options */
+			// New BI with options
 			if (g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE)
 			{
 				f_write(&file, g_bargraphBarIntervalReadPtr, BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE, (UINT*)&bytesWritten);
@@ -226,7 +217,6 @@ void MoveSummaryIntervalDataToFile(void)
 
 			// Increment based on the size of the Bar Interval data type
 			g_pendingBargraphRecord.header.dataLength += g_pendingBargraphRecord.summary.parameters.barIntervalDataType;
-#endif
 
 			// Advance the Bar Interval global buffer pointer
 			AdvanceBarIntervalBufPtr(READ_PTR);
@@ -1050,7 +1040,8 @@ void MoveStartOfBargraphEventRecordToFile(void)
 	uint32_t bytesWritten;
 
 	// Create new Bargraph event name
-	GetEventFileHandle(g_pendingBargraphRecord.summary.eventNumber, CREATE_EVENT_FILE);
+	CheckStoredEventsCapEventsLimit();
+	GetEventFilename(g_pendingBargraphRecord.summary.eventNumber);
 
 	if (f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
 	{
@@ -1123,7 +1114,7 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 		}
 	}
 
-	GetEventFileHandle(g_pendingBargraphRecord.summary.eventNumber, OVERWRITE_EVENT_FILE);
+	GetEventFilename(g_pendingBargraphRecord.summary.eventNumber);
 
 	if (f_open(&file, (const TCHAR*)g_spareFileName, FA_OPEN_APPEND | FA_READ | FA_WRITE) != FR_OK)
 	{
@@ -1163,8 +1154,8 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 		{
 			if (g_unitConfig.saveCompressedData != DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA)
 			{
-				// Get new event file handle
-				GetERDataFileHandle(g_pendingBargraphRecord.summary.eventNumber, CREATE_EVENT_FILE);
+				// Get new compressed event filename and path
+				GetERDataFilename(g_pendingBargraphRecord.summary.eventNumber);
 
 				if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
 				{

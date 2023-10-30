@@ -14,6 +14,8 @@
 #include "Typedefs.h"
 #include "board.h"
 
+#include "i2c.h"
+
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
@@ -70,10 +72,9 @@ enum {
 
 #define VT_FEATURE_DISABLED			NO
 
-#define FLASH_USER_PAGE_BASE_ADDRESS	(0x80800000)
-#define SHADOW_FACTORY_SETUP_CLEARED	(*(uint16*)FLASH_USER_PAGE_BASE_ADDRESS)
-#define GET_HARDWARE_ID					(*(uint8*)(0x8080000C)) // Factory setup location of Hardware ID
-#define GET_BUILD_ID					(*(uint8*)(0x8080000D)) // Factory setup location of Build ID
+#define FLASH_USER_PAGE_BASE_ADDRESS	(0x0000)
+#define GET_HARDWARE_ID					(g_shadowFactorySetupRecord.hardwareID) // Factory setup location of Hardware ID
+#define GET_BUILD_ID					(g_shadowFactorySetupRecord.buildID) // Factory setup location of Build ID
 
 enum {
 	HARDWARE_ID_REV_8_NORMAL = 0x08,
@@ -268,6 +269,19 @@ enum {
 	USB_SYNC_NORMAL = 1,
 	USB_SYNC_FROM_SHELL
 };
+
+// I2C0 @ 1.8V
+#define I2C_ADDR_ACCELEROMETER			0x3C
+#define I2C_ADDR_1_WIRE					0x30
+#define I2C_ADDR_EEPROM					0xA0
+#define I2C_ADDR_EEPROM_ID				0xB0
+#define I2C_ADDR_BATT_CHARGER			0x5C
+#define I2C_ADDR_USBC_PORT_CONTROLLER	0x42
+// I2C1 @ 3.3V
+#define I2C_ADDR_EXTERNAL_RTC			0xA2
+#define I2C_ADDR_FUEL_GUAGE				0xC8
+#define I2C_ADDR_EXPANSION				0x9A
+
 
 #define VIN_CHANNEL		2
 #define VBAT_CHANNEL	3
@@ -680,5 +694,8 @@ uint8 CheckTriggerSourceExists(void);
 
 // Process the USB Core routines
 void ProcessUsbCoreHandling(void);
+
+// Wrapper to help I2C slave device comms
+void WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize);
 
 #endif // _COMMON_H_

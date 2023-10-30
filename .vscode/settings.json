@@ -90,7 +90,10 @@
         "mxc_sys.h": "c",
         "mxc_errors.h": "c",
         "wdt.h": "c",
-        "sdhc_lib.h": "c"
+        "sdhc_lib.h": "c",
+        "common.h": "c",
+        "i2c.h": "c",
+        "record.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "C_Cpp.dimInactiveRegions": false
