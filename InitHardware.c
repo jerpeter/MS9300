@@ -1861,7 +1861,7 @@ void SPI_Callback(mxc_spi_req_t *req, int result)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method)
+void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeassert, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method)
 {
 	mxc_spi_req_t spiRequest;
 	IRQn_Type spiIrq;
@@ -1873,7 +1873,7 @@ void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t* writeDat
 	spiRequest.rxData = readData;
 	spiRequest.rxLen = readSize;
 	spiRequest.ssIdx = 0; // Both ADC and LCD Slave Selects are 0
-	spiRequest.ssDeassert = 1;
+	spiRequest.ssDeassert = ssDeassert;
 	spiRequest.txCnt = 0;
 	spiRequest.rxCnt = 0;
 	spiRequest.completeCB = (spi_complete_cb_t)SPI_Callback;

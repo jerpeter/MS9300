@@ -96,7 +96,8 @@
         "record.h": "c",
         "errno.h": "c",
         "type_traits": "c",
-        "mxc_delay.h": "c"
+        "mxc_delay.h": "c",
+        "spi_regs.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "C_Cpp.dimInactiveRegions": false

@@ -402,6 +402,8 @@ typedef enum {
 	ASYNC_ISR
 } HANDLING_METHOD;
 
+#define SPI_8_BIT_DATA_SIZE	8
+
 typedef struct
 {
 	uint16 freq_count;

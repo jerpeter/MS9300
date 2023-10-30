@@ -921,7 +921,7 @@ uint8_t TestSDO_State;
 
 AD4695_Init_Error_Struct AD4695_Init_Error;
 
-extern void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method);
+extern void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeassert, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method);
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -947,7 +947,7 @@ void SPI_Write_Reg_AD4695(uint16_t reg_addr, uint8_t reg_data)
 	WBuf[1] = 0xFF & reg_addr;
 	WBuf[2] = reg_data;
 
-	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, WBuf, sizeof(WBuf), NULL, 0, BLOCKING);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, WBuf, sizeof(WBuf), NULL, 0, BLOCKING);
 }
 
 ///----------------------------------------------------------------------------
@@ -959,7 +959,7 @@ void SPI_Read_Reg_AD4695(uint16_t reg_addr, uint8_t* reg_data)
 	WBuf2[1] = 0xFF & reg_addr;
 	WBuf2[2] = 0xFF;
 
-	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, WBuf2, sizeof(WBuf2), RBuf, sizeof(RBuf), BLOCKING);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, WBuf2, sizeof(WBuf2), RBuf, sizeof(RBuf), BLOCKING);
 	*reg_data = RBuf[2];
 }
 
@@ -1129,5 +1129,5 @@ void AD4695_Exit_Conservation_Mode() /*To pass from conservaiton mode to registe
 {
 	uint8_t command = AD4695_CMD_REG_CONFIG_MODE;
 
-	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, &command, sizeof(command), NULL, 0, BLOCKING);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, &command, sizeof(command), NULL, 0, BLOCKING);
 }
