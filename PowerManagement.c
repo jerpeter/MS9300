@@ -978,23 +978,25 @@ enum ltc294x_reg {
 #define LTC294X_MAX_PRESCALER	4096
 
 
-struct ltc294x_info {
-	//struct power_supply *supply; // Supply pointer
-	//struct power_supply_desc supply_desc; // Supply description
-	//struct delayed_work work; // Work scheduler
-	//enum ltc294x_id id; // Chip type
+typedef struct {
 	int charge; // Last charge register content
 	int r_sense; // mOhm
 	int Qlsb; // nAh
-};
-struct ltc294x_info ltc2944_device;
+} ltc294x_info;
+ltc294x_info ltc2944_device;
 
-inline int convert_bin_to_uAh(const struct ltc294x_info *info, int Q)
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+inline int convert_bin_to_uAh(ltc294x_info* info, int Q)
 {
 	return (((Q * (info->Qlsb / 10))) / 100);
 }
 
-inline int convert_uAh_to_bin(const struct ltc294x_info *info, int uAh)
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+inline int convert_uAh_to_bin(ltc294x_info* info, int uAh)
 {
 	int Q;
 
@@ -1002,11 +1004,17 @@ inline int convert_uAh_to_bin(const struct ltc294x_info *info, int uAh)
 	return ((Q < LTC294X_MAX_VALUE) ? Q : LTC294X_MAX_VALUE);
 }
 
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 int ltc294x_read_regs(enum ltc294x_reg reg, uint8_t *buf, int bufSize)
 {
 	return (WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GUAGE, &reg, sizeof(uint8_t), buf, bufSize));
 }
 
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 int ltc294x_write_regs(enum ltc294x_reg reg, const uint8_t *buf, int bufSize)
 {
 	g_spareBuffer[0] = reg;
@@ -1015,6 +1023,21 @@ int ltc294x_write_regs(enum ltc294x_reg reg, const uint8_t *buf, int bufSize)
 	return (WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GUAGE, &reg, (bufSize + 1), NULL, 0));
 }
 
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t ltc294x_get_status(void)
+{
+	uint8_t statusReg;
+	
+	WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GUAGE, LTC294X_REG_STATUS, sizeof(uint8_t), &statusReg, sizeof(uint8_t));
+
+	return (statusReg);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 int ltc294x_reset(int prescaler_exp)
 {
 	int ret;
@@ -1037,7 +1060,10 @@ int ltc294x_reset(int prescaler_exp)
 	return (0);
 }
 
-int ltc294x_read_charge_register(const struct ltc294x_info *info, enum ltc294x_reg reg)
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ltc294x_read_charge_register(ltc294x_info* info, enum ltc294x_reg reg)
  {
 	int ret;
 	uint8_t datar[2];
@@ -1048,7 +1074,10 @@ int ltc294x_read_charge_register(const struct ltc294x_info *info, enum ltc294x_r
 	return ((datar[0] << 8) + datar[1]);
 }
 
-int ltc294x_get_charge(const struct ltc294x_info *info, enum ltc294x_reg reg, int *val)
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ltc294x_get_charge(ltc294x_info* info, enum ltc294x_reg reg, int* val)
 {
 	int value = ltc294x_read_charge_register(info, reg);
 
@@ -1061,7 +1090,10 @@ int ltc294x_get_charge(const struct ltc294x_info *info, enum ltc294x_reg reg, in
 	return (0);
 }
 
-int ltc294x_set_charge_now(const struct ltc294x_info *info, int val)
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ltc294x_set_charge_now(ltc294x_info* info, int val)
 {
 	int ret;
 	uint8_t dataw[2];
@@ -1097,24 +1129,39 @@ error_exit:
 	return ((ret < 0) ? ret : 0);
 }
 
-int ltc294x_set_charge_thr(const struct ltc294x_info *info, enum ltc294x_reg reg, int val)
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ltc294x_set_charge_thr(ltc294x_info* info, int thrHigh, int thrLow)
 {
-	uint8_t dataw[2];
-	int32_t value;
+	uint8_t dataWrite[4];
+	int32_t chargeThrHigh;
+	int32_t chargeThrLow;
 
-	value = convert_uAh_to_bin(info, val);
+	// Todo: Verify conversion and values
+	chargeThrHigh = convert_uAh_to_bin(info, thrHigh);
 	// Direction depends on how sense +/- were connected
-	if (info->Qlsb < 0) { value += 0xFFFF; }
-	if ((value < 0) || (value > 0xFFFF)) { return E_INVALID; } // input validation
+	if (info->Qlsb < 0) { chargeThrHigh += 0xFFFF; }
+	if ((chargeThrHigh < 0) || (chargeThrHigh > 0xFFFF)) { return E_INVALID; } // input validation
+
+	chargeThrLow = convert_uAh_to_bin(info, thrLow);
+	// Direction depends on how sense +/- were connected
+	if (info->Qlsb < 0) { chargeThrLow += 0xFFFF; }
+	if ((chargeThrLow < 0) || (chargeThrLow > 0xFFFF)) { return E_INVALID; } // input validation
 
 	// Set new charge value
-	dataw[0] = I16_MSB(value);
-	dataw[1] = I16_LSB(value);
+	dataWrite[0] = I16_MSB(chargeThrHigh);
+	dataWrite[1] = I16_LSB(chargeThrHigh);
+	dataWrite[2] = I16_MSB(chargeThrLow);
+	dataWrite[3] = I16_LSB(chargeThrLow);
 
-	return (ltc294x_write_regs(reg, &dataw[0], 2));
+	return (ltc294x_write_regs(LTC294X_REG_CHARGE_THR_HIGH_MSB, &dataWrite[0], 2));
 }
 
-int ltc294x_get_charge_counter( const struct ltc294x_info *info, int *val)
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ltc294x_get_charge_counter(ltc294x_info* info, int* val)
 {
 	int value = ltc294x_read_charge_register(info, LTC294X_REG_ACC_CHARGE_MSB);
 
@@ -1126,7 +1173,10 @@ int ltc294x_get_charge_counter( const struct ltc294x_info *info, int *val)
 	return (0);
 }
 
-int ltc294x_get_voltage(const struct ltc294x_info *info, int *val)
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ltc294x_get_voltage(ltc294x_info* info, int* val)
 {
 	int ret;
 	uint8_t datar[2];
@@ -1147,7 +1197,31 @@ int ltc294x_get_voltage(const struct ltc294x_info *info, int *val)
 	return (ret);
 }
 
-int ltc294x_get_current(const struct ltc294x_info *info, int *val)
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ltc294x_set_voltage_thr(ltc294x_info* info, int vHigh, int vLow)
+{
+	uint8_t dataWrite[4];
+	uint32_t vThrHigh;
+	uint32_t vThrLow;
+
+	vThrHigh = ((vHigh * 0xFFFF) / 70800); // vHigh in mV
+	vThrLow = ((vLow * 0xFFFF) / 70800); // vLow in mV
+
+	// Set new charge value
+	dataWrite[0] = I16_MSB(vThrHigh);
+	dataWrite[1] = I16_LSB(vThrHigh);
+	dataWrite[2] = I16_MSB(vThrLow);
+	dataWrite[3] = I16_LSB(vThrLow);
+
+	return (ltc294x_write_regs(LTC294X_REG_VOLTAGE_THR_HIGH_MSB, &dataWrite[0], sizeof(dataWrite)));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ltc294x_get_current(ltc294x_info* info, int* val)
 {
 	int ret;
 	uint8_t datar[2];
@@ -1164,7 +1238,32 @@ int ltc294x_get_current(const struct ltc294x_info *info, int *val)
 	return (ret);
 }
 
-int ltc294x_get_temperature(const struct ltc294x_info *info, int *val)
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ltc294x_set_current_thr(ltc294x_info* info, int currThr)
+{
+	uint8_t dataWrite[4];
+	int32_t currThrHigh;
+	int32_t currThrLow;
+
+	// Todo: Figure out units, use value = convert_uAh_to_bin(info, val)?
+	currThrHigh = (((currThr * info->r_sense / 64) * 0x7FFF) + 0x7FFF);
+	currThrLow = (((-currThr * info->r_sense / 64) * 0x7FFF) + 0x7FFF);
+
+	// Set new charge value
+	dataWrite[0] = I16_MSB(currThrHigh);
+	dataWrite[1] = I16_LSB(currThrHigh);
+	dataWrite[2] = I16_MSB(currThrLow);
+	dataWrite[3] = I16_LSB(currThrLow);
+
+	return (ltc294x_write_regs(LTC2943_REG_CURRENT_THR_HIGH_MSB, &dataWrite[0], sizeof(dataWrite)));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ltc294x_get_temperature(ltc294x_info* info, int* val)
 {
 	int ret;
 	uint8_t datar[2];
@@ -1186,7 +1285,27 @@ int ltc294x_get_temperature(const struct ltc294x_info *info, int *val)
 	return (ret);
 }
 
-void ltc294x_update(struct ltc294x_info *info)
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ltc294x_set_temp_thr(ltc294x_info* info, int temp)
+{
+	uint8_t dataWrite[2];
+	uint32_t tempThr;
+
+	tempThr = (((((temp - 32) * 5) / 9) + 273.2) * 0xFFFF / 510);
+
+	// Set new charge value
+	dataWrite[0] = I16_MSB(tempThr);
+	dataWrite[1] = I16_LSB((tempThr & 0xE0)); // Last 5 bits is always zero (ADC for temp only 11 bits)
+
+	return (ltc294x_write_regs(LTC2943_REG_CURRENT_THR_HIGH_MSB, &dataWrite[0], sizeof(dataWrite)));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void ltc294x_update(ltc294x_info* info)
 {
 	int charge = ltc294x_read_charge_register(info, LTC294X_REG_ACC_CHARGE_MSB);
 
@@ -1199,10 +1318,15 @@ void ltc294x_update(struct ltc294x_info *info)
 	}
 }
 
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 int ltc294x_i2c_probe(void)
 {
+	// Note: Unfinished and non-functional at the moment
+
 	//struct power_supply_config psy_cfg = {};
-	//struct ltc294x_info *info;
+	//ltc294x_info* info;
 	//struct device_node *np;
 	int ret;
 	uint32_t prescaler_exp;
@@ -1218,14 +1342,14 @@ int ltc294x_i2c_probe(void)
 
 	// r_sense can be negative, when sense+ is connected to the battery instead of the sense-, this results in reversed measurements
 	// Set r_sense value, which should be less than or equal to 50mV / I(max)
-	// r_sense is usually 10..50 mOhm
-	r_sense = 10; // Attempting wrong value for now (to compile), must fill in with right value
+	// r_sense is usually 10..50 mOhm, but probably between 150 mOhm and 500 mOhm
+	r_sense = 50; // Attempting wrong value for now (to compile), must fill in with right value
 
 	ltc2944_device.r_sense = r_sense;
 
 	prescaler_exp = LTC294X_PRESCALER_4096;
 
-	ltc2944_device.Qlsb = ((340 * 50000) / r_sense) * (prescaler_exp / LTC294X_MAX_PRESCALER);
+	ltc2944_device.Qlsb = ((340 * 50000) / r_sense) * (prescaler_exp / LTC294X_MAX_PRESCALER); // units?
 
 	//info->supply_desc.external_power_changed = NULL;
 
@@ -1244,6 +1368,9 @@ int ltc294x_i2c_probe(void)
 	return 0;
 }
 
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void ltc294x_i2c_shutdown(void)
 {
 	int ret;

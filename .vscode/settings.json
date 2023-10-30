@@ -94,7 +94,9 @@
         "common.h": "c",
         "i2c.h": "c",
         "record.h": "c",
-        "errno.h": "c"
+        "errno.h": "c",
+        "type_traits": "c",
+        "mxc_delay.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "C_Cpp.dimInactiveRegions": false
