@@ -18,6 +18,11 @@
 #include "string.h"
 #include "PowerManagement.h"
 
+#include "i2c.h"
+#include "gpio.h"
+#include "mxc_errors.h"
+#include "mxc_delay.h"
+
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
@@ -1080,20 +1085,438 @@ void UpdateWorkingCalibrationDate(void)
 	}
 }
 
-/*
-1) Device Reset, Command: F0h, Param: None
-2) Set Read Pointer, Command: E1h, Param: Pointer code
-	-Pointer codes-
-	Device Configuration Register = C3h
-	Status Register = F0h
-	Read Data Register = E1h
-	Port Configuration Register = B4h
-3) Write Device Configuration, Command: D2h, Param: Config byte
-4) Adjust 1-Wire Port, Command: C3h, Param, Control byte
-5) 1-Wire Reset, Command: B4h, Param: None
-6) 1-Wire Single Bit, Command: 87h, Param: Bit byte
-7) 1-Wire Write Byte, Command: A5h, Param: Data byte
-8) 1-Wire Read Byte, Command: 96h, Param: None
-	Generates 8 read data time slots on the 1-wire
-9) 1-Wire Triplet, Command: 78h, Param: Direction byte
-*/
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+extern mxc_gpio_cfg_t g_SmartSensorMuxEnable;
+extern mxc_gpio_cfg_t g_SmartSensorMux_A0;
+extern mxc_gpio_cfg_t g_SmartSensorMux_A1;
+
+void EnableAndSelectSmartSensorMux(SMART_SENSOR_TYPE sensor)
+{
+	if (sensor < TOTAL_SENSOR_TYPES)
+	{
+		MXC_GPIO_OutSet(g_SmartSensorMuxEnable.port, g_SmartSensorMuxEnable.mask);
+		
+		// Delay 480ns @ 5V after enabling
+		MXC_Delay(1); // 1us
+
+		// Set the upper address bit, logic 0 for either seismic or logic 1 for either acoustic 
+		if ((sensor == SEISMIC_SENSOR) || (sensor == SEISMIC_SENSOR_2)) { MXC_GPIO_OutClr(g_SmartSensorMux_A1.port, g_SmartSensorMux_A1.mask); }
+		else /* ACOUSTIC_SENSOR or ACOUSTIC_SENSOR_2 */ { MXC_GPIO_OutSet(g_SmartSensorMux_A1.port, g_SmartSensorMux_A1.mask); }
+
+		// Set the lower address bit, logic 0 for first sensor group or logic 1 for second sensor group
+		if ((sensor == SEISMIC_SENSOR) || (sensor == ACOUSTIC_SENSOR)) { MXC_GPIO_OutClr(g_SmartSensorMux_A0.port, g_SmartSensorMux_A0.mask); }
+		else /* SEISMIC_SENSOR_2 or ACOUSTIC_SENSOR_2 */ { MXC_GPIO_OutSet(g_SmartSensorMux_A0.port, g_SmartSensorMux_A0.mask); }
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void DisableSmartSensorMux(void)
+{
+	MXC_GPIO_OutClr(g_SmartSensorMuxEnable.port, g_SmartSensorMuxEnable.mask);
+
+	// Delay 400ns @ 5V after disabling
+	MXC_Delay(1); // 1us
+}
+
+///============================================================================
+///----------------------------------------------------------------------------
+///	1-Wire Master DS2484
+///----------------------------------------------------------------------------
+///============================================================================
+/* DS4 datasheet note: The APU bit controls whether an active pullup (low impedance transistor) or a passive pullup (RWPU resistor) is used to drive a 1-Wire line from low to high.
+						When APU = 0, active pullup is disabled (resistor mode). Enabling active pullup is generally recommended for best 1-Wire bus performance. */
+static int ds2484_active_pullup = 1;
+
+// 1-Wire Speed: Standard speed = 0, Overdrive speed = 1;
+static int ds2484_1wire_speed = 0;
+
+// DS2484 registers: 4 registers are addressed by a read pointer, the read pointer is set by the last command executed
+// To read the data, issue a register read for any address
+#define DS2484_CMD_RESET				0xF0	// No param
+#define DS2484_CMD_SET_READ_PTR			0xE1	// Param: DS2484_PTR_CODE_xxx
+#define DS2484_CMD_WRITE_CONFIG			0xD2	// Param: Config byte
+#define DS2484_CMD_ADJUST_1WIRE_PORT	0xC3	// Param: Control byte
+#define DS2484_CMD_1WIRE_RESET			0xB4	// Param: None
+#define DS2484_CMD_1WIRE_SINGLE_BIT		0x87	// Param: Bit byte (bit7)
+#define DS2484_CMD_1WIRE_WRITE_BYTE		0xA5	// Param: Data byte
+#define DS2484_CMD_1WIRE_READ_BYTE		0x96	// Param: None
+// Note to read the byte, Set the ReadPtr to Data then read (any addr)
+#define DS2484_CMD_1WIRE_TRIPLET		0x78	// Param: Dir byte (bit7)
+
+// Values for DS2484_CMD_SET_READ_PTR
+#define DS2484_PTR_CODE_DEVICE_CONFIG	0xC3
+#define DS2484_PTR_CODE_STATUS			0xF0
+#define DS2484_PTR_CODE_READ_DATA		0xE1
+#define DS2484_PTR_CODE_PORT_CONFIG		0xB4
+
+// DS2484 Config Register bit definitions, the top 4 bits always read 0
+// When writing, the top nibble must be the 1's compliment of the low nibble
+#define DS2484_REG_CFG_1WS		0x08	// 1-wire speed
+#define DS2484_REG_CFG_SPU		0x04	// Strong pull-up
+#define DS2484_REG_CFG_PDN		0x02	// 1-wire power down
+#define DS2484_REG_CFG_APU		0x01	// Active pull-up
+
+// DS2484 Status Register bit definitions (read only)
+#define DS2484_REG_STS_DIR		0x80	// Branch direction taken
+#define DS2484_REG_STS_TSB		0x40	// Triple second bit
+#define DS2484_REG_STS_SBR		0x20	// Single bit result
+#define DS2484_REG_STS_RST		0x10	// Device reset
+#define DS2484_REG_STS_LL		0x08	// Logic level
+#define DS2484_REG_STS_SD		0x04	// Short detected
+#define DS2484_REG_STS_PPD		0x02	// Presence pulse detect
+#define DS2484_REG_STS_1WB		0x01	// 1-wire busy
+
+#define DS2484_PARAM_RSTL		0x000
+#define DS2484_PARAM_MSP		0x001
+#define DS2484_PARAM_W0L		0x010
+#define DS2484_PARAM_REC0		0x011
+#define DS2484_PARAM_R_WPU		0x100
+
+typedef struct {
+	uint8_t			read_pointer;	/* see DS2484_PTR_CODE_xxx */
+	uint8_t			reg_config;
+} ds2484_data;
+
+ds2484_data s_ds2484_data;
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+/**
+ * ds2484_calculate_config - Helper to calculate values for configuration register
+ * @conf: the raw config value
+ * Return: the value w/ complements that can be written to register
+ */
+static inline uint8_t ds2484_calculate_config(uint8_t conf)
+{
+	if (ds2484_1wire_speed) { conf |= DS2484_REG_CFG_1WS; }
+	if (ds2484_active_pullup) { conf |= DS2484_REG_CFG_APU; }
+
+	return conf | ((~conf & 0x0f) << 4);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+/**
+ * ds2484_select_register - Sets the read pointer.
+ * @pdev:		The ds2484 client pointer
+ * @read_ptr:	see DS2484_PTR_CODE_xxx above
+ * Return: -1 on failure, 0 on success
+ */
+static inline int ds2484_select_register(ds2484_data *pdev, uint8_t read_ptr)
+{
+	uint8_t data[2] = {DS2484_CMD_SET_READ_PTR, read_ptr};
+
+	if (pdev->read_pointer != read_ptr)
+	{
+		if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, data, sizeof(data), NULL, 0) != E_SUCCESS) { return -1; }
+
+		pdev->read_pointer = read_ptr;
+	}
+
+	return (0);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+/**
+ * ds2484_send_cmd - Sends a command without a parameter
+ * @pdev:	The ds2484 client pointer
+ * @cmd:	DS2484_CMD_RESET,
+ *		DS2484_CMD_1WIRE_RESET,
+ *		DS2484_CMD_1WIRE_READ_BYTE
+ * Return: -1 on failure, 0 on success
+ */
+static inline int ds2484_send_cmd(ds2484_data *pdev, uint8_t cmd)
+{
+	if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, &cmd, sizeof(cmd), NULL, 0) != E_SUCCESS) { return -1; }
+
+	pdev->read_pointer = DS2484_PTR_CODE_STATUS;
+	return (0);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+/**
+ * ds2484_send_cmd_data - Sends a command with a parameter
+ * @pdev:	The ds2484 client pointer
+ * @cmd:	DS2484_CMD_WRITE_CONFIG, DS2484_CMD_ADJUST_1WIRE_PORT, DS2484_CMD_1WIRE_SINGLE_BIT, DS2484_CMD_1WIRE_WRITE_BYTE, DS2484_CMD_1WIRE_TRIPLET
+ * @byte:	The data to send
+ * Return: -1 on failure, 0 on success
+ */
+static inline int ds2484_send_cmd_data(ds2484_data *pdev, uint8_t cmd, uint8_t byte)
+{
+	uint8_t data[2] = {cmd, byte};
+
+	if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, data, sizeof(data), NULL, 0) != E_SUCCESS) { return -1; }
+
+	// Adjust where the read pointer rests after a write
+	if (cmd == DS2484_CMD_WRITE_CONFIG) { pdev->read_pointer = DS2484_CMD_WRITE_CONFIG; }
+	else if (cmd == DS2484_CMD_ADJUST_1WIRE_PORT) { pdev->read_pointer = DS2484_CMD_ADJUST_1WIRE_PORT; }
+	else { pdev->read_pointer = DS2484_PTR_CODE_STATUS; }
+
+	return (0);
+}
+
+#define DS2484_WAIT_IDLE_TIMEOUT	100
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+/**
+ * ds2484_wait_1wire_idle - Waits until the 1-wire interface is idle (not busy)
+ *
+ * @pdev: Pointer to the device structure
+ * Return: the last value read from status or -1 (failure)
+ */
+static int ds2484_wait_1wire_idle(ds2484_data *pdev)
+{
+	uint8_t temp;
+	int retries = 0;
+
+	if (!ds2484_select_register(pdev, DS2484_PTR_CODE_STATUS))
+	{
+		do {
+			WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &temp, sizeof(temp));
+		} while ((temp & DS2484_REG_STS_1WB) && (++retries < DS2484_WAIT_IDLE_TIMEOUT));
+	}
+
+	if (retries >= DS2484_WAIT_IDLE_TIMEOUT) { debugErr("1-Wire Master: timed out\n"); }
+
+	return (temp);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void ds2484_adjust_port(uint8_t timingValue, uint8_t overdriveControl)
+{
+	ds2484_data* pdev = &s_ds2484_data;
+	uint8_t paramData;
+
+	// RSTL
+	paramData = ((DS2484_PARAM_RSTL < 5) | (overdriveControl << 4) | (timingValue));
+	ds2484_send_cmd_data(pdev, DS2484_CMD_ADJUST_1WIRE_PORT, paramData);
+
+	// MSP
+	paramData = ((DS2484_PARAM_MSP < 5) | (overdriveControl << 4) | (timingValue));
+	ds2484_send_cmd_data(pdev, DS2484_CMD_ADJUST_1WIRE_PORT, paramData);
+
+	// W0L
+	paramData = ((DS2484_PARAM_W0L < 5) | (overdriveControl << 4) | (timingValue));
+	ds2484_send_cmd_data(pdev, DS2484_CMD_ADJUST_1WIRE_PORT, paramData);
+
+	// REC0
+	paramData = ((DS2484_PARAM_REC0 < 5) | (overdriveControl << 4) | (timingValue));
+	ds2484_send_cmd_data(pdev, DS2484_CMD_ADJUST_1WIRE_PORT, paramData);
+
+	// R_WPU
+	paramData = ((DS2484_PARAM_R_WPU < 5) | (overdriveControl << 4) | (timingValue));
+	ds2484_send_cmd_data(pdev, DS2484_CMD_ADJUST_1WIRE_PORT, paramData);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void ds2484_adjust_port_param(uint8_t param, uint8_t timingValue, uint8_t overdriveControl)
+{
+	ds2484_data* pdev = &s_ds2484_data;
+
+	ds2484_send_cmd_data(pdev, DS2484_CMD_ADJUST_1WIRE_PORT, ((param < 5) | (overdriveControl << 4) | (timingValue)));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+/**
+ * ds2484_w1_touch_bit - Performs the touch-bit function, which writes a 0 or 1 and reads the level.
+ *
+ * @bit:	The level to write: 0 or non-zero
+ * Return:	The level read: 0 or 1
+ */
+uint8_t ds2484_w1_touch_bit(void *data, uint8_t bit)
+{
+	ds2484_data* pdev = &s_ds2484_data;
+	int status = -1;
+
+	/* Send the touch command, wait until 1WB == 0, return the status */
+	if (!ds2484_send_cmd_data(pdev, DS2484_CMD_1WIRE_SINGLE_BIT, bit ? 0xFF : 0))
+	{
+		status = ds2484_wait_1wire_idle(pdev);
+	}
+
+	return ((status & DS2484_REG_STS_SBR) ? 1 : 0);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+/**
+ * ds2484_w1_triplet - Performs the triplet function, which reads two bits and writes a bit.
+ * The bit written is determined by the two reads:
+ *   00 => dbit, 01 => 0, 10 => 1
+ *
+ * @dbit:	The direction to choose if both branches are valid
+ * Return:	b0=read1 b1=read2 b3=bit written
+ */
+uint8_t ds2484_w1_triplet(void *data, uint8_t dbit)
+{
+	ds2484_data* pdev = &s_ds2484_data;
+	int status = (3 << 5);
+
+	/* Send the triplet command, wait until 1WB == 0, return the status */
+	if (!ds2484_send_cmd_data(pdev, DS2484_CMD_1WIRE_TRIPLET, dbit ? 0xFF : 0))
+	{
+		status = ds2484_wait_1wire_idle(pdev);
+	}
+
+	/* Decode the status */
+	return (status >> 5);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+/**
+ * ds2484_w1_write_byte - Performs the write byte function.
+ *
+ * @byte:	The value to write
+ */
+void ds2484_w1_write_byte(void *data, uint8_t byte)
+{
+	ds2484_data* pdev = &s_ds2484_data;
+
+	/* Send the write byte command */
+	ds2484_send_cmd_data(pdev, DS2484_CMD_1WIRE_WRITE_BYTE, byte);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+/**
+ * ds2484_w1_read_byte - Performs the read byte function.
+ *
+ * Return:	The value read
+ */
+uint8_t ds2484_w1_read_byte(void *data)
+{
+	ds2484_data* pdev = &s_ds2484_data;
+	uint8_t result;
+
+	/* Send the read byte command */
+	ds2484_send_cmd(pdev, DS2484_CMD_1WIRE_READ_BYTE);
+
+	/* Wait until 1WB == 0 */
+	ds2484_wait_1wire_idle(pdev);
+
+	/* Select the data register */
+	ds2484_select_register(pdev, DS2484_PTR_CODE_READ_DATA);
+
+	/* Read the data byte */
+	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &result, sizeof(result));
+
+	return (result);
+}
+
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+/**
+ * ds2484_w1_reset_bus - Sends a reset on the 1-wire interface
+ *
+ * Return:	0=Device present, 1=No device present or error
+ */
+uint8_t ds2484_w1_reset_bus(void *data)
+{
+	ds2484_data* pdev = &s_ds2484_data;
+	int err;
+	uint8_t retval = 1;
+
+	/* Send the reset command */
+	err = ds2484_send_cmd(pdev, DS2484_CMD_1WIRE_RESET);
+	if (err >= 0)
+	{
+		/* Wait until the reset is complete */
+		err = ds2484_wait_1wire_idle(pdev);
+		retval = !(err & DS2484_REG_STS_PPD);
+
+		/* If the chip did reset since detect, re-config it */
+		if (err & DS2484_REG_STS_RST)
+		{
+			ds2484_send_cmd_data(pdev, DS2484_CMD_WRITE_CONFIG, ds2484_calculate_config(0x00));
+		}
+	}
+
+	return (retval);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t ds2484_w1_set_pullup(void *data, int delay)
+{
+	ds2484_data* pdev = &s_ds2484_data;
+	uint8_t retval = 1;
+
+	/* if delay is non-zero activate the pullup,
+	 * the strong pullup will be automatically deactivated
+	 * by the master, so do not explicitly deactive it
+	 */
+	if (delay)
+	{
+		/* both waits are crucial, otherwise devices might not be
+		 * powered long enough, causing e.g. a w1_therm sensor to
+		 * provide wrong conversion results
+		 */
+		ds2484_wait_1wire_idle(pdev);
+		/* note: it seems like both SPU and APU have to be set! */
+		retval = ds2484_send_cmd_data(pdev, DS2484_CMD_WRITE_CONFIG, ds2484_calculate_config(DS2484_REG_CFG_SPU | DS2484_REG_CFG_APU));
+		ds2484_wait_1wire_idle(pdev);
+	}
+
+	return (retval);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ds2484_probe(void)
+{
+	ds2484_data* data = &s_ds2484_data;
+	int err = E_NO_DEVICE;
+	uint8_t temp1;
+
+	/* Reset the device (sets the read_ptr to status) */
+	if (ds2484_send_cmd(data, DS2484_CMD_RESET) < 0)
+	{
+		debugWarn("1-wire Master: DS2484 reset failed\n");
+		goto exit_free;
+	}
+
+	/* Sleep at least 525ns to allow the reset to complete */
+	MXC_Delay(1);
+
+	/* Read the status byte - only reset bit and line should be set */
+	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &temp1, sizeof(temp1));
+	if (temp1 != (DS2484_REG_STS_LL | DS2484_REG_STS_RST))
+	{
+		debugWarn("1-wire Master: DS2484 reset status 0x%02X\n", temp1);
+		goto exit_free;
+	}
+
+	/* Set all config items to 0 (off) */
+	ds2484_send_cmd_data(data, DS2484_CMD_WRITE_CONFIG, ds2484_calculate_config(0x00));
+
+	return (0);
+
+exit_free:
+	return (err);
+}
