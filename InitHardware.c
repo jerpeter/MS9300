@@ -87,210 +87,6 @@
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
-#if 0 /* old hw */
-
-#define AVR32_IDLE_MODE		AVR32_PM_SMODE_IDLE
-#else
-#define AVR32_IDLE_MODE		0
-#endif
-#define PBA_HZ				FOSC0
-#define ONE_MS_RESOLUTION	1000
-
-#define AVR32_WDT_KEY_VALUE_ASSERT		0x55000000
-#define AVR32_WDT_KEY_VALUE_DEASSERT	0xAA000000
-#define AVR32_WDT_DISABLE_VALUE			0x00000000
-
-#define EEPROM_SPI_CS_NUM			0
-#define RTC_SPI_CS_NUM				1
-#define SDMMC_SPI_CS_NUM			2
-#define AD_CTL_SPI_CS_NUM			3
-#define EEPROM_SPI_MAX_SPEED		500000 //2100000 // Speed should be safe up to 2.1 MHz, needs to be tested
-#define RTC_SPI_MAX_SPEED			1000000 // 1000000 // Speed should be safe up to 3.5 MHz, needs to be tested
-#define SDMMC_SPI_MAX_SPEED			12000000 // Speed should be safe up to 12 MHz (150 KHz * 80x)
-#define AD_CTL_SPI_MAX_SPEED		4000000 // Speed should be safe up to 10 MHz, needs to be tested
-
-// Chip select defines
-#define NRD_SETUP	30 //10
-#define NRD_PULSE	30 //135
-#define NRD_CYCLE	75 //180
-
-#define NCS_RD_SETUP	0 //10
-#define NCS_RD_PULSE	55 //250
-
-#define NWE_SETUP	0 //20
-#define NWE_PULSE	40 //110
-#define NWE_CYCLE	55 //150
-
-#define NCS_WR_SETUP	0 //20
-#define NCS_WR_PULSE	45 //230
-
-#define EXT_SM_SIZE				16
-#define NCS_CONTROLLED_READ		FALSE
-#define NCS_CONTROLLED_WRITE	FALSE
-#define NWAIT_MODE				0
-#define PAGE_MODE				0
-#define PAGE_SIZE				0
-#define SMC_8_BIT_CHIPS			FALSE
-#define SMC_DBW					16
-#define TDF_CYCLES				0
-#define TDF_OPTIM				0
-
-// Configure the SM Controller with SM setup and timing information for all chip select
-#if 0 /* old hw */
-
-#define SMC_CS_SETUP(ncs) { \
-	U32 nwe_setup = ((NWE_SETUP * hsb_mhz_up + 999) / 1000); \
-	U32 ncs_wr_setup = ((NCS_WR_SETUP * hsb_mhz_up + 999) / 1000); \
-	U32 nrd_setup = ((NRD_SETUP * hsb_mhz_up + 999) / 1000); \
-	U32 ncs_rd_setup = ((NCS_RD_SETUP * hsb_mhz_up + 999) / 1000); \
-	U32 nwe_pulse = ((NWE_PULSE * hsb_mhz_up + 999) / 1000); \
-	U32 ncs_wr_pulse = ((NCS_WR_PULSE * hsb_mhz_up + 999) / 1000); \
-	U32 nrd_pulse = ((NRD_PULSE * hsb_mhz_up + 999) / 1000); \
-	U32 ncs_rd_pulse = ((NCS_RD_PULSE * hsb_mhz_up + 999) / 1000); \
-	U32 nwe_cycle = ((NWE_CYCLE * hsb_mhz_up + 999) / 1000); \
-	U32 nrd_cycle = ((NRD_CYCLE * hsb_mhz_up + 999) / 1000); \
-	\
-	/* Some coherence checks... */ \
-	/* Ensures CS is active during Rd or Wr */ \
-	if (ncs_rd_setup + ncs_rd_pulse < nrd_setup + nrd_pulse) \
-	ncs_rd_pulse = nrd_setup + nrd_pulse - ncs_rd_setup; \
-	if (ncs_wr_setup + ncs_wr_pulse < nwe_setup + nwe_pulse) \
-	ncs_wr_pulse = nwe_setup + nwe_pulse - ncs_wr_setup; \
-	\
-	/* ncs_hold = n_cycle - ncs_setup - ncs_pulse */ \
-	/* n_hold = n_cycle - n_setup - n_pulse */ \
-	/* */ \
-	/* All holds parameters must be positive or null, so: */ \
-	/* nwe_cycle shall be >= ncs_wr_setup + ncs_wr_pulse */ \
-	if (nwe_cycle < ncs_wr_setup + ncs_wr_pulse) \
-	nwe_cycle = ncs_wr_setup + ncs_wr_pulse; \
-	\
-	/* nwe_cycle shall be >= nwe_setup + nwe_pulse */ \
-	if (nwe_cycle < nwe_setup + nwe_pulse) \
-	nwe_cycle = nwe_setup + nwe_pulse; \
-	\
-	/* nrd_cycle shall be >= ncs_rd_setup + ncs_rd_pulse */ \
-	if (nrd_cycle < ncs_rd_setup + ncs_rd_pulse) \
-	nrd_cycle = ncs_rd_setup + ncs_rd_pulse; \
-	\
-	/* nrd_cycle shall be >= nrd_setup + nrd_pulse */ \
-	if (nrd_cycle < nrd_setup + nrd_pulse) \
-	nrd_cycle = nrd_setup + nrd_pulse; \
-	\
-	AVR32_SMC.cs[ncs].setup = (nwe_setup << AVR32_SMC_SETUP0_NWE_SETUP_OFFSET) | \
-	(ncs_wr_setup << AVR32_SMC_SETUP0_NCS_WR_SETUP_OFFSET) | \
-	(nrd_setup << AVR32_SMC_SETUP0_NRD_SETUP_OFFSET) | \
-	(ncs_rd_setup << AVR32_SMC_SETUP0_NCS_RD_SETUP_OFFSET); \
-	AVR32_SMC.cs[ncs].pulse = (nwe_pulse << AVR32_SMC_PULSE0_NWE_PULSE_OFFSET) | \
-	(ncs_wr_pulse << AVR32_SMC_PULSE0_NCS_WR_PULSE_OFFSET) | \
-	(nrd_pulse << AVR32_SMC_PULSE0_NRD_PULSE_OFFSET) | \
-	(ncs_rd_pulse << AVR32_SMC_PULSE0_NCS_RD_PULSE_OFFSET); \
-	AVR32_SMC.cs[ncs].cycle = (nwe_cycle << AVR32_SMC_CYCLE0_NWE_CYCLE_OFFSET) | \
-	(nrd_cycle << AVR32_SMC_CYCLE0_NRD_CYCLE_OFFSET); \
-	AVR32_SMC.cs[ncs].mode = (((NCS_CONTROLLED_READ) ? AVR32_SMC_MODE0_READ_MODE_NCS_CONTROLLED : \
-	AVR32_SMC_MODE0_READ_MODE_NRD_CONTROLLED) << AVR32_SMC_MODE0_READ_MODE_OFFSET) | \
-	(((NCS_CONTROLLED_WRITE) ? AVR32_SMC_MODE0_WRITE_MODE_NCS_CONTROLLED : \
-	AVR32_SMC_MODE0_WRITE_MODE_NWE_CONTROLLED) << AVR32_SMC_MODE0_WRITE_MODE_OFFSET) | \
-	(NWAIT_MODE << AVR32_SMC_MODE0_EXNW_MODE_OFFSET) | \
-	(((SMC_8_BIT_CHIPS) ? AVR32_SMC_MODE0_BAT_BYTE_WRITE : \
-	AVR32_SMC_MODE0_BAT_BYTE_SELECT) << AVR32_SMC_MODE0_BAT_OFFSET) | \
-	(((SMC_DBW <= 8) ? AVR32_SMC_MODE0_DBW_8_BITS : \
-	(SMC_DBW <= 16) ? AVR32_SMC_MODE0_DBW_16_BITS : \
-	AVR32_SMC_MODE0_DBW_32_BITS) << AVR32_SMC_MODE0_DBW_OFFSET) | \
-	(TDF_CYCLES << AVR32_SMC_MODE0_TDF_CYCLES_OFFSET) | \
-	(TDF_OPTIM << AVR32_SMC_MODE0_TDF_MODE_OFFSET) | \
-	(PAGE_MODE << AVR32_SMC_MODE0_PMEN_OFFSET) | \
-	(PAGE_SIZE << AVR32_SMC_MODE0_PS_OFFSET); \
-	g_smc_tab_cs_size[ncs] = EXT_SM_SIZE; \
-}
-#else
-#define SMC_CS_SETUP(ncs) {}
-#endif
-
-#define NRD_SETUP_SPECIAL	10 //10
-#define NRD_PULSE_SPECIAL	250 //135 //135
-#define NRD_CYCLE_SPECIAL	180 //180
-
-#define NCS_RD_SETUP_SPECIAL	35 //10
-#define NCS_RD_PULSE_SPECIAL	250 //150 //250
-
-#define NWE_SETUP_SPECIAL	20 //20
-#define NWE_PULSE_SPECIAL	110 //110
-#define NWE_CYCLE_SPECIAL	165 //150
-
-#define NCS_WR_SETUP_SPECIAL	35 //20
-#define NCS_WR_PULSE_SPECIAL	230 //150 //230
-
-#if 0 /* old hw */
-
-#define SMC_CS_SETUP_SPECIAL(ncs) { \
-	U32 nwe_setup = ((NWE_SETUP_SPECIAL * hsb_mhz_up + 999) / 1000); \
-	U32 ncs_wr_setup = ((NCS_WR_SETUP_SPECIAL * hsb_mhz_up + 999) / 1000); \
-	U32 nrd_setup = ((NRD_SETUP_SPECIAL * hsb_mhz_up + 999) / 1000); \
-	U32 ncs_rd_setup = ((NCS_RD_SETUP_SPECIAL * hsb_mhz_up + 999) / 1000); \
-	U32 nwe_pulse = ((NWE_PULSE_SPECIAL * hsb_mhz_up + 999) / 1000); \
-	U32 ncs_wr_pulse = ((NCS_WR_PULSE_SPECIAL * hsb_mhz_up + 999) / 1000); \
-	U32 nrd_pulse = ((NRD_PULSE_SPECIAL * hsb_mhz_up + 999) / 1000); \
-	U32 ncs_rd_pulse = ((NCS_RD_PULSE_SPECIAL * hsb_mhz_up + 999) / 1000); \
-	U32 nwe_cycle = ((NWE_CYCLE_SPECIAL * hsb_mhz_up + 999) / 1000); \
-	U32 nrd_cycle = ((NRD_CYCLE_SPECIAL * hsb_mhz_up + 999) / 1000); \
-	\
-	/* Some coherence checks... */ \
-	/* Ensures CS is active during Rd or Wr */ \
-	if (ncs_rd_setup + ncs_rd_pulse < nrd_setup + nrd_pulse) \
-	ncs_rd_pulse = nrd_setup + nrd_pulse - ncs_rd_setup; \
-	if (ncs_wr_setup + ncs_wr_pulse < nwe_setup + nwe_pulse) \
-	ncs_wr_pulse = nwe_setup + nwe_pulse - ncs_wr_setup; \
-	\
-	/* ncs_hold = n_cycle - ncs_setup - ncs_pulse */ \
-	/* n_hold = n_cycle - n_setup - n_pulse */ \
-	/* */ \
-	/* All holds parameters must be positive or null, so: */ \
-	/* nwe_cycle shall be >= ncs_wr_setup + ncs_wr_pulse */ \
-	if (nwe_cycle < ncs_wr_setup + ncs_wr_pulse) \
-	nwe_cycle = ncs_wr_setup + ncs_wr_pulse; \
-	\
-	/* nwe_cycle shall be >= nwe_setup + nwe_pulse */ \
-	if (nwe_cycle < nwe_setup + nwe_pulse) \
-	nwe_cycle = nwe_setup + nwe_pulse; \
-	\
-	/* nrd_cycle shall be >= ncs_rd_setup + ncs_rd_pulse */ \
-	if (nrd_cycle < ncs_rd_setup + ncs_rd_pulse) \
-	nrd_cycle = ncs_rd_setup + ncs_rd_pulse; \
-	\
-	/* nrd_cycle shall be >= nrd_setup + nrd_pulse */ \
-	if (nrd_cycle < nrd_setup + nrd_pulse) \
-	nrd_cycle = nrd_setup + nrd_pulse; \
-	\
-	AVR32_SMC.cs[ncs].setup = (nwe_setup << AVR32_SMC_SETUP0_NWE_SETUP_OFFSET) | \
-	(ncs_wr_setup << AVR32_SMC_SETUP0_NCS_WR_SETUP_OFFSET) | \
-	(nrd_setup << AVR32_SMC_SETUP0_NRD_SETUP_OFFSET) | \
-	(ncs_rd_setup << AVR32_SMC_SETUP0_NCS_RD_SETUP_OFFSET); \
-	AVR32_SMC.cs[ncs].pulse = (nwe_pulse << AVR32_SMC_PULSE0_NWE_PULSE_OFFSET) | \
-	(ncs_wr_pulse << AVR32_SMC_PULSE0_NCS_WR_PULSE_OFFSET) | \
-	(nrd_pulse << AVR32_SMC_PULSE0_NRD_PULSE_OFFSET) | \
-	(ncs_rd_pulse << AVR32_SMC_PULSE0_NCS_RD_PULSE_OFFSET); \
-	AVR32_SMC.cs[ncs].cycle = (nwe_cycle << AVR32_SMC_CYCLE0_NWE_CYCLE_OFFSET) | \
-	(nrd_cycle << AVR32_SMC_CYCLE0_NRD_CYCLE_OFFSET); \
-	AVR32_SMC.cs[ncs].mode = (((NCS_CONTROLLED_READ) ? AVR32_SMC_MODE0_READ_MODE_NCS_CONTROLLED : \
-	AVR32_SMC_MODE0_READ_MODE_NRD_CONTROLLED) << AVR32_SMC_MODE0_READ_MODE_OFFSET) | \
-	(((NCS_CONTROLLED_WRITE) ? AVR32_SMC_MODE0_WRITE_MODE_NCS_CONTROLLED : \
-	AVR32_SMC_MODE0_WRITE_MODE_NWE_CONTROLLED) << AVR32_SMC_MODE0_WRITE_MODE_OFFSET) | \
-	(NWAIT_MODE << AVR32_SMC_MODE0_EXNW_MODE_OFFSET) | \
-	(((SMC_8_BIT_CHIPS) ? AVR32_SMC_MODE0_BAT_BYTE_WRITE : \
-	AVR32_SMC_MODE0_BAT_BYTE_SELECT) << AVR32_SMC_MODE0_BAT_OFFSET) | \
-	(((SMC_DBW <= 8) ? AVR32_SMC_MODE0_DBW_8_BITS : \
-	(SMC_DBW <= 16) ? AVR32_SMC_MODE0_DBW_16_BITS : \
-	AVR32_SMC_MODE0_DBW_32_BITS) << AVR32_SMC_MODE0_DBW_OFFSET) | \
-	(TDF_CYCLES << AVR32_SMC_MODE0_TDF_CYCLES_OFFSET) | \
-	(TDF_OPTIM << AVR32_SMC_MODE0_TDF_MODE_OFFSET) | \
-	(PAGE_MODE << AVR32_SMC_MODE0_PMEN_OFFSET) | \
-	(PAGE_SIZE << AVR32_SMC_MODE0_PS_OFFSET); \
-	g_smc_tab_cs_size[ncs] = EXT_SM_SIZE; \
-}
-#else
-#define SMC_CS_SETUP_SPECIAL(ncs) {}
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Externs
@@ -423,278 +219,11 @@ void SPI_1_Init(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void Avr32_enable_muxed_pins(void)
-{
-#if 0 /* old hw */
-	static const gpio_map_t SMC_EBI_GPIO_MAP =
-	{
-		//=====================================================
-		// EBI - Data
-		{AVR32_EBI_DATA_0_PIN, AVR32_EBI_DATA_0_FUNCTION},
-		{AVR32_EBI_DATA_1_PIN, AVR32_EBI_DATA_1_FUNCTION},
-		{AVR32_EBI_DATA_2_PIN, AVR32_EBI_DATA_2_FUNCTION},
-		{AVR32_EBI_DATA_3_PIN, AVR32_EBI_DATA_3_FUNCTION},
-		{AVR32_EBI_DATA_4_PIN, AVR32_EBI_DATA_4_FUNCTION},
-		{AVR32_EBI_DATA_5_PIN, AVR32_EBI_DATA_5_FUNCTION},
-		{AVR32_EBI_DATA_6_PIN, AVR32_EBI_DATA_6_FUNCTION},
-		{AVR32_EBI_DATA_7_PIN, AVR32_EBI_DATA_7_FUNCTION},
-		{AVR32_EBI_DATA_8_PIN, AVR32_EBI_DATA_8_FUNCTION},
-		{AVR32_EBI_DATA_9_PIN ,AVR32_EBI_DATA_9_FUNCTION},
-		{AVR32_EBI_DATA_10_PIN, AVR32_EBI_DATA_10_FUNCTION},
-		{AVR32_EBI_DATA_11_PIN, AVR32_EBI_DATA_11_FUNCTION},
-		{AVR32_EBI_DATA_12_PIN, AVR32_EBI_DATA_12_FUNCTION},
-		{AVR32_EBI_DATA_13_PIN, AVR32_EBI_DATA_13_FUNCTION},
-		{AVR32_EBI_DATA_14_PIN, AVR32_EBI_DATA_14_FUNCTION},
-		{AVR32_EBI_DATA_15_PIN, AVR32_EBI_DATA_15_FUNCTION},
-
-		//=====================================================
-		// EBI - Address
-		{AVR32_EBI_ADDR_0_PIN, AVR32_EBI_ADDR_0_FUNCTION},
-		{AVR32_EBI_ADDR_1_PIN, AVR32_EBI_ADDR_1_FUNCTION},
-		{AVR32_EBI_ADDR_2_PIN, AVR32_EBI_ADDR_2_FUNCTION},
-		{AVR32_EBI_ADDR_3_PIN, AVR32_EBI_ADDR_3_FUNCTION},
-		{AVR32_EBI_ADDR_4_PIN, AVR32_EBI_ADDR_4_FUNCTION},
-		{AVR32_EBI_ADDR_5_PIN, AVR32_EBI_ADDR_5_FUNCTION},
-		{AVR32_EBI_ADDR_6_PIN, AVR32_EBI_ADDR_6_FUNCTION},
-		{AVR32_EBI_ADDR_7_PIN, AVR32_EBI_ADDR_7_FUNCTION},
-		{AVR32_EBI_ADDR_8_PIN, AVR32_EBI_ADDR_8_FUNCTION},
-		{AVR32_EBI_ADDR_9_PIN, AVR32_EBI_ADDR_9_FUNCTION},
-		{AVR32_EBI_ADDR_10_PIN, AVR32_EBI_ADDR_10_FUNCTION},
-		{AVR32_EBI_ADDR_11_PIN, AVR32_EBI_ADDR_11_FUNCTION},
-		{AVR32_EBI_ADDR_12_PIN, AVR32_EBI_ADDR_12_FUNCTION},
-		{AVR32_EBI_ADDR_13_PIN, AVR32_EBI_ADDR_13_FUNCTION},
-		{AVR32_EBI_ADDR_14_PIN, AVR32_EBI_ADDR_14_FUNCTION},
-		{AVR32_EBI_ADDR_15_PIN, AVR32_EBI_ADDR_15_FUNCTION},
-		{AVR32_EBI_ADDR_16_PIN, AVR32_EBI_ADDR_16_FUNCTION},
-		{AVR32_EBI_ADDR_17_PIN, AVR32_EBI_ADDR_17_FUNCTION},
-		{AVR32_EBI_ADDR_18_PIN, AVR32_EBI_ADDR_18_FUNCTION},
-		{AVR32_EBI_ADDR_19_PIN, AVR32_EBI_ADDR_19_FUNCTION},
-		{AVR32_EBI_ADDR_20_1_PIN, AVR32_EBI_ADDR_20_1_FUNCTION},
-		{AVR32_EBI_ADDR_21_1_PIN, AVR32_EBI_ADDR_21_1_FUNCTION},
-		{AVR32_EBI_ADDR_22_1_PIN, AVR32_EBI_ADDR_22_1_FUNCTION},
-#if NS8100_ORIGINAL_PROTOTYPE
-		{AVR32_EBI_ADDR_23_PIN, AVR32_EBI_ADDR_23_FUNCTION},
-#endif
-
-		//=====================================================
-		// EBI - Other
-		{AVR32_EBI_NWE0_0_PIN, AVR32_EBI_NWE0_0_FUNCTION},
-		{AVR32_EBI_NWE1_0_PIN, AVR32_EBI_NWE1_0_FUNCTION},
-		{AVR32_EBI_NRD_0_PIN, AVR32_EBI_NRD_0_FUNCTION},
-		{AVR32_EBI_NCS_0_1_PIN, AVR32_EBI_NCS_0_1_FUNCTION},
-		{AVR32_EBI_NCS_1_PIN, AVR32_EBI_NCS_1_FUNCTION},
-		{AVR32_EBI_NCS_2_PIN, AVR32_EBI_NCS_2_FUNCTION},
-		{AVR32_EBI_NCS_3_PIN, AVR32_EBI_NCS_3_FUNCTION},
-		
-		//=====================================================
-		// EIC
-		{AVR32_EIC_EXTINT_4_PIN, AVR32_EIC_EXTINT_4_FUNCTION},
-		{AVR32_EIC_EXTINT_5_PIN, AVR32_EIC_EXTINT_5_FUNCTION},
-
-		// External RTC sampling interrupt
-#if (EXTERNAL_SAMPLING_SOURCE || NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
-		{AVR32_EIC_EXTINT_1_PIN, AVR32_EIC_EXTINT_1_FUNCTION},
-#endif
-
-		// Low battery interrupt
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
-		{AVR32_EIC_EXTINT_0_PIN, AVR32_EIC_EXTINT_0_FUNCTION},
-#endif
-
-		//=====================================================
-		// TWI
-		{AVR32_TWI_SDA_0_0_PIN, AVR32_TWI_SDA_0_0_FUNCTION},
-		{AVR32_TWI_SCL_0_0_PIN, AVR32_TWI_SCL_0_0_FUNCTION},
-
-		//=====================================================
-		// USB
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
-		{AVR32_USBB_USB_VBOF_0_1_PIN, AVR32_USBB_USB_VBOF_0_1_FUNCTION},
-		{AVR32_USBB_USB_ID_0_1_PIN, AVR32_USBB_USB_ID_0_1_FUNCTION},
-#endif
-
-		//=====================================================
-		// Usart 0 - RS232 Debug
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
-		{AVR32_USART0_RXD_0_0_PIN, AVR32_USART0_RXD_0_0_FUNCTION},
-		{AVR32_USART0_TXD_0_0_PIN, AVR32_USART0_TXD_0_0_FUNCTION},
-#endif
-
-		//=====================================================
-		// Usart 1 - RS232
-		{AVR32_USART1_RXD_0_0_PIN, AVR32_USART1_RXD_0_0_FUNCTION}, // PA05
-		{AVR32_USART1_TXD_0_0_PIN, AVR32_USART1_TXD_0_0_FUNCTION}, // PA06
-		{AVR32_USART1_RI_0_PIN, AVR32_USART1_RI_0_FUNCTION}, // PB26
-		{AVR32_USART1_DTR_0_PIN, AVR32_USART1_DTR_0_FUNCTION}, // PB25
-		{AVR32_USART1_DSR_0_PIN, AVR32_USART1_DSR_0_FUNCTION}, // PB24
-		{AVR32_USART1_DCD_0_PIN, AVR32_USART1_DCD_0_FUNCTION}, // PB23
-		{AVR32_USART1_RTS_0_0_PIN, AVR32_USART1_RTS_0_0_FUNCTION}, // PA08
-		{AVR32_USART1_CTS_0_0_PIN, AVR32_USART1_CTS_0_0_FUNCTION}, // PA09
-
-		//=====================================================
-		// Usart 3 - RS485
-		{AVR32_USART3_RXD_0_0_PIN, AVR32_USART3_RXD_0_0_FUNCTION},
-		{AVR32_USART3_TXD_0_0_PIN, AVR32_USART3_TXD_0_0_FUNCTION},
-		{AVR32_USART3_RTS_0_1_PIN, AVR32_USART3_RTS_0_1_FUNCTION},
-
-		//=====================================================
-		// Voltage monitor pins
-		{AVR32_ADC_AD_2_PIN, AVR32_ADC_AD_2_FUNCTION},
-		{AVR32_ADC_AD_3_PIN, AVR32_ADC_AD_3_FUNCTION}
-	};
-
-	gpio_enable_module(SMC_EBI_GPIO_MAP, sizeof(SMC_EBI_GPIO_MAP) / sizeof(SMC_EBI_GPIO_MAP[0]));
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void InitProcessorNoConnectPins(void)
-{
-#if 0 /* old hw */
-
-#if NS8100_ORIGINAL_PROTOTYPE
-	gpio_clr_gpio_pin(AVR32_PIN_PA00); // USART0_RXD
-	gpio_clr_gpio_pin(AVR32_PIN_PA01); // USART0_TXD
-	gpio_clr_gpio_pin(AVR32_EBI_SDA10_0_PIN);
-	gpio_clr_gpio_pin(AVR32_EBI_RAS_0_PIN);
-	gpio_clr_gpio_pin(AVR32_EBI_NWAIT_0_PIN);
-
-	//gpio_clr_gpio_pin(AVR32_PIN_PB19); // GPIO 51 (Pin 143)
-	//gpio_clr_gpio_pin(AVR32_EBI_CAS_0_PIN); // GPIO 45 (Pin 126)
-	//gpio_clr_gpio_pin(AVR32_EBI_SDWE_0_PIN); // GPIO 46 (Pin 127)
-	//gpio_clr_gpio_pin(AVR32_EBI_SDCS_0_PIN); // GPIO 62 (Pin 21)
-#else /* (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE) (Pins brought to connector so can be an input or output) */
-	if (GET_HARDWARE_ID == HARDWARE_ID_REV_8_WITH_GPS_MOD) // Unit with GPS Module
-	{
-		gpio_clr_gpio_pin(AVR32_PIN_PB13); // GPIO 45 (Pin 126 / EBI - CAS) // Set GPS UART Baud config low to prevent back powering the GPS module (Pin 7 Expansion header P2)
-		gpio_set_gpio_pin(AVR32_PIN_PB14); // GPIO 46 (Pin 127 / EBI - SDWE) // Disable power for Gps module (Pin 6 Expansion header P2)
-		gpio_clr_gpio_pin(AVR32_PIN_PB19); // GPIO 51 (Pin 143 / U28-143) // Gps eeprom data line (Pin 13 Expansion header P2)
-		gpio_enable_gpio_pin(AVR32_PIN_PB30); // GPIO 62 (Pin 21 / EBI - SDCS) // Gps module input (Pin 1 Expansion header P2)
-		gpio_enable_pin_pull_up(AVR32_PIN_PB30); // Enable pull-up on pin
-	}
-	else // Normal unit
-	{
-		gpio_clr_gpio_pin(AVR32_PIN_PB30); // GPIO 62 (Pin 21)
-		gpio_clr_gpio_pin(AVR32_PIN_PB19); // GPIO 51 (Pin 143)
-		gpio_clr_gpio_pin(AVR32_PIN_PB13); // GPIO 45 (Pin 126) // Set line low to prevent back powering the GPS module if attached
-		gpio_set_gpio_pin(AVR32_PIN_PB14); // GPIO 46 (Pin 127) // Set line high to disable power for GPS module if attached
-	}
-#endif
-
-#if INTERNAL_SAMPLING_SOURCE
-	// This pin is unused if the internal sampling source is configured. Set pin as an output to prevent it from floating
-	gpio_clr_gpio_pin(AVR32_PIN_PA22); // USB_VBOF
-#endif
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void Avr32_chip_select_init(unsigned long hsb_hz)
-{
-#if 0 /* old hw */
-
-	unsigned long int hsb_mhz_up = (hsb_hz + 999999) / 1000000;
-
-	// Setup all 4 chip selects
-	SMC_CS_SETUP(0)			// LCD
-	SMC_CS_SETUP(1)			// External RAM
-	SMC_CS_SETUP_SPECIAL(2)	// Network/LAN
-	SMC_CS_SETUP(3)			// Network/LAN Memory
-
-	// Put the multiplexed MCU pins used for the SM under control of the SMC.
-	Avr32_enable_muxed_pins();
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-#define TEST_DISABLE_32K_CRYSTAL	0
 void _init_startup(void)
 {
-#if 0 /* old hw */
-	// Disable watchdog if reset from boot loader
-	AVR32_WDT.ctrl = (AVR32_WDT_KEY_VALUE_ASSERT | AVR32_WDT_DISABLE_VALUE);
-	AVR32_WDT.ctrl = (AVR32_WDT_KEY_VALUE_DEASSERT | AVR32_WDT_DISABLE_VALUE);
-	
 	//-----------------------------------------------------------------
-	// Enable External 12 MHz oscillator clock
+	// Setup/Enable system/peripheral clocks
 	//-----------------------------------------------------------------
-	pm_enable_osc0_ext_clock(&AVR32_PM);
-
-	//-----------------------------------------------------------------
-	// Switch the main clock to the external oscillator 0 (12 MHz)
-	//-----------------------------------------------------------------
-	// Using shorter delay to lock for start/restart of clock (instead of OSC0_STARTUP)
-	pm_switch_to_osc0(&AVR32_PM, FOSC0, AVR32_PM_OSCCTRL0_STARTUP_0_RCOSC);
-
-	//-----------------------------------------------------------------
-	// Set clock to 66 MHz
-	//-----------------------------------------------------------------
-	// Logic to change the clock source to PLL 0
-	// PLL = 0, Multiplier = 10 (actual 11), Divider = 1 (actually 1), OSC = 0, 16 clocks to stabilize
-	pm_pll_setup(&AVR32_PM, 0, 10, 1, 0, 16);
-	pm_pll_set_option(&AVR32_PM, 0, 1, 1, 0); // PLL = 0, Freq = 1, Div2 = 1
-
-	// Enable and lock
-	pm_pll_enable(&AVR32_PM, 0);
-	pm_wait_for_pll0_locked(&AVR32_PM);
-
-	pm_cksel(&AVR32_PM, 0, 0, 0, 0, 0, 0);
-	flashc_set_wait_state(1);
-	pm_switch_to_clock(&AVR32_PM, AVR32_PM_MCSEL_PLL0);
-
-	// Chip Select Initialization
-	Avr32_chip_select_init(FOSC0);
-	
-	// Disable the unused and non connected clock 1
-	pm_disable_clk1(&AVR32_PM);
-
-	// With clock 1 disabled, configure GPIO lines to be outputs and low
-	gpio_clr_gpio_pin(AVR32_PM_XIN1_0_PIN);
-	gpio_clr_gpio_pin(AVR32_PM_XOUT1_0_PIN);
-
-#if TEST_DISABLE_32K_CRYSTAL
-	// Disable the 32KHz crystal
-	pm_disable_clk32(&AVR32_PM);
-	
-	// With the 32KHz crystal disabled, configure GPIO lines to be outputs and low
-	gpio_clr_gpio_pin(AVR32_PM_XIN32_0_PIN);
-	gpio_clr_gpio_pin(AVR32_PM_XOUT32_0_PIN);
-#endif
-
-	SoftUsecWait(1000);
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void InitPullupsOnFloatingDataLines(void)
-{
-#if 0 /* old hw */
-
-	gpio_enable_pin_pull_up(AVR32_PIN_PX00);
-	gpio_enable_pin_pull_up(AVR32_PIN_PX01);
-	gpio_enable_pin_pull_up(AVR32_PIN_PX02);
-	gpio_enable_pin_pull_up(AVR32_PIN_PX03);
-	gpio_enable_pin_pull_up(AVR32_PIN_PX04);
-	gpio_enable_pin_pull_up(AVR32_PIN_PX05);
-	gpio_enable_pin_pull_up(AVR32_PIN_PX06);
-	gpio_enable_pin_pull_up(AVR32_PIN_PX07);
-	gpio_enable_pin_pull_up(AVR32_PIN_PX08);
-	gpio_enable_pin_pull_up(AVR32_PIN_PX09);
-	gpio_enable_pin_pull_up(AVR32_PIN_PX10);
-	gpio_enable_pin_pull_up(AVR32_PIN_PX35);
-	gpio_enable_pin_pull_up(AVR32_PIN_PX36);
-	gpio_enable_pin_pull_up(AVR32_PIN_PX37);
-	gpio_enable_pin_pull_up(AVR32_PIN_PX38);
-	gpio_enable_pin_pull_up(AVR32_PIN_PX39);
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -853,35 +382,6 @@ void InitGps232(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void InitLANToSleep(void)
-{
-#if 0 /* old hw */
-#if 1 /* Normal */
-	// Enable the LAN Sleep
-	PowerControl(LAN_SLEEP_ENABLE, ON);
-	SoftUsecWait(10 * SOFT_MSECS);
-
-	//Sleep8900();
-
-	ToggleLedOn8900();
-	SoftUsecWait(250 * SOFT_MSECS);
-	ToggleLedOff8900();
-	SoftUsecWait(250 * SOFT_MSECS);
-
-	ToggleLedOn8900();
-	SoftUsecWait(250 * SOFT_MSECS);
-	ToggleLedOff8900();
-	SoftUsecWait(250 * SOFT_MSECS);
-
-	//Sleep8900_LedOn();
-	Sleep8900();
-#endif
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 void InitExternalKeypad(void)
 {
 #if 0 /* old hw */
@@ -933,82 +433,6 @@ void InitInternalAD(void)
 
 	// Enable the A/D channels; Warning: Can't use the driver call 'adc_enable' because it's a single channel enable only (write only register)
 	AVR32_ADC.cher = 0x0C; // Directly enable
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void InitSDAndFileSystem(void)
-{
-#if 0 /* old hw */
-	// Necessary ? (No, setting an output will configure it)
-	// Set SD Power pin as GPIO
-	gpio_enable_gpio_pin(AVR32_PIN_PB15);
-
-	// Necessary ? (No, pin is configured as an input on power up)
-	// Set SD Write Protect pin as GPIO (Active low control)
-	gpio_enable_gpio_pin(AVR32_PIN_PA07);
-	
-#if 1 /* NS8100_BETA_PROTOTYPE */
-	gpio_enable_pin_pull_up(AVR32_PIN_PA07);
-#endif
-
-	// Necessary ? (No, pin is configured as an input on power up)
-	// Set SD Detect pin as GPIO
-	gpio_enable_gpio_pin(AVR32_PIN_PA02);
-	
-#if 1 /* NS8100_BETA_PROTOTYPE */
-	gpio_enable_pin_pull_up(AVR32_PIN_PA02);
-#endif
-
-	// Enable Power to SD
-	PowerControl(SD_POWER, ON);
-
-	// Wait for power to propagate
-	SoftUsecWait(10 * SOFT_MSECS);
-
-	// Check if SD Detect pin
-	if (gpio_get_pin_value(AVR32_PIN_PA02) == SDMMC_CARD_DETECTED)
-	{
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-		spi_selectChip(&AVR32_SPI1, SD_MMC_SPI_NPCS);
-		if (sd_mmc_spi_internal_init() != OK)
-		{
-			debugErr("SD MMC Internal Init failed\r\n");
-			OverlayMessage(getLangText(ERROR_TEXT), getLangText(FAILED_TO_INIT_SD_CARD_TEXT), (3 * SOFT_SECS));
-		}
-		spi_unselectChip(&AVR32_SPI1, SD_MMC_SPI_NPCS);
-
-		// Init the NAV and select the SD MMC Card
-		nav_reset();
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		// Check if the drive select was successful
-		if (nav_drive_set(0) == TRUE)
-		{
-			// Check if the partition mount was unsuccessful (otherwise passes through without an error case)
-			if (nav_partition_mount() == FALSE)
-			{
-				// Error case
-				debugErr("FAT32 SD Card mount failed\r\n");
-				OverlayMessage(getLangText(ERROR_TEXT), getLangText(FAILED_TO_MOUNT_SD_CARD_TEXT), (3 * SOFT_SECS));
-			}
-		}
-		else // Error case
-		{
-			debugErr("FAT32 SD Card drive select failed\r\n");
-			OverlayMessage(getLangText(ERROR_TEXT), getLangText(FAILED_TO_SELECT_SD_CARD_DRIVE_TEXT), (3 * SOFT_SECS));
-		}
-
-		ReleaseSpi1MutexLock();
-	}
-	else
-	{
-		debugErr("SD Card not detected\r\n");
-		OverlayMessage(getLangText(ERROR_TEXT), getLangText(SD_CARD_IS_NOT_PRESENT_TEXT), (10 * SOFT_SECS));
-	}
 #endif
 }
 
@@ -1081,38 +505,6 @@ void TestPowerDownAndStop(void)
 	SLEEP(AVR32_PM_SMODE_STOP);
 	//SLEEP(AVR32_PM_SMODE_STANDBY);
 	while (1) {}
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void KillClocksToModules(void)
-{
-#if 0 /* old hw */
-	// Leave active: SYSTIMER; Disable: OCD
-	AVR32_PM.cpumask = 0x0100;
-	
-	// Leave active: EBI, PBA & PBB BRIDGE, FLASHC; Disable: PDCA, MACB, USBB
-	AVR32_PM.hsbmask = 0x0047;
-	
-	// Leave active: TC, TWI, SPI0, SPI1, ADC, PM/RTC/EIC, GPIO, INTC; Disable: ABDAC, SSC, PWM, USART 0 & 1 & 2 & 3, PDCA
-	AVR32_PM.pbamask = 0x40FB;
-	
-	// Leave active: SMC, FLASHC, HMATRIX; Disable: SDRAMC, MACB, USBB
-	AVR32_PM.pbbmask = 0x0015;
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void InitGplpRegisters(void)
-{
-#if 0 /* old hw */
-
-	AVR32_PM.gplp[0] = 0x12345678;
-	AVR32_PM.gplp[1] = 0x90ABCDEF;
 #endif
 }
 
@@ -2954,7 +2346,7 @@ void UsbWaitForEvents(void)
 #define MAXLEN 256
 
 // Globals
-FATFS *fs; //FFat Filesystem Object
+FATFS* fs; //FFat Filesystem Object
 FATFS fs_obj;
 FIL file; //FFat File Object
 FRESULT err; //FFat Result (Struct)
@@ -3340,14 +2732,8 @@ int example(void)
     return 0;
 }
 
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void SetupSDHCeMMC(void)
+void TestDriveAndFilesystem(void)
 {
-    mxc_sdhc_cfg_t cfg;
-
     FF_ERRORS[0] = "FR_OK";
     FF_ERRORS[1] = "FR_DISK_ERR";
     FF_ERRORS[2] = "FR_INT_ERR";
@@ -3370,32 +2756,6 @@ void SetupSDHCeMMC(void)
     FF_ERRORS[19] = "FR_INVALID_PARAMETER";
     srand(12347439);
     int run = 1, input = -1;
-
-    // Initialize SDHC peripheral
-    cfg.bus_voltage = MXC_SDHC_Bus_Voltage_1_8;
-    cfg.block_gap = 0;
-    cfg.clk_div = 0x0b0; // Maximum divide ratio, frequency must be >= 400 kHz during Card Identification phase
-
-    if (MXC_SDHC_Init(&cfg) != E_NO_ERROR) { printf("<Error> SDHC/eMMC initialization failed\n"); }
-
-    // Set up card to get it ready for a transaction
-    if (MXC_SDHC_Lib_InitCard(10) == E_NO_ERROR) { printf("SDHC: Card/device Initialized\n"); }
-	else { printf("<Error> SDHC: No card/device response\n"); }
-
-    if (MXC_SDHC_Lib_Get_Card_Type() == CARD_MMC) { printf("SDHC: Card type discovered is MMC/eMMC\n"); }
-	else /* CARD_SDHC */ { printf("SDHC: Card type discovered is SD/SDHC\n"); }
-
-    // Configure for fastest possible clock, must not exceed 52 MHz for eMMC
-    if (SystemCoreClock > 96000000)
-	{
-        printf("SD clock ratio (at card/device) is 4:1 (eMMC not to exceed 52 MHz)\n");
-        MXC_SDHC_Set_Clock_Config(1);
-    }
-	else
-	{
-        printf("SD clock ratio (at card/device) is 2:1\n");
-        MXC_SDHC_Set_Clock_Config(0);
-    }
 
     while (run)
 	{
@@ -3442,6 +2802,95 @@ void SetupSDHCeMMC(void)
 
         MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
     }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetupSDHCeMMC(void)
+{
+    mxc_sdhc_cfg_t cfg;
+
+    // Initialize SDHC peripheral
+    cfg.bus_voltage = MXC_SDHC_Bus_Voltage_1_8;
+    cfg.block_gap = 0;
+    cfg.clk_div = 0x0b0; // Maximum divide ratio, frequency must be >= 400 kHz during Card Identification phase
+
+    if (MXC_SDHC_Init(&cfg) != E_NO_ERROR) { printf("<Error> SDHC/eMMC initialization failed\n"); }
+
+    // Set up card to get it ready for a transaction
+    if (MXC_SDHC_Lib_InitCard(10) == E_NO_ERROR) { printf("SDHC: Card/device Initialized\n"); }
+	else { printf("<Error> SDHC: No card/device response\n"); }
+
+    if (MXC_SDHC_Lib_Get_Card_Type() == CARD_MMC) { printf("SDHC: Card type discovered is MMC/eMMC\n"); }
+	else /* CARD_SDHC */ { printf("SDHC: Card type discovered is SD/SDHC\n"); }
+
+    // Configure for fastest possible clock, must not exceed 52 MHz for eMMC
+    if (SystemCoreClock > 96000000)
+	{
+        printf("SD clock ratio (at card/device) is 4:1 (eMMC not to exceed 52 MHz)\n");
+        MXC_SDHC_Set_Clock_Config(1);
+    }
+	else
+	{
+        printf("SD clock ratio (at card/device) is 2:1\n");
+        MXC_SDHC_Set_Clock_Config(0);
+    }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetupDriveAndFilesystem(void)
+{
+    // Mount the default drive to determine if the filesystem is created
+	if ((err = f_mount(&fs_obj, "", 1)) != FR_OK)
+	{
+		// Check if failure was due to no filesystem
+		if (err == FR_NO_FILESYSTEM)
+		{
+			printf("Drive(eMMC): Formatting...\n");
+
+			// Format the default drive to a FAT filesystem
+			if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) !=  FR_OK)
+			{
+				printf("<Error> Drive(eMMC): Formatting failed with error %s\n", FF_ERRORS[err]);
+			}
+			else
+			{
+				printf("Drive(eMMC): Formatted successfully\n");
+
+				// Remount
+				if ((err = f_mount(&fs_obj, "", 1)) != FR_OK)
+				{
+					printf("<Error> Drive(eMMC): filed to mount after formatting, with error %s\n", FF_ERRORS[err]);		
+				}
+
+				if ((err = f_setlabel("NOMIS")) != FR_OK)
+				{
+					printf("<Error> Drive(eMMC): Setting label failed with error %s\n", FF_ERRORS[err]);
+					f_mount(NULL, "", 0);
+				}
+			}
+		}
+		else
+		{
+			printf("<Error> Drive(eMMC): filed to mount with error %s\n", FF_ERRORS[err]);
+			f_mount(NULL, "", 0);
+		}
+    }
+	else
+	{
+        printf("Drive(eMMC): mounted successfully\n");
+    }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void GetDriveSize(void)
+{
+    if ((err = f_getfree(&volume, &clusters_free, &fs)) != FR_OK) { printf("Error finding free size of card: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); }
 }
 
 ///----------------------------------------------------------------------------
@@ -3498,11 +2947,9 @@ void InitSystemHardware_NS9100(void)
 	SetupSDHCeMMC();
 
 	//-------------------------------------------------------------------------
-	// Set General Purpose Low-Power registers
+	// Setup Drive(eMMC) and Filesystem
 	//-------------------------------------------------------------------------
-#if 0 /* old hw */
-	InitGplpRegisters();
-#endif
+	SetupDriveAndFilesystem();
 
 	//-------------------------------------------------------------------------
 	// Disable all interrupts and clear all interrupt vectors 
@@ -3510,20 +2957,6 @@ void InitSystemHardware_NS9100(void)
 #if 0 /* old hw */
 	Disable_global_interrupt();
 	INTC_init_interrupts();
-#endif
-
-	//-------------------------------------------------------------------------
-	// Enable internal pull ups on the floating data lines
-	//-------------------------------------------------------------------------
-#if 0 /* old hw */
-	InitPullupsOnFloatingDataLines();
-#endif
-
-	//-------------------------------------------------------------------------
-	// Init unused pins to low outputs
-	//-------------------------------------------------------------------------
-#if 0 /* old hw */
-	InitProcessorNoConnectPins();
 #endif
 
 	//-------------------------------------------------------------------------
@@ -3577,11 +3010,6 @@ void InitSystemHardware_NS9100(void)
 	InitExternalRTC(); debug("External RTC init complete\r\n");
 
 	//-------------------------------------------------------------------------
-	// Set LAN to Sleep
-	//-------------------------------------------------------------------------
-	InitLANToSleep(); debug("LAN init complete\r\n");
-
-	//-------------------------------------------------------------------------
 	// Initialize the AD Control
 	//-------------------------------------------------------------------------
 	InitAnalogControl(); debug("Analog Control init complete\r\n");
@@ -3600,11 +3028,6 @@ void InitSystemHardware_NS9100(void)
 	// Enable Processor A/D
 	//-------------------------------------------------------------------------
 	InitInternalAD(); debug("Internal A/D init complete\r\n");
-
-	//-------------------------------------------------------------------------
-	// Power on the SD Card and init the file system
-	//-------------------------------------------------------------------------
-	InitSDAndFileSystem(); debug("SD Card and filesystem init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initialize USB clock.

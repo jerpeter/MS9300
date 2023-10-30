@@ -1259,7 +1259,6 @@ void BootLoadManager(void)
 		}
 
 #if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
 		sprintf(g_spareFileName, "%s%s", SYSTEM_PATH, default_boot_name);
 		file = open(g_spareFileName, O_RDONLY);
 
@@ -1653,7 +1652,6 @@ void exception(uint32_t r12, uint32_t r11, uint32_t r10, uint32_t r9, uint32_t e
 	}
 
 #if 0 /* old hw */
-	nav_select(FS_NAV_ID_DEFAULT);
 	exceptionReportFile = open(s_errorReportFilename, O_APPEND);
 
 	// Check if Exception report file doesn't exist

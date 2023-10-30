@@ -620,51 +620,30 @@ void AddOnOffLogTimestamp(uint8 onOffState)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0
+#if 1
 void WriteDebugBufferToFile(void)
 {
-	int debugLogFile;
+	FIL file;
+	uint32_t writeSize;
 
-	if (g_fileAccessLock != AVAILABLE)
+	if (g_debugBufferCount)
 	{
-		ReportFileSystemAccessProblem("Write debug buffer");
-	}
-	else // (g_fileAccessLock == AVAILABLE)
-	{
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		if (g_debugBufferCount)
+		if (f_open(&file, (const TCHAR*)LOGS_PATH"DebugLogReadable.txt", FA_OPEN_APPEND | FA_WRITE) == FR_OK)
 		{
-			debugLogFile = open(s_debugLogFilename, O_APPEND);
-			if (debugLogFile == -1)
-			{
-				nav_setcwd(s_debugLogFilename, TRUE, TRUE);
-				debugLogFile = open(s_debugLogFilename, O_APPEND);
-			}
+			f_write(&file, (uint8*)&g_debugBuffer, g_debugBufferCount, (UINT*)&writeSize);
+			SetFileTimestamp(LOGS_PATH"DebugLogReadable.txt");
 
-			// Verify file ID
-			if (debugLogFile == -1)
-			{
-				DisplayFileNotFound(s_debugLogFilename);
-			}
-			else // File successfully created or opened
-			{
-				write(debugLogFile, (uint8*)&g_debugBuffer, g_debugBufferCount);
-
-				SetFileDateTimestamp(FS_DATE_LAST_WRITE);
-
-				// Done writing, close the debug log file
-				g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-				close(debugLogFile);
-			}
+			// Done writing, close the debug log file
+			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+			f_close(&file);
 
 			memset(&g_debugBuffer, 0, sizeof(g_debugBuffer));
 			g_debugBufferCount = 0;
 		}
-
-		ReleaseSpi1MutexLock();
+		else
+		{
+			DisplayFileNotFound(LOGS_PATH"DebugLogReadable.txt");
+		}
 	}
 }
 #endif
@@ -672,56 +651,11 @@ void WriteDebugBufferToFile(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0
+#if 1
 void SwitchDebugLogFile(void)
 {
-	uint8 status = PASSED;
-
-	if (g_fileAccessLock != AVAILABLE)
-	{
-		ReportFileSystemAccessProblem("Rename debug file");
-	}
-	else // (g_fileAccessLock == AVAILABLE)
-	{
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-		nav_drive_set(0);
-		nav_partition_mount();
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		// Remove old run debug file (if it exists)
-		if (nav_setcwd("%sDebugLogLastRun.txt", LOGS_PATH, TRUE, FALSE))
-		{
-			if (!nav_file_del(TRUE))
-			{
-				debugErr("Unable to delete old run debug file\r\n");
-				status = FAILED;
-			}
-		}
-
-		if (status == PASSED)
-		{
-			// Select source file
-			if (nav_setcwd("%sDebugLogReadable.txt", LOGS_PATH, TRUE, FALSE))
-			{
-				// Rename file or directory
-				if (!nav_file_rename("DebugLogLastRun.txt"))
-				{
-					debugErr("Unable to move debug log file to last run filename\r\n");
-					status = FAILED;
-				}
-			}
-			else
-			{
-				debugWarn("No debug file from last run\r\n");
-				status = FAILED;
-			}
-		}
-
-		if (status == PASSED) { debug("Debug log file moved to last run debug file\r\n"); }
-
-		ReleaseSpi1MutexLock();
-	}
+	f_unlink((const TCHAR*)LOGS_PATH"DebugLogLastRun.txt");
+	f_rename((const TCHAR*)LOGS_PATH"DebugLogReadable.txt", (const TCHAR*)LOGS_PATH"DebugLogLastRun.txt");
 }
 #endif
 

@@ -98,7 +98,7 @@ void AddEventNumberToCache(uint16 eventNumber);
 void StoreCurrentEventNumber(void);
 void CompleteRamEventSummary(void);
 void StoreData(uint16* dataPtr, uint16 dataWords);
-void InitSDCardUsageStats(void);
+void InitDriveUsageStats(void);
 void GetSDCardUsageStats(void);
 void UpdateSDCardUsageStats(uint32 removeSize);
 void GetEventFileInfo(uint16 eventNumber, EVENT_HEADER_STRUCT* eventHeaderPtr, EVENT_SUMMARY_STRUCT* eventSummaryPtr, BOOLEAN cacheDataToRamBuffer);
@@ -114,16 +114,13 @@ void DeleteEventFileRecord(uint16 eventNumber);
 void DeleteEventFileRecords(void);
 void DeleteNonEssentialFiles(void);
 void RemoveExcessEventsAboveCap(void);
-void ReInitSdCardAndFat32(void);
 void AdjustSampleForBitAccuracy(void);
 void PowerDownSDCard(void);
-void PowerUpSDCardAndInitFat32(void);
 uint32 SeismicTriggerConvertBitAccuracy(uint32 seismicTriggerToConvert);
 uint16 AirTriggerConvert(uint32 airTriggerToConvert);
 uint32 AirTriggerConvertToUnits(uint32 airTriggerToConvert);
 
 void ManageEventsDirectory(void);
-uint8 MigrateLooseFiles(uint8 dirType);
 void ValidateSummaryListFileWithEventCache(void);
 char* GetEventFilenameAndPath(uint16 eventNumber, uint8 eventType);
 

@@ -156,280 +156,59 @@ uint16 GetEventNumberFromFilename(char* eventFilename, uint8 filter)
 	return (0);
 }
 
-#if 0
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void ushell_cmd_copy( void )
+FRESULT RecursiveManageEventsDirectory(char* path)
 {
-	Fs_index sav_index;
-	uint8_t u8_status_copy;
+	FRESULT res;
+	DIR dir;
+	UINT i;
+	static FILINFO fno;
+	uint16_t eventNumber;
 
-	if( g_s_arg[0][0] == 0 )
-	return;
+	// Open directory
+	res = f_opendir(&dir, path);
 
-	// Save the position
-	sav_index = nav_getindex();
-
-	// Select source file
-	if( !nav_setcwd( (FS_STRING)g_s_arg[0], TRUE, FALSE ) )
+	if (res == FR_OK)
 	{
-		fputs(MSG_ER_UNKNOWN_FILE, stdout);
-		return;
-	}
-	// Get name of source to be used as same destination name
-	nav_file_name( (FS_STRING)g_s_arg[0], MAX_FILE_PATH_LENGTH, FS_NAME_GET, TRUE );
-	// Mark this selected file like source file
-	if( !nav_file_copy())
-	{
-		fputs(MSG_KO, stdout);
-		goto cp_end;
-	}
-
-	// Select destination
-	if( g_s_arg[1][0]==0 )
-	{
-		// g_s_arg[1] is NULL, using mark
-		if( !nav_gotoindex(&g_mark_index) )
-		goto cp_end;
-	}
-	else
-	{
-		// g_s_arg[1] exists, then go to this destination
-		if( !nav_setcwd( (FS_STRING)g_s_arg[1], TRUE, FALSE ) )
+		while (1)
 		{
-			fputs(MSG_ER_UNKNOWN_FILE, stdout);
-			goto cp_end;
-		}
-	}
+			// Find next directory item
+			res = f_readdir(&dir, &fno);
 
-	// Set the name destination and start paste
-	if( !nav_file_paste_start((FS_STRING)g_s_arg[0]) )
-	{
-		fputs(MSG_ER_PASTE, stdout);
-		goto cp_end;
-	}
+			// Check if failed or at end of directory contents
+			if (res != FR_OK || fno.fname[0] == 0) { break; }
 
-	// Performs copy
-	do
-	{
-		u8_status_copy = nav_file_paste_state( FALSE );
-	}while( u8_status_copy == COPY_BUSY );
-
-	// Check status of copy action
-	if( u8_status_copy == COPY_FAIL )
-	{
-		fputs(MSG_ER_PASTE, stdout);
-		goto cp_end;
-	}
-
-	cp_end:
-	// Restore the position
-	nav_gotoindex(&sav_index);
-}
-#endif
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-#if 0
-void SortRamSummaryTable2(void)
-{
-	uint32 i, j, temp, totalElements;
-	uint16 length;
-	uint32 totalPasses = 0;
-	uint8 activeSwap;
-
-	if (__ramFlashSummaryTbl[s_currFlashSummary].fileEventNum == 0xFFFFFFFF) { totalElements = s_currFlashSummary; } else { totalElements = ???; }
-
-	for(i = 0; (i < totalElements); i++)
-	{
-		activeSwap = NO;
-
-		for(j = 0; (j < (totalElements - i)); j++)
-		{
-			totalPasses++;
-
-			if(__ramFlashSummaryTbl[j].fileEventNum > __ramFlashSummaryTbl[(j+1)].fileEventNum)
+			// Check if a directory
+			if (fno.fattrib & AM_DIR)
 			{
-				temp = __ramFlashSummaryTbl[j].fileEventNum;
-				__ramFlashSummaryTbl[j].fileEventNum = __ramFlashSummaryTbl[(j+1)].fileEventNum;
-				__ramFlashSummaryTbl[(j+1)].fileEventNum = temp;
+				// Mark current path
+				i = strlen(path);
 
-				activeSwap = YES;
-			}
-		}
+				// Add sub-directory to path
+				sprintf(&path[i], "/%s", fno.fname);
 
-		if (activeSwap == NO)
-		{
-			break;
-		}
-	}
-
-#if 0 /* Test */
-	for (i = 0; i < totalElements; i++)
-	{
-		length = sprintf((char*)g_debugBuffer, "Sorted RST2 entry %04lu event #: %lu\r\n", (i + 1), __ramFlashSummaryTbl[i].fileEventNum);
-		ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-	}
-
-	length = sprintf((char*)g_debugBuffer, "Sorted RST2 Total passes: %lu\r\n", totalPasses);
-	ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-#endif
-}
-#endif
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void DeleteEmptyDirectories(uint8 dirType)
-{
-#if 0
-	uint16 navIndex;
-	uint8 dirDeleted = NO;
-	uint8 firstDirNotEmpty = NO;
-
-	nav_select(FS_NAV_ID_DEFAULT);
-	if (dirType == EVENT_FILE_TYPE) 
-	{ nav_setcwd(EVENTS_PATH, TRUE, TRUE); }
-	else { nav_setcwd(ER_DATA_PATH, TRUE, TRUE); }
-
-	// Check all entries in the current directory
-	while (nav_filelist_set(0, FS_FIND_NEXT))
-	{
-		navIndex = nav_filelist_get();
-
-		// Check if the entry is a directory (sub-directory of the Events directory)
-		if (nav_file_isdir())
-		{
-			nav_file_name((FS_STRING)g_spareBuffer, 80, FS_NAME_GET, FALSE);
-
-			// Delete directory only if empty
-			if (nav_file_del(TRUE) == TRUE)
-			{
-				sprintf((char*)g_debugBuffer, "%s %s (%s %s)", getLangText(REMOVED_TEXT), getLangText(EMPTY_TEXT), getLangText(DIR_TEXT), g_spareBuffer);
+				sprintf((char*)g_debugBuffer, "%s %s (%s %s)", getLangText(EVENT_TEXT), getLangText(SYNC_IN_PROGRESS_TEXT), getLangText(DIR_TEXT), path);
 				OverlayMessage(getLangText(SUMMARY_LIST_TEXT), (char*)g_debugBuffer, 0);
 
-				// Check if the first entry is a directory that was erased (special case)
-				dirDeleted = YES;
-				if (navIndex) { navIndex--; }
+				// Enter sub-directory to repeat process
+				res = RecursiveManageEventsDirectory(path);
+				if (res != FR_OK) { break; }
+
+				// Cheap way to remove empty sub-directory by attempt to delete it which will only succeed if empty
+				f_unlink(path);
+				
+				// Cut off added sub-directory to path
+				path[i] = 0;
 			}
-			else // Directory is not empty
-			{
-				// Check if the first entry is a directory that is not empty (special case)
-				if (navIndex == 0) { firstDirNotEmpty = YES; }
-			}
-
-			// Have to reset the current directory after a nav_file_del command
-			if (dirType == EVENT_FILE_TYPE) { nav_setcwd(EVENTS_PATH, TRUE, TRUE); }
-			else { nav_setcwd(ER_DATA_PATH, TRUE, TRUE); }
-		}
-
-		// Check if the nav index is non-zero or a special case
-		if ((navIndex) || ((navIndex == 0) && ((dirDeleted == NO) || (firstDirNotEmpty == YES))))
-		{
-			// Set the current index
-			nav_filelist_goto(navIndex);
-		}
-
-		// Reset flag
-		dirDeleted = NO;
-	}
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void ManageEventsDirectory(void)
-{
-#if 0 /* temp remove while unused */
-	uint16 navIndex = 0;
-	uint16 eventNumber;
-	uint8 emptyEventDirs = NO;
-#endif
-	uint8 eventsToMigrate = NO;
-
-	debug("Managing Events directory files and caching event numbers...\r\n");
-
-	sprintf((char*)g_debugBuffer, "%s %s", getLangText(EVENT_TEXT), getLangText(SYNC_IN_PROGRESS_TEXT));
-	OverlayMessage(getLangText(SUMMARY_LIST_TEXT), (char*)g_debugBuffer, (1 * SOFT_SECS));
-
-	if (g_fileAccessLock != AVAILABLE)
-	{
-		ReportFileSystemAccessProblem("Cache event numbers");
-	}
-	else // (g_fileAccessLock == AVAILABLE)
-	{
-		InitEventNumberCache();
-
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-		nav_setcwd(EVENTS_PATH, TRUE, TRUE);
-
-		// Check all entries in the Events directory
-		while (nav_filelist_set(0, FS_FIND_NEXT))
-		{
-			// Check if the entry is a directory (sub-directory of the Events directory)
-			if (nav_file_isdir())
-			{
-				nav_file_name((FS_STRING)g_spareBuffer, 80, FS_NAME_GET, FALSE);
-
-				sprintf((char*)g_debugBuffer, "%s %s (%s %s)", getLangText(EVENT_TEXT), getLangText(SYNC_IN_PROGRESS_TEXT), getLangText(DIR_TEXT), g_spareBuffer);
-				OverlayMessage(getLangText(SUMMARY_LIST_TEXT), (char*)g_debugBuffer, 0);
-
-				sprintf((char*)g_spareFileName, "%s%s\\", EVENTS_PATH, (char*)g_spareBuffer);
-				nav_setcwd((char*)g_spareFileName, TRUE, TRUE);
-
-				if ((emptyEventDirs == NO) && (nav_filelist_set(0, FS_FIND_NEXT) == FALSE))
-				{
-					emptyEventDirs = YES;
-				}
-
-				// Reset the file position to unselected to prevent the empty check from starting at position 1 which causes the following logic to skip the 1st entry
-				nav_filelist_reset();
-
-				while (nav_filelist_set(0, FS_FIND_NEXT))
-				{
-					if (!nav_file_isdir())
-					{
-						// Check if the file has the correct event file extension
-						if (nav_file_checkext("ns8"))
-						{
-							// Get the event number from the filename
-							nav_file_name((FS_STRING)g_spareBuffer, 255, FS_NAME_GET, FALSE);
-							eventNumber = GetEventNumberFromFilename((char*)g_spareBuffer, LOOSE_EVENT_NAME_FORMAT);
-
-							// Check if the event number is valid
-							if (eventNumber)
-							{
-								// Add event number to the cache
-								AddEventNumberFromFileToCache(eventNumber);
-							}
-
-						}
-						else
-						{
-							// Get the event number from the filename
-							nav_file_name((FS_STRING)g_spareBuffer, 255, FS_NAME_GET, FALSE);
-							eventNumber = GetEventNumberFromFilename((char*)g_spareBuffer, LOOSE_EVENT_NAME_FORMAT);
-						}
-					}
-				}
-
-				nav_setcwd(EVENTS_PATH, TRUE, TRUE);
-				nav_filelist_set(navIndex, FS_FIND_NEXT);
-			}
-			else // (!nav_file_isdir()) // Entry is a file (in the root of the Events dir)
+			else // File
 			{
 				// Check if the file has the correct event file extension
-				if (nav_file_checkext("ns8"))
+				if(strstr(fno.fname, "ns8"))
 				{
-
 					// Get the event number from the filename
-					nav_file_name((FS_STRING)g_spareBuffer, 255, FS_NAME_GET, FALSE);
+					strcpy((char*)g_spareBuffer, fno.fname);
 					eventNumber = GetEventNumberFromFilename((char*)g_spareBuffer, LOOSE_EVENT_NAME_FORMAT);
 
 					// Check if the event number is valid
@@ -437,36 +216,29 @@ void ManageEventsDirectory(void)
 					{
 						// Add event number to the cache
 						AddEventNumberFromFileToCache(eventNumber);
-
-						// Signal event files need migration to the correct sub-directory
-						eventsToMigrate = YES;
 					}
 				}
-				else
-				{
-					// Get the event number from the filename
-					nav_file_name((FS_STRING)g_spareBuffer, 255, FS_NAME_GET, FALSE);
-					eventNumber = GetEventNumberFromFilename((char*)g_spareBuffer, LOOSE_EVENT_NAME_FORMAT);
-				}
 			}
-
-			navIndex++;
 		}
 
-		if (emptyEventDirs == YES)
-		{
-			DeleteEmptyDirectories(EVENT_FILE_TYPE);
-			DeleteEmptyDirectories(ER_DATA_FILE_TYPE);
-		}
-#endif
-		ReleaseSpi1MutexLock();
-
-		if (eventsToMigrate)
-		{
-			// Found loose events, set timer to handle the event file migration process from secondary to primary location (wait at least the LCD timeout to start)
-			AssignSoftTimer(LOOSE_EVENT_MIGRATION_TIMER_NUM, (uint32)(g_unitConfig.lcdTimeout * TICKS_PER_MIN), LooseEventMigrationTimerCallBack);
-		}
+		f_closedir(&dir);
 	}
+
+	return res;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void ManageEventsDirectory(void)
+{
+	debug("Managing Events directory files and caching event numbers...\r\n");
+
+	sprintf((char*)g_debugBuffer, "%s %s", getLangText(EVENT_TEXT), getLangText(SYNC_IN_PROGRESS_TEXT));
+	OverlayMessage(getLangText(SUMMARY_LIST_TEXT), (char*)g_debugBuffer, (1 * SOFT_SECS));
+
+	InitEventNumberCache();
+	RecursiveManageEventsDirectory(EVENTS_PATH);
 }
 
 ///----------------------------------------------------------------------------
@@ -1468,113 +1240,7 @@ void DeleteEventFileRecord(uint16 eventNumber)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void DeleteEventFileRecords(void)
-{
-	debug("Deleting Events...\r\n");
-
-	if (g_fileAccessLock != AVAILABLE)
-	{
-		ReportFileSystemAccessProblem("Delete multiple events");
-	}
-	else // (g_fileAccessLock == AVAILABLE)
-	{
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		// Handle removing event files
-		if (nav_setcwd(EVENTS_PATH, TRUE, FALSE) == TRUE)
-		{
-			while (nav_filelist_set(0 , FS_FIND_NEXT))
-			{
-				nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-				sprintf((char*)g_spareBuffer, "%s %s", getLangText(REMOVING_TEXT), g_spareFileName);
-				OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
-
-				// Delete file or directory
-				if (nav_file_del(FALSE) == FALSE)
-				{
-					nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-					sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(EVENT_TEXT));
-					OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
-					//break;
-				}
-				else
-				{
-#if 0 /* Exception testing (Prevent non-ISR soft loop watchdog from triggering) */
-					g_execCycles++;
-#endif
-				}
-			}
-		}
-
-		// Handle removing compressed event data files
-		if (nav_setcwd(ER_DATA_PATH, TRUE, FALSE) == TRUE)
-		{
-			while (nav_filelist_set(0 , FS_FIND_NEXT))
-			{
-				nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-				sprintf((char*)g_spareBuffer, "%s %s", getLangText(REMOVING_TEXT), g_spareFileName);
-				OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
-
-				// Delete file or directory
-				if (nav_file_del(FALSE) == FALSE)
-				{
-					nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-					sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(EVENT_TEXT));
-					OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
-					//break;
-				}
-				else
-				{
-#if 0 /* Exception testing (Prevent non-ISR soft loop watchdog from triggering) */
-					g_execCycles++;
-#endif
-				}
-			}
-		}
-
-		// Re-create directory
-		if (nav_setcwd(ER_DATA_PATH, TRUE, FALSE) == FALSE)
-		{
-			debugErr("Unable to access or create the Events directory\r\n");
-			sprintf((char*)g_spareBuffer, "%s %s %s", getLangText(UNABLE_TO_ACCESS_TEXT), "ERDATA", getLangText(DIR_TEXT));
-			OverlayMessage(getLangText(ERROR_TEXT), (char*)g_spareBuffer, 3 * SOFT_SECS);
-		}
-
-		// Re-create directory
-		if (nav_setcwd(EVENTS_PATH, TRUE, FALSE) == FALSE)
-		{
-			debugErr("Unable to access or create the Events directory\r\n");
-			sprintf((char*)g_spareBuffer, "%s %s %s", getLangText(UNABLE_TO_ACCESS_TEXT), "EVENTS", getLangText(DIR_TEXT));
-			OverlayMessage(getLangText(ERROR_TEXT), (char*)g_spareBuffer, 3 * SOFT_SECS);
-		}
-
-		if (nav_setcwd(s_summaryListFileName, TRUE, FALSE) == TRUE)
-		{
-			if (nav_file_del(FALSE) == FALSE)
-			{
-				nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-				sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(SUMMARY_LIST_TEXT));
-				OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
-			}
-		}
-#endif
-		ReleaseSpi1MutexLock();
-
-		sprintf((char*)g_spareBuffer, "%s %d %s", getLangText(REMOVED_TEXT), g_eventNumberCacheValidEntries, getLangText(EVENTS_TEXT));
-		OverlayMessage(getLangText(DELETE_EVENTS_TEXT), (char*)g_spareBuffer, 3 * SOFT_SECS);
-
-		InitEventNumberCache();
-		InitSummaryListFile();
-	}
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-static uint16 filesDeleted;
+static uint16_t s_filesDeleted;
 FRESULT RecursiveDeleteDirectoryContents(char* path)
 {
 	FRESULT res;
@@ -1616,9 +1282,13 @@ FRESULT RecursiveDeleteDirectoryContents(char* path)
 			}
 			else // File
 			{
+#if 0 /* Report to LCD */
+				sprintf((char*)g_spareBuffer, "%s %s", getLangText(REMOVING_TEXT), fno.fname);
+				OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
+#endif
 				// Delete, need full path?
 				if (f_unlink(fno.fname) != FR_OK) { break; }
-				filesDeleted++;
+				s_filesDeleted++;
 			}
 		}
 
@@ -1631,247 +1301,147 @@ FRESULT RecursiveDeleteDirectoryContents(char* path)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+static uint16_t s_filesDeleted;
+enum {
+	EXCLUDE_FILE_MATCH = 0,
+	DELETE_FILE_MATCH
+};
+FRESULT RecursiveDeleteDirectoryContentsSpecial(char* path, char* matchingSubString, uint8_t matchFiles)
+{
+	FRESULT res;
+	DIR dir;
+	UINT i;
+	static FILINFO fno;
+
+	// Open directory
+	res = f_opendir(&dir, path);
+
+	if (res == FR_OK)
+	{
+		while (1)
+		{
+			// Find next directory item
+			res = f_readdir(&dir, &fno);
+
+			// Check if failed or at end of directory contents
+			if (res != FR_OK || fno.fname[0] == 0) { break; }
+
+			// Check if a directory
+			if (fno.fattrib & AM_DIR)
+			{
+				// Mark current path
+				i = strlen(path);
+
+				// Add sub-directory to path
+				sprintf(&path[i], "/%s", fno.fname);
+
+				// Enter sub-directory to repeat process
+				res = RecursiveDeleteDirectoryContents(path);
+				if (res != FR_OK) { break; }
+
+				// Delete sub-directory
+				if (f_unlink(path) != FR_OK) { break; }
+				
+				// Cut off added sub-directory to path
+				path[i] = 0;
+			}
+			else // File
+			{
+#if 0 /* Report to LCD */
+				sprintf((char*)g_spareBuffer, "%s %s", getLangText(REMOVING_TEXT), fno.fname);
+				OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
+#endif
+				// Check if matching desired and substring match, or is matching excluded and match not found
+				if (((matchFiles) && (strstr(fno.fname, matchingSubString) == 0)) || ((matchFiles == 0) && (strstr(fno.fname, matchingSubString))))
+				{
+					// Delete, need full path?
+					if (f_unlink(fno.fname) != FR_OK) { break; }
+					s_filesDeleted++;
+				}
+			}
+		}
+
+		f_closedir(&dir);
+	}
+
+	return res;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void DeleteEventFileRecords(void)
+{
+	debug("Deleting Events...\r\n");
+
+	s_filesDeleted = 0;
+
+	//-----------------------------------------------------------------------------
+	// Handle removing event files
+	//-----------------------------------------------------------------------------
+	RecursiveDeleteDirectoryContents(EVENTS_PATH);
+
+	//-----------------------------------------------------------------------------
+	// Handle removing compressed event data files
+	//-----------------------------------------------------------------------------
+	RecursiveDeleteDirectoryContents(ER_DATA_PATH);
+
+	if (f_unlink(s_summaryListFileName) != FR_OK)
+	{
+		ReportFileSystemAccessProblem("Unable to delete Summary List");
+	}
+
+	sprintf((char*)g_spareBuffer, "%s %d %s", getLangText(REMOVED_TEXT), s_filesDeleted, getLangText(EVENTS_TEXT));
+	OverlayMessage(getLangText(DELETE_EVENTS_TEXT), (char*)g_spareBuffer, 3 * SOFT_SECS);
+
+	InitEventNumberCache();
+	InitSummaryListFile();
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void DeleteNonEssentialFiles(void)
 {
-	filesDeleted = 0;
+	s_filesDeleted = 0;
 
 	debug("Deleting Non-Essential Files...\r\n");
 
-	if (g_fileAccessLock != AVAILABLE)
-	{
-		ReportFileSystemAccessProblem("Delete multiple non-essential files");
-	}
-	else // (g_fileAccessLock == AVAILABLE)
-	{
-		GetSpi1MutexLock(SDMMC_LOCK);
+	//-----------------------------------------------------------------------------
+	// Handle removing event files
+	//-----------------------------------------------------------------------------
+	RecursiveDeleteDirectoryContents(EVENTS_PATH);
 
-		//-----------------------------------------------------------------------------
-		// Handle removing event files
-		//-----------------------------------------------------------------------------
-		RecursiveDeleteDirectoryContents(EVENTS_PATH);
+	//-----------------------------------------------------------------------------
+	// Handle removing compressed event data files
+	//-----------------------------------------------------------------------------
+	RecursiveDeleteDirectoryContents(ER_DATA_PATH);
 
-		//-----------------------------------------------------------------------------
-		// Handle removing compressed event data files
-		//-----------------------------------------------------------------------------
-		RecursiveDeleteDirectoryContents(ER_DATA_PATH);
+	//-----------------------------------------------------------------------------
+	// Handle removing Log files
+	//-----------------------------------------------------------------------------
+	RecursiveDeleteDirectoryContents(LOGS_PATH);
 
-		//-----------------------------------------------------------------------------
-		// Handle removing Log files
-		//-----------------------------------------------------------------------------
-		RecursiveDeleteDirectoryContents(LOGS_PATH);
+	//-----------------------------------------------------------------------------
+	// Handle removing non Language files except for .tbl extension
+	//-----------------------------------------------------------------------------
+	RecursiveDeleteDirectoryContentsSpecial(LANGUAGE_PATH, "tbl", EXCLUDE_FILE_MATCH);
 
-#if 0 /* old hw */
-		nav_select(FS_NAV_ID_DEFAULT);
+	//-----------------------------------------------------------------------------
+	// Handle removing System files except for Boot/Apploader
+	//-----------------------------------------------------------------------------
+	RecursiveDeleteDirectoryContentsSpecial(SYSTEM_PATH, "Boot.s", EXCLUDE_FILE_MATCH);
 
-		//-----------------------------------------------------------------------------
-		// Handle removing event files
-		//-----------------------------------------------------------------------------
-		if (nav_setcwd(EVENTS_PATH, TRUE, FALSE) == TRUE)
-		{
-			while (nav_filelist_set(0 , FS_FIND_NEXT))
-			{
-				nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-				sprintf((char*)g_spareBuffer, "%s %s", getLangText(REMOVING_TEXT), g_spareFileName);
-				OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
+	//-----------------------------------------------------------------------------
+	// Re-create Summary List
+	//-----------------------------------------------------------------------------
+	// Necessary?
 
-				// Delete file or directory
-				if (nav_file_del(FALSE) == FALSE)
-				{
-					nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-					sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(EVENT_TEXT));
-					OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
-					//break;
-				}
-				else
-				{
-					filesDeleted++;
-				}
-			}
-		}
+	sprintf((char*)g_spareBuffer, "%s %d %s", getLangText(REMOVED_TEXT), s_filesDeleted, getLangText(TOTAL_FILES_TEXT));
+	OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 3 * SOFT_SECS);
 
-		//-----------------------------------------------------------------------------
-		// Handle removing compressed event data files
-		//-----------------------------------------------------------------------------
-		if (nav_setcwd(ER_DATA_PATH, TRUE, FALSE) == TRUE)
-		{
-			while (nav_filelist_set(0 , FS_FIND_NEXT))
-			{
-				nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-				sprintf((char*)g_spareBuffer, "%s %s", getLangText(REMOVING_TEXT), g_spareFileName);
-				OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
-
-				// Delete file or directory
-				if (nav_file_del(FALSE) == FALSE)
-				{
-					nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-					sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(EVENT_TEXT));
-					OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
-					//break;
-				}
-				else
-				{
-					filesDeleted++;
-				}
-			}
-		}
-
-		//-----------------------------------------------------------------------------
-		// Handle removing Log files
-		//-----------------------------------------------------------------------------
-		if (nav_setcwd(LOGS_PATH, TRUE, FALSE) == TRUE)
-		{
-			while (nav_filelist_set(0 , FS_FIND_NEXT))
-			{
-				nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-				sprintf((char*)g_spareBuffer, "%s %s", getLangText(REMOVING_TEXT), g_spareFileName);
-				OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
-
-				// Delete file or directory
-				if (nav_file_del(FALSE) == FALSE)
-				{
-					nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-					sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(EVENT_TEXT));
-					OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
-					//break;
-				}
-				else
-				{
-					filesDeleted++;
-				}
-			}
-		}
-
-		//-----------------------------------------------------------------------------
-		// Handle removing non Language files except for .tbl extension
-		//-----------------------------------------------------------------------------
-		if (nav_setcwd(LANGUAGE_PATH, TRUE, FALSE) == TRUE)
-		{
-			while (nav_filelist_set(0 , FS_FIND_NEXT))
-			{
-				nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-
-				if (nav_file_checkext("tbl") == FALSE)
-				{
-					sprintf((char*)g_spareBuffer, "%s %s", getLangText(REMOVING_TEXT), g_spareFileName);
-					OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
-
-					// Delete file or directory
-					if (nav_file_del(FALSE) == FALSE)
-					{
-						nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-						sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(EVENT_TEXT));
-						OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
-						//break;
-					}
-					else
-					{
-						filesDeleted++;
-					}
-				}
-			}
-		}
-
-		//-----------------------------------------------------------------------------
-		// Handle removing System files except for Boot/Apploader
-		//-----------------------------------------------------------------------------
-		if (nav_setcwd(SYSTEM_PATH, TRUE, FALSE) == TRUE)
-		{
-			while (nav_filelist_set(0 , FS_FIND_NEXT))
-			{
-				nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-
-				if (strcasecmp(g_spareFileName, "Boot.s") != 0)
-				{
-					sprintf((char*)g_spareBuffer, "%s %s", getLangText(REMOVING_TEXT), g_spareFileName);
-					OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
-
-					// Delete file or directory
-					if (nav_file_del(FALSE) == FALSE)
-					{
-						nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-						sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(EVENT_TEXT));
-						OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
-						//break;
-					}
-					else
-					{
-						filesDeleted++;
-					}
-				}
-			}
-		}
-
-		//-----------------------------------------------------------------------------
-		// Re-create directory
-		//-----------------------------------------------------------------------------
-		if (nav_setcwd(ER_DATA_PATH, TRUE, FALSE) == FALSE)
-		{
-			debugErr("Unable to access or create the ERData directory\r\n");
-			sprintf((char*)g_spareBuffer, "%s %s %s", getLangText(UNABLE_TO_ACCESS_TEXT), "ERDATA", getLangText(DIR_TEXT));
-			OverlayMessage(getLangText(ERROR_TEXT), (char*)g_spareBuffer, 3 * SOFT_SECS);
-		}
-
-		//-----------------------------------------------------------------------------
-		// Re-create directory
-		//-----------------------------------------------------------------------------
-		if (nav_setcwd(EVENTS_PATH, TRUE, FALSE) == FALSE)
-		{
-			debugErr("Unable to access or create the Events directory\r\n");
-			sprintf((char*)g_spareBuffer, "%s %s %s", getLangText(UNABLE_TO_ACCESS_TEXT), "EVENTS", getLangText(DIR_TEXT));
-			OverlayMessage(getLangText(ERROR_TEXT), (char*)g_spareBuffer, 3 * SOFT_SECS);
-		}
-
-		//-----------------------------------------------------------------------------
-		// Re-create directory
-		//-----------------------------------------------------------------------------
-		if (nav_setcwd(LANGUAGE_PATH, TRUE, FALSE) == FALSE)
-		{
-			debugErr("Unable to access or create the Events directory\r\n");
-			sprintf((char*)g_spareBuffer, "%s %s %s", getLangText(UNABLE_TO_ACCESS_TEXT), "LANGUAGE", getLangText(DIR_TEXT));
-			OverlayMessage(getLangText(ERROR_TEXT), (char*)g_spareBuffer, 3 * SOFT_SECS);
-		}
-
-		//-----------------------------------------------------------------------------
-		// Re-create directory
-		//-----------------------------------------------------------------------------
-		if (nav_setcwd(LOGS_PATH, TRUE, FALSE) == FALSE)
-		{
-			debugErr("Unable to access or create the Events directory\r\n");
-			sprintf((char*)g_spareBuffer, "%s %s %s", getLangText(UNABLE_TO_ACCESS_TEXT), "LOGS", getLangText(DIR_TEXT));
-			OverlayMessage(getLangText(ERROR_TEXT), (char*)g_spareBuffer, 3 * SOFT_SECS);
-		}
-
-		//-----------------------------------------------------------------------------
-		// Re-create directory
-		//-----------------------------------------------------------------------------
-		if (nav_setcwd(SYSTEM_PATH, TRUE, FALSE) == FALSE)
-		{
-			debugErr("Unable to access or create the Events directory\r\n");
-			sprintf((char*)g_spareBuffer, "%s %s %s", getLangText(UNABLE_TO_ACCESS_TEXT), "SYSTEM", getLangText(DIR_TEXT));
-			OverlayMessage(getLangText(ERROR_TEXT), (char*)g_spareBuffer, 3 * SOFT_SECS);
-		}
-
-		//-----------------------------------------------------------------------------
-		// Re-create Summary List
-		//-----------------------------------------------------------------------------
-		if (nav_setcwd(s_summaryListFileName, TRUE, FALSE) == TRUE)
-		{
-			if (nav_file_del(FALSE) == FALSE)
-			{
-				nav_file_getname(g_spareFileName, MAX_FILE_NAME_CHARS);
-				sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(SUMMARY_LIST_TEXT));
-				OverlayMessage(g_spareFileName, (char*)g_spareBuffer, 3 * SOFT_SECS);
-			}
-		}
-#endif
-		ReleaseSpi1MutexLock();
-
-		sprintf((char*)g_spareBuffer, "%s %d %s", getLangText(REMOVED_TEXT), filesDeleted, getLangText(TOTAL_FILES_TEXT));
-		OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 3 * SOFT_SECS);
-
-		InitEventNumberCache();
-		InitSummaryListFile();
-	}
+	InitEventNumberCache();
+	InitSummaryListFile();
 }
 
 ///----------------------------------------------------------------------------
@@ -2107,64 +1677,6 @@ BOOLEAN CheckValidEventFile(uint16 eventNumber)
 	return(validFile);
 }
 
-#define SD_MMC_SPI_NPCS	2
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void ReInitSdCardAndFat32(void)
-{
-	// Power off the SD card
-	PowerControl(SD_POWER, OFF);
-
-	// Wait for power to propagate
-	SoftUsecWait(10 * SOFT_MSECS);
-
-	// Power on the SD Card
-	PowerControl(SD_POWER, ON);
-
-	// Wait for power to propagate
-	SoftUsecWait(10 * SOFT_MSECS);
-
-#if 0 /* old hw */
-	// Check if SD Detect pin 
-	if (gpio_get_pin_value(AVR32_PIN_PA02) == SDMMC_CARD_DETECTED)
-	{
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-		spi_selectChip(&AVR32_SPI1, SD_MMC_SPI_NPCS);
-		sd_mmc_spi_internal_init();
-		spi_unselectChip(&AVR32_SPI1, SD_MMC_SPI_NPCS);
-
-		// Init the NAV and select the SD MMC Card
-		nav_reset();
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		// Check if the drive select was successful
-		if (nav_drive_set(0) == TRUE)
-		{
-			// Check if the partition mount was unsuccessful (otherwise passes through without an error case)
-			if (nav_partition_mount() == FALSE)
-			{
-				// Error case
-				debugErr("FAT32 SD Card mount failed\r\n");
-				OverlayMessage(getLangText(ERROR_TEXT), getLangText(FAILED_TO_MOUNT_SD_CARD_TEXT), 0);
-			}
-		}
-		else // Error case
-		{
-			debugErr("FAT32 SD Card drive select failed\r\n");
-			OverlayMessage(getLangText(ERROR_TEXT), getLangText(FAILED_TO_SELECT_SD_CARD_DRIVE_TEXT), 0);
-		}
-
-		ReleaseSpi1MutexLock();
-	}
-	else
-	{
-		debugErr("\n\nSD Card not detected\r\n");
-	}
-#endif
-}
-
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -2178,60 +1690,6 @@ void PowerDownSDCard(void)
 	// Wait for power to propagate
 	SoftUsecWait(10 * SOFT_MSECS);
 
-	debugRaw("done.\r\n");
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void PowerUpSDCardAndInitFat32(void)
-{
-	debugRaw("\nPowering up SD Card and ReInit Fat32... \r\n");
-
-	// Power on the SD Card
-	PowerControl(SD_POWER, ON);
-
-	// Wait for power to propagate
-	SoftUsecWait(10 * SOFT_MSECS);
-
-#if 0 /* old hw */
-	// Check if SD Detect pin 
-	if (gpio_get_pin_value(AVR32_PIN_PA02) == SDMMC_CARD_DETECTED)
-	{
-		GetSpi1MutexLock(SDMMC_LOCK);
-
-		spi_selectChip(&AVR32_SPI1, SD_MMC_SPI_NPCS);
-		sd_mmc_spi_internal_init();
-		spi_unselectChip(&AVR32_SPI1, SD_MMC_SPI_NPCS);
-
-		// Init the NAV and select the SD MMC Card
-		nav_reset();
-		nav_select(FS_NAV_ID_DEFAULT);
-
-		// Check if the drive select was successful
-		if (nav_drive_set(0) == TRUE)
-		{
-			// Check if the partition mount was unsuccessful (otherwise passes through without an error case)
-			if (nav_partition_mount() == FALSE)
-			{
-				// Error case
-				debugErr("FAT32 SD Card mount failed\r\n");
-				OverlayMessage(getLangText(ERROR_TEXT), getLangText(FAILED_TO_MOUNT_SD_CARD_TEXT), 0);
-			}
-		}
-		else // Error case
-		{
-			debugErr("FAT32 SD Card drive select failed\r\n");
-			OverlayMessage(getLangText(ERROR_TEXT), getLangText(FAILED_TO_SELECT_SD_CARD_DRIVE_TEXT), 0);
-		}
-
-		ReleaseSpi1MutexLock();
-	}
-	else
-	{
-		debugErr("\n\nSD Card not detected\r\n");
-	}
-#endif
 	debugRaw("done.\r\n");
 }
 
@@ -2658,32 +2116,28 @@ void CalculateCurrentConfigEventSizesRemaining(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void InitSDCardUsageStats(void)
+extern FATFS fs_obj;
+void GetSDCardUsageStats(void)
 {
-#if 0 /* old hw */
-#if NS8100_ORIGINAL_PROTOTYPE
-	sd_mmc_spi_get_capacity();
+    uint32_t freeClusterInfo, freeSectors, totalSectors;
+	FATFS* fs = &fs_obj;
 
-	g_sdCardUsageStats.sizeUsed = 0;
-	g_sdCardUsageStats.sizeFree = capacity - g_sdCardUsageStats.sizeUsed;
-	g_sdCardUsageStats.percentUsed = (uint8)((g_sdCardUsageStats.sizeUsed * 100) / capacity);
-	g_sdCardUsageStats.percentFree = (uint8)(100 - g_sdCardUsageStats.percentUsed);
-#else /* (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE) */
-	nav_select(FS_NAV_ID_DEFAULT);
-	nav_drive_set(0);
-
-	if (!nav_partition_mount()) // Mount drive
+    // Get volume information and free clusters
+    if (f_getfree("", &freeClusterInfo, &fs) != FR_OK)
 	{
-		debugErr("SD MMC Card: Unable to mount volume\r\n");
+		debugErr("Drive(eMMC): Unable to get free space\r\n");
 	}
 
-	g_sdCardUsageStats.clusterSizeInBytes = (fs_g_nav.u8_BPB_SecPerClus * SECTOR_SIZE_IN_BYTES);
-	g_sdCardUsageStats.sizeFree = (nav_partition_freespace() * SECTOR_SIZE_IN_BYTES);
-	g_sdCardUsageStats.sizeUsed = (nav_partition_space() * SECTOR_SIZE_IN_BYTES) - g_sdCardUsageStats.sizeFree;
-	g_sdCardUsageStats.percentFree = (uint8)(nav_partition_freespace_percent());
+    // Get total sectors and free sectors
+    totalSectors = (fs->n_fatent - 2) * fs->csize;
+    freeSectors = freeClusterInfo * fs->csize;
+
+	g_sdCardUsageStats.clusterSizeInBytes = (fs->csize * 512); // Assuming 512 bytes/sector
+	g_sdCardUsageStats.sizeFree = (freeSectors * 512);
+	g_sdCardUsageStats.sizeUsed = ((totalSectors - freeSectors) * 512);
+	g_sdCardUsageStats.percentFree = (uint8)(freeSectors / totalSectors);
 	g_sdCardUsageStats.percentUsed = (uint8)(100 - g_sdCardUsageStats.percentFree);
-#endif
-#endif
+
 	CalculateCurrentConfigEventSizesRemaining();
 
 	// Reset tracking size count
@@ -2693,30 +2147,34 @@ void InitSDCardUsageStats(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void GetSDCardUsageStats(void)
+#if 0 /* Unused */
+void InitDriveUsageStats(void)
 {
-#if NS8100_ORIGINAL_PROTOTYPE
-	sd_mmc_spi_get_capacity();
+    uint32_t freeClusterInfo, freeSectors, totalSectors;
+	FATFS* fs = &fs_obj;
 
-	g_sdCardUsageStats.sizeUsed = 0;
-	g_sdCardUsageStats.sizeFree = capacity - g_sdCardUsageStats.sizeUsed;
-	g_sdCardUsageStats.percentUsed = (uint8)((g_sdCardUsageStats.sizeUsed * 100) / capacity);
-	g_sdCardUsageStats.percentFree = (uint8)(100 - g_sdCardUsageStats.percentUsed);
-#else /* (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE) */
-#if 0 /* old hw */
-	g_sdCardUsageStats.clusterSizeInBytes = (fs_g_nav.u8_BPB_SecPerClus * SECTOR_SIZE_IN_BYTES);
-	g_sdCardUsageStats.sizeFree = (nav_partition_freespace() * SECTOR_SIZE_IN_BYTES);
-	g_sdCardUsageStats.sizeUsed = (nav_partition_space() * SECTOR_SIZE_IN_BYTES) - g_sdCardUsageStats.sizeFree;
-	g_sdCardUsageStats.percentFree = (uint8)(nav_partition_freespace_percent());
+    // Get volume information and free clusters
+    if (f_getfree("", &freeClusterInfo, &fs) != FR_OK)
+	{
+		debugErr("Drive(eMMC): Unable to get free space\r\n");
+	}
+
+    // Get total sectors and free sectors
+    totalSectors = (fs->n_fatent - 2) * fs->csize;
+    freeSectors = freeClusterInfo * fs->csize;
+
+	g_sdCardUsageStats.clusterSizeInBytes = (fs->csize * 512); // Assuming 512 bytes/sector
+	g_sdCardUsageStats.sizeFree = (freeSectors * 512);
+	g_sdCardUsageStats.sizeUsed = ((totalSectors - freeSectors) * 512);
+	g_sdCardUsageStats.percentFree = (uint8)(freeSectors / totalSectors);
 	g_sdCardUsageStats.percentUsed = (uint8)(100 - g_sdCardUsageStats.percentFree);
-#endif
-#endif
 
 	CalculateCurrentConfigEventSizesRemaining();
 
 	// Reset tracking size count
 	s_addedSizeToSDCard = 0;
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -2927,200 +2385,6 @@ void SaveRemoteEventDownloadStreamToFile(uint16 eventNumber)
 #endif
 }
 #endif
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-uint8 MigrateLooseFiles(uint8 dirType)
-{
-	char baseDirPath[MAX_BASE_PATH_CHARS];
-	char fileExtension[10];
-	char* fileExtensionStartPtr;
-	char originalCreationDateTimeBuffer[20];
-	char originalLastWriteDateTimeBuffer[20];
-	uint16 lowerBounds, upperBounds;
-	uint16 duplicateCount = 0;
-	uint16 eventNumber = 0;
-	uint8 status = 0; //COPY_BUSY;
-#if 0 /* Test */
-	uint16 length;
-#endif
-#if 1 /* temp */
-	UNUSED(fileExtensionStartPtr);
-	UNUSED(originalCreationDateTimeBuffer);
-	UNUSED(originalLastWriteDateTimeBuffer);
-	UNUSED(lowerBounds);
-	UNUSED(upperBounds);
-	UNUSED(duplicateCount);
-	UNUSED(eventNumber);
-	UNUSED(status);
-#endif
-
-	//=========================================================================
-	// Setup based on type
-	//-------------------------------------------------------------------------
-	if (dirType == EVENT_FILE_TYPE)
-	{
-#if 0 /* Test */
-		length = sprintf((char*)g_debugBuffer, "Loose Event Migration, Handling Event (Up: %lu s)\r\n", (g_lifetimeHalfSecondTickCount / 2));
-		ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-#endif
-		strcpy(baseDirPath, EVENTS_PATH);
-		strcpy(fileExtension, "ns8");
-	}
-	else // ER_DATA_FILE_TYPE
-	{
-#if 0 /* Test */
-		length = sprintf((char*)g_debugBuffer, "Loose Event Migration, Handling ERData (Up: %lu s)\r\n", (g_lifetimeHalfSecondTickCount / 2));
-		ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-#endif
-		strcpy(baseDirPath, ER_DATA_PATH);
-		strcpy(fileExtension, "nsD");
-	}
-
-	// Select source directory in COPYFILE navigator handle
-#if 0 /* old hw */
-	nav_select(FS_NAV_ID_COPYFILE);
-	nav_setcwd((FS_STRING)baseDirPath, TRUE, FALSE);
-	nav_filelist_reset();
-
-	//=========================================================================
-	// Find loose event file to move
-	//-------------------------------------------------------------------------
-	while (nav_filelist_set(0, FS_FIND_NEXT))
-	{
-		// Check if entry is a file (in the root of the Events directory)
-		if (!nav_file_isdir())
-		{
-			// Check if the file has the correct event file extension
-			if (nav_file_checkext(fileExtension))
-			{
-				// Get the event number from the filename filtering for the original format
-				nav_file_name((FS_STRING)g_spareFileName, 255, FS_NAME_GET, FALSE);
-				eventNumber = GetEventNumberFromFilename((char*)g_spareFileName, ORIGINAL_EVENT_NAME_FORMAT);
-
-				// Check if the event number is valid
-				if (eventNumber)
-				{
-#if 0 /* Test */
-					length = sprintf((char*)g_debugBuffer, "Loose Event Migration, Found loose event: %d (Up: %lu s)\r\n", eventNumber, (g_lifetimeHalfSecondTickCount / 2));
-					ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-#endif
-					// Get Primary location directory boundaries
-					GetSubDirLowerAndUpperBounds(eventNumber, &lowerBounds, &upperBounds);
-
-					// Get the original creation date
-					nav_file_dateget((FS_STRING)originalCreationDateTimeBuffer, FS_DATE_CREATION);
-					nav_file_dateget((FS_STRING)originalLastWriteDateTimeBuffer, FS_DATE_LAST_WRITE);
-
-					// Got what we needed
-					break;
-				}
-			}
-		}
-	}
-
-	//=========================================================================
-	// Move loose event file to Primary location
-	//-------------------------------------------------------------------------
-	if (eventNumber)
-	{
-#if 0 /* Test */
-		length = sprintf((char*)g_debugBuffer, "Loose Event Migration, Handling %s #%d (Up: %lu s)\r\n", ((dirType == EVENT_FILE_TYPE) ? "Event" : "ERData"), eventNumber, (g_lifetimeHalfSecondTickCount / 2));
-		ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-#endif
-		// Select destination directory in USHELL navigator handle
-		nav_select(FS_NAV_ID_DEFAULT);
-		sprintf(g_spareFileName, "%s%s %d-%d\\", baseDirPath, EVTS_SUB_DIR, lowerBounds, upperBounds);
-
-#if 0 /* Test */
-		length = sprintf((char*)g_debugBuffer, "Loose Event Migration, Base dir: (%s) (Up: %lu s)\r\n", g_spareFileName, (g_lifetimeHalfSecondTickCount / 2));
-		ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-#endif
-		nav_setcwd((FS_STRING)g_spareFileName, TRUE, TRUE);
-
-		sprintf(g_spareFileName, "%s%d.%s", EVT_FILE, eventNumber, fileExtension);
-#if 0 /* Test */
-		length = sprintf((char*)g_debugBuffer, "Loose Event Migration, Path and file: (%s) (Up: %lu s)\r\n", g_spareFileName, (g_lifetimeHalfSecondTickCount / 2));
-		ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-#endif
-
-		//=========================================================================
-		// Start paste operation
-		//-------------------------------------------------------------------------
-		while ((!nav_file_paste_start((FS_STRING)g_spareFileName)) && (duplicateCount < 256))
-		{
-            // Check if the error code if anything but the file exists
-            if (fs_g_status != FS_ERR_FILE_EXIST)
-            {
-	            // Error
-				return (NO);
-            }
-
-			//=========================================================================
-			// Duplicate file found
-			//-------------------------------------------------------------------------
-			// Check if this is the first duplicate match
-			if (!duplicateCount)
-			{
-#if 0 /* Test */
-				length = sprintf((char*)g_debugBuffer, "Loose Event Migration, Duplicate found for #%d (Up: %lu s)\r\n", eventNumber, (g_lifetimeHalfSecondTickCount / 2));
-				ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-#endif
-				fileExtensionStartPtr = strstr(g_spareFileName, ".");
-
-				// Check if the '.' separator was found
-				if (fileExtensionStartPtr)
-				{
-					// Terminate the string at the '.' separator
-					*fileExtensionStartPtr = '\0';
-				}
-
-				// Copy the file name (either up to the '.' separator)
-				strcpy((char*)g_spareBuffer, g_spareFileName);
-			}
-
-			sprintf((char*)g_spareFileName, "%s (%d).%s", g_spareBuffer, ++duplicateCount, fileExtension);
-#if 0 /* Test */
-			length = sprintf((char*)g_debugBuffer, "Loose Event Migration, New Path and file: (%s) (Up: %lu s)\r\n", g_spareFileName, (g_lifetimeHalfSecondTickCount / 2));
-			ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-#endif
-		}
-
-		//=========================================================================
-		// Continue paste operation
-		//-------------------------------------------------------------------------
-		if (fs_g_status != FS_ERR_FILE_EXIST)
-		{
-#if 0 /* Test */
-			length = sprintf((char*)g_debugBuffer, "Loose Event Migration, Finish Paste: (%s) (Up: %lu s)\r\n", g_spareFileName, (g_lifetimeHalfSecondTickCount / 2));
-			ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-#endif
-			// Set file creation and last access for new copied file
-			nav_file_dateset(originalCreationDateTimeBuffer, FS_DATE_CREATION);
-			nav_file_dateset(originalLastWriteDateTimeBuffer, FS_DATE_LAST_WRITE);
-
-			while (status == COPY_BUSY)
-			{
-				status = nav_file_paste_state(FALSE);
-			}
-
-			if (status == COPY_FINISH)
-			{
-				nav_select(FS_NAV_ID_COPYFILE);
-
-				if (!nav_file_del(TRUE))
-				{
-					return (NO);
-				}
-
-				return (YES);
-			}
-		}
-	}
-#endif
-	return (NO);
-}
 
 ///----------------------------------------------------------------------------
 ///	Function Break
