@@ -166,11 +166,11 @@ uint8_t VerifyAccManuIDAndPartID(void)
     if ((manuIDAndPartID[0] = 'K') && (manuIDAndPartID[1] = 'i') && (manuIDAndPartID[2] = 'o') && (manuIDAndPartID[3] = 'n'))
     {
         status = PASSED;
-        printf("Accelerometer Man ID verified, Part ID: 0x%x 0x%x\r\n", manuIDAndPartID[4], manuIDAndPartID[5]);
+        debug("Accelerometer Man ID verified, Part ID: 0x%x 0x%x\r\n", manuIDAndPartID[4], manuIDAndPartID[5]);
     }
     else
     {
-        printf("<Error> Accelerometer Man ID failed verified, 0x%x, 0x%x 0x%x 0x%x\r\n", manuIDAndPartID[0], manuIDAndPartID[1], manuIDAndPartID[2], manuIDAndPartID[3]);
+        debugErr("Accelerometer Man ID failed verified, 0x%x, 0x%x 0x%x 0x%x\r\n", manuIDAndPartID[0], manuIDAndPartID[1], manuIDAndPartID[2], manuIDAndPartID[3]);
     }
 
     return (status);

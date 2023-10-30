@@ -164,7 +164,7 @@ void MoveManualCalToFile(void)
 
 		if (f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
 		{
-			printf("<Error> Unable to create cal event file: %s\n", g_spareFileName);
+			debugErr("Unable to create cal event file: %s\n", g_spareFileName);
 		}
 		else // File created, write out the event
 		{
@@ -195,7 +195,7 @@ void MoveManualCalToFile(void)
 				GetERDataFilename(g_pendingEventRecord.summary.eventNumber);
 				if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
 				{
-					printf("<Error> Unable to create ERdata event file: %s\n", g_spareFileName);
+					debugErr("Unable to create ERdata event file: %s\n", g_spareFileName);
 				}
 				else // File created, write out the event
 				{

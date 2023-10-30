@@ -1159,7 +1159,7 @@ void CopyDataToCache(void* data)
 				{
 					// Set the default value in the long data
 					g_userMenuCacheData.floatData = g_userMenuCacheData.floatDefault;
-					debug("User Input Float not within Range, Setting to Default: %f\r\n", g_userMenuCacheData.floatData);
+					debug("User Input Float not within Range, Setting to Default: %f\r\n", (double)g_userMenuCacheData.floatData);
 				}
 			}
 

@@ -629,11 +629,11 @@ void BuildLanguageLinkTable(uint8 languageSelection)
 	// Attempt to find the file on the SD file system
     if ((f_stat((const TCHAR*)&languageFilename[0], &fno)) == FR_NO_FILE)
 	{
-		printf("<Warning> Language file not found: %s\n", &languageFilename[0]);
+		debugWarn("Language file not found: %s\n", &languageFilename[0]);
 	}
 	else // File exists
 	{
-		if ((f_open(&file, (const TCHAR*)&languageFilename[0], FA_READ)) != FR_OK) { printf("Error opening file: %s\n", &languageFilename[0]); }
+		if ((f_open(&file, (const TCHAR*)&languageFilename[0], FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\n", &languageFilename[0]); }
 		debug("Loading language table from file: %s, Length: %d\r\n", (char*)&languageFilename[0], f_size(&file));
 
 		memset(&g_languageTable[0], '\0', sizeof(g_languageTable));

@@ -102,7 +102,7 @@ USER_MENU_STRUCT airTriggerMenu[AIR_TRIGGER_MENU_ENTRIES] = {
 void AirTriggerMenuHandler(uint8 keyPressed, void* data)
 {
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
-	
+
 	if (keyPressed == ENTER_KEY)
 	{	
 		g_triggerRecord.trec.airTriggerLevel = AirTriggerConvert(*((uint32*)data));
@@ -117,7 +117,7 @@ void AirTriggerMenuHandler(uint8 keyPressed, void* data)
 			else // (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) || (g_unitConfig.unitsOfAir == PSI_TYPE)
 			{
 				// Millibar and PSI true values has been shifted up by 10,000
-				debug("Air Trigger: %f %s\r\n", ((float)(*((uint32*)data)) / (float)10000), (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) ? "mb : pis");
+				debug("Air Trigger: %f %s\r\n", (double)(((float)(*((uint32*)data)) / (float)10000)), ((g_unitConfig.unitsOfAir == MILLIBAR_TYPE) ? "mb" : "pis"));
 			}
 		}
 
@@ -335,7 +335,7 @@ void AlarmOneTimeMenuHandler(uint8 keyPressed, void* data)
 	{	
 		g_unitConfig.alarmOneTime = *((float*)data);
 		
-		debug("Alarm 1 Time: %f\r\n", g_unitConfig.alarmOneTime);
+		debug("Alarm 1 Time: %f\r\n", (double)g_unitConfig.alarmOneTime);
 
 		SETUP_USER_MENU_MSG(&alarmTwoMenu, g_unitConfig.alarmTwoMode);
 	}
@@ -496,7 +496,7 @@ void AlarmTwoTimeMenuHandler(uint8 keyPressed, void* data)
 	{	
 		g_unitConfig.alarmTwoTime = *((float*)data);
 		
-		debug("Alarm 2 Time: %f\r\n", g_unitConfig.alarmTwoTime);
+		debug("Alarm 2 Time: %f\r\n", (double)g_unitConfig.alarmTwoTime);
 
 		SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
 
@@ -700,7 +700,7 @@ void DistanceToSourceMenuHandler(uint8 keyPressed, void* data)
 		if (g_unitConfig.unitsOfMeasure == METRIC_TYPE)
 			g_triggerRecord.trec.dist_to_source *= FT_PER_METER;
 
-		debug("Distance to Source: %f ft\r\n", g_triggerRecord.trec.dist_to_source);
+		debug("Distance to Source: %f ft\r\n", (double)g_triggerRecord.trec.dist_to_source);
 
 		if ((g_triggerRecord.opMode == WAVEFORM_MODE) || (g_triggerRecord.opMode == COMBO_MODE))
 		{
@@ -1705,7 +1705,7 @@ void WeightPerDelayMenuHandler(uint8 keyPressed, void* data)
 		if (g_unitConfig.unitsOfMeasure == METRIC_TYPE)
 			g_triggerRecord.trec.weight_per_delay *= LBS_PER_KG;
 
-		debug("Weight per Delay: %.1f lbs\r\n", g_triggerRecord.trec.weight_per_delay);
+		debug("Weight per Delay: %.1f lbs\r\n", (double)g_triggerRecord.trec.weight_per_delay);
 
 		SETUP_USER_MENU_MSG(&operatorMenu, &g_triggerRecord.trec.oper);
 	}

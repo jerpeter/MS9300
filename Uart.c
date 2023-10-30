@@ -17,6 +17,10 @@
 #include "RemoteCommon.h"
 #include "PowerManagement.h"
 
+#include <stdint.h>
+#include "mxc_errors.h"
+#include "i2c.h"
+
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
@@ -430,7 +434,7 @@ short Craft(char* fmt, ...)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-short DebugPrint(uint8 mode, char* fmt, ...)
+short DebugPrint(uint8_t mode, char* fmt, ...)
 {
 	va_list arg_ptr;
 	short length = 0;
@@ -617,4 +621,153 @@ void DebugPrintChar(uint8 charData)
 		UartPutc(charData, CRAFT_COM_PORT);
 #endif
 	}
+}
+
+///============================================================================
+///----------------------------------------------------------------------------
+///	PI7C9X760 - I2C-bus/SPI to UART Bridge Controller w/ 64 bytes of TX/RX FIFOs
+///----------------------------------------------------------------------------
+///============================================================================
+#define PI7C9X760_REG_RHR		0x00 // Receive Holding Register, 		Notes: Accessible when LCR[7]=0. Default=00
+#define PI7C9X760_REG_THR		0x00 // Transmit Holding Register, 		Notes: Accessible when LCR[7]=0. Default=00
+#define PI7C9X760_REG_DLL		0x00 // Divisor Latch LSB, 				Notes: Accessible when LCR[7]=1 and LCR!=0xBF. Default=01
+#define PI7C9X760_REG_IER		0x01 // Interrupt Enable Register, 		Notes: Accessible when LCR[7]=0. Default=00
+#define PI7C9X760_REG_DLH		0x01 // Divisor Latch MSB, 				Notes: Accessible when LCR[7]=1 and LCR!=0xBF. Default=00
+#define PI7C9X760_REG_IIR		0x02 // Interrupt Id Register, 			Notes: Accessible when LCR[7]=0. Default=01
+#define PI7C9X760_REG_FCR		0x02 // FIFO Control Register, 			Notes: Accessible when LCR[7]=0. Default=00
+#define PI7C9X760_REG_EFR		0x02 // Enhanced Feature Register, 		Notes: Accessible when LCR=0xBF and SFR[2]=0. Default=00
+#define PI7C9X760_REG_LCR		0x03 // Line Control Register, 			Notes: Default=1D (I argue this is supposed to be 0x1B)
+#define PI7C9X760_REG_MCR		0x04 // Modem Control Register, 		Notes: Accessible when LCR[7]=0. Default=00
+#define PI7C9X760_REG_XON1		0x04 // XON1 Character Register, 		Notes: Accessible when LCR=0xBF and SFR[2]=0. Default=00
+#define PI7C9X760_REG_LSR		0x05 // Line Status Register, 			Notes: Accessible when LCR[7]=0. Default=60
+#define PI7C9X760_REG_XON2		0x05 // XON2 Character Register, 		Notes: Accessible when LCR=0xBF and SFR[2]=0. Default=00
+#define PI7C9X760_REG_MSR		0x06 // Modem Status Register, 			Notes: Accessible when LCR[7]=0 and MCR[2]=0 and SFR[2]=0. Default=00
+#define PI7C9X760_REG_TCR		0x06 // Transmission Control Register, 	Notes: Accessible when EFR[4]=1 and MCR[2]=1 and SFR[2]=0. Default=00
+#define PI7C9X760_REG_XOFF1		0x06 // XOFF1 Character Register, 		Notes: Accessible when LCR=0xBF and SFR[2]=0. Default=00
+#define PI7C9X760_REG_SPR		0x07 // Scratch Pad Register, 			Notes: Accessible when LCR[7]=0 and MCR[2]=0. Default=FF
+#define PI7C9X760_REG_TLR		0x07 // Trigger Level Register, 		Notes: Accessible when EFR[4]=1 and MCR[2]=1. Default=00
+#define PI7C9X760_REG_XOFF2		0x07 // XOFF2 Character Register,		Notes: Accessible when LCR=0xBF and SFREN!=0x5A. Default=00
+#define PI7C9X760_REG_TXLVL		0x08 // Transmit FIFO Level Register,	Notes: Accessible when SFR[2]=0. Default=40
+#define PI7C9X760_REG_RXLVL		0x09 // Receive FIFO Level Register,	Notes: Accessible when SFR[2]=0. Default=00
+#define PI7C9X760_REG_IODIR		0x0A // GPIO Direction Register,		Notes: Default=00
+#define PI7C9X760_REG_IOSTATE	0x0B // GPIO State Register,			Notes: Default=FF
+#define PI7C9X760_REG_IOINTEN	0x0C // GPIO Interrupt Enable Register,	Notes: Default=00
+#define PI7C9X760_REG_IOCONTROL	0x0E // GPIO Control Register,			Notes: Default=00
+#define PI7C9X760_REG_EFCR		0x0F // Extra Features Control Reg,		Notes: Accessable when SFR[2]=0, Default=00
+#define PI7C9X760_REG_SFREN		0x0D // Special Features Enable Ctrl,	Notes: Accessible when LCR==8'hBF. Default=00 (Spec typo?)
+#define PI7C9X760_REG_ASR		0x02 // Advance Status Register,		Notes: Accessible when LCR=0xBF and SFR[2]=1. Default=00
+#define PI7C9X760_REG_CPR		0x04 // Clock Prescale Register,		Notes: Accessible when LCR=0xBF and SFR[2]=1. Default=10
+#define PI7C9X760_REG_RFD		0x05 // Rcv FIFO Data Count Register,	Notes: Accessible when LCR=0xBF and SFR[2]=1, SFR[6]=0. Default=00
+#define PI7C9X760_REG_RLS		0x05 // Receive Line Error Status Cnt,	Notes: Accessible when LCR=0xBF and SFR[2]=1, SFR[6]=1. Default=00
+#define PI7C9X760_REG_TFD		0x06 // Tx FIFO Data Count Register,	Notes: Accessible when LCR=0xBF and SFR[2]=1. Default=00
+#define PI7C9X760_REG_SFR		0x07 // Special Function Register,		Notes: Accessible when LCR=0xBF and SFREN==0x5A. Default=00
+#define PI7C9X760_REG_TIIDLE	0x08 // Tx Idle Time Count Register,	Notes: Accessible when LCR=0xBF and SFR[2]=1. Default=00
+#define PI7C9X760_REG_TRCTL		0x09 // Tx/Rx Control Register,			Notes: Accessible when LCR=0xBF and SFR[2]=1. Default=06
+#define PI7C9X760_REG_ISCR		0x0F // Interrupt Status/Clear Reg,		Notes: Accessible when LCR=0xBF and SFR[2]=1. Default=00
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void GetUartBridgeRegisters(uint8_t registerAddress, uint8_t* registerData, uint16_t dataLength)
+{
+    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, &registerAddress, sizeof(uint8_t), registerData, dataLength);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetUartBridgeRegisters(uint8_t registerAddress, uint8_t* registerData, uint16_t dataLength)
+{
+	g_spareBuffer[0] = registerAddress;
+	memcpy(&g_spareBuffer[1], registerData, dataLength);
+
+    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, g_spareBuffer, (dataLength + 1), NULL, 0);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void WriteUartBridgeControlRegister(uint8_t registerAddress, uint8_t registerData)
+{
+	uint8_t writeData[2] = { registerAddress, registerData};
+
+    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, writeData, sizeof(writeData), NULL, 0);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t ReadUartBridgeControlRegister(uint8_t registerAddress)
+{
+	uint8_t readData;
+
+    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, &registerAddress, sizeof(registerAddress), &readData, sizeof(readData));
+
+	return (readData);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestUartBridgeScratchpad(void)
+{
+	debug("Testing UART Bridge (Exp)...\r\n");
+
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SPR, 0xAA);
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_SPR) == 0xAA) { debug("UART Bridge (Exp) passed 1st scracth test\r\n"); }
+	else { debugErr("UART Bridge (Exp) failed 1st scracth test\r\n"); }
+
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SPR, 0x55);
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_SPR) == 0x55) { debug("UART Bridge (Exp) passed 2nd scracth test\r\n"); }
+	else { debugErr("UART Bridge (Exp) failed 2nd scracth test\r\n"); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SleepUartBridgeDevice(void)
+{
+	/* The UART may enter sleep mode when all conditions met:
+	- no interrupts pending
+	- modem inputs are not toggled
+	- RX input pin is idling HIGH
+	- TX/RX FIFO are empty
+
+	It will exit from sleep mode when any below condition met:
+	- modem inputs are toggling
+	- RX input pin changed to LOW
+	- A data byte is loaded to the TX FIFO
+
+	In sleep mode, Crystal is stopped and no UART clock 
+	
+	Sleep mode enabling requires EFR[4] = 1
+	*/
+
+	// Todo: Need external pull up on RX input pin to allow sleep
+
+	// Clear Interrupts
+	//Offset 0FH: Interrupt Status and Clear Register (ISCR). Accessible when LCR=0xBF and SFR[2]=1. Default=00
+	//	Bit 0 set to logic 1
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0xBF);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x04);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_ISCR, 0x01);
+
+	// Reset FIFO's
+	//Offset 02H: FIFO Control Register (FCR). Accessible when LCR[7]=0. Default=00
+	//	Bits 1 & 2 setting logic 1 resets Tx/Rx FIFOs
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x1D);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_FCR, 0x06);
+
+	// Enable access to sleep mode (IER bit 4)
+	//Offset 02H: Enhanced Feature Register (EFR). Accessible when LCR=0xBF and SFR[2]=0. Default=00
+	//	Bit 4 set to logic 1
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0xBF);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x00);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_EFR, 0x10);
+
+	// Enable sleep
+	//Offset 01H: Interrupt Enable Register (IER). Accessible when LCR[7]=0. Default=00
+	//	Bit 4 set to logic 1
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x1D);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_IER, 0x10);
 }

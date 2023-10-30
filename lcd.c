@@ -1638,7 +1638,7 @@ void ft81x_init_display_settings()
 	// Get screen size W,H to confirm
 	ft81x_display_width = ft81x_rd16(REG_HSIZE);
 	ft81x_display_height = ft81x_rd16(REG_VSIZE);
-	printf("FT81X REG_HSIZE:%i  REG_VSIZE:%i\n", ft81x_display_width, ft81x_display_height);
+	debug("FT81X REG_HSIZE:%i  REG_VSIZE:%i\n", ft81x_display_width, ft81x_display_height);
 }
 
 void ft81x_init_touch_settings()
@@ -2935,7 +2935,7 @@ uint16_t ft81x_fifo_rp(
 {
 	uint16_t rp = ft81x_rd16(REG_CMD_READ);
 	if (rp == DL_CMD_FAULT) {
-		printf("FT81X COPROCESSOR EXCEPTION\n");
+		debugErr("FT81X COPROCESSOR EXCEPTION\n");
 		//vTaskDelay(50 / portTICK_PERIOD_MS);
 		// Resetting co-processor sets REG_CMD_READ to zero.
 		ft81x_wr(REG_CPURESET, 1);

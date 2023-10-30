@@ -3538,7 +3538,7 @@ void SeismicSensorTypeMenuHandler(uint8 keyPressed, void* data)
 		g_factorySetupRecord.seismicSensorType = (uint16)seismicSensorTypeMenu[newItemIndex].data;
 
 		if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER) { debug("Factory Setup: New Seismic sensor type: Accelerometer\r\n"); }
-		else { debug("Factory Setup: New Seismic sensor type: %3.1f in\r\n", (float)g_factorySetupRecord.seismicSensorType / (float)204.8); }
+		else { debug("Factory Setup: New Seismic sensor type: %3.1f in\r\n", (double)((float)g_factorySetupRecord.seismicSensorType / (float)204.8)); }
 
 		SETUP_USER_MENU_MSG(&acousticSensorTypeMenu, g_factorySetupRecord.acousticSensorType);
 	}

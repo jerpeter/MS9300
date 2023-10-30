@@ -41,7 +41,11 @@ typedef unsigned		bitfield;		/* variable # of bits */
 enum debugModes {RAW, NORM, WARN, ERR};
 
 // Define Project Debug Mode
-#define GLOBAL_DEBUG_PRINT_ENABLED	NO_DEBUG
+#define GLOBAL_DEBUG_PRINT_ENABLED	ALL_DEBUG
+
+#if 1 /* Necessary with new comiler? Appears so */
+extern short DebugPrint(unsigned char mode, char* fmt, ...);
+#endif
 
 // Print all debug statements
 #if (GLOBAL_DEBUG_PRINT_ENABLED == ALL_DEBUG)

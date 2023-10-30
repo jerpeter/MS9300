@@ -429,7 +429,7 @@ void DumpSummaryListFileToEventBuffer(void)
 	{
 		if ((f_open(&file, (const TCHAR*)s_summaryListFileName, FA_READ)) != FR_OK)
 		{
-			printf("<Error> File access problem, Dump Summary List: %s\n", s_summaryListFileName);
+			debugErr("File access problem, Dump Summary List: %s\n", s_summaryListFileName);
 		}
 		else // File successfully opened
 		{
@@ -477,7 +477,7 @@ void AddEventToSummaryList(EVT_RECORD* event)
 
     if ((f_open(&file, (const TCHAR*)s_summaryListFileName, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
-		printf("<Error> File access problem: Add Event to Summary list with: %s\n", s_summaryListFileName);
+		debugErr("File access problem: Add Event to Summary list with: %s\n", s_summaryListFileName);
 		//debugErr("File access problem: Add Event to Summary list\r\n");
 	}
 	else // File successfully created or opened
@@ -517,8 +517,7 @@ SUMMARY_LIST_ENTRY_STRUCT* GetSummaryFromSummaryList(uint16 eventNumber)
 
 		if ((f_open(&file, (const TCHAR*)s_summaryListFileName, FA_READ)) != FR_OK)
 		{
-			printf("<Error> File access problem: Get Summary from Summary List: %s\n", s_summaryListFileName);
-			//debugErr("File access problem: Get Summary from Summary List\r\n");
+			debugErr("File access problem: Get Summary from Summary List: %s\n", s_summaryListFileName);
 		}
 		else // File successfully opened
 		{
@@ -914,7 +913,7 @@ void FillInTriggerLevelRecordInfo(EVT_RECORD* eventRec)
 			tempSesmicTriggerInUnits *= (float)METRIC;
 		}
 
-		debug("Seismic trigger in units: %05.2f %s\r\n", tempSesmicTriggerInUnits, (g_unitConfig.unitsOfMeasure == METRIC_TYPE ? "mm" : "in"));
+		debug("Seismic trigger in units: %05.2f %s\r\n", (double)tempSesmicTriggerInUnits, (g_unitConfig.unitsOfMeasure == METRIC_TYPE ? "mm" : "in"));
 		eventRec->summary.parameters.seismicTriggerInUnits = (uint32)(tempSesmicTriggerInUnits * 100);
 	}
 
@@ -931,8 +930,8 @@ void FillInTriggerLevelRecordInfo(EVT_RECORD* eventRec)
 
 		eventRec->summary.parameters.airTriggerInUnits = AirTriggerConvertToUnits(g_triggerRecord.trec.airTriggerLevel);
 
-		if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) { debug("Air trigger in units: %05.3f mB\r\n", (float)(eventRec->summary.parameters.airTriggerInUnits / 10000)); }
-		else if (g_unitConfig.unitsOfAir == PSI_TYPE) { debug("Air trigger in units: %05.3f PSI\r\n", (float)(eventRec->summary.parameters.airTriggerInUnits / 10000)); }
+		if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) { debug("Air trigger in units: %05.3f mB\r\n", (double)(eventRec->summary.parameters.airTriggerInUnits / 10000)); }
+		else if (g_unitConfig.unitsOfAir == PSI_TYPE) { debug("Air trigger in units: %05.3f PSI\r\n", (double)(eventRec->summary.parameters.airTriggerInUnits / 10000)); }
 		else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { debug("Air trigger in units: %d dB\r\n", eventRec->summary.parameters.airTriggerInUnits); }
 	}
 }

@@ -125,7 +125,7 @@ void StartMonitoring(uint8 operationMode, TRIGGER_EVENT_DATA_STRUCT* opModeParam
 		else // (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) || (g_unitConfig.unitsOfAir == PSI_TYPE)
 		{
 			debug("\tSeismic Trigger Count: 0x%x, Air Level: %0.3f %s, Air Trigger Count: 0x%x\r\n", opModeParamsPtr->seismicTriggerLevel,
-					((float)AirTriggerConvertToUnits(opModeParamsPtr->airTriggerLevel) / (float)10000), (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) ? "mb" : "psi", opModeParamsPtr->airTriggerLevel);
+					(double)(((float)AirTriggerConvertToUnits(opModeParamsPtr->airTriggerLevel) / (float)10000)), (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) ? "mb" : "psi", opModeParamsPtr->airTriggerLevel);
 		}
 	}
 	else if (operationMode == BARGRAPH_MODE)
@@ -146,7 +146,7 @@ void StartMonitoring(uint8 operationMode, TRIGGER_EVENT_DATA_STRUCT* opModeParam
 		else // (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) || (g_unitConfig.unitsOfAir == PSI_TYPE)
 		{
 			debug("\tSeismic Trigger Count: 0x%x, Air Level: %0.3f %s, Air Trigger Count: 0x%x\r\n", opModeParamsPtr->seismicTriggerLevel,
-					((float)AirTriggerConvertToUnits(opModeParamsPtr->airTriggerLevel) / (float)10000), (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) ? "mb" : "psi", opModeParamsPtr->airTriggerLevel);
+					(double)(((float)AirTriggerConvertToUnits(opModeParamsPtr->airTriggerLevel) / (float)10000)), (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) ? "mb" : "psi", opModeParamsPtr->airTriggerLevel);
 		}
 
 		debug("\tBar Interval: %d secs, Summary Interval: %d mins\r\n", g_triggerRecord.bgrec.barInterval, (g_triggerRecord.bgrec.summaryInterval / 60));

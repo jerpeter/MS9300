@@ -858,7 +858,7 @@ void SmartSensorDebug(SMART_SENSOR_TYPE sensor)
 	debugRaw("\tCrc-32: 0x%x (Match: %s)\r\n", smartSensorData.crc, (crc32 == smartSensorData.crc) ? "YES": "NO");
 	debugRaw("\tSerial Number: %02x-%02x-%02x-%02x-%02x-%02x\r\n", smartSensorData.serialNumber[0], smartSensorData.serialNumber[1], smartSensorData.serialNumber[2],
 				smartSensorData.serialNumber[3], smartSensorData.serialNumber[4], smartSensorData.serialNumber[5]);
-	debugRaw("\tSensor Type: %4.2f (0x%02x)\r\n", (smartSensorData.sensorType < 0x80) ? (pow(2,smartSensorData.sensorType) * 2.56) : ((pow(2, (smartSensorData.sensorType - 0x80)) * 65.535)),
+	debugRaw("\tSensor Type: %4.2f (0x%02x)\r\n", ((smartSensorData.sensorType < 0x80) ? (double)(pow(2,smartSensorData.sensorType) * (double)2.56) : (double)((pow(2, (smartSensorData.sensorType - 0x80)) * (double)65.535))),
 				smartSensorData.sensorType);
 	debugRaw("\tCalibration Count: 0x%x\r\n", smartSensorData.calCount);
 
@@ -960,7 +960,7 @@ void DisplaySmartSensorInfo(SMART_SENSOR_INFO situation)
 				(uint8)(8 / pow(2, g_seismicSmartSensorMemory.sensorType)),
 				(g_seismicSmartSensorMemory.sensorType < 0x80) ? (pow(2,g_seismicSmartSensorMemory.sensorType) * (double)2.56) : ((pow(2, (g_seismicSmartSensorMemory.sensorType - 0x80)) * (double)65.535)),
 				(g_seismicSmartSensorMemory.sensorType < 0x80) ? ("IN") : ("MM"));
-		debug("Discovered: Seismic smart sensor, type: X%d (%4.2f %s)\r\n", (uint8)(8 / pow(2, g_seismicSmartSensorMemory.sensorType)), (pow(2,g_seismicSmartSensorMemory.sensorType) * 2.56), ("IN"));
+		debug("Discovered: Seismic smart sensor, type: X%d (%4.2f %s)\r\n", (uint8)(8 / pow(2, g_seismicSmartSensorMemory.sensorType)), (double)(pow(2,g_seismicSmartSensorMemory.sensorType) * (double)2.56), ("IN"));
 	}
 	else if (situation == INFO_ON_CHECK)
 	{

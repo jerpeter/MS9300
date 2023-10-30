@@ -105,7 +105,7 @@ void MoveBarIntervalDataToFile(void)
 
 		if (f_open(&file, (const TCHAR*)g_spareFileName, FA_OPEN_APPEND | FA_WRITE) != FR_OK)
 		{
-			printf("<Error> Unable to re-open event file for appending BI's: %s\n", g_spareFileName);
+			debugErr("Unable to re-open event file for appending BI's: %s\n", g_spareFileName);
 		}
 		else // File opened, append event info
 		{
@@ -196,7 +196,7 @@ void MoveSummaryIntervalDataToFile(void)
 
 	if (f_open(&file, (const TCHAR*)g_spareFileName, FA_OPEN_APPEND | FA_WRITE) != FR_OK)
 	{
-		printf("<Error> Unable to re-open event file for appending SI: %s\n", g_spareFileName);
+		debugErr("Unable to re-open event file for appending SI: %s\n", g_spareFileName);
 	}
 	else // File opened, append event info
 	{
@@ -1045,8 +1045,7 @@ void MoveStartOfBargraphEventRecordToFile(void)
 
 	if (f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
 	{
-		printf("<Error> Unable to create event file: %s, mode: %s\n", g_spareFileName, (g_triggerRecord.opMode == BARGRAPH_MODE) ? "Bargraph" : "Combo - Bargraph");
-		//debugErr("Failed to get a new file handle for the current %s event\r\n", (g_triggerRecord.opMode == BARGRAPH_MODE) ? "Bargraph" : "Combo - Bargraph");
+		debugErr("Unable to create event file: %s, mode: %s\n", g_spareFileName, (g_triggerRecord.opMode == BARGRAPH_MODE) ? "Bargraph" : "Combo - Bargraph");
 	}
 	else // File created, write out the event
 	{
@@ -1118,7 +1117,7 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 
 	if (f_open(&file, (const TCHAR*)g_spareFileName, FA_OPEN_APPEND | FA_READ | FA_WRITE) != FR_OK)
 	{
-		printf("<Error> Unable to re-open event file for overwritting summary: %s\n", g_spareFileName);
+		debugErr("Unable to re-open event file for overwritting summary: %s\n", g_spareFileName);
 	}
 	else // File opened, overwrite event summary
 	{
@@ -1159,7 +1158,7 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 
 				if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
 				{
-					printf("<Error> Unable to create ERdata event file: %s\n", g_spareFileName);
+					debugErr("Unable to create ERdata event file: %s\n", g_spareFileName);
 				}
 				else // File created, write out the event
 				{
@@ -1173,7 +1172,7 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 						f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesMoved);
 						g_spareBufferIndex = 0;
 					}
-					debug("Bargraph Compressed Data length: %d (Matches file: %s)\r\n", compressSize, (compressSize == nav_file_lgt()) ? "Yes" : "No");
+					debug("Bargraph Compressed Data length: %d (Matches file: %s)\r\n", compressSize, (compressSize == f_size(&file)) ? "Yes" : "No");
 
 					// Done writing the event file, close the file handle
 					g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
