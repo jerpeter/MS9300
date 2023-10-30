@@ -36,6 +36,13 @@
 #define ACC_CONTROL_5_REGISTER  0x1F
 #define ACC_CONTROL_6_REGISTER  0x20
 
+typedef struct
+{
+	uint16_t x;
+	uint16_t y;
+    uint16_t z;
+} ACC_DATA_STRUCT;
+
 ///----------------------------------------------------------------------------
 ///	Externs
 ///----------------------------------------------------------------------------

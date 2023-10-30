@@ -18,12 +18,13 @@
 #include "OldUart.h"
 #include "spi.h"
 
+#include "mxc_errors.h"
 #include "ff.h"
+#include "i2c.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
-#define	RTC_SPI_NPCS	1
 
 ///----------------------------------------------------------------------------
 ///	Externs
@@ -43,23 +44,28 @@ BOOLEAN ExternalRtcInit(void)
 {
 	// REDO & Update to new RTC
 	DATE_TIME_STRUCT time;
-	RTC_MEM_MAP_STRUCT rtcMap;
+	//RTC_MEM_MAP_STRUCT rtcMap;
+	uint8_t secondsReg;
+	uint8_t stopEnableReg;
+	uint8_t flagsReg;
+	uint8_t interruptReg;
 
 	// Initialize the soft timer array
 	memset(&g_rtcTimerBank[0], 0, sizeof(g_rtcTimerBank));
 
-	// Get the base of the external RTC memory map
-	ExternalRtcRead(RTC_CONTROL_1_ADDR, 10, (uint8*)&rtcMap);
-	
-	if ((rtcMap.seconds & RTC_CLOCK_INTEGRITY) || (rtcMap.control_1 & RTC_CLOCK_STOPPED))
+	// Get the Seconds register for the Oscillator stop bit
+	GetRtcRegisters(PCF85263_RTC_SECONDS, (uint8_t*)&secondsReg, sizeof(secondsReg));
+	// Get the Stop Enable register for the RTC clock stopped bit
+	GetRtcRegisters(PCF85263_CTL_STOP_ENABLE, (uint8_t*)&stopEnableReg, sizeof(stopEnableReg));
+
+	if ((secondsReg & PCF85263_RTC_SECONDS_OS) || (stopEnableReg & PCF85263_CTL_STOP))
 	{
 		debug("Init RTC: Clock integrity not guaranteed or Clock stopped, setting default time and date\r\n");
 
-		rtcMap.control_1 |= RTC_24_HOUR_MODE;
-		ExternalRtcWrite(RTC_CONTROL_1_ADDR, 1, &rtcMap.control_1);
+		// Set 24HR mode, which is already the default mode for the PCF85263
 
 		// Setup an initial date and time
-		time.year = 16;
+		time.year = 24;
 		time.month = 1;
 		time.day = 1;
 		time.weekday = GetDayOfWeek(time.year, time.month, time.day);
@@ -76,9 +82,13 @@ BOOLEAN ExternalRtcInit(void)
 	}
 
 #if 1 /* Normal */
-	// Clear all flags (write 0's) and disable interrupt generation for all but timestamp pin
-	rtcMap.control_2 = (RTC_ALARM_INT_ENABLE);
-	ExternalRtcWrite(RTC_CONTROL_2_ADDR, 1, &rtcMap.control_2);
+	// Clear all flags
+	flagsReg = 0;
+	SetRtcRegisters(PCF85263_CTL_FLAGS, (uint8_t*)&flagsReg, sizeof(flagsReg));
+
+	// Enable interrupts for the periodic and alarm 1
+	interruptReg = (PCF85263_CTL_INTA_PIEA | PCF85263_CTL_INTA_A1IEA);
+	SetRtcRegisters(PCF85263_CTL_INTA_ENABLE, (uint8_t*)&interruptReg, sizeof(interruptReg));
 #else /* Test */
 	// Disable alarm settings and clear flags 
 	DisableExternalRtcAlarm();
@@ -92,7 +102,7 @@ BOOLEAN ExternalRtcInit(void)
 	{
 		debugWarn("Warning: External RTC date not set, assuming power loss reset... applying a default date\r\n");
 		// BCD formats
-		g_lastReadExternalRtcTime.year = 0x14;
+		g_lastReadExternalRtcTime.year = 0x24;
 		g_lastReadExternalRtcTime.month = 0x01;
 		g_lastReadExternalRtcTime.day = 0x01;
 
@@ -100,8 +110,7 @@ BOOLEAN ExternalRtcInit(void)
 	}
 
 	// Set the clock out control to turn off any clock interrupt generation
-	rtcMap.clock_out_control = (0x07);
-	ExternalRtcWrite(RTC_CLOCK_OUT_CONTROL_ADDR, 1, &rtcMap.clock_out_control);
+	StopExternalRtcClock();
 
 	return (TRUE);
 }
@@ -111,24 +120,23 @@ BOOLEAN ExternalRtcInit(void)
 ///----------------------------------------------------------------------------
 void StartExternalRtcClock(uint16 sampleRate)
 {
-	RTC_MEM_MAP_STRUCT rtcMap;
-	uint8 clockRate;
+	uint8_t clockOutControl;
 
 	switch (sampleRate)
 	{
-		case 32768	: clockRate = 0x00; break;
-		case 16384	: clockRate = 0x01; break;
-		case 8192	: clockRate = 0x02; break;
-		case 4096	: clockRate = 0x03; break;
-		case 2048	: clockRate = 0x04; break;
-		case 1024	: clockRate = 0x05; break;
-		case 512	: clockRate = 0x05; break;
-		case 1		: clockRate = 0x06; break;
-		default		: clockRate = 0x05; break; // set to 1024
+		case 32768	: clockOutControl = 0x00; break;
+		case 16384	: clockOutControl = 0x01; break;
+		case 8192	: clockOutControl = 0x02; break;
+		case 4096	: clockOutControl = 0x03; break;
+		case 2048	: clockOutControl = 0x04; break;
+		case 1024	: clockOutControl = 0x05; break;
+		case 512	: clockOutControl = 0x05; break;
+		case 1		: clockOutControl = 0x06; break;
+		default		: clockOutControl = 0x05; break; // set to 1024
 	}
 
-	rtcMap.clock_out_control = (clockRate);
-	ExternalRtcWrite(RTC_CLOCK_OUT_CONTROL_ADDR, 1, &rtcMap.clock_out_control);
+	debug("Starting External RTC Interrupt\r\n");
+	SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&clockOutControl, sizeof(clockOutControl));
 }
 
 ///----------------------------------------------------------------------------
@@ -136,13 +144,13 @@ void StartExternalRtcClock(uint16 sampleRate)
 ///----------------------------------------------------------------------------
 void StopExternalRtcClock(void)
 {
-	RTC_MEM_MAP_STRUCT rtcMap;
-
-	debug("Stoping External RTC Interrupt\r\n");
+	uint8_t clockOutControl;
 
 	// Set the clock out control to turn off any clock interrupt generation
-	rtcMap.clock_out_control = (0x07);
-	ExternalRtcWrite(RTC_CLOCK_OUT_CONTROL_ADDR, 1, &rtcMap.clock_out_control);
+	clockOutControl = (0x07);
+
+	debug("Stoping External RTC Interrupt\r\n");
+	SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&clockOutControl, sizeof(clockOutControl));
 }
 
 ///----------------------------------------------------------------------------
@@ -162,7 +170,7 @@ uint8 SetExternalRtcTime(DATE_TIME_STRUCT* time)
 		rtcTime.minutes = UINT8_CONVERT_TO_BCD(time->min, RTC_BCD_MINUTES_MASK);
 		rtcTime.seconds = UINT8_CONVERT_TO_BCD(time->sec, RTC_BCD_SECONDS_MASK);
 
-		ExternalRtcWrite(RTC_SECONDS_ADDR_TEMP, 3, (uint8*)&rtcTime);
+		SetRtcRegisters(PCF85263_RTC_SECONDS, (uint8_t*)&rtcTime, sizeof(rtcTime));
 	}
 
 	return (status);
@@ -195,7 +203,7 @@ uint8 SetExternalRtcDate(DATE_TIME_STRUCT* time)
 
 			//debug("Ext RTC: Apply Date: %x-%x-%x\r\n", rtcDate.months, rtcDate.days, rtcDate.years);
 
-			ExternalRtcWrite(RTC_DAYS_ADDR, 4, (uint8*)&rtcDate);
+			SetRtcRegisters(PCF85263_RTC_DAYS, (uint8_t*)&rtcDate, sizeof(rtcDate));
 		}
 	}
 
@@ -230,7 +238,7 @@ DATE_TIME_STRUCT GetExternalRtcTime(void)
 {
 	RTC_DATE_TIME_STRUCT translateTime;
 
-	ExternalRtcRead(RTC_SECONDS_ADDR_TEMP, 7, (uint8*)&translateTime);
+	GetRtcRegisters(PCF85263_RTC_SECONDS, (uint8_t*)&translateTime, sizeof(translateTime));
 
 	// Get time and date registers (24 Hour settings), BCD format
 	s_time.year = BCD_CONVERT_TO_UINT8(translateTime.years, RTC_BCD_YEARS_MASK);
@@ -252,17 +260,10 @@ DATE_TIME_STRUCT GetExternalRtcTime(void)
 ///----------------------------------------------------------------------------
 uint8 UpdateCurrentTime(void)
 {
-	uint8 status = FAILED;
+	g_rtcTickCountSinceLastExternalUpdate = 0;
+	g_lastReadExternalRtcTime = GetExternalRtcTime();
 
-	// Check if SPI1 access is available (actual lock is inside Get External RTC time)
-	if (g_spi1AccessLock == AVAILABLE)
-	{
-		g_rtcTickCountSinceLastExternalUpdate = 0;
-		g_lastReadExternalRtcTime = GetExternalRtcTime();
-		status = PASSED;
-	}
-
-	return (status);
+	return (PASSED);
 }
 
 ///----------------------------------------------------------------------------
@@ -423,23 +424,32 @@ void ConvertCurrentDateForFat(uint8* fatDateField)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void ClearAlarm1Flag(void)
+{
+	uint8 clearAlarmFlag = ~(PCF85263_CTL_FLAGS_A1F); // Logic 0 on the bit will clear Alarm flag, bit 4
+
+	// Clear the Alarm flag
+	SetRtcRegisters(PCF85263_CTL_FLAGS, (uint8_t*)&clearAlarmFlag, sizeof(clearAlarmFlag));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void DisableExternalRtcAlarm(void)
 {
 	RTC_ALARM_STRUCT disableAlarm;
-
-	uint8 clearAlarmFlag = 0xEA; // Logic 0 on the bit will clear Alarm flag, bit 4
 
 	disableAlarm.second_alarm = RTC_DISABLE_ALARM;
 	disableAlarm.minute_alarm = RTC_DISABLE_ALARM;
 	disableAlarm.hour_alarm = RTC_DISABLE_ALARM;
 	disableAlarm.day_alarm = RTC_DISABLE_ALARM;
-	disableAlarm.weekday_alarm = RTC_DISABLE_ALARM;
+	disableAlarm.month_alarm = RTC_DISABLE_ALARM;
 	
 	// Turn off all the alarm enable flags
-	ExternalRtcWrite(RTC_SECOND_ALARM_ADDR, 5, (uint8*)&disableAlarm);
+	SetRtcRegisters(PCF85263_RTC_SECOND_ALARM1, (uint8_t*)&disableAlarm, sizeof(disableAlarm));
 	
 	// Clear the Alarm flag
-	ExternalRtcWrite(RTC_CONTROL_2_ADDR, 1, &clearAlarmFlag);
+	ClearAlarm1Flag();
 }
 
 #if 1 /* Normal */
@@ -450,18 +460,16 @@ void EnableExternalRtcAlarm(uint8 day, uint8 hour, uint8 minute, uint8 second)
 {
 	RTC_ALARM_STRUCT enableAlarm;
 
-	uint8 clearAlarmFlag = 0xEA; // Logic 0 on the bit will clear Alarm flag, bit 4
-
 	enableAlarm.day_alarm = (UINT8_CONVERT_TO_BCD(day, RTC_BCD_DAYS_MASK) | RTC_ENABLE_ALARM);
 	enableAlarm.hour_alarm = (UINT8_CONVERT_TO_BCD(hour, RTC_BCD_HOURS_MASK) | RTC_ENABLE_ALARM);
 	enableAlarm.minute_alarm = (UINT8_CONVERT_TO_BCD(minute, RTC_BCD_MINUTES_MASK) | RTC_ENABLE_ALARM);
 	enableAlarm.second_alarm = (UINT8_CONVERT_TO_BCD(second, RTC_BCD_SECONDS_MASK) | RTC_ENABLE_ALARM);
-	enableAlarm.weekday_alarm = RTC_DISABLE_ALARM;
+	enableAlarm.month_alarm = RTC_DISABLE_ALARM;
 	
-	ExternalRtcWrite(RTC_SECOND_ALARM_ADDR, 5, (uint8*)&enableAlarm);
+	SetRtcRegisters(PCF85263_RTC_SECOND_ALARM1, (uint8_t*)&enableAlarm, sizeof(enableAlarm));
 
 	// Clear the Alarm flag
-	ExternalRtcWrite(RTC_CONTROL_2_ADDR, 1, &clearAlarmFlag);
+	ClearAlarm1Flag();
 	
 	debug("Enable RTC Alarm with Day: %d, Hour: %d, Minute: %d and Second: %d\r\n", day, hour, minute, second);
 }
@@ -473,99 +481,34 @@ void EnableExternalRtcAlarm(uint8 day, uint8 hour, uint8 minute, uint8 second)
 {
 	RTC_ALARM_STRUCT enableAlarm;
 
-	uint8 clearAlarmFlag = 0xEA; // Logic 0 on the bit will clear Alarm flag, bit 4
-
 	enableAlarm.day_alarm = RTC_DISABLE_ALARM;
 	enableAlarm.hour_alarm = RTC_DISABLE_ALARM;
 	enableAlarm.minute_alarm = RTC_DISABLE_ALARM;
 	enableAlarm.second_alarm = (UINT8_CONVERT_TO_BCD(second, RTC_BCD_SECONDS_MASK) | RTC_ENABLE_ALARM);
-	enableAlarm.weekday_alarm = RTC_DISABLE_ALARM;
+	enableAlarm.month_alarm = RTC_DISABLE_ALARM;
 	
-	ExternalRtcWrite(RTC_SECOND_ALARM_ADDR, 5, (uint8*)&enableAlarm);
+	SetRtcRegisters(PCF85263_RTC_SECOND_ALARM1, (uint8_t*)&enableAlarm, sizeof(enableAlarm));
 
 	// Clear the Alarm flag
-	ExternalRtcWrite(RTC_CONTROL_2_ADDR, 1, &clearAlarmFlag);
+	ClearAlarm1Flag();
 }
 #endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void ExternalRtcWrite(uint8 registerAddress, int length, uint8* data)
+void GetRtcRegisters(uint8_t registerAddress, uint8_t* registerData, uint16_t dataLength)
 {
-#if 0 /* temp remove while unsed */
-	uint16 dataContainer = 0;
-#endif
-
-	if (g_spi1AccessLock != CAL_PULSE_LOCK)
-	{
-		GetSpi1MutexLock(RTC_TIME_LOCK);
-	}
-
-#if 0 /* old hw */
-	spi_selectChip(&AVR32_SPI1, RTC_SPI_NPCS);
-
-	// Small delay before the RTC device is accessible
-	SoftUsecWait(RTC_ACCESS_DELAY);
-
-	spi_write(&AVR32_SPI1, (RTC_WRITE_CMD | (registerAddress & 0x1F)));
-
-	while (length--)
-	{
-		// Small delay before the RTC device is accessible
-		SoftUsecWait(RTC_ACCESS_DELAY);
-
-		dataContainer = *data++;
-		spi_write(&AVR32_SPI1, dataContainer);
-	}
-
-	spi_unselectChip(&AVR32_SPI1, RTC_SPI_NPCS);
-#endif
-
-	if (g_spi1AccessLock != CAL_PULSE_LOCK)
-	{
-		ReleaseSpi1MutexLock();
-	}
+    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXTERNAL_RTC, &registerAddress, sizeof(uint8_t), registerData, dataLength);
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void ExternalRtcRead(uint8 registerAddress, int length, uint8* data)
+void SetRtcRegisters(uint8_t registerAddress, uint8_t* registerData, uint16_t dataLength)
 {
-#if 0 /* temp remove while unused */
-	uint16 dataContainer = 0;
-#endif
+	g_spareBuffer[0] = registerAddress;
+	memcpy(&g_spareBuffer[1], registerData, dataLength);
 
-	if (g_spi1AccessLock != CAL_PULSE_LOCK)
-	{
-		GetSpi1MutexLock(RTC_TIME_LOCK);
-	}
-
-#if 0 /* old hw */
-	spi_selectChip(&AVR32_SPI1, RTC_SPI_NPCS);
-
-	// Small delay before the RTC device is accessible
-	SoftUsecWait(RTC_ACCESS_DELAY);
-
-	spi_write(&AVR32_SPI1, (RTC_READ_CMD | (registerAddress & 0x1F)));
-
-	while (length--)
-	{
-		// Small delay before the RTC device is accessible
-		SoftUsecWait(RTC_ACCESS_DELAY);
-
-		spi_write(&AVR32_SPI1, 0xFF);
-		spi_read(&AVR32_SPI1, &dataContainer);
-
-		*data++ = (uint8)dataContainer;
-	}
-
-	spi_unselectChip(&AVR32_SPI1, RTC_SPI_NPCS);
-#endif
-
-	if (g_spi1AccessLock != CAL_PULSE_LOCK)
-	{
-		ReleaseSpi1MutexLock();
-	}
+    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXTERNAL_RTC, g_spareBuffer, (dataLength + 1), NULL, 0);
 }

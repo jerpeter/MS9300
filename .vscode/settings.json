@@ -93,7 +93,8 @@
         "sdhc_lib.h": "c",
         "common.h": "c",
         "i2c.h": "c",
-        "record.h": "c"
+        "record.h": "c",
+        "errno.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "C_Cpp.dimInactiveRegions": false
