@@ -113,6 +113,6 @@ uint8 ModemPuts(uint8* , uint32 , uint8);
 void UartPuts(char* s, int32 channel);
 void UartWrite(void* b, int32 n, int32 channel);
 void UartPutc(uint8 c, int32 channel);
-BOOLEAN UartCharWaiting(int32 channel);
+uint8 UartCharWaiting(int32 channel);
 
 #endif // _UART_H_

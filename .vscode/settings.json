@@ -98,7 +98,8 @@
         "type_traits": "c",
         "mxc_delay.h": "c",
         "spi_regs.h": "c",
-        "ff.h": "c"
+        "ff.h": "c",
+        "tmr.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "C_Cpp.dimInactiveRegions": false

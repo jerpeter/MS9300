@@ -2896,6 +2896,40 @@ void GetDriveSize(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void SetupHalfSecondTickTimer(void)
+{
+	MXC_SYS_Reset_Periph(MXC_SYS_RESET_TIMER0);
+	MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TIMER0);
+
+    // Clear interrupt flag
+    MXC_TMR0->intr = MXC_F_TMR_INTR_IRQ;
+
+    // Set the prescaler (TMR_PRES_4096)
+	MXC_TMR0->cn |= (MXC_F_TMR_CN_PRES3);
+	MXC_TMR0->cn |= (MXC_V_TMR_CN_PRES_DIV4096);
+
+    // Set the mode
+	MXC_TMR0->cn |= TMR_MODE_CONTINUOUS << MXC_F_TMR_CN_TMODE_POS;
+
+	// Set the polarity
+    MXC_TMR0->cn |= (0) << MXC_F_TMR_CN_TPOL_POS; // Polarity (0 or 1) doesn't matter
+
+	// Init the compare value
+    MXC_TMR0->cmp = 7324; // 60MHz clock / 4096 = 14648 counts/sec, 1/2 second count = 7324
+
+	// Init the counter
+    MXC_TMR0->cnt = 0x1;
+
+	// Setup the Timer 0 interrupt
+	NVIC_ClearPendingIRQ(TMR0_IRQn);
+    NVIC_DisableIRQ(TMR0_IRQn);
+    MXC_NVIC_SetVector(TMR0_IRQn, Soft_timer_tick_irq);
+    NVIC_EnableIRQ(TMR0_IRQn);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void InitSystemHardware_NS9100(void)
 {
 	//-------------------------------------------------------------------------
@@ -2950,6 +2984,13 @@ void InitSystemHardware_NS9100(void)
 	// Setup Drive(eMMC) and Filesystem
 	//-------------------------------------------------------------------------
 	SetupDriveAndFilesystem();
+
+	//-------------------------------------------------------------------------
+	// Setup Half Second tick timer
+	//-------------------------------------------------------------------------
+	SetupHalfSecondTickTimer();
+
+	// Todo: Review all init past this point, needs updating
 
 	//-------------------------------------------------------------------------
 	// Disable all interrupts and clear all interrupt vectors 

@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include "mxc_errors.h"
 #include "i2c.h"
+#include "uart.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -33,11 +34,8 @@
 ///----------------------------------------------------------------------------
 ///	Local Scope Globals
 ///----------------------------------------------------------------------------
-#if 0 /* Original */
-static char s_uartBuffer[256];
-#else /* Make sure there is enough buffer space for comparing remote command 1K message sizes */
+// Make sure there is enough buffer space for comparing remote command 1K message sizes
 static char s_uartBuffer[(1024 + 256)];
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -61,7 +59,6 @@ uint8 NibbleToA(uint8 hexData)
 		return (0);
 	}
 }
-
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -150,73 +147,28 @@ uint8 ModemPuts(uint8* byteData, uint32 dataLength, uint8 convertAsciiFlag)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* old hw */
-#include "print_funcs.h"
-#include "usart.h"
-extern int usart_putchar(volatile avr32_usart_t *usart, int c);
-extern int usart_write_char(volatile avr32_usart_t *usart, int c);
-#endif
 void UartPutc(uint8 c, int32 channel)
 {
-#if 0 /* temp remove while unused */
+	mxc_uart_regs_t* port;
+
+	if (channel == LTE_COM_PORT) { port = MXC_UART0; }
+	else if (channel == BLE_COM_PORT) { port = MXC_UART1; }
+	else /* (channel == GLOBAL_DEBUG_PRINT_PORT) */ { port = MXC_UART2; }
+
+#if 1 /* Framework driver blocks waiting forever for TX FIFO space to be available */
+	MXC_UART_WriteCharacter(port, c);
+#else /* Manage timeout ourselves */
 	uint32 retries = 100; //USART_DEFAULT_TIMEOUT;
 	int status;
-#endif
 
-#if 0 /* old hw */
-	if (channel == CRAFT_COM_PORT)
+	// Dump the character to the serial port
+	status = MXC_UART_RevA_WriteCharacterRaw(port, c);
+
+	while ((status == E_OVERFLOW) && (retries))
 	{
-#if 0 /* Can't use this function without screwing up the craft since CRLF is being turned into CRCRLF */
-		usart_putchar(&AVR32_USART1, c);
-#else /* Localized version with retries */
-		//----------------------------------------------------------------------------------
-		// Craft USART
-		//----------------------------------------------------------------------------------
-		status = usart_write_char(&AVR32_USART1, c);
-
-		while ((status == USART_TX_BUSY) && (retries))
-		{
-			retries--;
-			status = usart_write_char(&AVR32_USART1, c);
-		}
-#endif
+		retries--;
+		status = MXC_UART_RevA_WriteCharacterRaw(port, c);
 	}
-	else if (channel == RS485_COM_PORT)
-	{
-		// Add 485 logic
-	}
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
-	else if (channel == GLOBAL_DEBUG_PRINT_PORT)
-	{
-		//----------------------------------------------------------------------------------
-		// Debug USART
-		//----------------------------------------------------------------------------------
-		// Check if the debug USART processor module is powered (USART0)
-#if (GLOBAL_DEBUG_PRINT_ENABLED)
-		// Dump the character to the serial port
-		status = usart_write_char(&AVR32_USART0, c);
-
-		while ((status == USART_TX_BUSY) && (retries))
-		{
-			retries--;
-			status = usart_write_char(&AVR32_USART0, c);
-		}
-#endif
-
-#if 0 /* Removed debug log file due to inducing system problems */
-		//----------------------------------------------------------------------------------
-		// Debug buffer
-		//----------------------------------------------------------------------------------
-		// Check if the buffer count doesn't equal the max (protect overrunning the buffer)
-		if (g_debugBufferCount != sizeof(g_debugBuffer))
-		{
-			// Dump to the buffer
-			g_debugBuffer[g_debugBufferCount++] = c;
-		}
-		// else do nothing (Assuming it's more important how we got here than where we're going)
-#endif
-	}
-#endif
 #endif
 }
 
@@ -256,36 +208,35 @@ void UartPuts(char* s, int32 channel)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0
-BOOLEAN UartCharWaiting(int32 channel)
+uint8 UartCharWaiting(int32 channel)
 {
-	BOOLEAN charWaiting = FALSE;
+	mxc_uart_regs_t* port;
 
-	volatile MMC2114_IMM *imm = mmc2114_get_immp();
+	if (channel == LTE_COM_PORT) { port = MXC_UART0; }
+	else if (channel == BLE_COM_PORT) { port = MXC_UART1; }
+	else /* (channel == GLOBAL_DEBUG_PRINT_PORT) */ { port = MXC_UART2; }
 
-	if (channel == CRAFT_COM_PORT)
-	{
-		return ((imm->Sci1.SCISR1 & MMC2114_SCI_SCISR1_RDRF) != 0);
-	}
-	else if (channel == RS485_COM_PORT)
-	{
-		return ((imm->Sci2.SCISR1 & MMC2114_SCI_SCISR1_RDRF) != 0);
-	}
-
-	return (charWaiting);
+	return (MXC_UART_GetRXFIFOAvailable(port));
 }
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0
 uint8 UartGetc(int32 channel, uint8 mode)
 {
-	volatile MMC2114_IMM *imm = mmc2114_get_immp();
+	mxc_uart_regs_t* port;
 	volatile uint32 uartTimeout = UART_TIMEOUT_COUNT;
 
-	if (channel == CRAFT_COM_PORT)
+	if (channel == LTE_COM_PORT) { port = MXC_UART0; }
+	else if (channel == BLE_COM_PORT) { port = MXC_UART1; }
+	else /* (channel == GLOBAL_DEBUG_PRINT_PORT) */ { port = MXC_UART2; }
+
+	if (mode == UART_BLOCK)
+	{
+		// Read char is a forever blocking call
+		return (MXC_UART_ReadCharacter(port));
+	}
+	else // mode == UART_TIMEOUT
 	{
 		while (!UartCharWaiting(channel))
 		{
@@ -293,22 +244,9 @@ uint8 UartGetc(int32 channel, uint8 mode)
 				return (UART_TIMED_OUT);
 		}
 
-		return (imm->Sci1.SCIDRL);
+		return (MXC_UART_ReadCharacterRaw(port));
 	}
-	else if (channel == RS485_COM_PORT)
-	{
-		while (!UartCharWaiting(channel))
-		{
-			if ((mode == UART_TIMEOUT) && (uartTimeout-- == 0))
-				return (UART_TIMED_OUT);
-		}
-
-		return (imm->Sci2.SCIDRL);
-	}
-
-	return (0);
 }
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -489,11 +427,7 @@ short DebugPrint(uint8_t mode, char* fmt, ...)
 	if (mode == RAW)
 	{
 		// Print the raw string
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
 		UartWrite(buf, length, GLOBAL_DEBUG_PRINT_PORT);
-#else
-		UartWrite(buf, length, CRAFT_COM_PORT);
-#endif
 	}
 	// Check if the current string to be printed was different than the last
 	else if (strncmp(buf, s_uartBuffer, length))
@@ -503,11 +437,7 @@ short DebugPrint(uint8_t mode, char* fmt, ...)
 		{
 			// Print the repeat count of the previous repeated string
 			sprintf(repeatCountStr, "(%d)\n", (int)repeatingBuf);
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
 			UartPuts(repeatCountStr, GLOBAL_DEBUG_PRINT_PORT);
-#else
-			UartPuts(repeatCountStr, CRAFT_COM_PORT);
-#endif
 
 			// Reset the counter
 			repeatingBuf = 0;
@@ -515,13 +445,8 @@ short DebugPrint(uint8_t mode, char* fmt, ...)
 		else if (strippedNewline == YES)
 		{
 			// Issue a carrige return and a line feed
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
 			UartPutc('\r', GLOBAL_DEBUG_PRINT_PORT);
 			UartPutc('\n', GLOBAL_DEBUG_PRINT_PORT);
-#else
-			UartPutc('\r', CRAFT_COM_PORT);
-			UartPutc('\n', CRAFT_COM_PORT);
-#endif
 
 			// Reset the flag
 			strippedNewline = NO;
@@ -585,11 +510,7 @@ short DebugPrint(uint8_t mode, char* fmt, ...)
 		}
 
 		// Print the new string
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
 		UartWrite(buf, length, GLOBAL_DEBUG_PRINT_PORT);
-#else
-		UartWrite(buf, length, CRAFT_COM_PORT);
-#endif
 	}
 	else // Strings are equal
 	{
@@ -597,11 +518,7 @@ short DebugPrint(uint8_t mode, char* fmt, ...)
 		repeatingBuf++;
 
 		// Print a '!' (bang) so signify that the output was repeated
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
 		UartPutc('!', GLOBAL_DEBUG_PRINT_PORT);
-#else
-		UartPutc('!', CRAFT_COM_PORT);
-#endif
 	}
 
 	// Return the number of characters
@@ -615,11 +532,7 @@ void DebugPrintChar(uint8 charData)
 {
 	if (g_disableDebugPrinting == NO)
 	{
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
 		UartPutc(charData, GLOBAL_DEBUG_PRINT_PORT);
-#else
-		UartPutc(charData, CRAFT_COM_PORT);
-#endif
 	}
 }
 

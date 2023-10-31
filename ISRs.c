@@ -38,6 +38,8 @@
 //#include "compiler.h"
 #include "math.h"
 
+#include "tmr.h"
+
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
@@ -510,28 +512,7 @@ void Soft_timer_tick_irq(void)
 	}
 #endif
 
-	// Test adjusted modification of the RTC top value to effectively achieve the most accurate 1/2 second tick (resulting in no more than +/- 1 second over a day)
-	if ((g_lifetimeHalfSecondTickCount % 3) == 0)
-	{
-#if 0 /* old hw */
-		// Check if the RTC is not busy moving data into registers
-		while (AVR32_RTC.ctrl & AVR32_RTC_CTRL_BUSY_MASK) { }
-		AVR32_RTC.top = 8191;
-#endif
-	}
-	else
-	{
-#if 0 /* old hw */
-		// Check if the RTC is not busy moving data into registers
-		while (AVR32_RTC.ctrl & AVR32_RTC_CTRL_BUSY_MASK) { }
-		AVR32_RTC.top = 8190;
-#endif
-	}
-
-#if 0 /* old hw */
-	// clear the interrupt flag
-	rtc_clear_interrupt(&AVR32_RTC);
-#endif
+	MXC_TMR0->intr = MXC_F_TMR_INTR_IRQ;
 
 #if 1 /* Test reads to clear the bus */
 	PB_READ_TO_CLEAR_BUS_BEFORE_SLEEP;
