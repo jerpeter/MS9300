@@ -1497,7 +1497,11 @@ void SetupGPIO(void)
 	g_RTCClock.pad = MXC_GPIO_PAD_NONE; // Consider a weak internal pull?
 	g_RTCClock.func = MXC_GPIO_FUNC_IN;
 	g_RTCClock.vssel = MXC_GPIO_VSSEL_VDDIOH;
+#if 0 /* Generic */
 	MXC_GPIO_RegisterCallback(&g_RTCClock, RTCClock_ISR, NULL);
+#else /* Hooked into sample ISR */
+	MXC_GPIO_RegisterCallback(&g_RTCClock, (mxc_gpio_callback_fn)Tc_sample_irq, NULL);
+#endif
     MXC_GPIO_IntConfig(&g_RTCClock, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_RTCClock.port, g_RTCClock.mask);
 
@@ -2925,6 +2929,9 @@ void SetupHalfSecondTickTimer(void)
     NVIC_DisableIRQ(TMR0_IRQn);
     MXC_NVIC_SetVector(TMR0_IRQn, Soft_timer_tick_irq);
     NVIC_EnableIRQ(TMR0_IRQn);
+
+	// Enable the timer
+	MXC_TMR0->cn |= MXC_F_TMR_CN_TEN;
 }
 
 ///----------------------------------------------------------------------------
