@@ -24,6 +24,7 @@
 #include "adc.h"
 #include "ctype.h"
 
+#include "mxc_delay.h"
 #include "ff.h"
 //#include "usart.h"
 //#include "usb_drv.h"
@@ -330,12 +331,16 @@ uint16 SendInputMsg(INPUT_MSG_STRUCT *msg_ptr)
 ///----------------------------------------------------------------------------
 void SoftUsecWait(uint32 usecs)
 {
+#if 0 /* Old soft loop method */
 	unsigned long int countdown = (usecs << 2) + usecs;
 	
 	for (; countdown > 0; )
 	{
 		countdown--;
 	}
+#else /* New hardware timer */
+	MXC_Delay(usecs);
+#endif
 }
 
 ///----------------------------------------------------------------------------
