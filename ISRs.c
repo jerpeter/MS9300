@@ -153,10 +153,6 @@ void Eic_external_rtc_irq(void)
 	// clear the interrupt flag in the processor
 	AVR32_EIC.ICR.int1 = 1;
 #endif
-
-#if 1 /* Test reads to clear the bus */
-	PB_READ_TO_CLEAR_BUS_BEFORE_SLEEP;
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -222,10 +218,6 @@ void Eic_keypad_irq(void)
 #if 0 /* old hw */
 	// Clear the interrupt flag in the processor
 	AVR32_EIC.ICR.int5 = 1;
-#endif
-
-#if 1 /* Test reads to clear the bus */
-	PB_READ_TO_CLEAR_BUS_BEFORE_SLEEP;
 #endif
 }
 
@@ -326,10 +318,6 @@ void Eic_system_irq(void)
 	// Clear the interrupt flag in the processor
 	AVR32_EIC.ICR.int4 = 1;
 #endif
-
-#if 1 /* Test reads to clear the bus */
-	PB_READ_TO_CLEAR_BUS_BEFORE_SLEEP;
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -402,10 +390,6 @@ void Usart_1_rs232_irq(void)
 	}
 #endif
 #endif
-
-#if 1 /* Test reads to clear the bus */
-	PB_READ_TO_CLEAR_BUS_BEFORE_SLEEP;
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -445,10 +429,6 @@ void Usart_0_rs232_irq(void)
 		AVR32_USART0.cr = AVR32_USART_CR_RSTSTA_MASK;
 		usart_0_status = AVR32_USART0.csr;
 	}
-#endif
-
-#if 1 /* Test reads to clear the bus */
-	PB_READ_TO_CLEAR_BUS_BEFORE_SLEEP;
 #endif
 }
 
@@ -513,10 +493,6 @@ void Soft_timer_tick_irq(void)
 #endif
 
 	MXC_TMR0->intr = MXC_F_TMR_INTR_IRQ;
-
-#if 1 /* Test reads to clear the bus */
-	PB_READ_TO_CLEAR_BUS_BEFORE_SLEEP;
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -598,10 +574,6 @@ void Tc_typematic_irq(void)
 	// clear the interrupt flag
 	DUMMY_READ(AVR32_TC.channel[TC_TYPEMATIC_TIMER_CHANNEL].sr);
 #endif
-
-#if 1 /* Test reads to clear the bus */
-	PB_READ_TO_CLEAR_BUS_BEFORE_SLEEP;
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -617,10 +589,6 @@ void Tc_ms_timer_irq(void)
 #if 0 /* old hw */
 	// clear the interrupt flag
 	DUMMY_READ(AVR32_TC.channel[TC_MILLISECOND_TIMER_CHANNEL].sr);
-#endif
-
-#if 1 /* Test reads to clear the bus */
-	PB_READ_TO_CLEAR_BUS_BEFORE_SLEEP;
 #endif
 }
 #endif
@@ -2688,17 +2656,10 @@ SKIP_PRIOR_PROCESSING_FOR_ADAPTIVE_MIN_RATE:
 	else { sampleProcessTiming = (Get_system_register(AVR32_COUNT) - startTiming); }
 #endif
 
-#if 0 /* old hw */
 	// clear the interrupt flag
 #if INTERNAL_SAMPLING_SOURCE
-	DUMMY_READ(AVR32_TC.channel[TC_SAMPLE_TIMER_CHANNEL].sr);
-	DUMMY_READ(AVR32_TC.channel[TC_CALIBRATION_TIMER_CHANNEL].sr);
+	MXC_TMR1->intr = MXC_F_TMR_INTR_IRQ;
 #elif EXTERNAL_SAMPLING_SOURCE
-	AVR32_EIC.ICR.int1 = 1;
-#endif
-#endif
-
-#if 1 /* Test reads to clear the bus */
-	PB_READ_TO_CLEAR_BUS_BEFORE_SLEEP;
+	MXC_GPIO_ClearFlags(MXC_GPIO3, MXC_GPIO_PIN_9);
 #endif
 }

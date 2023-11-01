@@ -1498,10 +1498,6 @@ void PowerManager(void)
 			else if (g_sleepModeState == AVR32_PM_SMODE_STOP) { debug("Changing Sleep mode to Stop\r\n"); }
 		}
 
-#if 1 /* Test reads to clear the bus */
-		PB_READ_TO_CLEAR_BUS_BEFORE_SLEEP;
-#endif
-
 #if 0 /* Normal */
 		if (g_sleepModeState == AVR32_PM_SMODE_IDLE) { SLEEP(AVR32_PM_SMODE_IDLE); }
 		else if (g_sleepModeState == AVR32_PM_SMODE_FROZEN) { SLEEP(AVR32_PM_SMODE_FROZEN); }
