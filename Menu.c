@@ -886,8 +886,6 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 ///----------------------------------------------------------------------------
 void OverlayMessage(char* titleString, char* textString, uint32 displayTime)
 {
-	volatile uint32 msDisplayTime = (displayTime / SOFT_MSECS);
-
 	MessageBorder();
 	MessageTitle(titleString);
 	MessageText(textString);
@@ -895,6 +893,8 @@ void OverlayMessage(char* titleString, char* textString, uint32 displayTime)
 	WriteMapToLcd(g_mmap);
 
 #if EXTERNAL_SAMPLING_SOURCE
+	volatile uint32 msDisplayTime = (displayTime / SOFT_MSECS);
+
 	// Check if the display time is less than 5 ms
 	if (displayTime < (5 * SOFT_MSECS))
 	{
