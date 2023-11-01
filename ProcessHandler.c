@@ -303,9 +303,8 @@ void StartDataCollection(uint32 sampleRate)
 
 	// Setup ISR to clock the data sampling
 #if INTERNAL_SAMPLING_SOURCE
-	debug("Setup TC clocks...\r\n");
-	Setup_8100_TC_Clock_ISR(sampleRate, TC_SAMPLE_TIMER_CHANNEL);
-	Setup_8100_TC_Clock_ISR(CAL_PULSE_FIXED_SAMPLE_RATE, TC_CALIBRATION_TIMER_CHANNEL);
+	debug("Setup Internal Timer...\r\n");
+	SetupInteralSampleTimer(sampleRate);
 #elif EXTERNAL_SAMPLING_SOURCE
 	debug("Setup External RTC Sample clock...\r\n");
 	Setup_8100_EIC_External_RTC_ISR();
@@ -317,7 +316,7 @@ void StartDataCollection(uint32 sampleRate)
 	// Start the timer for collecting data
 	debug("Start sampling...\r\n");
 #if INTERNAL_SAMPLING_SOURCE
-	Start_Data_Clock(TC_SAMPLE_TIMER_CHANNEL);
+	StartInteralSampleTimer();
 #elif EXTERNAL_SAMPLING_SOURCE
 	StartExternalRtcClock(sampleRate);
 #endif
@@ -428,7 +427,7 @@ void StopDataCollection(void)
 	g_sampleProcessing = IDLE_STATE;
 
 #if INTERNAL_SAMPLING_SOURCE
-	Stop_Data_Clock(TC_SAMPLE_TIMER_CHANNEL);
+	StopInteralSampleTimer();
 #elif EXTERNAL_SAMPLING_SOURCE
 	StopExternalRtcClock();
 #endif
@@ -446,7 +445,7 @@ void StopDataClock(void)
 	g_sampleProcessing = IDLE_STATE;
 
 #if INTERNAL_SAMPLING_SOURCE
-	Stop_Data_Clock(TC_SAMPLE_TIMER_CHANNEL);
+	StopInteralSampleTimer();
 #elif EXTERNAL_SAMPLING_SOURCE
 	StopExternalRtcClock();
 #endif
@@ -819,11 +818,11 @@ void StartADDataCollectionForCalibration(uint16 sampleRate)
 	GetChannelOffsets(sampleRate);
 
 #if INTERNAL_SAMPLING_SOURCE
-	// Setup ISR to clock the data sampling
-	Setup_8100_TC_Clock_ISR(sampleRate, TC_CALIBRATION_TIMER_CHANNEL);
+	// Setup Interal timer and ISR to clock the data sampling
+	SetupInteralSampleTimer(sampleRate);
 
 	// Start the timer for collecting data
-	Start_Data_Clock(TC_CALIBRATION_TIMER_CHANNEL);
+	StartInteralSampleTimer();
 #elif EXTERNAL_SAMPLING_SOURCE
 	Setup_8100_EIC_External_RTC_ISR();
 
@@ -837,7 +836,7 @@ void StartADDataCollectionForCalibration(uint16 sampleRate)
 void StopADDataCollectionForCalibration(void)
 {
 #if INTERNAL_SAMPLING_SOURCE
-	Stop_Data_Clock(TC_CALIBRATION_TIMER_CHANNEL);
+	StopInteralSampleTimer();
 #elif EXTERNAL_SAMPLING_SOURCE
 	StopExternalRtcClock();
 #endif

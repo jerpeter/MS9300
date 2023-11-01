@@ -82,12 +82,6 @@ enum {
 	HARDWARE_ID_REV_8_WITH_USART = 0x18,
 };
 
-#if 0 /* old hw */
-#define PB_READ_TO_CLEAR_BUS_BEFORE_SLEEP	if ((AVR32_FLASHC.fsr + *(uint16*)0xD0000000 + AVR32_PM.gplp[0] == 0)) { UNUSED(AVR32_PM.gplp[0]); } else { UNUSED(AVR32_PM.gplp[0]); }
-#else
-#define PB_READ_TO_CLEAR_BUS_BEFORE_SLEEP {}
-#endif
-
 #define DISABLED_BUT_FIX_FOR_NS8100	0
 
 typedef enum
@@ -648,6 +642,9 @@ void Setup_8100_Soft_Timer_Tick_ISR(void);
 void Setup_8100_TC_Clock_ISR(uint32 sampleRate, TC_CHANNEL_NUM);
 void Setup_8100_Usart1_RS232_ISR(void);
 void Setup_8100_Usart0_RS232_ISR(void);
+void SetupInteralSampleTimer(uint16_t sampleRate);
+void StartInteralSampleTimer(void);
+void StopInteralSampleTimer(void);
 
 // Init Software prototype extensions
 void InitSoftwareSettings_NS9100(void);

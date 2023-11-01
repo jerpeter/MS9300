@@ -169,7 +169,7 @@ void CalSetupMn(INPUT_MSG_STRUCT msg)
 						{
 							// Stop A/D data collection clock
 #if INTERNAL_SAMPLING_SOURCE
-							Stop_Data_Clock(TC_CALIBRATION_TIMER_CHANNEL);
+							StopInteralSampleTimer();
 #elif EXTERNAL_SAMPLING_SOURCE
 							StopExternalRtcClock();
 #endif
@@ -182,7 +182,7 @@ void CalSetupMn(INPUT_MSG_STRUCT msg)
 							
 							// Restart the data collection clock
 #if INTERNAL_SAMPLING_SOURCE
-							Start_Data_Clock(TC_CALIBRATION_TIMER_CHANNEL);
+							StartInteralSampleTimer();
 #elif EXTERNAL_SAMPLING_SOURCE
 							StartExternalRtcClock(CALIBRATION_FIXED_SAMPLE_RATE);
 #endif
