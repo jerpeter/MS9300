@@ -121,22 +121,37 @@ BOOLEAN ExternalRtcInit(void)
 void StartExternalRtcClock(uint16 sampleRate)
 {
 	uint8_t clockOutControl;
+	uint8_t pinIOControlReg;
+	uint8_t controlReg;
+
+	GetRtcRegisters(PCF85263_CTL_PIN_IO, &pinIOControlReg, 1);
+	GetRtcRegisters(PCF85263_CTL_FUNCTION, &controlReg, 1);
 
 	switch (sampleRate)
 	{
-		case 32768	: clockOutControl = 0x00; break;
-		case 16384	: clockOutControl = 0x01; break;
-		case 8192	: clockOutControl = 0x02; break;
-		case 4096	: clockOutControl = 0x03; break;
-		case 2048	: clockOutControl = 0x04; break;
-		case 1024	: clockOutControl = 0x05; break;
-		case 512	: clockOutControl = 0x05; break;
-		case 1		: clockOutControl = 0x06; break;
-		default		: clockOutControl = 0x05; break; // set to 1024
+		case 32768	: clockOutControl = PCF85263_CTL_FUNC_COF_32KHZ; break;
+		case 16384	: clockOutControl = PCF85263_CTL_FUNC_COF_16KHZ; break;
+		case 8192	: clockOutControl = PCF85263_CTL_FUNC_COF_8KHZ; break;
+		case 4096	: clockOutControl = PCF85263_CTL_FUNC_COF_4KHZ; break;
+		case 2048	: clockOutControl = PCF85263_CTL_FUNC_COF_2KHZ; break;
+		case 1024	: clockOutControl = PCF85263_CTL_FUNC_COF_1KHZ; break;
+		case 512	: clockOutControl = PCF85263_CTL_FUNC_COF_1KHZ; break; // Skips every other call
+		case 1		: clockOutControl = PCF85263_CTL_FUNC_COF_1HZ; break;
+		case 0		: clockOutControl = PCF85263_CTL_FUNC_COF_LOW; break;
+		default		: clockOutControl = PCF85263_CTL_FUNC_COF_1KHZ; break; // Set to 1024
 	}
 
+	// Set the clock output frequency
+	controlReg &= (~PCF85263_CTL_FUNC_COF_MASK);
+	controlReg |= clockOutControl;
+
+	// Enable the clock pin (active low)
+	pinIOControlReg &= (~PCF85263_CTL_CLKPM);
+
+	SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&controlReg, sizeof(controlReg));
+	SetRtcRegisters(PCF85263_CTL_PIN_IO, (uint8_t*)&pinIOControlReg, sizeof(pinIOControlReg));
+
 	debug("Starting External RTC Interrupt\r\n");
-	SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&clockOutControl, sizeof(clockOutControl));
 }
 
 ///----------------------------------------------------------------------------
@@ -144,13 +159,22 @@ void StartExternalRtcClock(uint16 sampleRate)
 ///----------------------------------------------------------------------------
 void StopExternalRtcClock(void)
 {
-	uint8_t clockOutControl;
+	uint8_t pinIOControlReg;
+	uint8_t controlReg;
 
-	// Set the clock out control to turn off any clock interrupt generation
-	clockOutControl = (0x07);
+	GetRtcRegisters(PCF85263_CTL_PIN_IO, &pinIOControlReg, 1);
+	GetRtcRegisters(PCF85263_CTL_FUNCTION, &controlReg, 1);
+
+	// Set the clock output frequency to low (off), mask not needed since all bits need to be set
+	controlReg |= PCF85263_CTL_FUNC_COF_LOW;
+
+	// Disable the clock pin (active low)
+	pinIOControlReg |= PCF85263_CTL_CLKPM;
+
+	SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&controlReg, sizeof(controlReg));
+	SetRtcRegisters(PCF85263_CTL_PIN_IO, (uint8_t*)&pinIOControlReg, sizeof(pinIOControlReg));
 
 	debug("Stoping External RTC Interrupt\r\n");
-	SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&clockOutControl, sizeof(clockOutControl));
 }
 
 ///----------------------------------------------------------------------------
