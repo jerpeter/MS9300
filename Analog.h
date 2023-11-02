@@ -204,8 +204,8 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification);
 /* AD4695_REG_GP_MODE */
 #define AD4695_GP_MODE_BUSY_GP_EN_MASK		(0x01 << 1)
 #define AD4695_GP_MODE_BUSY_GP_EN(x)		((x & 0x01) << 1)
-#define AD4695_GP_MODE_SDO_BUSY_MASK		(0x03 << 2)
-#define AD4695_GP_MODE_SDO_BUSY_SEL(x)		((x & 0x03) << 2)
+#define AD4695_GP_MODE_SDO_MODE_MASK		(0x03 << 2)
+#define AD4695_GP_MODE_SDO_MODE_SEL(x)		((x & 0x03) << 2)
 #define AD4695_GP_MODE_BUSY_GP_SEL_MASK		(0x01 << 4)
 #define AD4695_GP_MODE_BUSY_GP_SEL(x)		((x & 0x01) << 4)
 

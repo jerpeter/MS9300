@@ -1013,11 +1013,11 @@ void AD4695_Set_Busy_State(/*enum ad4695_busy_gpio_sel gp_sel*/)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_Set_SDO_Mode(void)
+void AD4695_Set_SDO_Mode(uint8_t sdoMode)
 {
 	uint8_t verify;
 
-	SPI_Write_Mask(AD4695_REG_GP_MODE, AD4695_GP_MODE_SDO_BUSY_MASK, AD4695_GP_MODE_SDO_BUSY_SEL(AD4695_DUAL_SDO_MODE));
+	SPI_Write_Mask(AD4695_REG_GP_MODE, AD4695_GP_MODE_SDO_MODE_MASK, AD4695_GP_MODE_SDO_MODE_SEL(sdoMode));
 	SPI_Read_Reg_AD4695(AD4695_REG_GP_MODE, &verify);
 
 	if(verify != WBuf[2]) { /* report error */ }
@@ -1069,10 +1069,19 @@ void AD4695_STD_SEQ_EN_Channels(uint16_t reg_addr)
 {
 	//uint8_t Reg_Data;
 
+	// Setup for one full sensor group, set 1
 	SPI_Write_Reg_AD4695(reg_addr, (AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_AOP_1));
+
+	// Setup for one full sensor group, set 2
 	//SPI_Write_Reg_AD4695(reg_addr, (AD4695_STD_SEQ_GEO_2 | AD4695_STD_SEQ_AOP_2));
+
+	// Setup for both geophones only
 	//SPI_Write_Reg_AD4695(reg_addr, (AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_GEO_2));
+
+	// Setup for both microphones only
 	//SPI_Write_Reg_AD4695(reg_addr, (AD4695_STD_SEQ_AOP_1 | AD4695_STD_SEQ_AOP_2));
+
+	// Setup for both full sensor groups, set 1 and 2
 	//SPI_Write_Reg_AD4695(reg_addr, (AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_AOP_1 | AD4695_STD_SEQ_GEO_2 | AD4695_STD_SEQ_AOP_2));
 
 	SPI_Read_Reg_AD4695(reg_addr, &TestSTD_En_Channels);
