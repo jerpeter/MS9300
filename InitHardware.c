@@ -229,42 +229,6 @@ void _init_startup(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void InitSerial485(void)
-{
-#if 0 /* old hw */
-
-	PowerControl(SERIAL_485_DRIVER_ENABLE, ON);
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
-	PowerControl(SERIAL_485_RECEIVER_ENABLE, ON);
-#endif
-
-	// Options for debug USART.
-	usart_options_t usart_3_rs485_usart_options =
-	{
-		.baudrate = 38400,
-		.charlength = 8,
-		.paritytype = USART_NO_PARITY,
-		.stopbits = USART_1_STOPBIT,
-		.channelmode = USART_NORMAL_CHMODE
-	};
-
-	// Initialize it in RS485 mode.
-	usart_init_rs485(&AVR32_USART3, &usart_3_rs485_usart_options, FOSC0);
-
-	PowerControl(SERIAL_485_DRIVER_ENABLE, OFF);
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
-	PowerControl(SERIAL_485_RECEIVER_ENABLE, OFF);
-#endif
-
-	// Make sure 485 lines aren't floating
-	gpio_enable_pin_pull_up(AVR32_USART3_RXD_0_0_PIN);
-	gpio_enable_pin_pull_up(AVR32_USART3_TXD_0_0_PIN);
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 void InitSerial232(void)
 {
 #if 0 /* old hw */
@@ -3046,11 +3010,6 @@ void InitSystemHardware_NS9100(void)
 	// Turn on rs232 driver and receiver (Active low control)
 	//-------------------------------------------------------------------------
 	InitSerial232(); debug("Craft RS232 init complete\r\n");
-
-	//-------------------------------------------------------------------------
-	// Turn on rs485 driver and receiver
-	//-------------------------------------------------------------------------
-	InitSerial485(); debug("RS485 init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initialize the external RTC
