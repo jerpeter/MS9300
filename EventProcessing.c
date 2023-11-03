@@ -1684,7 +1684,6 @@ void PowerDownSDCard(void)
 	debugRaw("\n Powering down SD Card... ");
 
 	// Power off the SD card
-	PowerControl(SD_POWER, OFF);
 
 	// Wait for power to propagate
 	SoftUsecWait(10 * SOFT_MSECS);

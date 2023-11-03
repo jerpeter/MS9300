@@ -780,9 +780,6 @@ void AdjustPowerSavings(void)
 				Usb_enable();
 			}
 #endif
-			// Enable rs232 driver and receiver (Active low control)
-			PowerControl(SERIAL_232_DRIVER_ENABLE, ON);
-			PowerControl(SERIAL_232_RECEIVER_ENABLE, ON);
 		break;
 
 		//----------------------------------------------------------------------------
@@ -818,9 +815,6 @@ void AdjustPowerSavings(void)
 				Usb_enable();
 			}
 #endif
-			// Enable rs232 driver and receiver (Active low control)
-			PowerControl(SERIAL_232_DRIVER_ENABLE, ON);
-			PowerControl(SERIAL_232_RECEIVER_ENABLE, ON);
 		break;
 
 		//----------------------------------------------------------------------------
@@ -850,9 +844,6 @@ void AdjustPowerSavings(void)
 			// Leave active: SMC, FLASHC, HMATRIX; Disable: SDRAMC, MACB, USBB
 			AVR32_PM.pbbmask = 0x00000015;
 #endif
-			// Enable rs232 driver and receiver (Active low control)
-			PowerControl(SERIAL_232_DRIVER_ENABLE, ON);
-			PowerControl(SERIAL_232_RECEIVER_ENABLE, ON);
 		break;
 
 		//----------------------------------------------------------------------------
@@ -888,9 +879,6 @@ void AdjustPowerSavings(void)
 			// Leave active: SMC, FLASHC, HMATRIX; Disable: SDRAMC, MACB, USBB
 			AVR32_PM.pbbmask = 0x00000017; //0x00000015;
 #endif
-			// Disable rs232 driver and receiver (Active low control)
-			PowerControl(SERIAL_232_DRIVER_ENABLE, OFF);
-			PowerControl(SERIAL_232_RECEIVER_ENABLE, OFF);
 		break;
 
 		//----------------------------------------------------------------------------
@@ -919,9 +907,6 @@ void AdjustPowerSavings(void)
 				Usb_enable();
 			}
 #endif
-			// Enable rs232 driver and receiver (Active low control)
-			PowerControl(SERIAL_232_DRIVER_ENABLE, ON);
-			PowerControl(SERIAL_232_RECEIVER_ENABLE, ON);
 		break;
 	}
 }

@@ -1382,10 +1382,6 @@ inline void SetupPowerSavingsBeforeSleeping(void)
 		if (READ_DCD == NO_CONNECTION)
 		{
 			rs232PutToSleepState = YES;
-
-			// Disable rs232 driver and receiver (Active low control)
-			PowerControl(SERIAL_232_DRIVER_ENABLE, OFF);
-			PowerControl(SERIAL_232_RECEIVER_ENABLE, OFF);
 		}
 	}
 
@@ -1413,10 +1409,6 @@ inline void SetupPowerSavingsBeforeSleeping(void)
 		if (rs232PutToSleepState == YES)
 		{
 			rs232PutToSleepState = NO;
-
-			// Enable rs232 driver and receiver (Active low control)
-			PowerControl(SERIAL_232_DRIVER_ENABLE, ON);
-			PowerControl(SERIAL_232_RECEIVER_ENABLE, ON);
 		}
 	}
 

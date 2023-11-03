@@ -548,21 +548,9 @@ void SetNextLcdBacklightState(void)
 ///----------------------------------------------------------------------------
 LCD_BACKLIGHT_STATES GetLcdBacklightState(void)
 {
-	if (GetPowerControlState(LCD_BACKLIGHT_ENABLE) == ON)
-	{
-		if (GetPowerControlState(LCD_BACKLIGHT_HI_ENABLE) == ON)
-		{
-			return (BACKLIGHT_BRIGHT);
-		}
-		else // GetPowerControlState(LCD_BACKLIGHT_ENABLE) == OFF
-		{
-			return (BACKLIGHT_DIM);
-		}
-	}
-	else
-	{
-		return (BACKLIGHT_OFF);
-	}
+	// BACKLIGHT_BRIGHT, BACKLIGHT_DIM, BACKLIGHT_OFF
+
+	return (0);
 }
 
 ///----------------------------------------------------------------------------
@@ -573,26 +561,12 @@ void SetLcdBacklightState(LCD_BACKLIGHT_STATES state)
 	switch (state)
 	{
 		case BACKLIGHT_OFF:
-			PowerControl(LCD_BACKLIGHT_ENABLE, OFF);
-			PowerControl(LCD_BACKLIGHT_HI_ENABLE, OFF);
 		break;
 
 		case BACKLIGHT_DIM:
-			if (GetPowerControlState(LCD_BACKLIGHT_ENABLE) == OFF)
-			{
-				PowerControl(LCD_BACKLIGHT_ENABLE, ON);
-			}
-
-			PowerControl(LCD_BACKLIGHT_HI_ENABLE, OFF);
 		break;
 
 		case BACKLIGHT_BRIGHT:
-			if (GetPowerControlState(LCD_BACKLIGHT_ENABLE) == OFF)
-			{
-				PowerControl(LCD_BACKLIGHT_ENABLE, ON);
-			}
-
-			PowerControl(LCD_BACKLIGHT_HI_ENABLE, ON);
 		break;
 	}
 }

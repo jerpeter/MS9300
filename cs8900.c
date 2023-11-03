@@ -78,9 +78,6 @@ void Init8900(void)
 
 	unsigned int i;
 
-	//turn sleep off
-	PowerControl(LAN_SLEEP_ENABLE, OFF);
-
 	Write8900(ADD_PORT, PP_SelfCTL);
 	Write8900(DATA_PORT, POWER_ON_RESET); // Reset the Ethernet-Controller
 
