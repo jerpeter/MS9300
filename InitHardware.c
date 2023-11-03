@@ -262,10 +262,6 @@ void InitSerial232(void)
 	// Initialize it in RS232 mode.
 	usart_init_modem(&AVR32_USART1, &usart_1_rs232_options, FOSC0);
 
-	// Enable external driver and receiver
-	PowerControl(SERIAL_232_DRIVER_ENABLE, ON);
-	PowerControl(SERIAL_232_RECEIVER_ENABLE, ON);
-
 	// Enable internal pullups on input lines since external pullups aren't present
 	gpio_enable_pin_pull_up(AVR32_USART1_RXD_0_0_PIN);
 	gpio_enable_pin_pull_up(AVR32_USART1_DCD_0_PIN);
@@ -448,10 +444,6 @@ void TestPowerDownAndStop(void)
 
 	debug("\nClosing up shop.\n\r\n");
 
-	// Disable rs232 driver and receiver (Active low control)
-	PowerControl(SERIAL_232_DRIVER_ENABLE, OFF);
-	PowerControl(SERIAL_232_RECEIVER_ENABLE, OFF);
-
 	//DisplayTimerCallBack();
 	SetLcdBacklightState(BACKLIGHT_OFF);
 
@@ -485,11 +477,6 @@ void InitUSBClockAndIOLines(void)
 	// Init USB and Mass Storage drivers
 	usb_task_init();
 	device_mass_storage_task_init();
-#endif
-
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
-	// Disable USB LED
-	PowerControl(USB_LED, OFF);
 #endif
 
 #if NS8100_ORIGINAL_PROTOTYPE
@@ -534,9 +521,6 @@ void InitExternalRTC(void)
 #if 0 /* old hw */
 
 	ExternalRtcInit();
-
-	// Set RTC Timestamp pin high (Active low control)
-	PowerControl(RTC_TIMESTAMP, OFF);
 
 #if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
 	// Enable internal pullup on RTC PFO (Active low) since external pullups aren't present
@@ -616,10 +600,6 @@ void PowerDownAndHalt(void)
 
 	debug("\nClosing up shop.\n\r\n");
 
-	// Disable rs232 driver and receiver (Active low control)
-	PowerControl(SERIAL_232_DRIVER_ENABLE, OFF);
-	PowerControl(SERIAL_232_RECEIVER_ENABLE, OFF);
-
 	//DisplayTimerCallBack();
 	SetLcdBacklightState(BACKLIGHT_OFF);
 
@@ -643,7 +623,7 @@ mxc_gpio_cfg_t g_GaugeAlert;
 mxc_gpio_cfg_t g_BatteryChargerIRQ;
 mxc_gpio_cfg_t g_Enable12V;
 mxc_gpio_cfg_t g_Enable5V;
-mxc_gpio_cfg_t g_Enable2_5_VRef;
+mxc_gpio_cfg_t g_ExpansionIRQ;
 mxc_gpio_cfg_t g_USBSourceEnable;
 mxc_gpio_cfg_t g_USBAuxPowerEnable;
 mxc_gpio_cfg_t g_PowerGood5v;
@@ -659,7 +639,6 @@ mxc_gpio_cfg_t g_Alert2;
 mxc_gpio_cfg_t g_LTEOTA;
 mxc_gpio_cfg_t g_ExpansionEnable;
 mxc_gpio_cfg_t g_ExpansionReset;
-mxc_gpio_cfg_t g_ExpansionIRQ;
 mxc_gpio_cfg_t g_USBCI2CIRQ;
 mxc_gpio_cfg_t g_AccelInt1;
 mxc_gpio_cfg_t g_AccelInt2;
@@ -693,6 +672,7 @@ mxc_gpio_cfg_t g_SmartSensorMux_A1;
 mxc_gpio_cfg_t g_Nyquist0_A0;
 mxc_gpio_cfg_t g_Nyquist1_A1;
 mxc_gpio_cfg_t g_Nyquist2_Enable;
+mxc_gpio_cfg_t g_CellEnable;
 mxc_gpio_cfg_t g_SensorEnable1_Geo1;
 mxc_gpio_cfg_t g_SensorEnable2_Aop1;
 mxc_gpio_cfg_t g_SensorEnable3_Geo2;
@@ -807,15 +787,16 @@ void SetupGPIO(void)
 	MXC_GPIO_OutSet(g_Enable5V.port, g_Enable5V.mask); // Start enabled
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// Enable 2.5V Ref: Port 0, Pin 8, Output, External pulldown, Active high, probably 3.3V (minimum 0.7 * Vin)
+	// Expansion IRQ: Port 0, Pin 8, Input, External pullup, Active low, 3.3V (minimum 2V)
 	//----------------------------------------------------------------------------------------------------------------------
-	g_Enable2_5_VRef.port = MXC_GPIO0;
-	g_Enable2_5_VRef.mask = MXC_GPIO_PIN_8;
-	g_Enable2_5_VRef.pad = MXC_GPIO_PAD_NONE;
-	g_Enable2_5_VRef.func = MXC_GPIO_FUNC_OUT;
-	g_Enable2_5_VRef.vssel = MXC_GPIO_VSSEL_VDDIOH; // Trying 3.3
-    MXC_GPIO_Config(&g_Enable2_5_VRef);
-	MXC_GPIO_OutSet(g_Enable2_5_VRef.port, g_Enable2_5_VRef.mask); // Enabling to start for testing, may delay power later until monitoring setup
+	g_ExpansionIRQ.port = MXC_GPIO1;
+	g_ExpansionIRQ.mask = MXC_GPIO_PIN_9;
+	g_ExpansionIRQ.pad = MXC_GPIO_PAD_NONE;
+	g_ExpansionIRQ.func = MXC_GPIO_FUNC_IN;
+	g_ExpansionIRQ.vssel = MXC_GPIO_VSSEL_VDDIOH;
+	MXC_GPIO_RegisterCallback(&g_ExpansionIRQ, Expansion_ISR, NULL);
+    MXC_GPIO_IntConfig(&g_ExpansionIRQ, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_ExpansionIRQ.port, g_ExpansionIRQ.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// USB Source Enable: Port 0, Pin 9, Output, External pulldown, Active high, 1.8V (minimum 1.2V)
@@ -977,18 +958,6 @@ void SetupGPIO(void)
 	g_ExpansionReset.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&g_ExpansionReset);
 	MXC_GPIO_OutClr(g_ExpansionReset.port, g_ExpansionReset.mask); // Start in reset
-
-	//----------------------------------------------------------------------------------------------------------------------
-	// Expansion IRQ: Port 1, Pin 9, Input, External pullup, Active low, 3.3V (minimum 2V)
-	//----------------------------------------------------------------------------------------------------------------------
-	g_ExpansionIRQ.port = MXC_GPIO1;
-	g_ExpansionIRQ.mask = MXC_GPIO_PIN_9;
-	g_ExpansionIRQ.pad = MXC_GPIO_PAD_NONE;
-	g_ExpansionIRQ.func = MXC_GPIO_FUNC_IN;
-	g_ExpansionIRQ.vssel = MXC_GPIO_VSSEL_VDDIOH;
-	MXC_GPIO_RegisterCallback(&g_ExpansionIRQ, Expansion_ISR, NULL);
-    MXC_GPIO_IntConfig(&g_ExpansionIRQ, MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(g_ExpansionIRQ.port, g_ExpansionIRQ.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// USBC I2C IRQ: Port 1, Pin 11, Input, External pullup, Active low, 1.8V
@@ -1364,6 +1333,17 @@ void SetupGPIO(void)
 	g_Nyquist2_Enable.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&g_Nyquist2_Enable);
 	MXC_GPIO_OutClr(g_Nyquist2_Enable.port, g_Nyquist2_Enable.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Cellular Enable: Port 3, Pin 0, Output, No external pull, Active high, 3.3V (minimum 0.5)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_CellEnable.port = MXC_GPIO0;
+	g_CellEnable.mask = MXC_GPIO_PIN_8;
+	g_CellEnable.pad = MXC_GPIO_PAD_NONE;
+	g_CellEnable.func = MXC_GPIO_FUNC_OUT;
+	g_CellEnable.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_CellEnable);
+	MXC_GPIO_OutSet(g_CellEnable.port, g_CellEnable.mask); // Enabling to start for testing, may delay power later until monitoring setup
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Sensor Enable 1(Geo1): Port 3, Pin 1, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
@@ -2981,11 +2961,6 @@ void InitSystemHardware_NS9100(void)
 	// Set Trigger Out low (Active high control)
 	//-------------------------------------------------------------------------
 	PowerControl(TRIGGER_OUT, OFF);
-
-	//-------------------------------------------------------------------------
-	// Set USB LED Output low (Active high control)
-	//-------------------------------------------------------------------------
-	PowerControl(USB_LED, OFF);
 
 	//-------------------------------------------------------------------------
 	// Configure Debug rs232
