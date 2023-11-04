@@ -1262,22 +1262,26 @@ void SetupGPIO(void)
 
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// LTE Reset: Port 2, Pin 13, Input, External pull up, Active low, 3.3V
+	// LTE Reset: Port 2, Pin 13, Input/Output???, External pull up, Active low, 3.3V
 	//----------------------------------------------------------------------------------------------------------------------
 	g_LTEReset.port = MXC_GPIO2;
 	g_LTEReset.mask = MXC_GPIO_PIN_13;
 	g_LTEReset.pad = MXC_GPIO_PAD_NONE;
-	g_LTEReset.func = MXC_GPIO_FUNC_IN;
+	g_LTEReset.func = MXC_GPIO_FUNC_OUT; //MXC_GPIO_FUNC_IN;
 	g_LTEReset.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_LTEReset);
+	MXC_GPIO_OutSet(g_LTEReset.port, g_LTEReset.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// BLE Reset: Port 2, 15, Input, External pull up, Active low, 3.3V
+	// BLE Reset: Port 2, 15, Input/Output???, External pull up, Active low, 3.3V
 	//----------------------------------------------------------------------------------------------------------------------
 	g_BLEReset.port = MXC_GPIO2;
 	g_BLEReset.mask = MXC_GPIO_PIN_15;
 	g_BLEReset.pad = MXC_GPIO_PAD_NONE;
-	g_BLEReset.func = MXC_GPIO_FUNC_IN;
+	g_BLEReset.func = MXC_GPIO_FUNC_OUT; //MXC_GPIO_FUNC_IN;
 	g_BLEReset.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_BLEReset);
+	MXC_GPIO_OutSet(g_BLEReset.port, g_BLEReset.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Smart Sensor Mux A0: Port 2, Pin 23, Output, External pulldown, Active high, 3.3V (minimum 2.0V)
@@ -1343,7 +1347,7 @@ void SetupGPIO(void)
 	g_CellEnable.func = MXC_GPIO_FUNC_OUT;
 	g_CellEnable.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&g_CellEnable);
-	MXC_GPIO_OutSet(g_CellEnable.port, g_CellEnable.mask); // Enabling to start for testing, may delay power later until monitoring setup
+	MXC_GPIO_OutClr(g_CellEnable.port, g_CellEnable.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Sensor Enable 1(Geo1): Port 3, Pin 1, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
@@ -1856,14 +1860,28 @@ void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeasser
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+//extern mxc_spi_reva_regs_t;
+//extern int MXC_SPI_RevA1_Init(mxc_spi_reva_regs_t *spi, int masterMode, int quadModeUsed, int numSlaves, unsigned ssPolarity, unsigned int hz);
 void SetupSPI(void)
 {
+	//mxc_gpio_cfg_t spi3GpioConfig = { MXC_GPIO0, (MXC_GPIO_PIN_16 | MXC_GPIO_PIN_17 | MXC_GPIO_PIN_20 | MXC_GPIO_PIN_21), MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE };
 	int status;
 
+#if 1 /* Can't use standard init since the underlying SPI3 GPIO config overwrites */
 	status = MXC_SPI_Init(MXC_SPI3, 1, 0, 1, 0, SPI_SPEED_ADC);
+#else
+	MXC_SYS_Reset_Periph(MXC_SYS_RESET_SPI3);
+	MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_SPI3);
+	MXC_GPIO_Config(&spi3GpioConfig);
+	//MXC_GPIO_Config(&gpio_cfg_spi3_ss0); // Needed???
+
+    status = MXC_SPI_RevA1_Init(MXC_SPI3, 1, 0, 1, 0, SPI_SPEED_ADC);
+
+#endif
 	if (status != E_SUCCESS) { debugErr("SPI3 (ADC) Init failed with code: %d\n", status); }
 
-	// Wait to set dual since the ADC IC needs to be configured for dual mode before setting MXC SPI3 to dial width
+	// Turns out ADC dual-SDO and MAX32651 dual mode are incompatible, can only use single mode
+	// (Ignore) Wait to set dual since the ADC IC needs to be configured for dual mode before setting MXC SPI3 to dial width
 	//MXC_SPI_SetWidth(MXC_SPI3, SPI_WIDTH_DUAL);
 	MXC_SPI_SetWidth(MXC_SPI3, SPI_WIDTH_STANDARD);
 
