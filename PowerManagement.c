@@ -32,6 +32,37 @@
 ///----------------------------------------------------------------------------
 #include "Globals.h"
 
+extern mxc_gpio_cfg_t g_MCUPowerLatch;
+extern mxc_gpio_cfg_t g_Enable12V;
+extern mxc_gpio_cfg_t g_Enable5V;
+extern mxc_gpio_cfg_t g_USBSourceEnable;
+extern mxc_gpio_cfg_t g_USBAuxPowerEnable;
+extern mxc_gpio_cfg_t g_SmartSensorSleep;
+extern mxc_gpio_cfg_t g_SmartSensorMuxEnable;
+extern mxc_gpio_cfg_t g_ADCReset;
+extern mxc_gpio_cfg_t g_CalMuxPreADEnable;
+extern mxc_gpio_cfg_t g_CalMuxPreADSelect;
+extern mxc_gpio_cfg_t g_Alert1;
+extern mxc_gpio_cfg_t g_Alert2;
+extern mxc_gpio_cfg_t g_LTEOTA;
+extern mxc_gpio_cfg_t g_ExpansionEnable;
+extern mxc_gpio_cfg_t g_ExpansionReset;
+extern mxc_gpio_cfg_t g_AccelInt1;
+extern mxc_gpio_cfg_t g_AccelInt2;
+extern mxc_gpio_cfg_t g_AccelTrig;
+extern mxc_gpio_cfg_t g_LED1;
+extern mxc_gpio_cfg_t g_LED2;
+extern mxc_gpio_cfg_t g_LED3;
+extern mxc_gpio_cfg_t g_BLEOTA;
+extern mxc_gpio_cfg_t g_ExternalTriggerOut;
+extern mxc_gpio_cfg_t g_ExternalTriggerIn;
+extern mxc_gpio_cfg_t g_LCDPowerEnable;
+extern mxc_gpio_cfg_t g_LCDPowerDisplay;
+extern mxc_gpio_cfg_t g_SensorCheckEnable;
+extern mxc_gpio_cfg_t g_LTEReset;
+extern mxc_gpio_cfg_t g_BLEReset;
+extern mxc_gpio_cfg_t g_CellEnable;
+
 ///----------------------------------------------------------------------------
 ///	Local Scope Globals
 ///----------------------------------------------------------------------------
@@ -51,35 +82,19 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 		//----------------------------------------------------------------------------
 		case POWER_OFF:
 		//----------------------------------------------------------------------------
-			//debug("Power Off: %s.\r\n", mode == ON ? "On" : "Off");
+			//debug("Power Off: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON)
 			{
-				s_powerManagement |= POWER_OFF_BIT; // ???
-			}			
+			}
 			else // (mode == OFF)
 			{
-				// Unit is actually off
 			}
 			break;
 
 		//----------------------------------------------------------------------------
 		case POWER_OFF_PROTECTION_ENABLE:
 		//----------------------------------------------------------------------------
-			//debug("Power Shutdown Enable: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-				s_powerManagement |= POWER_OFF_PROTECTION_ENABLE_BIT; // ???
-			} 
-			else // (mode == OFF)
-			{
-				s_powerManagement &= ~(POWER_OFF_PROTECTION_ENABLE_BIT); // ???
-			}
-			break;
-
-		//----------------------------------------------------------------------------
-		case ALARM_1_ENABLE: // Active high control
-		//----------------------------------------------------------------------------
-			//debug("Alarm 1 Enable: %s.\r\n", mode == ON ? "On" : "Off");
+			//debug("Power Shutdown Enable: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON)
 			{
 			}
@@ -89,33 +104,33 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			break;
 
 		//----------------------------------------------------------------------------
-		case ALARM_2_ENABLE: // Active high control
+		case ALARM_1_ENABLE: // Active high
 		//----------------------------------------------------------------------------
-			//debug("Alarm 2 Enable: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("Alarm 1 Enable: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_Alert1.port, g_Alert1.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_Alert1.port, g_Alert1.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case LCD_POWER_ENABLE: // Active high control
+		case ALARM_2_ENABLE: // Active high
 		//----------------------------------------------------------------------------
-			//debug("Lcd Sleep Enable: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("Alarm 2 Enable: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_Alert2.port, g_Alert2.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_Alert2.port, g_Alert2.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case LCD_CONTRAST_ENABLE: // Active high control
+		case LCD_POWER_ENABLE: // Active high
 		//----------------------------------------------------------------------------
-			//debug("Lcd Contrast Enable: %s.\r\n", mode == ON ? "On" : "Off");
+			debug("LCD Power Enable: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_LCDPowerEnable.port, g_LCDPowerEnable.mask); /* 20ms delay needed before FT810Q ready */ }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_LCDPowerEnable.port, g_LCDPowerEnable.mask); }
+			break;
+
+		//----------------------------------------------------------------------------
+		case LCD_CONTRAST_ENABLE: // (unused)
+		//----------------------------------------------------------------------------
+			//debug("Lcd Contrast Enable: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON)
 			{
 			}				
@@ -125,35 +140,25 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			break;
 
 		//----------------------------------------------------------------------------
-		case ANALOG_SLEEP_ENABLE:
+		case ANALOG_SLEEP_ENABLE: // Active high
 		//----------------------------------------------------------------------------
-			//debug("Analog Sleep Enable: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-				// Fill in at some point if power control for the A/D is available
-			}
-			else // (mode == OFF)
-			{
-				// Fill in at some point if power control for the A/D is available
-			}
+			debug("Analog Sleep (5V) Enable: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_Enable5V.port, g_Enable5V.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_Enable5V.port, g_Enable5V.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case TRIGGER_OUT: // Active high control
+		case TRIGGER_OUT: // Active high
 		//----------------------------------------------------------------------------
-			//debug("Trigger Out Enable: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("External Trigger Out: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_ExternalTriggerOut.port, g_ExternalTriggerOut.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_ExternalTriggerOut.port, g_ExternalTriggerOut.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
 		case SEISMIC_SENSOR_DATA_CONTROL: // Active low control
 		//----------------------------------------------------------------------------
-			//debug("Seismic Sensor Data Control Enable: %s.\r\n", mode == ON ? "On" : "Off");
+			//debug("Seismic Sensor Data Control Enable: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON)
 			{
 			}
@@ -165,7 +170,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 		//----------------------------------------------------------------------------
 		case ACOUSTIC_SENSOR_DATA_CONTROL: // Active low control
 		//----------------------------------------------------------------------------
-			//debug("Acoustic Sensor Data Control Enable: %s.\r\n", mode == ON ? "On" : "Off");
+			//debug("Acoustic Sensor Data Control Enable: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON)
 			{
 			}
@@ -175,183 +180,123 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			break;
 
 		//----------------------------------------------------------------------------
-		case MCU_POWER_LATCH:
+		case MCU_POWER_LATCH: // Active high
 		//----------------------------------------------------------------------------
-			//debug("xxx: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("MCU Power Latch: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_MCUPowerLatch.port, g_MCUPowerLatch.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_MCUPowerLatch.port, g_MCUPowerLatch.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case ENABLE_12V:
+		case ENABLE_12V: // Active high
 		//----------------------------------------------------------------------------
-			//debug("xxx: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("12V Enable: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_Enable12V.port, g_Enable12V.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_Enable12V.port, g_Enable12V.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case USB_SOURCE_ENABLE:
+		case USB_SOURCE_ENABLE: // Active high
 		//----------------------------------------------------------------------------
-			//debug("xxx: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("USB Source Enable: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_USBSourceEnable.port, g_USBSourceEnable.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_USBSourceEnable.port, g_USBSourceEnable.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case USB_AUX_POWER_ENABLE:
+		case USB_AUX_POWER_ENABLE: // Active high
 		//----------------------------------------------------------------------------
-			//debug("xxx: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("USB Aux Power Enable: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_USBAuxPowerEnable.port, g_USBAuxPowerEnable.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_USBAuxPowerEnable.port, g_USBAuxPowerEnable.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case ADC_RESET:
+		case ADC_RESET: // Active low
 		//----------------------------------------------------------------------------
-			//debug("xxx: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("ADC Reset: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutClr(g_ADCReset.port, g_ADCReset.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutSet(g_ADCReset.port, g_ADCReset.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case EXPANSION_ENABLE:
+		case EXPANSION_ENABLE: // Active high
 		//----------------------------------------------------------------------------
-			//debug("xxx: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("Expansion Enable: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_ExpansionEnable.port, g_ExpansionEnable.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_ExpansionEnable.port, g_ExpansionEnable.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case SENSOR_CHECK_ENABLE:
+		case SENSOR_CHECK_ENABLE: // Active high
 		//----------------------------------------------------------------------------
-			//debug("xxx: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("Sensor Check Enable: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_SensorCheckEnable.port, g_SensorCheckEnable.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_SensorCheckEnable.port, g_SensorCheckEnable.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case LTE_RESET:
+		case LTE_RESET: // Active low
 		//----------------------------------------------------------------------------
-			//debug("xxx: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("LTE Reset: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutClr(g_LTEReset.port, g_LTEReset.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutSet(g_LTEReset.port, g_LTEReset.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case BLE_RESET:
+		case BLE_RESET: // Active low
 		//----------------------------------------------------------------------------
-			//debug("xxx: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("BLE Reset: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutClr(g_BLEReset.port, g_BLEReset.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutSet(g_BLEReset.port, g_BLEReset.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case CELL_ENABLE:
+		case CELL_ENABLE: // Active high
 		//----------------------------------------------------------------------------
-			//debug("xxx: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("Cellular: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_CellEnable.port, g_CellEnable.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_CellEnable.port, g_CellEnable.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case EXPANSION_RESET:
+		case EXPANSION_RESET: // Active low
 		//----------------------------------------------------------------------------
-			//debug("xxx: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("Expansion Reset: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutClr(g_ExpansionReset.port, g_ExpansionReset.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutSet(g_ExpansionReset.port, g_ExpansionReset.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case LCD_POWER_DISPLAY:
+		case LCD_POWER_DISPLAY: // Active low
 		//----------------------------------------------------------------------------
-			//debug("xxx: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("LCD Power Display: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutClr(g_LCDPowerDisplay.port, g_LCDPowerDisplay.mask); /* 20ms delay needed before FT810Q ready */ }
+			else /* (mode == OFF) */ { MXC_GPIO_OutSet(g_LCDPowerDisplay.port, g_LCDPowerDisplay.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case LED_1:
+		case LED_1: // Active high
 		//----------------------------------------------------------------------------
-			//debug("xxx: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("LED 1: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_LED1.port, g_LED1.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_LED1.port, g_LED1.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case LED_2:
+		case LED_2: // Active high
 		//----------------------------------------------------------------------------
-			//debug("xxx: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("LED 2: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_LED2.port, g_LED2.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_LED2.port, g_LED2.mask); }
 			break;
 
 		//----------------------------------------------------------------------------
-		case LED_3:
+		case LED_3: // Active high
 		//----------------------------------------------------------------------------
-			//debug("xxx: %s.\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
+			debug("LED 3: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_LED3.port, g_LED3.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_LED3.port, g_LED3.mask); }
 			break;
 	}
 
