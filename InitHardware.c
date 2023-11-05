@@ -682,6 +682,7 @@ mxc_gpio_cfg_t g_GainPathSelect2_Aop1;
 mxc_gpio_cfg_t g_GainPathSelect3_Geo2;
 mxc_gpio_cfg_t g_GainPathSelect4_Aop2;
 mxc_gpio_cfg_t g_RTCClock;
+mxc_gpio_cfg_t g_AdcBusyAltGP0;
 
 void GaugeAlert_ISR(void *cbdata);
 void BatteryCharger_ISR(void *cbdata);
@@ -1453,6 +1454,18 @@ void SetupGPIO(void)
     MXC_GPIO_IntConfig(&g_RTCClock, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_RTCClock.port, g_RTCClock.mask);
 
+#if 1 /* Special addition (ADC Dual-SDO and Max32651 Dual mode not compatible), re-configure SPI3_SDIO2 (P0.17) from SPI line to ADC GPIO */
+	//----------------------------------------------------------------------------------------------------------------------
+	// External ADC Busy, Alt, GP0: Port 0, Pin 17, Input, No external pullup, Active high, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_AdcBusyAltGP0.port = MXC_GPIO0;
+	g_AdcBusyAltGP0.mask = MXC_GPIO_PIN_17;
+	g_AdcBusyAltGP0.pad = MXC_GPIO_PAD_WEAK_PULL_DOWN; // ADC GP0 line inits as input, set pull down until ADC GP0 configured as output
+	g_AdcBusyAltGP0.func = MXC_GPIO_FUNC_IN;
+	g_AdcBusyAltGP0.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_AdcBusyAltGP0);
+#endif
+
 	//----------------------------------------------------------------------------------------------------------------------
 	// Enable IRQ's for any of the appropritate GPIO input interrupts
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1860,35 +1873,39 @@ void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeasser
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-//extern mxc_spi_reva_regs_t;
-//extern int MXC_SPI_RevA1_Init(mxc_spi_reva_regs_t *spi, int masterMode, int quadModeUsed, int numSlaves, unsigned ssPolarity, unsigned int hz);
 void SetupSPI(void)
 {
-	//mxc_gpio_cfg_t spi3GpioConfig = { MXC_GPIO0, (MXC_GPIO_PIN_16 | MXC_GPIO_PIN_17 | MXC_GPIO_PIN_20 | MXC_GPIO_PIN_21), MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE };
 	int status;
 
-#if 1 /* Can't use standard init since the underlying SPI3 GPIO config overwrites */
-	status = MXC_SPI_Init(MXC_SPI3, 1, 0, 1, 0, SPI_SPEED_ADC);
-#else
-	MXC_SYS_Reset_Periph(MXC_SYS_RESET_SPI3);
-	MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_SPI3);
-	MXC_GPIO_Config(&spi3GpioConfig);
-	//MXC_GPIO_Config(&gpio_cfg_spi3_ss0); // Needed???
-
-    status = MXC_SPI_RevA1_Init(MXC_SPI3, 1, 0, 1, 0, SPI_SPEED_ADC);
-
-#endif
+	//--------------------
+	// SPI3 - External ADC
+	//--------------------
+	status = MXC_SPI_Init(MXC_SPI3, YES, NO, 1, LOW, SPI_SPEED_ADC);
 	if (status != E_SUCCESS) { debugErr("SPI3 (ADC) Init failed with code: %d\n", status); }
 
-	// Turns out ADC dual-SDO and MAX32651 dual mode are incompatible, can only use single mode
-	// (Ignore) Wait to set dual since the ADC IC needs to be configured for dual mode before setting MXC SPI3 to dial width
-	//MXC_SPI_SetWidth(MXC_SPI3, SPI_WIDTH_DUAL);
+	mxc_gpio_cfg_t spi3SlaveSelect0GpioConfig = { MXC_GPIO0, (MXC_GPIO_PIN_19), MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE };
+	MXC_GPIO_Config(&spi3SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
+
+	// Set standard SPI 4-wire (MISO/MOSI, full duplex), (Turns out ADC dual-SDO and MAX32651 dual mode are incompatible, can only use single mode)
 	MXC_SPI_SetWidth(MXC_SPI3, SPI_WIDTH_STANDARD);
 
-	status = MXC_SPI_Init(MXC_SPI2, 1, 0, 1, 0, SPI_SPEED_LCD);
+	// External SPI3 uses SPI Mode 3 only
+	MXC_SPI_SetMode(MXC_SPI3, SPI_MODE_3);
+
+	//-----------
+	// SPI2 - LCD
+	//-----------
+	status = MXC_SPI_Init(MXC_SPI2, YES, NO, 1, LOW, SPI_SPEED_LCD);
 	if (status != E_SUCCESS) { debugErr("SPI2 (LCD) Init failed with code: %d\n", status); }
 
+	mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { MXC_GPIO2, (MXC_GPIO_PIN_5), MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE };
+	MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
+
+	// Set standard SPI 4-wire (MISO/MOSI, full duplex)
 	MXC_SPI_SetWidth(MXC_SPI2, SPI_WIDTH_STANDARD);
+
+	// LCD controller uses SPI Mode 0 only
+	MXC_SPI_SetMode(MXC_SPI2, SPI_MODE_0);
 }
 
 // USB Definitions
@@ -2912,11 +2929,6 @@ void InitSystemHardware_NS9100(void)
     MXC_ICC_Enable();
 
 	//-------------------------------------------------------------------------
-	// Setup all GPIO
-	//-------------------------------------------------------------------------
-	SetupGPIO();
-
-	//-------------------------------------------------------------------------
 	// Setup UART0 (LTE) and UART1 (BLE)
 	//-------------------------------------------------------------------------
 	SetupUART();
@@ -2937,7 +2949,14 @@ void InitSystemHardware_NS9100(void)
 	//-------------------------------------------------------------------------
 	// Setup SPI3 (ADC) and SPI2 (LCD)
 	//-------------------------------------------------------------------------
+	// SPI3 GPIO pin config (pins_me10.c, library code) is outside the scope of this project code and incorrectly assigns Port 0 Pin 15
 	SetupSPI();
+
+	//-------------------------------------------------------------------------
+	// Setup all GPIO
+	//-------------------------------------------------------------------------
+	// Must init after SPI to correct for a wrong GPIO pin config in the library (and allow this project to work with an unmodified framework)
+	SetupGPIO();
 
 	//-------------------------------------------------------------------------
 	// Setup USB Composite (MSC + CDC/ACM)
