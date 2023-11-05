@@ -25,6 +25,7 @@
 //#include "twi.h"
 #include "spi.h"
 #include "mxc_delay.h"
+#include "gpio.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -1003,11 +1004,20 @@ void AD5695_Register_Access_Mode(enum ad4695_reg_access access)
 ///----------------------------------------------------------------------------
 void AD4695_Set_Busy_State(/*enum ad4695_busy_gpio_sel gp_sel*/)
 {
-	SPI_Write_Mask(AD4695_REG_GP_MODE, AD4695_GP_MODE_BUSY_GP_EN_MASK, AD4695_GP_MODE_BUSY_GP_EN(1));
-	//SPI_Write_Mask(AD4695_REG_GP_MODE, AD4695_GP_MODE_BUSY_GP_SEL_MASK, AD4695_GP_MODE_BUSY_GP_SEL(gp_sel));
-	SPI_Read_Reg_AD4695(AD4695_REG_GP_MODE, &TestBusyState);
-
+	// Set BSY_ALT_GP0 GPO Enable bit (general-purpose output function on BSY_ALT_GP0 enabled)
+	SPI_Write_Mask(AD4695_REG_GPIO_CTRL, AD4695_GPIO_CTRL_GPO0_EN_MASK, AD4695_GPIO_CTRL_GPO0_EN_EN(1));
+	SPI_Read_Reg_AD4695(AD4695_REG_GPIO_CTRL, &TestBusyState);
 	if(TestBusyState != WBuf[2]) { AD4695_Init_Error.BusyState = TRUE; }
+
+	// Set BUSY_GP_EN bit (busy indicator on the general-purpose pin function enabled)
+	SPI_Write_Mask(AD4695_REG_GP_MODE, AD4695_GP_MODE_BUSY_GP_EN_MASK, AD4695_GP_MODE_BUSY_GP_EN(1));
+	SPI_Read_Reg_AD4695(AD4695_REG_GP_MODE, &TestBusyState);
+	if(TestBusyState != WBuf[2]) { AD4695_Init_Error.BusyState = TRUE; }
+
+	// Once the BSY_ALT_GP0 is configured as an output from the External ADC, disable the weak pull down
+	MXC_GPIO0->pdpu_sel0 &= ~MXC_GPIO_PIN_17;
+	MXC_GPIO0->pdpu_sel1 &= ~MXC_GPIO_PIN_17;
+	MXC_GPIO0->pssel &= ~MXC_GPIO_PIN_17;
 }
 
 ///----------------------------------------------------------------------------
@@ -1107,7 +1117,7 @@ void AD4695_Init()
 {
 	//This field disables the CRC
 	AD5695_Register_Access_Mode(AD4695_BYTE_ACCESS); //individual bytes in multibyte registers are read from or written to in individual data phases
-	//AD4695_Set_Busy_State();
+	AD4695_Set_Busy_State();
 	AD4695_Standart_Seq_MODEandOSR(AD4695_OSR_1); //16 bit not 17,18 or 19
 	AD4695_Standart_MODE_SET(); //Standard mode is set
 	AD4695_RefControl(R2V4_2V7); /*Setting the reference voltage */
