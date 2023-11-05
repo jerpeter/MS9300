@@ -201,6 +201,10 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification);
 #define AD4695_SETUP_CYC_CTRL_MASK			(0x01 << 1)
 #define AD4695_SETUP_CYC_CTRL_SINGLE(x)		((x & 0x01) << 1)
 
+/* AD4695_REG_GPIO_CTRL */
+#define AD4695_GPIO_CTRL_GPO0_EN_MASK		(0x01 << 0)
+#define AD4695_GPIO_CTRL_GPO0_EN_EN(x)		((x & 0x01) << 0)
+
 /* AD4695_REG_GP_MODE */
 #define AD4695_GP_MODE_BUSY_GP_EN_MASK		(0x01 << 1)
 #define AD4695_GP_MODE_BUSY_GP_EN(x)		((x & 0x01) << 1)
