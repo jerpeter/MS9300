@@ -360,6 +360,15 @@ void InitExternalKeypad(void)
 	// Turn on the red keypad LED while loading
 	WriteMcp23018(IO_ADDRESS_KPD, GPIOA, ((ReadMcp23018(IO_ADDRESS_KPD, GPIOA) & 0xCF) | RED_LED_PIN));
 #endif
+#else
+	uint8 keyScan = MXC_GPIO_InGet(MXC_GPIO1, BUTTON_GPIO_MASK);
+	if (keyScan)
+	{
+		debugWarn("Keypad key being pressed, likely a bug. Key: %x", keyScan);
+	}
+
+	// Todo: Find the right LED to light
+	PowerControl(LED_1, ON);
 #endif
 }
 

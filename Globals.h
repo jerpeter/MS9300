@@ -101,7 +101,11 @@ extern volatile uint32 g_msTimerTicks;
 extern uint32 g_kpadKeyRepeatCount;
 extern uint32 g_kpadDelayTickCount;
 extern uint32 g_keypadNumberSpeed;
-extern uint8 g_keypadTable[8][8];
+#if 0 /* old hw */
+extern uint8 g_keypadTable[9];
+#else
+extern uint16 g_keypadTable[9];
+#endif
 extern unsigned char g_smc_tab_cs_size[4];
 extern SENSOR_PARAMETERS_STRUCT g_sensorInfo;
 extern EVT_RECORD g_pendingEventRecord;

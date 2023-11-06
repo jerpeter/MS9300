@@ -215,9 +215,11 @@ void Eic_keypad_irq(void)
 	ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
 #endif
 
-#if 0 /* old hw */
 	// Clear the interrupt flag in the processor
+#if 0 /* old hw */
 	AVR32_EIC.ICR.int5 = 1;
+#else
+	MXC_GPIO_ClearFlags(MXC_GPIO1, BUTTON_GPIO_MASK);
 #endif
 }
 

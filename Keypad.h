@@ -18,7 +18,7 @@
 ///----------------------------------------------------------------------------
 #define NUM_KEYPAD_ROWS			8
 #define NUM_KEYPAD_COLUMNS		8
-#define TOTAL_KEYPAD_KEYS		8
+#define TOTAL_KEYPAD_KEYS		9
 
 // Special Char
 #define KEY_ENTER			0X8c
@@ -29,11 +29,8 @@
 #define KEY_ESCAPE			0X1b
 #define KEY_BACKLIGHT		0X86
 #define KEY_HELP			0x94
-#define KEY_SHIFT			0x90
 #define KEY_RETURN			0X8c
 #define KEY_DELETE			0x93
-#define KEY_PAPERFEED		0x97
-#define KEY_CTRL			0x91
 #define KEY_NONE			0X00
 
 // Number keys (Ascii hex values)
@@ -59,8 +56,6 @@
 #define ESC_KEY 		KEY_ESCAPE
 #define HELP_KEY 		KEY_HELP
 #define DELETE_KEY 		KEY_DELETE
-#define SHIFT_KEY		KEY_SHIFT
-#define CTRL_KEY 		KEY_CTRL
 #define ON_ESC_KEY		0xAA	// Key defines a mess, just making a unique value
 
 // Power Keys
@@ -69,6 +64,40 @@
 
 #define WAIT_FOR_KEY			0
 #define CHECK_ONCE_FOR_KEY		1
+
+// New buttons
+#define BUTTON_GPIO_MASK	0x1FF0000
+
+/*
+Button 9 = Up
+Button 8 = Down
+Button 7 = Left
+Button 6 = Right
+Button 5 = Enter
+Button 4 = Soft key 1
+Button 3 = Soft key 2
+Button 2 = Soft key 3
+Button 1 = Soft key 4
+*/
+#define KB_9	0x100
+#define KB_8	0x080
+#define KB_7	0x040
+#define KB_6	0x020
+#define KB_5	0x010
+#define KB_4	0x008
+#define KB_3	0x004
+#define KB_2	0x002
+#define KB_1	0x001
+
+#define KB_UP		0x100
+#define KB_DOWN		0x080
+#define KB_LEFT		0x040
+#define KB_RIGHT	0x020
+#define KB_ENTER	0x010
+#define KB_SK_1		0x008
+#define KB_SK_2		0x004
+#define KB_SK_3		0x002
+#define KB_SK_4		0x001
 
 enum {
 	SEQ_NOT_STARTED = 0,

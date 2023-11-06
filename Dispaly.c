@@ -702,7 +702,12 @@ void TurnDisplayOff(void)
 	while (g_kpadInterruptWhileProcessing == YES)
 	{
 		g_kpadInterruptWhileProcessing = NO;
+		// Clear key/button interrupt flags
+#if 0 /* old hw */
 		ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
+#else
+		MXC_GPIO_ClearFlags(MXC_GPIO1, BUTTON_GPIO_MASK);
+#endif
 	}
 
 	g_kpadProcessingFlag = DEACTIVATED;
