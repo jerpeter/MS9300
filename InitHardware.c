@@ -1025,7 +1025,7 @@ void SetupGPIO(void)
 	g_PowerButtonIRQ.pad = MXC_GPIO_PAD_NONE;
 	g_PowerButtonIRQ.func = MXC_GPIO_FUNC_IN;
 	g_PowerButtonIRQ.vssel = MXC_GPIO_VSSEL_VDDIO;
-	MXC_GPIO_RegisterCallback(&g_PowerButtonIRQ, PowerButton_ISR, NULL);
+	MXC_GPIO_RegisterCallback(&g_PowerButtonIRQ, (mxc_gpio_callback_fn)Eic_system_irq, NULL);
     MXC_GPIO_IntConfig(&g_PowerButtonIRQ, MXC_GPIO_INT_RISING);
     MXC_GPIO_EnableInt(g_PowerButtonIRQ.port, g_PowerButtonIRQ.mask);
 
@@ -1037,7 +1037,7 @@ void SetupGPIO(void)
 	g_Button1.pad = MXC_GPIO_PAD_NONE;
 	g_Button1.func = MXC_GPIO_FUNC_IN;
 	g_Button1.vssel = MXC_GPIO_VSSEL_VDDIO;
-	MXC_GPIO_RegisterCallback(&g_Button1, Button1_ISR, NULL);
+	MXC_GPIO_RegisterCallback(&g_Button1, (mxc_gpio_callback_fn)Eic_keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button1, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button1.port, g_Button1.mask);
 
@@ -1049,7 +1049,7 @@ void SetupGPIO(void)
 	g_Button2.pad = MXC_GPIO_PAD_NONE;
 	g_Button2.func = MXC_GPIO_FUNC_IN;
 	g_Button2.vssel = MXC_GPIO_VSSEL_VDDIO;
-	MXC_GPIO_RegisterCallback(&g_Button2, Button2_ISR, NULL);
+	MXC_GPIO_RegisterCallback(&g_Button2, (mxc_gpio_callback_fn)Eic_keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button2, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button2.port, g_Button2.mask);
 
@@ -1061,7 +1061,7 @@ void SetupGPIO(void)
 	g_Button3.pad = MXC_GPIO_PAD_NONE;
 	g_Button3.func = MXC_GPIO_FUNC_IN;
 	g_Button3.vssel = MXC_GPIO_VSSEL_VDDIO;
-	MXC_GPIO_RegisterCallback(&g_Button3, Button3_ISR, NULL);
+	MXC_GPIO_RegisterCallback(&g_Button3, (mxc_gpio_callback_fn)Eic_keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button3, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button3.port, g_Button3.mask);
 
@@ -1073,7 +1073,7 @@ void SetupGPIO(void)
 	g_Button4.pad = MXC_GPIO_PAD_NONE;
 	g_Button4.func = MXC_GPIO_FUNC_IN;
 	g_Button4.vssel = MXC_GPIO_VSSEL_VDDIO;
-	MXC_GPIO_RegisterCallback(&g_Button4, Button4_ISR, NULL);
+	MXC_GPIO_RegisterCallback(&g_Button4, (mxc_gpio_callback_fn)Eic_keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button4, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button4.port, g_Button4.mask);
 
@@ -1085,7 +1085,7 @@ void SetupGPIO(void)
 	g_Button5.pad = MXC_GPIO_PAD_NONE;
 	g_Button5.func = MXC_GPIO_FUNC_IN;
 	g_Button5.vssel = MXC_GPIO_VSSEL_VDDIO;
-	MXC_GPIO_RegisterCallback(&g_Button5, Button5_ISR, NULL);
+	MXC_GPIO_RegisterCallback(&g_Button5, (mxc_gpio_callback_fn)Eic_keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button5, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button5.port, g_Button5.mask);
 
@@ -1097,7 +1097,7 @@ void SetupGPIO(void)
 	g_Button6.pad = MXC_GPIO_PAD_NONE;
 	g_Button6.func = MXC_GPIO_FUNC_IN;
 	g_Button6.vssel = MXC_GPIO_VSSEL_VDDIO;
-	MXC_GPIO_RegisterCallback(&g_Button6, Button6_ISR, NULL);
+	MXC_GPIO_RegisterCallback(&g_Button6, (mxc_gpio_callback_fn)Eic_keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button6, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button6.port, g_Button6.mask);
 
@@ -1109,7 +1109,7 @@ void SetupGPIO(void)
 	g_Button7.pad = MXC_GPIO_PAD_NONE;
 	g_Button7.func = MXC_GPIO_FUNC_IN;
 	g_Button7.vssel = MXC_GPIO_VSSEL_VDDIO;
-	MXC_GPIO_RegisterCallback(&g_Button7, Button7_ISR, NULL);
+	MXC_GPIO_RegisterCallback(&g_Button7, (mxc_gpio_callback_fn)Eic_keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button7, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button7.port, g_Button7.mask);
 
@@ -1121,7 +1121,7 @@ void SetupGPIO(void)
 	g_Button8.pad = MXC_GPIO_PAD_NONE;
 	g_Button8.func = MXC_GPIO_FUNC_IN;
 	g_Button8.vssel = MXC_GPIO_VSSEL_VDDIO;
-	MXC_GPIO_RegisterCallback(&g_Button8, Button8_ISR, NULL);
+	MXC_GPIO_RegisterCallback(&g_Button8, (mxc_gpio_callback_fn)Eic_keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button8, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button8.port, g_Button8.mask);
 
@@ -1133,7 +1133,7 @@ void SetupGPIO(void)
 	g_Button9.pad = MXC_GPIO_PAD_NONE;
 	g_Button9.func = MXC_GPIO_FUNC_IN;
 	g_Button9.vssel = MXC_GPIO_VSSEL_VDDIO;
-	MXC_GPIO_RegisterCallback(&g_Button9, Button9_ISR, NULL);
+	MXC_GPIO_RegisterCallback(&g_Button9, (mxc_gpio_callback_fn)Eic_keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button9, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button9.port, g_Button9.mask);
 
