@@ -208,12 +208,12 @@ void DateTimeMnProc(INPUT_MSG_STRUCT msg, REC_MN_STRUCT *rec_ptr, WND_LAYOUT_STR
 						UpdateCurrentTime();
 					}
 					break;
-				case (PLUS_KEY):
+				case (RIGHT_ARROW_KEY):
 					rec_ptr[mn_layout_ptr->curr_ln].enterflag = FALSE;
 					DateTimeScroll(DOWN, mn_layout_ptr);
 					rec_ptr[mn_layout_ptr->curr_ln].enterflag = TRUE;
 					break;
-				case (MINUS_KEY):
+				case (LEFT_ARROW_KEY):
 					rec_ptr[mn_layout_ptr->curr_ln].enterflag = FALSE;
 					DateTimeScroll(UP, mn_layout_ptr);
 					rec_ptr[mn_layout_ptr->curr_ln].enterflag = TRUE;

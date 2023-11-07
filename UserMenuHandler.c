@@ -270,7 +270,7 @@ void UserMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 					}
 				break;
 
-				case (PLUS_KEY):
+				case (RIGHT_ARROW_KEY):
 					if ((USER_MENU_TYPE(g_userMenuCachePtr) == SELECT_TYPE) || ((USER_MENU_TYPE(g_userMenuCachePtr) == SELECT_SPECIAL_TYPE)))
 					{
 						// Change the contrast
@@ -302,7 +302,7 @@ void UserMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 					}
 				break;
 
-				case (MINUS_KEY):
+				case (LEFT_ARROW_KEY):
 					if ((USER_MENU_TYPE(g_userMenuCachePtr) == SELECT_TYPE) || ((USER_MENU_TYPE(g_userMenuCachePtr) == SELECT_SPECIAL_TYPE)))
 					{
 						// Change the contrast

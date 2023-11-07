@@ -173,10 +173,10 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 				case (UP_ARROW_KEY):
 					MainMenuScroll(UP, SELECT_MN_WND_LNS, mn_layout_ptr);
 					break;
-				case (MINUS_KEY): 
+				case (LEFT_ARROW_KEY):
 					AdjustLcdContrast(DARKER);
 					break;
-				case (PLUS_KEY): 
+				case (RIGHT_ARROW_KEY):
 					AdjustLcdContrast(LIGHTER);
 					break;
 				case (ESC_KEY):

@@ -167,7 +167,7 @@ void LoadRecordMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr,
 					break;
 
 				case (DELETE_KEY):
-				case (MINUS_KEY):
+				case (LEFT_ARROW_KEY):
 					// Check if the current line is beyond the default entries
 					if (mn_layout_ptr->curr_ln > 3)
 					{

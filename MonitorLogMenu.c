@@ -155,8 +155,8 @@ void MonitorLogMnProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, M
 					}
 				break;
 
-				case (MINUS_KEY): AdjustLcdContrast(DARKER); break;
-				case (PLUS_KEY): AdjustLcdContrast(LIGHTER); break;
+				case (LEFT_ARROW_KEY): AdjustLcdContrast(DARKER); break;
+				case (RIGHT_ARROW_KEY): AdjustLcdContrast(LIGHTER); break;
 
 				case (ESC_KEY):
 					SETUP_USER_MENU_MSG(&configMenu, MONITOR_LOG);

@@ -193,7 +193,7 @@ void ResultsMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 					}
 				break;
 
-				case (PLUS_KEY):
+				case (RIGHT_ARROW_KEY):
 					switch (g_displayAlternateResultState)
 					{
 						case DEFAULT_RESULTS: g_displayAlternateResultState = DEFAULT_ALTERNATE_RESULTS; break;
@@ -205,7 +205,7 @@ void ResultsMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 					}
 				break;
 
-				case (MINUS_KEY):
+				case (LEFT_ARROW_KEY):
 					switch (g_displayAlternateResultState)
 					{
 						case DEFAULT_RESULTS: g_displayAlternateResultState = PEAK_ACCELERATION_RESULTS; break;

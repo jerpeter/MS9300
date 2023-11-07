@@ -214,13 +214,13 @@ void CalSetupMn(INPUT_MSG_STRUCT msg)
 						key = 0;
 						break;
 
-					case (PLUS_KEY):
+					case (RIGHT_ARROW_KEY):
 						SoftUsecWait(150 * SOFT_MSECS);
 						if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { g_calDisplayAlternateResultState = DEFAULT_ALTERNATE_RESULTS; }
 						else { g_calDisplayAlternateResultState = DEFAULT_RESULTS; }
 					break;
 
-					case (MINUS_KEY):
+					case (LEFT_ARROW_KEY):
 						SoftUsecWait(150 * SOFT_MSECS);
 						if (g_displayAlternateResultState == DEFAULT_ALTERNATE_RESULTS) { g_displayAlternateResultState = DEFAULT_RESULTS; }
 						else { g_displayAlternateResultState = DEFAULT_ALTERNATE_RESULTS; }

@@ -145,12 +145,12 @@ void TimerModeTimeMenuProc(INPUT_MSG_STRUCT msg, REC_MN_STRUCT *rec_ptr, WND_LAY
 						TimerModeTimeMenuDvScroll(UP,&rec_ptr[mn_layout_ptr->curr_ln]);
 						}
 						break;
-				case (PLUS_KEY):
+				case (RIGHT_ARROW_KEY):
 						rec_ptr[mn_layout_ptr->curr_ln].enterflag = FALSE;
 						TimerModeTimeMenuScroll(DOWN, mn_layout_ptr);
 						rec_ptr[mn_layout_ptr->curr_ln].enterflag = TRUE;
 						break;
-				case (MINUS_KEY):
+				case (LEFT_ARROW_KEY):
 						rec_ptr[mn_layout_ptr->curr_ln].enterflag = FALSE;
 						TimerModeTimeMenuScroll(UP, mn_layout_ptr);
 						rec_ptr[mn_layout_ptr->curr_ln].enterflag = TRUE;
