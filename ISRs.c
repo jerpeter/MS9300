@@ -201,6 +201,9 @@ void Eic_keypad_irq(void)
 	// Print test for verification of operation
 	//debugRaw("^");
 
+	// Read the keymap
+	g_kpadIsrKeymap = (((MXC_GPIO1->in) >> 16) & 0x1FF);
+
 	if (g_kpadProcessingFlag == DEACTIVATED)
 	{
 		raiseSystemEventFlag_ISR(KEYPAD_EVENT);
@@ -231,20 +234,32 @@ void Eic_system_irq(void)
 {
 	static uint8 onKeyCount = 0;
 	static uint8 powerOffAttempted = NO;
-	uint8 keyFlag;
-	uint8 keyScan;
+	uint16 onKeyFlag;
+	//uint16 keyScan;
 
 	// Print test for verification of operation
 	//debugRaw("&");
 
 #if 1
+#if 0 /* old hw */
 	keyFlag = ReadMcp23018(IO_ADDRESS_KPD, INTFA);
 	keyScan = ReadMcp23018(IO_ADDRESS_KPD, GPIOA);
+#else
+	onKeyFlag = (((MXC_GPIO1->in) >> 15) & 0x001); // Power button interrupt on GPIO port 1, pin 15
+	//keyScan = (((MXC_GPIO1->in) >> 16) & 0x1FF);
+#endif
 
 	//-----------------------------------------------------------------------------------
 	// Check if the On key was pressed
+#if 0 /* old hw */
 	if ((keyFlag & keyScan) == ON_KEY)
+#else
+	if (onKeyFlag)
+#endif
 	{
+		// Flag system to monitor power on button for turning unit off
+		g_powerOffActivated = YES;
+
 		if (g_factorySetupSequence != PROCESS_FACTORY_SETUP)
 		{
 			//debug("Factory Setup: Stage 1\r\n");
@@ -255,13 +270,6 @@ void Eic_system_irq(void)
 		{ 
 			onKeyCount++;
 		}
-	}
-
-	//-----------------------------------------------------------------------------------
-	// Check if the Off key was pressed
-	if (keyScan & OFF_KEY)
-	{
-		g_powerOffActivated = YES;
 
 		if ((powerOffAttempted == YES) && (onKeyCount == 3))
 		{
@@ -294,7 +302,8 @@ void Eic_system_irq(void)
 
 	//-----------------------------------------------------------------------------------
 	// Check of the external trigger signal has been found
-	if (keyFlag & 0x08)
+	// Todo: Move external trigger to it's own ISR
+	if (0)
 	{
 		// Clear trigger out signal in case it was self generated (Active high control)
 		PowerControl(TRIGGER_OUT, OFF);
@@ -316,9 +325,11 @@ void Eic_system_irq(void)
 	ReadMcp23018(IO_ADDRESS_KPD, GPIOA);
 #endif
 
-#if 0 /* old hw */
 	// Clear the interrupt flag in the processor
+#if 0 /* old hw */
 	AVR32_EIC.ICR.int4 = 1;
+#else
+	MXC_GPIO1->int_clr = MXC_GPIO_PIN_15;
 #endif
 }
 
