@@ -53,11 +53,11 @@ static uint32 s_fixedSpecialSpeed;
 BOOLEAN KeypadProcessing(uint8 keySource)
 {
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {0}};
-	uint8 rowMask = 0;
-	uint8 keyPressed = KEY_NONE;
+	uint16 rowMask = 0;
+	uint16 keyPressed = KEY_NONE;
+	uint16 keyMapRead;
 	uint8 numKeysPressed = 0;
 	uint8 i = 0;
-	uint16 keyMapRead;
 
 	// Prevents the interrupt routine from setting the system keypress flag.
 	g_kpadProcessingFlag = ACTIVATED;
@@ -130,6 +130,8 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 #endif
 		}
 	}
+
+	if (keyMapRead != g_kpadIsrKeymap) { debugWarn("Keypad processing missed key (0x%x, 0x%x)\r\n", keyMapRead, g_kpadIsrKeymap); }
 
 	if (keyMapRead) { debugRaw(" (Key Pressed: %x)", keyMapRead); }
 	else { debugRaw(" (Key Release)"); }
@@ -260,6 +262,7 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 		// Process new key
 		if (keyPressed != KEY_NONE)
 		{
+#if 0 /* old hw */
 			if (keyPressed == KEY_BACKLIGHT)
 			{
 				mn_msg.cmd = BACK_LIGHT_CMD;
@@ -271,16 +274,21 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 				mn_msg.data[0] = keyPressed;
 				mn_msg.cmd = KEYPRESS_MENU_CMD;
 			}
+#else
+			mn_msg.length = 1;
+			mn_msg.data[0] = keyPressed;
+			mn_msg.cmd = KEYPRESS_MENU_CMD;
+#endif
 
 			//---------------------------------------------------------------------------------
 			// Factory setup staging
 			//---------------------------------------------------------------------------------
 			// Handle factory setup special sequence
-			if ((g_factorySetupSequence == STAGE_1) && (keyPressed == KEY_UPARROW))
+			if ((g_factorySetupSequence == STAGE_1) && (keyPressed == UP_ARROW_KEY))
 			{
 				g_factorySetupSequence = STAGE_2;
 			}
-			else if ((g_factorySetupSequence == STAGE_2) && (keyPressed == KEY_DOWNARROW))
+			else if ((g_factorySetupSequence == STAGE_2) && (keyPressed == DOWN_ARROW_KEY))
 			{
 #if 0 /* Original */
 				// Check if actively in Monitor mode
@@ -325,7 +333,11 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 			else
 			{
 				// Check if the On key is being pressed
+#if 0 /* old hw */
 				if (ReadMcp23018(IO_ADDRESS_KPD, GPIOA) & 0x04)
+#else
+				if (!MXC_GPIO_InGet(MXC_GPIO1, MXC_GPIO_PIN_15)) // g_PowerButtonIRQ: Port 1, Pin 15
+#endif
 				{
 					// Reset the factory setup process
 					g_factorySetupSequence = SEQ_NOT_STARTED;
@@ -363,6 +375,7 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 						__asm__ __volatile__ ("breakpoint");
 #endif
 					}
+#if 0 /* old hw */
 					//===================================================
 					// On-Backlight Combo key
 					//---------------------------------------------------
@@ -373,6 +386,7 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 						return(PASSED);
 #endif
 					}
+#endif
 				}
 				else if (g_factorySetupSequence != PROCESS_FACTORY_SETUP)
 				{
@@ -482,7 +496,7 @@ uint8 GetShiftChar(uint8 inputChar)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 HandleCtrlKeyCombination(uint8 inputChar)
+uint16 HandleCtrlKeyCombination(uint16 inputChar)
 {
 	switch (inputChar)
 	{
@@ -503,11 +517,11 @@ uint8 HandleCtrlKeyCombination(uint8 inputChar)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 GetKeypadKey(uint8 mode)
+uint16 GetKeypadKey(uint8 mode)
 {
 	//uint8 columnSelection = 0;
 	//uint8 columnIndex = 0;
-	uint8 keyPressed = KEY_NONE;
+	uint16 keyPressed = KEY_NONE;
 	//uint8 lookForKey = 1;
 	//uint8 foundKeyDepressed = 0;
 	//uint8 data = 0;
@@ -632,12 +646,12 @@ uint8 GetKeypadKey(uint8 mode)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 ScanKeypad(void)
+uint16 ScanKeypad(void)
 {
 	uint8 rowMask = 0;
-	uint8 keyPressed = KEY_NONE;
+	uint16 keyPressed = KEY_NONE;
+	uint16 keyMapRead;
 	uint8 i = 0;
-	uint8 keyMapRead;
 
 #if 0 /* old hw */
 	keyMapRead = ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
