@@ -811,7 +811,7 @@ void MessageChoiceActiveSwap(MB_CHOICE_TYPE choiceType)
 uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 {
 	uint8 activeChoice = MB_FIRST_CHOICE;
-	volatile uint8 key = 0;
+	volatile uint16 key = 0;
 
 #if 0 /* ET test */
 	g_debugBufferCount = 1;
