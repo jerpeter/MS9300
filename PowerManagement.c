@@ -276,7 +276,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			break;
 
 		//----------------------------------------------------------------------------
-		case LED_1: // Active high
+		case LED_1: // Active high (Red)
 		//----------------------------------------------------------------------------
 			debug("LED 1: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON) { MXC_GPIO_OutSet(g_LED1.port, g_LED1.mask); }
@@ -284,7 +284,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			break;
 
 		//----------------------------------------------------------------------------
-		case LED_2: // Active high
+		case LED_2: // Active high (Red)
 		//----------------------------------------------------------------------------
 			debug("LED 2: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON) { MXC_GPIO_OutSet(g_LED2.port, g_LED2.mask); }
@@ -292,9 +292,17 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			break;
 
 		//----------------------------------------------------------------------------
-		case LED_3: // Active high
+		case LED_3: // Active high (Green)
 		//----------------------------------------------------------------------------
 			debug("LED 3: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutSet(g_LED3.port, g_LED3.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_LED3.port, g_LED3.mask); }
+			break;
+
+		//----------------------------------------------------------------------------
+		case LED_4: // Active high (Green)
+		//----------------------------------------------------------------------------
+			debug("LED 4: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON) { MXC_GPIO_OutSet(g_LED3.port, g_LED3.mask); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_LED3.port, g_LED3.mask); }
 			break;

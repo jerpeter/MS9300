@@ -50,7 +50,8 @@ typedef enum
 	LCD_POWER_DISPLAY,
 	LED_1,
 	LED_2,
-	LED_3
+	LED_3,
+	LED_4
 } POWER_MGMT_OPTIONS;
 
 #define ALARM_2_ENABLE_BIT					(1 << ALARM_2_ENABLE)
@@ -78,6 +79,7 @@ typedef enum
 #define LED_1_BIT							(1 << LED_1)
 #define LED_2_BIT							(1 << LED_2)
 #define LED_3_BIT							(1 << LED_3)
+#define LED_4_BIT							(1 << LED_4) // 25th bit
 
 #define BATT_CHARGER_DEVICE_ADDRESS_SETTING					0X05	
 #define BATT_CHARGER_INPUT_MINIMUM_VOLTAGE_LIMIT_SETTING	0X06	
