@@ -661,6 +661,7 @@ void Usart_1_rs232_irq(void);
 void Usart_0_rs232_irq(void);
 void Soft_timer_tick_irq(void);
 void Tc_typematic_irq(void);
+void External_trigger_irq(void);
 void Start_Data_Clock(TC_CHANNEL_NUM);
 void Stop_Data_Clock(TC_CHANNEL_NUM);
 void HandleActiveAlarmExtension(void);

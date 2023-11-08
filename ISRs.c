@@ -222,6 +222,8 @@ void Eic_keypad_irq(void)
 #if 0 /* old hw */
 	AVR32_EIC.ICR.int5 = 1;
 #else
+
+	// Clear the interrupt flags for all button (1-9) GPIO lines
 	MXC_GPIO_ClearFlags(MXC_GPIO1, BUTTON_GPIO_MASK);
 #endif
 }
@@ -300,26 +302,6 @@ void Eic_system_irq(void)
 		onKeyCount = 0;
 	}
 
-	//-----------------------------------------------------------------------------------
-	// Check of the external trigger signal has been found
-	// Todo: Move external trigger to it's own ISR
-	if (0)
-	{
-		// Clear trigger out signal in case it was self generated (Active high control)
-		PowerControl(TRIGGER_OUT, OFF);
-		
-		//debugRaw("-ET-");
-		
-		// Check if monitoring and not bargraph and not processing an event
-		if (((g_sampleProcessing == ACTIVE_STATE)) && (g_triggerRecord.opMode != BARGRAPH_MODE) && (g_busyProcessingEvent == NO))
-		{
-			if (g_unitConfig.externalTrigger == ENABLED)
-			{
-				// Signal the start of an event
-				g_externalTrigger = EXTERNAL_TRIGGER_EVENT;
-			}
-		}
-	}
 #else
 	ReadMcp23018(IO_ADDRESS_KPD, INTFA);
 	ReadMcp23018(IO_ADDRESS_KPD, GPIOA);
@@ -329,8 +311,34 @@ void Eic_system_irq(void)
 #if 0 /* old hw */
 	AVR32_EIC.ICR.int4 = 1;
 #else
+	// Clear Power Button interrupt flag (Port 1, Pin 15)
 	MXC_GPIO1->int_clr = MXC_GPIO_PIN_15;
 #endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+__attribute__((__interrupt__))
+void External_trigger_irq(void)
+{
+	// Clear trigger out signal in case it was self generated (Active high control)
+	PowerControl(TRIGGER_OUT, OFF);
+
+	//debugRaw("-ET-");
+
+	// Check if monitoring and not bargraph and not processing an event
+	if (((g_sampleProcessing == ACTIVE_STATE)) && (g_triggerRecord.opMode != BARGRAPH_MODE) && (g_busyProcessingEvent == NO))
+	{
+		if (g_unitConfig.externalTrigger == ENABLED)
+		{
+			// Signal the start of an event
+			g_externalTrigger = EXTERNAL_TRIGGER_EVENT;
+		}
+	}
+
+	// Clear External Trigger In interrupt flag (Port 1, Pin 31)
+	MXC_GPIO1->int_clr = MXC_GPIO_PIN_31;
 }
 
 ///----------------------------------------------------------------------------
