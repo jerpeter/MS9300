@@ -463,8 +463,8 @@ void InitSoftwareSettings_NS9100(void)
 #if 0 /* old hw */
 	WriteMcp23018(IO_ADDRESS_KPD, GPIOA, ((ReadMcp23018(IO_ADDRESS_KPD, GPIOA) & 0xCF) | GREEN_LED_PIN));
 #else
-	// Todo: Correct for the right LED once LED map is available
-	PowerControl(LED_2, ON);
+	// Todo: Correct for the right LED once LED map is available (1&2=Red, 3&4=Green)
+	PowerControl(LED_3, ON);
 #endif
 
 	//-------------------------------------------------------------------------
