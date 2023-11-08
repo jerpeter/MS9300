@@ -367,7 +367,7 @@ void InitExternalKeypad(void)
 		debugWarn("Keypad key being pressed, likely a bug. Key: %x", keyScan);
 	}
 
-	// Todo: Find the right LED to light
+	// Todo: Find the right LED to light (1&2=Red, 3&4=Green)
 	PowerControl(LED_1, ON);
 #endif
 }
@@ -626,8 +626,8 @@ void PowerDownAndHalt(void)
 }
 
 mxc_gpio_cfg_t g_MCUPowerLatch;
-mxc_gpio_cfg_t g_Battery1VoltagePresence;
-mxc_gpio_cfg_t g_Battery2VoltagePresence;
+mxc_gpio_cfg_t g_ExpandedBattery;
+mxc_gpio_cfg_t g_LED1;
 mxc_gpio_cfg_t g_GaugeAlert;
 mxc_gpio_cfg_t g_BatteryChargerIRQ;
 mxc_gpio_cfg_t g_Enable12V;
@@ -662,9 +662,9 @@ mxc_gpio_cfg_t g_Button6;
 mxc_gpio_cfg_t g_Button7;
 mxc_gpio_cfg_t g_Button8;
 mxc_gpio_cfg_t g_Button9;
-mxc_gpio_cfg_t g_LED1;
 mxc_gpio_cfg_t g_LED2;
 mxc_gpio_cfg_t g_LED3;
+mxc_gpio_cfg_t g_LED4;
 mxc_gpio_cfg_t g_ExtRTCIntA;
 mxc_gpio_cfg_t g_BLEOTA;
 mxc_gpio_cfg_t g_ExternalTriggerOut;
@@ -717,6 +717,33 @@ void RTCClock_ISR(void *cbdata);
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void SetupPowerOnGPIO(void)
+{
+	//----------------------------------------------------------------------------------------------------------------------
+	// MCU Power Latch: Port 0, Pin 1, Output, External pulldown, Active high, 3.3V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_MCUPowerLatch.port = MXC_GPIO0;
+	g_MCUPowerLatch.mask = MXC_GPIO_PIN_1;
+	g_MCUPowerLatch.pad = MXC_GPIO_PAD_NONE;
+	g_MCUPowerLatch.func = MXC_GPIO_FUNC_OUT;
+	g_MCUPowerLatch.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_MCUPowerLatch);
+	//MXC_GPIO_OutSet(g_MCUPowerLatch.port, g_MCUPowerLatch.mask);
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Power Button Int: Port 1, Pin 15, Input, External pullup, Active high, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_PowerButtonIRQ.port = MXC_GPIO1;
+	g_PowerButtonIRQ.mask = MXC_GPIO_PIN_15;
+	g_PowerButtonIRQ.pad = MXC_GPIO_PAD_NONE;
+	g_PowerButtonIRQ.func = MXC_GPIO_FUNC_IN;
+	g_PowerButtonIRQ.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_PowerButtonIRQ);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void SetupGPIO(void)
 {
 	//----------------------------------------------------------------------------------------------------------------------
@@ -728,27 +755,28 @@ void SetupGPIO(void)
 	g_MCUPowerLatch.func = MXC_GPIO_FUNC_OUT;
 	g_MCUPowerLatch.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&g_MCUPowerLatch);
-	MXC_GPIO_OutClr(g_MCUPowerLatch.port, g_MCUPowerLatch.mask); // Start disabled
+	MXC_GPIO_OutSet(g_MCUPowerLatch.port, g_MCUPowerLatch.mask); // Start enabled
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// Battery 1 Voltage Presence: Port 0, Pin 2, Input, 1.8V
+	// Expanded Battery Detect: Port 0, Pin 2, Input, External pullup, Active high, 1.8V
 	//----------------------------------------------------------------------------------------------------------------------
-	g_Battery1VoltagePresence.port = MXC_GPIO0;
-	g_Battery1VoltagePresence.mask = MXC_GPIO_PIN_2;
-	g_Battery1VoltagePresence.pad = MXC_GPIO_PAD_NONE;
-	g_Battery1VoltagePresence.func = MXC_GPIO_FUNC_IN;
-	g_Battery1VoltagePresence.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&g_Battery1VoltagePresence);
+	g_ExpandedBattery.port = MXC_GPIO0;
+	g_ExpandedBattery.mask = MXC_GPIO_PIN_2;
+	g_ExpandedBattery.pad = MXC_GPIO_PAD_NONE;
+	g_ExpandedBattery.func = MXC_GPIO_FUNC_IN;
+	g_ExpandedBattery.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_ExpandedBattery);
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// Battery 2 Voltage Presence: Port 0, Pin 3, Input, 1.8V
+	// LED 1: Port 0, Pin 3, Output, No external pull, Active high, 3.3V
 	//----------------------------------------------------------------------------------------------------------------------
-	g_Battery2VoltagePresence.port = MXC_GPIO0;
-	g_Battery2VoltagePresence.mask = MXC_GPIO_PIN_3;
-	g_Battery2VoltagePresence.pad = MXC_GPIO_PAD_NONE;
-	g_Battery2VoltagePresence.func = MXC_GPIO_FUNC_IN;
-	g_Battery2VoltagePresence.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&g_Battery2VoltagePresence);
+	g_LED1.port = MXC_GPIO0;
+	g_LED1.mask = MXC_GPIO_PIN_3;
+	g_LED1.pad = MXC_GPIO_PAD_NONE;
+	g_LED1.func = MXC_GPIO_FUNC_OUT;
+	g_LED1.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_LED1);
+	MXC_GPIO_OutClr(g_LED1.port, g_LED1.mask); // Start as off
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Gauge Alert: Port 0, Pin 4, Input, External pullup, Active low, 1.8V, Interrupt
@@ -1138,21 +1166,10 @@ void SetupGPIO(void)
     MXC_GPIO_EnableInt(g_Button9.port, g_Button9.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// LED 1: Port 1, Pin 25, Output, No external pull, Active high, 3.3V
-	//----------------------------------------------------------------------------------------------------------------------
-	g_LED1.port = MXC_GPIO1;
-	g_LED1.mask = MXC_GPIO_PIN_25;
-	g_LED1.pad = MXC_GPIO_PAD_NONE;
-	g_LED1.func = MXC_GPIO_FUNC_OUT;
-	g_LED1.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&g_LED1);
-	MXC_GPIO_OutClr(g_LED1.port, g_LED1.mask); // Start as off
-
-	//----------------------------------------------------------------------------------------------------------------------
-	// LED 2: Port 1, Pin 26, Output, No external pull, Active high, 3.3V
+	// LED 2: Port 1, Pin 25, Output, No external pull, Active high, 3.3V
 	//----------------------------------------------------------------------------------------------------------------------
 	g_LED2.port = MXC_GPIO1;
-	g_LED2.mask = MXC_GPIO_PIN_26;
+	g_LED2.mask = MXC_GPIO_PIN_25;
 	g_LED2.pad = MXC_GPIO_PAD_NONE;
 	g_LED2.func = MXC_GPIO_FUNC_OUT;
 	g_LED2.vssel = MXC_GPIO_VSSEL_VDDIOH;
@@ -1160,15 +1177,26 @@ void SetupGPIO(void)
 	MXC_GPIO_OutClr(g_LED2.port, g_LED2.mask); // Start as off
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// LED 3: Port 1, Pin 27, Output, No external pull, Active high, 3.3V
+	// LED 3: Port 1, Pin 26, Output, No external pull, Active high, 3.3V
 	//----------------------------------------------------------------------------------------------------------------------
 	g_LED3.port = MXC_GPIO1;
-	g_LED3.mask = MXC_GPIO_PIN_27;
+	g_LED3.mask = MXC_GPIO_PIN_26;
 	g_LED3.pad = MXC_GPIO_PAD_NONE;
 	g_LED3.func = MXC_GPIO_FUNC_OUT;
 	g_LED3.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&g_LED3);
 	MXC_GPIO_OutClr(g_LED3.port, g_LED3.mask); // Start as off
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// LED 4: Port 1, Pin 27, Output, No external pull, Active high, 3.3V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_LED4.port = MXC_GPIO1;
+	g_LED4.mask = MXC_GPIO_PIN_27;
+	g_LED4.pad = MXC_GPIO_PAD_NONE;
+	g_LED4.func = MXC_GPIO_FUNC_OUT;
+	g_LED4.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_LED4);
+	MXC_GPIO_OutClr(g_LED4.port, g_LED4.mask); // Start as off
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// RTC Int A: Port 1, Pin 28, Input, External pullup, Active low, 1.8V (minimum 0.66V)
@@ -1203,15 +1231,15 @@ void SetupGPIO(void)
 	MXC_GPIO_OutClr(g_ExternalTriggerOut.port, g_ExternalTriggerOut.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// Trig In: Port 1, Pin 31, Input, External pullup, Active low, 1.8V
+	// Trig In: Port 1, Pin 31, Input, External pullup, Active high, 1.8V
 	//----------------------------------------------------------------------------------------------------------------------
 	g_ExternalTriggerIn.port = MXC_GPIO1;
 	g_ExternalTriggerIn.mask = MXC_GPIO_PIN_31;
 	g_ExternalTriggerIn.pad = MXC_GPIO_PAD_NONE;
 	g_ExternalTriggerIn.func = MXC_GPIO_FUNC_IN;
 	g_ExternalTriggerIn.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
-	MXC_GPIO_RegisterCallback(&g_ExternalTriggerIn, ExternalTriggerIn_ISR, NULL);
-    MXC_GPIO_IntConfig(&g_ExternalTriggerIn, MXC_GPIO_INT_FALLING);
+	MXC_GPIO_RegisterCallback(&g_ExternalTriggerIn, (mxc_gpio_callback_fn)External_trigger_irq, NULL);
+    MXC_GPIO_IntConfig(&g_ExternalTriggerIn, MXC_GPIO_INT_RISING);
     MXC_GPIO_EnableInt(g_ExternalTriggerIn.port, g_ExternalTriggerIn.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -2927,6 +2955,12 @@ void SetupHalfSecondTickTimer(void)
 ///----------------------------------------------------------------------------
 void InitSystemHardware_NS9100(void)
 {
+	//-------------------------------------------------------------------------
+	// Monitor Power On button press for system startup
+	//-------------------------------------------------------------------------
+	// Todo: Setup 2 second delay while monitoring Power On button press, if completed latch power or turn off
+	SetupPowerOnGPIO();
+
 	//-------------------------------------------------------------------------
 	// Setup Watchdog
 	//-------------------------------------------------------------------------
