@@ -629,6 +629,35 @@ void UsbDeviceManager(void);
 void UsbDisableIfActive(void);
 void CheckExceptionReportLogExists(void);
 
+// GPIO Status extensions
+uint8_t GetExpandedBatteryPresenceState(void);
+uint8_t GetPowerGood5vState(void);
+uint8_t GetPowerGoodBatteryChargerState(void);
+uint8_t GetLteOtaState(void);
+uint8_t GetBleOtaState(void);
+
+// GPIO Control extensions
+void SetSmartSensorSleepState(uint8_t state);
+void SetSmartSensorMuxEnableState(uint8_t state);
+void SetAdcConversionState(uint8_t state);
+void SetCalMuxPreADEnableState(uint8_t state);
+void SetCalMuxPreADSelectState(uint8_t state);
+void SetAccelerometerTriggerState(uint8_t state);
+void SetSensorCheckState(uint8_t state);
+void SetSmartSensorMuxA0State(uint8_t state);
+void SetSmartSensorMuxA1State(uint8_t state);
+void SetNyquist0State(uint8_t state);
+void SetNyquist1State(uint8_t state);
+void SetNyquist2EnableState(uint8_t state);
+void SetSensorGeo1EnableState(uint8_t state);
+void SetSensorAop1EnableState(uint8_t state);
+void SetSensorGeo2EnableState(uint8_t state);
+void SetSensorAop2EnableState(uint8_t state);
+void SetGainGeo1State(uint8_t state);
+void SetPathSelectAop1State(uint8_t state);
+void SetGainGeo2State(uint8_t state);
+void SetPathSelectAop2State(uint8_t state);
+
 // Init Hardware prototype extensions
 void InitSystemHardware_NS9100(void);
 void InitGps232(void);
@@ -651,22 +680,29 @@ void InitSoftwareSettings_NS9100(void);
 
 // ISRs prototype extensions
 void DataIsrInit(uint16 sampleRate);
-void Eic_low_battery_irq(void);
-void Eic_keypad_irq(void);
-void Eic_system_irq(void);
-void Eic_external_rtc_irq(void);
+void Keypad_irq(void);
+void System_power_button_irq(void);
+void External_rtc_irq(void);
 void Gps_status_irq(void);
-void Tc_sample_irq(void);
-void Usart_1_rs232_irq(void);
-void Usart_0_rs232_irq(void);
+void Sample_irq(void);
 void Soft_timer_tick_irq(void);
-void Tc_typematic_irq(void);
 void External_trigger_irq(void);
-void Start_Data_Clock(TC_CHANNEL_NUM);
-void Stop_Data_Clock(TC_CHANNEL_NUM);
 void HandleActiveAlarmExtension(void);
 void SensorCalibrationDataInit(void);
 void ProcessSensorCalibrationData(void);
+void Fuel_gauge_alert_irq(void);
+void Battery_charger_irq(void);
+void Expansion_irq(void);
+void Usbc_i2c_irq(void);
+void Accelerometer_irq_1(void);
+void Accelerometer_irq_2(void);
+void Lcd_irq(void);
+void Usart_0_rs232_irq(void);
+void Usart_1_rs232_irq(void);
+void Eic_low_battery_irq(void);
+void Tc_typematic_irq(void);
+void Start_Data_Clock(TC_CHANNEL_NUM);
+void Stop_Data_Clock(TC_CHANNEL_NUM);
 
 #if EXTERNAL_SAMPLING_SOURCE
 void Tc_ms_timer_irq(void);
