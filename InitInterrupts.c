@@ -75,166 +75,6 @@ extern void rtc_enable_interrupt(volatile avr32_rtc_t *rtc);
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void GaugeAlert_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void BatteryCharger_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void Expansion_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void USBCI2C_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void AccelInt1_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void AccelInt2_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void PowerButton_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void Button1_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void Button2_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void Button3_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void Button4_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void Button5_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void Button6_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void Button7_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void Button8_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void Button9_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void ExtRTCIntA_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void ExternalTriggerIn_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void LCD_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void RTCClock_ISR(void *cbdata)
-{
-
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 void Setup_8100_EIC_Low_Battery_ISR(void)
 {
 #if 0 /* old hw */
@@ -272,7 +112,7 @@ void Setup_8100_EIC_Keypad_ISR(void)
 	AVR32_EIC.ASYNC.int5 = 1;
 	AVR32_EIC.EN.int5 = 1;
 
-	INTC_register_interrupt(&Eic_keypad_irq, AVR32_EIC_IRQ_5, 0);
+	INTC_register_interrupt(&Keypad_irq, AVR32_EIC_IRQ_5, 0);
 
 #if 0 /* Some residual wrongly executed code */
 	// Enable the interrupt
@@ -302,7 +142,7 @@ void Setup_8100_EIC_System_ISR(void)
 	AVR32_EIC.ASYNC.int4 = 1;
 	AVR32_EIC.EN.int4 = 1;
 
-	INTC_register_interrupt(&Eic_system_irq, AVR32_EIC_IRQ_4, 0);
+	INTC_register_interrupt(&System_power_button_irq, AVR32_EIC_IRQ_4, 0);
 
 #if 0 /* Some residual wrongly executed code */
 	// Enable the interrupt
@@ -333,9 +173,9 @@ void Setup_8100_EIC_External_RTC_ISR(void)
 	AVR32_EIC.EN.int1 = 1;
 
 #if 0 /* Test */
-	INTC_register_interrupt(&Eic_external_rtc_irq, AVR32_EIC_IRQ_1, 0);
+	INTC_register_interrupt(&External_rtc_irq, AVR32_EIC_IRQ_1, 0);
 #else /* Hook in the External RTC interrupt to the actual sample processing interrupt handler */
-	INTC_register_interrupt(&Tc_sample_irq, AVR32_EIC_IRQ_1, 0);
+	INTC_register_interrupt(&Sample_irq, AVR32_EIC_IRQ_1, 0);
 #endif
 
 #if 0
@@ -450,12 +290,12 @@ void Setup_8100_TC_Clock_ISR(uint32 sampleRate, TC_CHANNEL_NUM channel)
 	switch (channel)
 	{
 		case TC_SAMPLE_TIMER_CHANNEL:
-		INTC_register_interrupt(&Tc_sample_irq, AVR32_TC_IRQ0, 3);
+		INTC_register_interrupt(&Sample_irq, AVR32_TC_IRQ0, 3);
 		break;
 		
 #if INTERNAL_SAMPLING_SOURCE
 		case TC_CALIBRATION_TIMER_CHANNEL:
-		INTC_register_interrupt(&Tc_sample_irq, AVR32_TC_IRQ1, 3);
+		INTC_register_interrupt(&Sample_irq, AVR32_TC_IRQ1, 3);
 		break;
 #else /* EXTERNAL_SAMPLING_SOURCE */
 		case TC_MILLISECOND_TIMER_CHANNEL:
@@ -521,7 +361,7 @@ void SetupInteralSampleTimer(uint16_t sampleRate)
 	// Setup the Timer 0 interrupt
 	NVIC_ClearPendingIRQ(TMR1_IRQn);
     NVIC_DisableIRQ(TMR1_IRQn);
-    MXC_NVIC_SetVector(TMR1_IRQn, Tc_sample_irq);
+    MXC_NVIC_SetVector(TMR1_IRQn, Sample_irq);
     NVIC_EnableIRQ(TMR1_IRQn);
 }
 
