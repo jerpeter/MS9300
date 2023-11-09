@@ -122,7 +122,7 @@ static uint32 s_fractionSecondMarker;
 ///	Prototypes
 ///----------------------------------------------------------------------------
 __attribute__((__interrupt__))
-void Tc_sample_irq(void);
+void Sample_irq(void);
 __attribute__((__interrupt__))
 void Tc_typematic_irq(void);
 
@@ -135,24 +135,104 @@ void Tc_ms_timer_irq(void);
 ///	Function Break
 ///----------------------------------------------------------------------------
 __attribute__((__interrupt__))
-void Eic_external_rtc_irq(void)
+void Fuel_gauge_alert_irq(void)
 {
-	static uint32 updateCounter = 0;
+	//debugRaw("'");
+	//debugRaw("-FG alert-");
 
-	// Print test for verification of operation
+	// Clear Fuel Gauge Alert interrupt flag (Port 0, Pin 4)
+	MXC_GPIO0->int_clr = MXC_GPIO_PIN_4;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+__attribute__((__interrupt__))
+void Battery_charger_irq(void)
+{
+	//debugRaw("+");
+	//debugRaw("-Batt Charge-");
+
+	// Clear Battery Charger interrupt flag (Port 0, Pin 5)
+	MXC_GPIO0->int_clr = MXC_GPIO_PIN_5;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+__attribute__((__interrupt__))
+void Expansion_irq(void)
+{
+	//debugRaw("_");
+	//debugRaw("-Expansion-");
+
+	// Clear Expansion interrupt flag (Port 0, Pin 8)
+	MXC_GPIO0->int_clr = MXC_GPIO_PIN_8;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+__attribute__((__interrupt__))
+void Usbc_i2c_irq(void)
+{
+	//debugRaw("/");
+	//debugRaw("-USB I2C-");
+
+	// Clear USBC I2C interrupt flag (Port 1, Pin 11)
+	MXC_GPIO1->int_clr = MXC_GPIO_PIN_11;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+__attribute__((__interrupt__))
+void Accelerometer_irq_1(void)
+{
+	//debugRaw("<");
+	//debugRaw("-Acc IRQ 1-");
+
+	// Clear Accelerometer interrupt flag 1 (Port 1, Pin 12)
+	MXC_GPIO1->int_clr = MXC_GPIO_PIN_12;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+__attribute__((__interrupt__))
+void Accelerometer_irq_2(void)
+{
+	//debugRaw(">");
+	//debugRaw("-Acc IRQ 2-");
+
+	// Clear Accelerometer interrupt flag 2 (Port 1, Pin 13)
+	MXC_GPIO1->int_clr = MXC_GPIO_PIN_13;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+__attribute__((__interrupt__))
+void External_rtc_irq(void)
+{
 	//debugRaw("`");
+	//debugRaw("-Ext RTC-");
 
-	updateCounter++;
-	
-	if (updateCounter % 1024 == 0)
-	{
-		debugRaw("#");
-	}
+	// Clear External RTC interrupt flag (Port 1, Pin 28)
+	MXC_GPIO1->int_clr = MXC_GPIO_PIN_28;
+}
 
-#if 0 /* old hw */
-	// clear the interrupt flag in the processor
-	AVR32_EIC.ICR.int1 = 1;
-#endif
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+__attribute__((__interrupt__))
+void Lcd_irq(void)
+{
+	//debugRaw(":");
+	//debugRaw("-LCD IRQ-");
+
+	// Clear LCD interrupt flag (Port 2, Pin 6)
+	MXC_GPIO2->int_clr = MXC_GPIO_PIN_6;
 }
 
 ///----------------------------------------------------------------------------
@@ -196,7 +276,7 @@ void Gps_status_irq(void)
 ///	Function Break
 ///----------------------------------------------------------------------------
 __attribute__((__interrupt__))
-void Eic_keypad_irq(void)
+void Keypad_irq(void)
 {
 	// Print test for verification of operation
 	//debugRaw("^");
@@ -232,7 +312,7 @@ void Eic_keypad_irq(void)
 ///	Function Break
 ///----------------------------------------------------------------------------
 __attribute__((__interrupt__))
-void Eic_system_irq(void)
+void System_power_button_irq(void)
 {
 	static uint8 onKeyCount = 0;
 	static uint8 powerOffAttempted = NO;
@@ -2494,7 +2574,7 @@ static inline void processAdaptiveSamplingStateAndLogic(void)
 uint32 sampleProcessTiming = 0;
 #endif
 __attribute__((__interrupt__))
-void Tc_sample_irq(void)
+void Sample_irq(void)
 {
 #if 0 /* Test */
 	uint32 startTiming = Get_system_register(AVR32_COUNT);
