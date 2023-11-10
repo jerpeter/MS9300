@@ -43,9 +43,9 @@ void OneWireInit(void)
 {
 #if 0 /* old hw */
 	gpio_enable_gpio_pin(SMART_SENSOR_DATA);
-#endif
 	PowerControl(SEISMIC_SENSOR_DATA_CONTROL, OFF);
 	PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, OFF);
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -62,8 +62,10 @@ uint8 OneWireReset(SMART_SENSOR_TYPE sensor)
 	uint8 presenceDetect = NO;
 
 	// Set data direction to output to drive a 0
+#if 0 /* old hw */
 	if (sensor == SEISMIC_SENSOR) { PowerControl(SEISMIC_SENSOR_DATA_CONTROL, ON); }
 	else /* ACOUSTIC_SENSOR */ { PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, ON); }
+#endif
 
 	// Hold low for 500us
 	//SoftUsecWait(500); // Looks like 540
@@ -71,8 +73,10 @@ uint8 OneWireReset(SMART_SENSOR_TYPE sensor)
 	SoftUsecWait(480);
 
 	// Release line (allow pullup to take affect)
+#if 0 /* old hw */
 	if (sensor == SEISMIC_SENSOR) { PowerControl(SEISMIC_SENSOR_DATA_CONTROL, OFF); }
 	else /* ACOUSTIC_SENSOR */ { PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, OFF); }
+#endif
 
 	// Wait 30us + 50us (80us total)
 	//SoftUsecWait(80);
@@ -103,9 +107,10 @@ void OneWireWriteByte(SMART_SENSOR_TYPE sensor, uint8 data)
 	for (i = 0; i <= 7; i++)
 	{
 		// Set data direction to output to drive a 0
+#if 0 /* old hw */
 		if (sensor == SEISMIC_SENSOR) { PowerControl(SEISMIC_SENSOR_DATA_CONTROL, ON); }
 		else /* ACOUSTIC_SENSOR */ { PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, ON); }
-
+#endif
 		// Check if the bit is a 1
 		if (data & 0x01)
 		{
@@ -113,9 +118,10 @@ void OneWireWriteByte(SMART_SENSOR_TYPE sensor, uint8 data)
 			SoftUsecWait(5);
 
 			// Release the line
+#if 0 /* old hw */
 			if (sensor == SEISMIC_SENSOR) { PowerControl(SEISMIC_SENSOR_DATA_CONTROL, OFF); }
 			else /* ACOUSTIC_SENSOR */ { PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, OFF); }
-
+#endif
 			// Wait for 65us, recovery time
 			//SoftUsecWait(65);
 			//SoftUsecWait(60);
@@ -129,9 +135,10 @@ void OneWireWriteByte(SMART_SENSOR_TYPE sensor, uint8 data)
 			SoftUsecWait(63);
 
 			// Release the line
+#if 0 /* old hw */
 			if (sensor == SEISMIC_SENSOR) { PowerControl(SEISMIC_SENSOR_DATA_CONTROL, OFF); }
 			else /* ACOUSTIC_SENSOR */ { PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, OFF); }
-
+#endif
 			// Wait for 5us, recovery time
 			SoftUsecWait(5);
 		}
@@ -153,16 +160,18 @@ uint8 OneWireReadByte(SMART_SENSOR_TYPE sensor)
 	for (i = 0; i <= 7; i++)
 	{
 		// Set data direction to output to drive a 0
+#if 0 /* old hw */
 		if (sensor == SEISMIC_SENSOR) { PowerControl(SEISMIC_SENSOR_DATA_CONTROL, ON); }
 		else /* ACOUSTIC_SENSOR */ { PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, ON); }
-
+#endif
 		// Hold low for 5us
 		SoftUsecWait(5);
 
 		// Release the line
+#if 0 /* old hw */
 		if (sensor == SEISMIC_SENSOR) { PowerControl(SEISMIC_SENSOR_DATA_CONTROL, OFF); }
 		else /* ACOUSTIC_SENSOR */ { PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, OFF); }
-
+#endif
 		// Wait for 5us
 		SoftUsecWait(5);
 

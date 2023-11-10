@@ -1348,8 +1348,6 @@ void BootLoadManager(void)
 
 		gpio_disable_pin_interrupt(AVR32_PIN_PB30);
 
-		PowerControl(POWER_OFF_PROTECTION_ENABLE, OFF);
-
 		Disable_global_interrupt();
 
 		switch (g_unitConfig.baudRate)
@@ -1542,10 +1540,6 @@ void TestExternalSamplingSource(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* old hw */
-#include "fsaccess.h"
-#endif
-
 #if 0 /* temp remove while unused */
 static char s_errorReportFilename[] = LOGS_PATH EXCEPTION_REPORT_FILE;
 #endif
@@ -1563,9 +1557,6 @@ void CheckExceptionReportLogExists(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* old hw */
-#include "nlao_exceptions.h"
-#endif
 __attribute__((__interrupt__))
 void exception(uint32_t r12, uint32_t r11, uint32_t r10, uint32_t r9, uint32_t exception_number, uint32_t lr, uint32_t r7, uint32_t r6, uint32_t r5, uint32_t r4,
 				uint32_t r3, uint32_t r2, uint32_t r1, uint32_t r0, uint32_t sp, uint32_t sr, uint32_t pc, uint32_t stack0, uint32_t stack1, uint32_t stack2)
