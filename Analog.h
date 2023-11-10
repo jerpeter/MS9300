@@ -135,6 +135,7 @@ void AdSetCalSignalLow(void);
 void AdSetCalSignalHigh(void);
 void AdSetCalSignalOff(void);
 void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification);
+void WaitAnalogPower5vGood(void);
 
 #endif //_ANALOG_H_
 

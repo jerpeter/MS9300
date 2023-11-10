@@ -575,10 +575,11 @@ void GetChannelOffsets(uint32 sampleRate)
 	uint8 powerAnalogDown = NO;
 
 	// Check to see if the A/D is in sleep mode
-	if (GetPowerControlState(ANALOG_SLEEP_ENABLE) == ON)
+	if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
 	{
 		// Power the A/D on to set the offsets
-		PowerControl(ANALOG_SLEEP_ENABLE, OFF);
+		PowerControl(ANALOG_5V_ENABLE, ON);
+		WaitAnalogPower5vGood();
 
 		// Set flag to signal powering off the A/D when finished
 		powerAnalogDown = YES;
@@ -689,7 +690,7 @@ void GetChannelOffsets(uint32 sampleRate)
 	// If we had to power on the A/D here locally, then power it off
 	if (powerAnalogDown == YES)
 	{
-		PowerControl(ANALOG_SLEEP_ENABLE, ON);
+		PowerControl(ANALOG_5V_ENABLE, OFF);
 	}		
 }
 
@@ -897,6 +898,23 @@ void ZeroingSensorCalibration(void)
 	StopADDataCollectionForCalibration();
 
 	clearSystemEventFlag(UPDATE_OFFSET_EVENT);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void WaitAnalogPower5vGood(void)
+{
+	uint8_t report = YES;
+
+	while (GetPowerGood5vState() == NO)
+	{
+		if (report)
+		{
+			debug("Waiting for Analog 5V to come up\r\n");
+			report = NO;
+		}
+	}
 }
 
 ///============================================================================
