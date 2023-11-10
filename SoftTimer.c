@@ -232,7 +232,9 @@ void LcdPwTimerCallBack(void)
 
 	g_lcdPowerFlag = DISABLED;
 
+#if 0 /* old hw */
 	PowerControl(LCD_CONTRAST_ENABLE, OFF);
+#endif
 	ClearLcdDisplay();
 	ClearControlLinesLcdDisplay();
 	LcdClearPortReg();

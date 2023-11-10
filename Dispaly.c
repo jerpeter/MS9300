@@ -611,7 +611,7 @@ void AdjustLcdContrast(CONTRAST_ADJUSTMENT adjust)
 void SetLcdContrast(uint8 cmd)
 {
 	//uint16* powerManagementPort = (uint16*)POWER_CONTROL_ADDRESS;
-	uint32 i;
+	//uint32 i;
 
 	// Check if lcd contrast adjustment is out of visable range
 	if (cmd > DEFAULT_MAX_CONTRAST)
@@ -663,6 +663,7 @@ void SetLcdContrast(uint8 cmd)
 	//reg_PORTE.reg &= ~0x04; // Set adjust low
 	//SoftUsecWait(LCD_ACCESS_DELAY);
 
+#if 0 /* old hw */
 	// Section to reset the Wiper(counter)
 	PowerControl(LCD_CONTRAST_ENABLE, ON); // Set adjust high
 	PowerControl(LCD_POWER_ENABLE, OFF); // Set control low
@@ -689,6 +690,7 @@ void SetLcdContrast(uint8 cmd)
 		PowerControl(LCD_CONTRAST_ENABLE, OFF); // Set adjust low
 		SoftUsecWait(LCD_ACCESS_DELAY);
 	}
+#endif
 }
 
 ///----------------------------------------------------------------------------

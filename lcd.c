@@ -1292,12 +1292,14 @@ void Backlight_Low(void)
 ///----------------------------------------------------------------------------
 void Reset_Contrast(void)
 {
+#if 0 /* old hw */
 	PowerControl(LCD_POWER_ENABLE, OFF);
 	PowerControl(LCD_CONTRAST_ENABLE, OFF);
 
 	PowerControl(LCD_CONTRAST_ENABLE, ON);
 	PowerControl(LCD_POWER_ENABLE, ON);
 	SoftUsecWait(LCD_ACCESS_DELAY);
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -1321,9 +1323,11 @@ void Set_Contrast(uint8 level)
 
 	for (i = 0; i < counts; i++)
 	{
+#if 0 /* old hw */
 		// Toggle to adjust
 		PowerControl(LCD_CONTRAST_ENABLE, OFF);
 		PowerControl(LCD_CONTRAST_ENABLE, ON);
+#endif
 	}
 }
 
