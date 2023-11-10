@@ -53,6 +53,7 @@ extern mxc_gpio_cfg_t g_AccelTrig;
 extern mxc_gpio_cfg_t g_LED1;
 extern mxc_gpio_cfg_t g_LED2;
 extern mxc_gpio_cfg_t g_LED3;
+extern mxc_gpio_cfg_t g_LED4;
 extern mxc_gpio_cfg_t g_BLEOTA;
 extern mxc_gpio_cfg_t g_ExternalTriggerOut;
 extern mxc_gpio_cfg_t g_ExternalTriggerIn;
@@ -80,30 +81,6 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 	switch (option)
 	{
 		//----------------------------------------------------------------------------
-		case POWER_OFF:
-		//----------------------------------------------------------------------------
-			//debug("Power Off: %s\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
-			break;
-
-		//----------------------------------------------------------------------------
-		case POWER_OFF_PROTECTION_ENABLE:
-		//----------------------------------------------------------------------------
-			//debug("Power Shutdown Enable: %s\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
-			break;
-
-		//----------------------------------------------------------------------------
 		case ALARM_1_ENABLE: // Active high
 		//----------------------------------------------------------------------------
 			debug("Alarm 1 Enable: %s\r\n", mode == ON ? "On" : "Off");
@@ -128,21 +105,9 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			break;
 
 		//----------------------------------------------------------------------------
-		case LCD_CONTRAST_ENABLE: // (unused)
+		case ANALOG_5V_ENABLE: // Active high
 		//----------------------------------------------------------------------------
-			//debug("Lcd Contrast Enable: %s\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}				
-			else // (mode == OFF)
-			{
-			}				
-			break;
-
-		//----------------------------------------------------------------------------
-		case ANALOG_SLEEP_ENABLE: // Active high
-		//----------------------------------------------------------------------------
-			debug("Analog Sleep (5V) Enable: %s\r\n", mode == ON ? "On" : "Off");
+			debug("Analog (5V) Enable: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON) { MXC_GPIO_OutSet(g_Enable5V.port, g_Enable5V.mask); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_Enable5V.port, g_Enable5V.mask); }
 			break;
@@ -153,30 +118,6 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			debug("External Trigger Out: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON) { MXC_GPIO_OutSet(g_ExternalTriggerOut.port, g_ExternalTriggerOut.mask); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_ExternalTriggerOut.port, g_ExternalTriggerOut.mask); }
-			break;
-
-		//----------------------------------------------------------------------------
-		case SEISMIC_SENSOR_DATA_CONTROL: // Active low control
-		//----------------------------------------------------------------------------
-			//debug("Seismic Sensor Data Control Enable: %s\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
-			break;
-
-		//----------------------------------------------------------------------------
-		case ACOUSTIC_SENSOR_DATA_CONTROL: // Active low control
-		//----------------------------------------------------------------------------
-			//debug("Acoustic Sensor Data Control Enable: %s\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON)
-			{
-			}
-			else // (mode == OFF)
-			{
-			}
 			break;
 
 		//----------------------------------------------------------------------------
@@ -303,8 +244,8 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 		case LED_4: // Active high (Green)
 		//----------------------------------------------------------------------------
 			debug("LED 4: %s\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON) { MXC_GPIO_OutSet(g_LED3.port, g_LED3.mask); }
-			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_LED3.port, g_LED3.mask); }
+			if (mode == ON) { MXC_GPIO_OutSet(g_LED4.port, g_LED4.mask); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutClr(g_LED4.port, g_LED4.mask); }
 			break;
 	}
 
@@ -325,6 +266,41 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 ///	Function Break
 ///----------------------------------------------------------------------------
 BOOLEAN GetPowerControlState(POWER_MGMT_OPTIONS option)
+{
+	BOOLEAN state = OFF;
+
+	switch (option)
+	{
+		case ALARM_1_ENABLE: state = MXC_GPIO_OutGet(g_Alert1.port, g_Alert1.mask); break;
+		case ALARM_2_ENABLE: state = MXC_GPIO_OutGet(g_Alert2.port, g_Alert2.mask); break;
+		case LCD_POWER_ENABLE: state = MXC_GPIO_OutGet(g_LCDPowerEnable.port, g_LCDPowerEnable.mask); break;
+		case ANALOG_5V_ENABLE: state = MXC_GPIO_OutGet(g_Enable5V.port, g_Enable5V.mask); break;
+		case TRIGGER_OUT: state = MXC_GPIO_OutGet(g_Enable5V.port, g_Enable5V.mask); break;
+		case MCU_POWER_LATCH: state = MXC_GPIO_OutGet(g_MCUPowerLatch.port, g_MCUPowerLatch.mask); break;
+		case ENABLE_12V: state = MXC_GPIO_OutGet(g_Enable12V.port, g_Enable12V.mask); break;
+		case USB_SOURCE_ENABLE: state = MXC_GPIO_OutGet(g_USBSourceEnable.port, g_USBSourceEnable.mask); break;
+		case USB_AUX_POWER_ENABLE: state = MXC_GPIO_OutGet(g_USBAuxPowerEnable.port, g_USBAuxPowerEnable.mask); break;
+		case ADC_RESET: state = !MXC_GPIO_OutGet(g_ADCReset.port, g_ADCReset.mask); break; // Active low, invert state
+		case EXPANSION_ENABLE: state = MXC_GPIO_OutGet(g_ExpansionEnable.port, g_ExpansionEnable.mask); break;
+		case SENSOR_CHECK_ENABLE: state = MXC_GPIO_OutGet(g_SensorCheckEnable.port, g_SensorCheckEnable.mask); break;
+		case LTE_RESET: state = !MXC_GPIO_OutGet(g_LTEReset.port, g_LTEReset.mask); break; // Active low, invert state
+		case BLE_RESET: state = !MXC_GPIO_OutGet(g_BLEReset.port, g_BLEReset.mask); break; // Active low, invert state
+		case CELL_ENABLE: state = MXC_GPIO_OutGet(g_CellEnable.port, g_CellEnable.mask); break;
+		case EXPANSION_RESET: state = !MXC_GPIO_OutGet(g_ExpansionReset.port, g_ExpansionReset.mask); break; // Active low, invert state
+		case LCD_POWER_DISPLAY: state = !MXC_GPIO_OutGet(g_LCDPowerDisplay.port, g_LCDPowerDisplay.mask); break; // Active low, invert state
+		case LED_1: state = MXC_GPIO_OutGet(g_LED1.port, g_LED1.mask); break;
+		case LED_2: state = MXC_GPIO_OutGet(g_LED2.port, g_LED2.mask); break;
+		case LED_3: state = MXC_GPIO_OutGet(g_LED3.port, g_LED3.mask); break;
+		case LED_4: state = MXC_GPIO_OutGet(g_LED4.port, g_LED4.mask); break;
+	}
+
+	return (state);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+BOOLEAN GetPowerControlShadowState(POWER_MGMT_OPTIONS option)
 {
 	BOOLEAN state = OFF;
 
@@ -359,15 +335,12 @@ void PowerUnitOff(uint8 powerOffMode)
 	nav_exit();
 #endif
 
-	// Disable Power Off Protection
-	PowerControl(POWER_OFF_PROTECTION_ENABLE, OFF);
-
 	if (powerOffMode == SHUTDOWN_UNIT)
 	{
 		debug("Powering unit off (shutdown)...\r\n");
 
 		// Shutdown application
-		PowerControl(POWER_OFF, ON);
+		PowerControl(MCU_POWER_LATCH, OFF);
 	}
 	else
 	{
@@ -380,7 +353,7 @@ void PowerUnitOff(uint8 powerOffMode)
 		SetTimeOfDayAlarmNearFuture(2);
 
 		// Shutdown application
-		PowerControl(POWER_OFF, ON);
+		PowerControl(MCU_POWER_LATCH, OFF);
 #endif
 	}
 
