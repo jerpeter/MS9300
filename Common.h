@@ -633,6 +633,7 @@ void CheckExceptionReportLogExists(void);
 uint8_t GetExpandedBatteryPresenceState(void);
 uint8_t GetPowerGood5vState(void);
 uint8_t GetPowerGoodBatteryChargerState(void);
+uint8_t GetPowerOnButtonState(void);
 uint8_t GetLteOtaState(void);
 uint8_t GetBleOtaState(void);
 
