@@ -416,7 +416,8 @@ void InitExternalAD(void)
 	debug("Enable the A/D\r\n");
 #endif
 
-	PowerControl(ANALOG_SLEEP_ENABLE, OFF);
+	PowerControl(ANALOG_5V_ENABLE, ON);
+	WaitAnalogPower5vGood();
 
 	// Delay to allow AD to power up/stabilize
 	SoftUsecWait(50 * SOFT_MSECS);
@@ -433,7 +434,7 @@ void InitExternalAD(void)
 #if EXTENDED_DEBUG
 	debug("Disable the A/D\r\n");
 #endif
-	PowerControl(ANALOG_SLEEP_ENABLE, ON);
+	PowerControl(ANALOG_5V_ENABLE, OFF);
 #endif
 }
 
@@ -581,50 +582,6 @@ void TestExternalRAM(void)
 #endif
 }
 
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void PowerDownAndHalt(void)
-{
-#if 0 /* old hw */
-	// Enable the A/D
-	debug("Enable the A/D\r\n");
-	PowerControl(ANALOG_SLEEP_ENABLE, OFF);
-
-	// Delay to allow AD to power up/stabilize
-	SoftUsecWait(50 * SOFT_MSECS);
-
-	debug("Setup A/D config and channels\r\n");
-	// Setup the A/D Channel configuration
-	SetupADChannelConfig(1024, UNIT_CONFIG_CHANNEL_VERIFICATION);
-
-	debug("Disable the A/D\r\n");
-	PowerControl(ANALOG_SLEEP_ENABLE, OFF);
-
-	spi_reset(&AVR32_SPI1);
-
-	gpio_clr_gpio_pin(AVR32_SPI1_MISO_0_0_PIN);
-	gpio_clr_gpio_pin(AVR32_SPI1_MOSI_0_0_PIN);
-	gpio_clr_gpio_pin(AVR32_SPI1_NPCS_3_PIN);
-
-	debug("\nClosing up shop.\n\r\n");
-
-	//DisplayTimerCallBack();
-	SetLcdBacklightState(BACKLIGHT_OFF);
-
-	//LcdPwTimerCallBack();
-	PowerControl(LCD_CONTRAST_ENABLE, OFF);
-	ClearLcdDisplay();
-	ClearControlLinesLcdDisplay();
-	LcdClearPortReg();
-	PowerControl(LCD_POWER_ENABLE, OFF);
-
-	SLEEP(AVR32_PM_SMODE_STOP);
-
-	while (1) {}
-#endif
-}
-
 mxc_gpio_cfg_t g_MCUPowerLatch;
 mxc_gpio_cfg_t g_ExpandedBattery;
 mxc_gpio_cfg_t g_LED1;
@@ -717,7 +674,7 @@ void RTCClock_ISR(void *cbdata);
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SetupPowerOnGPIO(void)
+void SetupPowerOnDetectGPIO(void)
 {
 	//----------------------------------------------------------------------------------------------------------------------
 	// MCU Power Latch: Port 0, Pin 1, Output, External pulldown, Active high, 3.3V
@@ -729,6 +686,16 @@ void SetupPowerOnGPIO(void)
 	g_MCUPowerLatch.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&g_MCUPowerLatch);
 	//MXC_GPIO_OutSet(g_MCUPowerLatch.port, g_MCUPowerLatch.mask);
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// Power Good Battery Charge: Port 0, Pin 12, Input, External pullup, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	g_PowerGoodBatteryCharge.port = MXC_GPIO0;
+	g_PowerGoodBatteryCharge.mask = MXC_GPIO_PIN_12;
+	g_PowerGoodBatteryCharge.pad = MXC_GPIO_PAD_NONE;
+	g_PowerGoodBatteryCharge.func = MXC_GPIO_FUNC_IN;
+	g_PowerGoodBatteryCharge.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_PowerGoodBatteryCharge);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Power Button Int: Port 1, Pin 15, Input, External pullup, Active high, 1.8V
@@ -1624,7 +1591,7 @@ void SetupDebugUART(void)
 	int status;
 
     status = MXC_UART_Init(MXC_UART2, UART_BAUD);
-    if (status != E_SUCCESS) { debugErr("Debug UART2 failed init with code: %d\n", status); }
+    if (status != E_SUCCESS) { } // Where to report?
 
     // Move to Interrupt init
 	NVIC_ClearPendingIRQ(UART2_IRQn);
@@ -2953,13 +2920,39 @@ void SetupHalfSecondTickTimer(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void ValidatePowerOn(void)
+{
+	uint8_t powerOnButtonDetect;
+	uint8_t vbusChargingDetect;
+
+	SetupPowerOnDetectGPIO();
+
+	powerOnButtonDetect = GetPowerOnButtonState();
+	vbusChargingDetect = GetPowerGoodBatteryChargerState();
+
+	if (powerOnButtonDetect) { debug("Power On button pressed\r\n"); }
+	if (vbusChargingDetect) { debug("VBUS Charging detected\r\n"); }
+
+	// Todo: Setup 2 second delay while monitoring Power On button press, if completed latch power or turn off
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void InitSystemHardware_NS9100(void)
 {
 	//-------------------------------------------------------------------------
-	// Monitor Power On button press for system startup
+	// Setup Debug Uart (UART2)
 	//-------------------------------------------------------------------------
-	// Todo: Setup 2 second delay while monitoring Power On button press, if completed latch power or turn off
-	SetupPowerOnGPIO();
+#if 0 /* Requires mod from original schematic */
+	SetupDebugUART();
+#warning Setup CONSOLE_UART 2 define (probably in board.h)
+#endif
+
+	//-------------------------------------------------------------------------
+	// Check power on source and validate for system startup
+	//-------------------------------------------------------------------------
+	ValidatePowerOn();
 
 	//-------------------------------------------------------------------------
 	// Setup Watchdog
@@ -2975,14 +2968,6 @@ void InitSystemHardware_NS9100(void)
 	// Setup UART0 (LTE) and UART1 (BLE)
 	//-------------------------------------------------------------------------
 	SetupUART();
-
-	//-------------------------------------------------------------------------
-	// Setup Debug Uart (UART2)
-	//-------------------------------------------------------------------------
-#if 0 /* Requires mod from original schematic */
-	SetupDebugUART();
-#warning Setup CONSOLE_UART 2 define (probably in board.h)
-#endif
 
 	//-------------------------------------------------------------------------
 	// Setup I2C0 (1.8V devices) and I2C1 (3.3V devices)
@@ -3121,11 +3106,6 @@ void InitSystemHardware_NS9100(void)
 	//-------------------------------------------------------------------------
 	SmartSensorReadRomAndMemory(SEISMIC_SENSOR); debug("Smart Sensor check for Seismic sensor\r\n");
 	SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR); debug("Smart Sensor check for Acoustic sensor\r\n");
-
-	//-------------------------------------------------------------------------
-	// Enable Power off protection
-	//-------------------------------------------------------------------------
-	PowerControl(POWER_OFF_PROTECTION_ENABLE, ON); debug("Enabling Power Off protection\r\n");
 
 	//-------------------------------------------------------------------------
 	// Hardware initialization complete
