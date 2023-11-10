@@ -289,7 +289,8 @@ void StartDataCollection(uint32 sampleRate)
 {
 	// Enable the A/D
 	debug("Enable the A/D\r\n");
-	PowerControl(ANALOG_SLEEP_ENABLE, OFF);
+	PowerControl(ANALOG_5V_ENABLE, ON);
+	WaitAnalogPower5vGood();
 
 	// Delay to allow AD to power up/stabilize
 	SoftUsecWait(50 * SOFT_MSECS);
@@ -432,7 +433,7 @@ void StopDataCollection(void)
 	StopExternalRtcClock();
 #endif
 
-	PowerControl(ANALOG_SLEEP_ENABLE, ON);
+	PowerControl(ANALOG_5V_ENABLE, OFF);
 
 	ClearSoftTimer(MENU_UPDATE_TIMER_NUM);
 }
@@ -450,7 +451,7 @@ void StopDataClock(void)
 	StopExternalRtcClock();
 #endif
 
-	PowerControl(ANALOG_SLEEP_ENABLE, ON);
+	PowerControl(ANALOG_5V_ENABLE, OFF);
 }
 
 ///----------------------------------------------------------------------------
@@ -804,7 +805,8 @@ void StartADDataCollectionForCalibration(uint16 sampleRate)
 
 	// Enable the A/D
 	debug("Enable the A/D\r\n");
-	PowerControl(ANALOG_SLEEP_ENABLE, OFF);
+	PowerControl(ANALOG_5V_ENABLE, ON);
+	WaitAnalogPower5vGood();
 
 	// Delay to allow AD to power up/stabilize
 	SoftUsecWait(50 * SOFT_MSECS);
@@ -841,5 +843,5 @@ void StopADDataCollectionForCalibration(void)
 	StopExternalRtcClock();
 #endif
 
-	PowerControl(ANALOG_SLEEP_ENABLE, ON);
+	PowerControl(ANALOG_5V_ENABLE, OFF);
 }

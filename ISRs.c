@@ -366,16 +366,14 @@ void System_power_button_irq(void)
 			nav_exit();
 #endif
 			SoftUsecWait(1 * SOFT_SECS);
-			PowerControl(POWER_OFF_PROTECTION_ENABLE, OFF);
-			PowerControl(POWER_OFF, ON);
+			PowerControl(MCU_POWER_LATCH, OFF);
 		}
 
 		if ((powerOffAttempted == YES) && (onKeyCount == 5))
 		{
 			// Jumping off the ledge.. No returning from this
 			//debugRaw("\n--> BOOM <--");
-			PowerControl(POWER_OFF_PROTECTION_ENABLE, OFF);
-			PowerControl(POWER_OFF, ON);
+			PowerControl(MCU_POWER_LATCH, OFF);
 		}
 
 		powerOffAttempted = YES;
@@ -2421,13 +2419,14 @@ static inline void HandleChannelSyncError_ISR_Inline(void)
 	}
 #else /* New method */
 	// Disable A/D due to error
-	PowerControl(ANALOG_SLEEP_ENABLE, ON);
+	PowerControl(ANALOG_5V_ENABLE, OFF);
 
 	// Delay to allow AD to power up/stabilize
 	SoftUsecWait(50 * SOFT_MSECS);
 
 	// Re-Enable the A/D
-	PowerControl(ANALOG_SLEEP_ENABLE, OFF);
+	PowerControl(ANALOG_5V_ENABLE, ON);
+	WaitAnalogPower5vGood();
 
 	// Delay to allow AD to power up/stabilize
 	SoftUsecWait(50 * SOFT_MSECS);
