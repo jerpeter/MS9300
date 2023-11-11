@@ -15,7 +15,7 @@
     },
     
     "target":"MAX32650",
-    "board":"EvKit_V1",
+    "board":"MS9300",
 
     "project_name":"${workspaceFolderBasename}",
 
@@ -99,7 +99,8 @@
         "mxc_delay.h": "c",
         "spi_regs.h": "c",
         "ff.h": "c",
-        "tmr.h": "c"
+        "tmr.h": "c",
+        "ext_flash.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "C_Cpp.dimInactiveRegions": false
