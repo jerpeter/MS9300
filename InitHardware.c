@@ -2924,6 +2924,7 @@ void ValidatePowerOn(void)
 {
 	uint8_t powerOnButtonDetect;
 	uint8_t vbusChargingDetect;
+	uint16_t i;
 
 	SetupPowerOnDetectGPIO();
 
@@ -2931,9 +2932,37 @@ void ValidatePowerOn(void)
 	vbusChargingDetect = GetPowerGoodBatteryChargerState();
 
 	if (powerOnButtonDetect) { debug("Power On button pressed\r\n"); }
-	if (vbusChargingDetect) { debug("VBUS Charging detected\r\n"); }
+	if (vbusChargingDetect) { debug("USB Charging detected\r\n"); }
 
-	// Todo: Setup 2 second delay while monitoring Power On button press, if completed latch power or turn off
+	// Check if Power on button is the startup source
+	if (powerOnButtonDetect)
+	{
+		// Monitor Power on button for 2 secs making sure it remains depressed signaling desire to turn unit on
+		for (i = 0; i < 80; i++)
+		{
+			MXC_Delay(MXC_DELAY_MSEC(25));
+
+			// Determine if the Power on button was released early
+			if (GetPowerOnButtonState() == OFF)
+			{
+				// Power on button released therefore startup condition not met, shut down
+				PowerControl(MCU_POWER_LATCH, OFF);
+				while (1) {}
+			}
+		}
+
+		// Unit startup condition verified, latch power and continue
+		PowerControl(MCU_POWER_LATCH, ON);
+	}
+	// Check if USB charging is startup source
+	else if (vbusChargingDetect)
+	{
+		// Todo: determine necessary action if USB charging is reason for power up
+	}
+	else
+	{
+		debugWarn("MCU Power latch is power on source\r\n");
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -2944,10 +2973,7 @@ void InitSystemHardware_NS9100(void)
 	//-------------------------------------------------------------------------
 	// Setup Debug Uart (UART2)
 	//-------------------------------------------------------------------------
-#if 0 /* Requires mod from original schematic */
 	SetupDebugUART();
-#warning Setup CONSOLE_UART 2 define (probably in board.h)
-#endif
 
 	//-------------------------------------------------------------------------
 	// Check power on source and validate for system startup
