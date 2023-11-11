@@ -1785,6 +1785,28 @@ void EnableGlobalException(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+extern void TestAccelerometer(void);
+void TestExternalDeviceAccessAndComms(void)
+{
+	//Device list: Acc, 1-Wire, Batt Charger, EEPROM, USB-C Port Controller, External RTC, Fuel Gauge, Expansion I2C bridge, eMMC + FF driver, External ADC, LCD
+	debug("External Device Access and Comms testing...\r\n");
+
+	TestAccelerometer();
+	//Test1Wire();
+	//TestBatteryCharger();
+	//TestEEPROM();
+	//TestUSBCPortController();
+	//TestExternalRTC();
+	//TestFuelGauge();
+	//TestExpansionI2CBridge();
+	//TestEMMCFatFilesystem();
+	//TestExternalADC();
+	//TestLCD();
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 int main(void)
 {
 	// Initialize the system
@@ -1792,6 +1814,10 @@ int main(void)
 	InitInterrupts_NS9100();
 	InitSoftwareSettings_NS9100();
 	EnableGlobalException();
+
+#if 1 /* test */
+	TestExternalDeviceAccessAndComms();
+#endif
 
  	// ==============
 	// Executive loop
