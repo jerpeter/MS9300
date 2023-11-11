@@ -274,3 +274,14 @@ void InitAccControl(void)
     SetAccRegister(ACC_CONTROL_5_REGISTER, 0x00); // Default/reset value
     SetAccRegister(ACC_CONTROL_6_REGISTER, 0x00); // Default/reset value
 }
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestAccelerometer(void)
+{
+    VerifyAccManuIDAndPartID();
+
+    if (VerifyAccCommandTestResponse() == PASSED) { debug("Acc: Command Test response passed\r\n"); }
+    else { debugErr("Acc: Command Test response failed\r\n"); }
+}
