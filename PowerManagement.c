@@ -467,8 +467,8 @@ void InitBattChargerRegister(uint8_t registerAddress, uint16_t registerContents)
 	// Config Reg 3 (default)
 	//SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_3, 0x50E8);
 
-	// Config Reg 4 (default)
-	//SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, 0x3C53);
+	// Config Reg 4 (default), disable watchdog
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, 0x3C53);
 
 	// Charge Current (default)
 	//SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x0A00);
