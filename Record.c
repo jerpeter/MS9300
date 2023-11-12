@@ -744,3 +744,37 @@ void EraseFlashUserPageFactorySetup(void)
 	memset(&g_spareBuffer[2], 0xFF, sizeof(FACTORY_SETUP_STRUCT));
 	WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM_ID, g_spareBuffer, (sizeof(FACTORY_SETUP_STRUCT) + 2), NULL, 0);
 }
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestEEPROM(void)
+{
+	uint8_t testMem[8];
+
+    debug("EEPROM: Test device access...\r\n");
+
+	GetParameterMemory(testMem, 0, sizeof(testMem));
+	debug("EEPROM: Mem @ Addr 0 is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", testMem[0], testMem[1], testMem[2], testMem[3], testMem[4], testMem[5], testMem[6], testMem[7]);
+
+	testMem[0] = 0xAA;
+	testMem[0] = 0x55;
+	testMem[0] = 0x00;
+	testMem[0] = 0x11;
+	testMem[0] = 0x01;
+	testMem[0] = 0x02;
+	testMem[0] = 0x03;
+	testMem[0] = 0x04;
+
+	SaveParameterMemory(testMem, 0, sizeof(testMem));
+	debug("EEPROM: Write Mem @ Addr 0 with 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", testMem[0], testMem[1], testMem[2], testMem[3], testMem[4], testMem[5], testMem[6], testMem[7]);
+
+	GetParameterMemory(testMem, 0, sizeof(testMem));
+	debug("EEPROM: Verify Mem @ Addr 0 is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", testMem[0], testMem[1], testMem[2], testMem[3], testMem[4], testMem[5], testMem[6], testMem[7]);
+
+	EraseParameterMemory(0, sizeof(testMem));
+	debug("EEPROM: Erasing %d bytes @ Addr 0\r\n");
+
+	GetParameterMemory(testMem, 0, sizeof(testMem));
+	debug("EEPROM: Verify erase @ Addr 0 is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", testMem[0], testMem[1], testMem[2], testMem[3], testMem[4], testMem[5], testMem[6], testMem[7]);
+}
