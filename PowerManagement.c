@@ -429,10 +429,10 @@ void SetBattChargerRegister(uint8_t registerAddress, uint16_t registerContents)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void InitBattChargerRegister(uint8_t registerAddress, uint16_t registerContents)
+void InitBattChargerRegister(void)
 {
-	// Device setting, disable watchdog
-	SetBattChargerRegister(BATT_CHARGER_DEVICE_ADDRESS_SETTING, 0x00E9);
+	// Device setting, disable watchdog, Has OTP field but assuming since no reference on how to accomplish this, thinking factory option only (taking the cautious approach for now)
+	//SetBattChargerRegister(BATT_CHARGER_DEVICE_ADDRESS_SETTING, 0x02E9);
 
 	// Input min V limit (default)
 	//SetBattChargerRegister(BATT_CHARGER_INPUT_MINIMUM_VOLTAGE_LIMIT_SETTING, 0x0039);
@@ -481,6 +481,30 @@ void InitBattChargerRegister(uint8_t registerAddress, uint16_t registerContents)
 
 	// Int Mask setting (default)
 	//SetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_1, 0x0000);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t GetBattChargerStatusReg0(void)
+{
+	uint16_t registerValue;
+
+	GetBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_0, &registerValue);
+
+	return (registerValue);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t GetBattChargerStatusReg1(void)
+{
+	uint16_t registerValue;
+
+	GetBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_1, &registerValue);
+
+	return (registerValue);
 }
 
 ///----------------------------------------------------------------------------
@@ -731,6 +755,31 @@ uint16_t GetBattChargerOutputCurrentInDischargeMode(void)
 	return ((uint16_t)result);
 }
 
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestBatteryCharger(void)
+{
+    debug("Battery Charger: Test device access...\r\n");
+
+	debug("Battery Charger: Init to disable internal watchdog to keep in Host mode (prevents defaults on timeout)\r\n");
+	InitBattChargerRegister();
+
+	debug("Battery Charger: Status reg 0 is 0x%x\r\n", GetBattChargerStatusReg0()); // Result units: mV
+	debug("Battery Charger: Status reg 1 is 0x%x\r\n", GetBattChargerStatusReg1()); // Result units: mV
+
+	debug("Battery Charger: Input voltage is %u (mV)\r\n", GetBattChargerInputVoltage()); // Result units: mV
+	debug("Battery Charger: Input current is %u (mA)\r\n", GetBattChargerInputCurrent()); // Result units: mA
+	debug("Battery Charger: Batt voltage per cell is %u (mV/cell)\r\n", GetBattChargerBatteryVoltagePerCell()); // Result units: mV/cell
+	debug("Battery Charger: Batt current is %u (mA)\r\n", GetBattChargerBatteryChargeCurrent()); // Result units: mA
+	debug("Battery Charger: NTSC sense ratio is %u (%% of Vntc)\r\n", GetBattChargerNTCSenseRatio()); // Result units: % of Vntc
+	debug("Battery Charger: TS sense ration is %u (%% of Vntc)\r\n", GetBattChargerTSSenseRatio()); // Result units: % of Vntc
+	debug("Battery Charger: Junciton temp is %u (believe in degrees C)\r\n", GetBattChargerJunctionTemperature()); // Result units: Assume temp in C and not F, unconfirmed
+	debug("Battery Charger: Batt discharge current is %u (mA)\r\n", GetBattChargerBatteryDischargeCurrent()); // Result units: mA
+	debug("Battery Charger: Input voltage in discharge mode is %u (mV)\r\n", GetBattChargerInputVoltageInDischargeMode()); // Result units: mV
+	debug("Battery Charger: Output current in discharge mode is %u (mA)\r\n", GetBattChargerOutputCurrentInDischargeMode()); // Result units: mA
+}
+
 ///============================================================================
 ///----------------------------------------------------------------------------
 ///	Fuel Guage - LTC2944
@@ -807,12 +856,13 @@ enum ltc294x_reg {
 
 #define LTC2941_REG_STATUS_CHIP_ID	(1 << 7)
 
-#define LTC2942_REG_CONTROL_MODE_SCAN	((1 << 7) | (1 << 6))
+#define LTC2942_REG_CONTROL_MODE_AUTO	((1 << 7) | (1 << 6))
 #define LTC2943_REG_CONTROL_MODE_SCAN	(1 << 7)
 #define LTC294X_REG_CONTROL_PRESCALER_MASK	((1 << 5) | (1 << 4) | (1 << 3))
 #define LTC294X_REG_CONTROL_SHUTDOWN_MASK	((1 << 0))
 #define LTC294X_REG_CONTROL_PRESCALER_SET(x)	((x << 3) & LTC294X_REG_CONTROL_PRESCALER_MASK)
 #define LTC294X_REG_CONTROL_ALCC_CONFIG_DISABLED	0
+#define LTC294X_REG_CONTROL_ALCC_CONFIG_ALERT_MODE	((0x10) << 1)
 #define LTC294X_REG_CONTROL_ADC_DISABLE(x)	((x) & ~((1 << 7) | (1 << 6)))
 
 #define LTC294X_PRESCALER_1		0x0
@@ -895,8 +945,9 @@ int ltc294x_reset(int prescaler_exp)
 	ret = ltc294x_read_regs(LTC294X_REG_CONTROL, &value, 1);
 	if (ret < 0) { return ret; }
 
-	control = LTC294X_REG_CONTROL_PRESCALER_SET(prescaler_exp) | LTC294X_REG_CONTROL_ALCC_CONFIG_DISABLED;
-	control |= LTC2943_REG_CONTROL_MODE_SCAN; // 2944 measures every 10 sec
+	control = LTC294X_REG_CONTROL_PRESCALER_SET(prescaler_exp) | LTC294X_REG_CONTROL_ALCC_CONFIG_ALERT_MODE;
+	control |= LTC2942_REG_CONTROL_MODE_AUTO; // Continuous conversions
+	//control |= LTC2943_REG_CONTROL_MODE_SCAN; // 2944 measures every 10 sec
 
 	if (value != control)
 	{
@@ -1231,4 +1282,36 @@ void ltc294x_i2c_shutdown(void)
 	// Disable continuous ADC conversion as this drains the battery
 	control = LTC294X_REG_CONTROL_ADC_DISABLE(value);
 	if (control != value) { ltc294x_write_regs(LTC294X_REG_CONTROL, &control, 1); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestFuelGauge(void)
+{
+	ltc294x_info info;
+	uint8_t prescaler_exp = LTC294X_PRESCALER_4096;
+	int val;
+
+	info.r_sense = 50; // Attempting 50 mOhm
+	info.Qlsb = ((340 * 50000) / info.r_sense) * (prescaler_exp / LTC294X_MAX_PRESCALER); // units?
+
+    debug("Fuel Gauge: Test device access...\r\n");
+
+	debug("Fuel Gauge: Enabling conversions\r\n");
+	ltc294x_reset(prescaler_exp);
+
+	debug("Fuel Gauge: Status reg is 0x%x\r\n", ltc294x_get_status());
+
+	ltc294x_get_charge(&info, LTC294X_REG_ACC_CHARGE_MSB, &val);
+	debug("Fuel Gauge: Accumulated charge is %d (uA)\r\n", val);
+
+	ltc294x_get_voltage(&info, &val);
+	debug("Fuel Gauge: Voltage is %d (mV)\r\n", val);
+
+	ltc294x_get_current(&info, &val);
+	debug("Fuel Gauge: Current is %d (uA)\r\n", val);
+
+	ltc294x_get_temperature(&info, &val);
+	debug("Fuel Gauge: Temperature is %d (degrees F)\r\n", val);
 }

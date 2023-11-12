@@ -118,7 +118,9 @@ void PowerUnitOff(uint8 powerOffMode);
 
 void GetBattChargerRegister(uint8_t registerAddress, uint16_t* registerContents);
 void SetBattChargerRegister(uint8_t registerAddress, uint16_t registerContents);
-void InitBattChargerRegister(uint8_t registerAddress, uint16_t registerContents);
+void InitBattChargerRegister(void);
+uint16_t GetBattChargerStatusReg0(void);
+uint16_t GetBattChargerStatusReg1(void);
 uint16_t GetBattChargerInputVoltage(void);
 uint16_t GetBattChargerInputCurrent(void);
 uint16_t GetBattChargerBatteryVoltagePerCell(void);
