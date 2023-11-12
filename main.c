@@ -1786,6 +1786,11 @@ void EnableGlobalException(void)
 ///	Function Break
 ///----------------------------------------------------------------------------
 extern void TestAccelerometer(void);
+extern void TestBatteryCharger(void);
+extern void TestFuelGauge(void);
+extern void TestEEPROM(void);
+extern void TestExpansionI2CBridge(void);
+extern void TestEMMCFatFilesystem(void);
 void TestExternalDeviceAccessAndComms(void)
 {
 	//Device list: Acc, 1-Wire, Batt Charger, EEPROM, USB-C Port Controller, External RTC, Fuel Gauge, Expansion I2C bridge, eMMC + FF driver, External ADC, LCD
@@ -1793,13 +1798,13 @@ void TestExternalDeviceAccessAndComms(void)
 
 	TestAccelerometer();
 	//Test1Wire();
-	//TestBatteryCharger();
-	//TestEEPROM();
+	TestBatteryCharger();
+	TestEEPROM();
 	//TestUSBCPortController();
 	//TestExternalRTC();
-	//TestFuelGauge();
-	//TestExpansionI2CBridge();
-	//TestEMMCFatFilesystem();
+	TestFuelGauge();
+	TestExpansionI2CBridge();
+	TestEMMCFatFilesystem();
 	//TestExternalADC();
 	//TestLCD();
 }

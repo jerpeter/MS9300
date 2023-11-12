@@ -280,6 +280,8 @@ void InitAccControl(void)
 ///----------------------------------------------------------------------------
 void TestAccelerometer(void)
 {
+    debug("Accelerometer: Test device access...\r\n");
+
     VerifyAccManuIDAndPartID();
 
     if (VerifyAccCommandTestResponse() == PASSED) { debug("Acc: Command Test response passed\r\n"); }
