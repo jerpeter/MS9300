@@ -2371,3 +2371,89 @@ void ValidateSummaryListFileWithEventCache(void)
 		MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK);
 	}
 }
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+extern int getSize(void);
+static char testLogFilename[] = LOGS_PATH "Test.zzz";
+void TestEMMCFatFilesystem(void)
+{
+    debug("eMMC and FAT file system: Test device access...\r\n");
+
+	getSize();
+
+	FIL file;
+	uint32_t writeSize;
+	uint8_t dataSet[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+
+	// -------------------------------------
+	// Test file write
+	// -------------------------------------
+    if ((f_open(&file, (const TCHAR*)testLogFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
+	{
+		debugErr("eMMC and FAT file system: Unable to open file: %s\n", testLogFilename);
+	}
+	else // File created or exists
+	{
+		if (f_size(&file) == 0) { debug("eMMC and FAT file system: Test file empty\r\n"); }
+		else { debug("eMMC and FAT file system: Test file size is %d\r\n", f_size(&file)); }
+
+		debug("eMMC and FAT file system: Writing Test file entry...\r\n");
+
+		f_write(&file, dataSet, sizeof(dataSet), (UINT*)&writeSize);
+		debug("eMMC and FAT file system: Test file new size is %d\r\n", f_size(&file));
+
+		// Done writing, close the monitor log file
+		f_close(&file);
+
+		debug("eMMC and FAT file system: Test file closed\r\n");
+	}
+
+	// -------------------------------------
+	// Test file write again
+	// -------------------------------------
+    if ((f_open(&file, (const TCHAR*)testLogFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
+	{
+		debugErr("eMMC and FAT file system: Unable to open file: %s\n", testLogFilename);
+	}
+	else // File created or exists
+	{
+		if (f_size(&file) == 0) { debug("eMMC and FAT file system: Test file empty\r\n"); }
+		else { debug("eMMC and FAT file system: Test file size is %d\r\n", f_size(&file)); }
+
+		debug("eMMC and FAT file system: Writing Test file entry...\r\n");
+
+		f_write(&file, dataSet, sizeof(dataSet), (UINT*)&writeSize);
+		debug("eMMC and FAT file system: Test file new size is %d\r\n", f_size(&file));
+
+		// Done writing, close the monitor log file
+		f_close(&file);
+
+		debug("eMMC and FAT file system: Test file closed\r\n");
+	}
+
+	// -------------------------------------
+	// Test file delete
+	// -------------------------------------
+	if (f_stat((const TCHAR*)testLogFilename, NULL) == FR_OK)
+	{
+		debug("eMMC and FAT file system: Deleting Test file...\r\n");
+		if (f_unlink((const TCHAR*)g_spareFileName) != FR_OK)
+		{
+			debug("eMMC and FAT file system: Problem deleting Test file\r\n");
+		}
+	}
+
+	// -------------------------------------
+	// Test file delete verify
+	// -------------------------------------
+	if (f_stat((const TCHAR*)testLogFilename, NULL) == FR_OK)
+	{
+		debug("eMMC and FAT file system: Test file still present, delete failed\r\n");
+	}
+	else
+	{
+		debug("eMMC and FAT file system: Test file deleted successfully\r\n");
+	}
+}
