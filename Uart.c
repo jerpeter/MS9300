@@ -624,15 +624,47 @@ uint8_t ReadUartBridgeControlRegister(uint8_t registerAddress)
 ///----------------------------------------------------------------------------
 void TestUartBridgeScratchpad(void)
 {
-	debug("Testing UART Bridge (Exp)...\r\n");
+	uint8_t reg;
+
+	//debug("Expansion I2C Uart Bridge: Scratchpad test\r\n");
+
+	// Offset 07H: Scratch Pad Register (SPR). Accessible when LCR[7]=0 and MCR[2]=0. Default=FF
+
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_LCR);
+	// Check if LCR bit 7 is enabled
+	if (reg & 0x80)
+	{
+		// Disable LCR bit 7 so that SPR is available
+		reg &= 0x80;
+		WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, reg);
+	}
+
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_MCR);
+	// Check if MCR bit 2 is enabled
+	if (reg & 0x04)
+	{
+		// Disable MCR bit 2 so that SPR is available
+		reg &= 0x04;
+		WriteUartBridgeControlRegister(PI7C9X760_REG_MCR, reg);
+	}
 
 	WriteUartBridgeControlRegister(PI7C9X760_REG_SPR, 0xAA);
-	if (ReadUartBridgeControlRegister(PI7C9X760_REG_SPR) == 0xAA) { debug("UART Bridge (Exp) passed 1st scracth test\r\n"); }
-	else { debugErr("UART Bridge (Exp) failed 1st scracth test\r\n"); }
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_SPR);
+#if 1 /* shorter */
+	debug("Expansion I2C Uart Bridge: 1st scracth test: %s\r\n", (reg == 0xAA) ? "Passed" : "Failed");
+#else
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_SPR) == 0xAA) { debug("Expansion I2C Uart Bridge: Passed 1st scracth test\r\n"); }
+	else { debugErr("Expansion I2C Uart Bridge: Failed 1st scracth test\r\n"); }
+#endif
 
 	WriteUartBridgeControlRegister(PI7C9X760_REG_SPR, 0x55);
-	if (ReadUartBridgeControlRegister(PI7C9X760_REG_SPR) == 0x55) { debug("UART Bridge (Exp) passed 2nd scracth test\r\n"); }
-	else { debugErr("UART Bridge (Exp) failed 2nd scracth test\r\n"); }
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_SPR);
+#if 1 /* shoter */
+	debug("Expansion I2C Uart Bridge: 2nd scracth test: %s\r\n", (reg == 0x55) ? "Passed" : "Failed");
+#else
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_SPR) == 0x55) { debug("Expansion I2C Uart Bridge: Passed 2nd scracth test\r\n"); }
+	else { debugErr("Expansion I2C Uart Bridge: Failed 2nd scracth test\r\n"); }
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -683,4 +715,14 @@ void SleepUartBridgeDevice(void)
 	//	Bit 4 set to logic 1
 	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x1D);
 	WriteUartBridgeControlRegister(PI7C9X760_REG_IER, 0x10);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestExpansionI2CBridge(void)
+{
+    debug("Expansion I2C Uart Bridge: Test device access...\r\n");
+
+	TestUartBridgeScratchpad();
 }
