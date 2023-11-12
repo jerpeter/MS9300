@@ -2339,8 +2339,7 @@ FIL file; //FFat File Object
 FRESULT err; //FFat Result (Struct)
 FILINFO fno; //FFat File Information Object
 DIR dir; //FFat Directory Object
-TCHAR message[MAXLEN], directory[MAXLEN], cwd[MAXLEN], filename[MAXLEN], volume_label[24],
-    volume = '0';
+TCHAR message[MAXLEN], directory[MAXLEN], cwd[MAXLEN], filename[MAXLEN], volume_label[24], volume = '0';
 TCHAR *FF_ERRORS[20];
 DWORD clusters_free = 0, sectors_free = 0, sectors_total = 0, volume_sn = 0;
 UINT bytes_written = 0, bytes_read = 0, mounted = 0;
