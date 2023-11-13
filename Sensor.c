@@ -1529,3 +1529,44 @@ int ds2484_probe(void)
 exit_free:
 	return (err);
 }
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void Test1Wire(void)
+{
+	ds2484_data* data = &s_ds2484_data;
+	uint8_t temp1;
+
+    debug("1-Wire Master: Test device access...\r\n");
+
+	debug("1-Wire Mux: Setting Mux for Geo1 Smart Sensor\r\n");
+	SetSmartSensorMuxA0State(0);
+	SetSmartSensorMuxA1State(0);
+	debug("1-Wire Mux: Enabling Mux\r\n");
+	SetSmartSensorMuxEnableState(ON);
+
+    debug("1-Wire Master: Powering up (disabling sleep)\r\n");
+	SetSmartSensorSleepState(OFF);
+	MXC_Delay(1);
+
+	if (ds2484_send_cmd(data, DS2484_CMD_RESET) < 0) { debugWarn("1-Wire Master: Reset failed\r\n"); }
+	else { debug("1-Wire Master: Reset successful\r\n"); }
+
+	/* Sleep at least 525ns to allow the reset to complete */
+	MXC_Delay(1);
+
+	/* Read the status byte - only reset bit and line should be set */
+	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &temp1, sizeof(temp1));
+	if (temp1 != (DS2484_REG_STS_LL | DS2484_REG_STS_RST)) { debugWarn("1-Wire Master: Reset status 0x%02X\r\n", temp1); }
+	else { debug("1-Wire Master: Status is 0x%x\r\n", temp1); }
+
+	ds2484_send_cmd_data(data, DS2484_CMD_WRITE_CONFIG, ds2484_calculate_config(0x00));
+	debug("1-Wire Master: Set device config\r\n");
+
+	MXC_Delay(MXC_DELAY_MSEC(500));
+
+	ds2484_select_register(data, DS2484_PTR_CODE_STATUS);
+	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &temp1, sizeof(temp1));
+	debug("1-Wire Master: Status after config and delay is 0x%x\r\n", temp1);
+}
