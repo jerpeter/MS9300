@@ -4769,3 +4769,12 @@ void ft81x_logo() {
   // AFAIK the only command that will set the RD/WR to 0 when finished
   ft81x_fifo_reset();
 }
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestLCD(void)
+{
+    debug("LCD: Test device access...\r\n");
+
+}
