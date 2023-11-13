@@ -1168,3 +1168,28 @@ void AD4695_Exit_Conservation_Mode() /*To pass from conservaiton mode to registe
 
 	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, &command, sizeof(command), NULL, 0, BLOCKING);
 }
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestExternalADC(void)
+{
+	uint8_t testData;
+
+    debug("External ADC: Test device access...\r\n");
+
+	debug("Power Control: Analog 5V enable and 50ms delay\r\n");
+	PowerControl(ANALOG_5V_ENABLE, ON);
+	MXC_Delay(MXC_DELAY_MSEC(50));
+
+	AD4695_Init();
+	debug("External ADC: Init complete\r\n");
+
+	testData = 0xAA; SPI_Write_Reg_AD4695(AD4695_REG_SCRATCH_PAD, testData);
+	testData = 0x00; SPI_Read_Reg_AD4695(AD4695_REG_SCRATCH_PAD, &testData);
+	debug("External ADC: 1st Scratchpad test %s\r\n", (testData == 0xAA) ? "Passed" : "Failed");
+
+	testData = 0x55; SPI_Write_Reg_AD4695(AD4695_REG_SCRATCH_PAD, testData);
+	testData = 0x00; SPI_Read_Reg_AD4695(AD4695_REG_SCRATCH_PAD, &testData);
+	debug("External ADC: 2nd Scratchpad test %s\r\n", (testData == 0x55) ? "Passed" : "Failed");
+}
