@@ -110,7 +110,7 @@ enum {
 	TPS_MODE_PTCH,
 };
 
-static const char *const modes[] = {
+static const char *const tps25750_modes[] = {
 	[TPS_MODE_APP]	= "APP ",
 	[TPS_MODE_BOOT]	= "BOOT",
 	[TPS_MODE_PTCH]	= "PTCH",
@@ -405,11 +405,18 @@ static int tps25750_get_mode(struct tps25750 *tps)
 	if (ret)
 		return ret;
 
-	//ret = match_string(modes, ARRAY_SIZE(modes), mode);
-	ret = strcmp(modes[TPS_MODE_APP], mode);
-	if (ret) { ret = strcmp(modes[TPS_MODE_BOOT], mode); }
-	if (ret) { ret = strcmp(modes[TPS_MODE_PTCH], mode); }
+#if 0 /* original logic doesn't look to work correctly */
+	//ret = match_string(tps25750_modes, ARRAY_SIZE(tps25750_modes), mode);
+	ret = strcmp(tps25750_modes[TPS_MODE_APP], mode);
+	if (ret) { ret = strcmp(tps25750_modes[TPS_MODE_BOOT], mode); }
+	if (ret) { ret = strcmp(tps25750_modes[TPS_MODE_PTCH], mode); }
 	if (ret) { ret = E_INVALID; }
+#else
+	ret = -1;
+	if (strcmp(tps25750_modes[TPS_MODE_APP], mode) == 0) { ret = TPS_MODE_APP; }
+	else if (strcmp(tps25750_modes[TPS_MODE_BOOT], mode) == 0) { ret = TPS_MODE_BOOT; }
+	else if (strcmp(tps25750_modes[TPS_MODE_PTCH], mode) == 0) { ret = TPS_MODE_PTCH; }
+#endif
 
 	if (ret < 0) {
 		debugErr("USB Port Controller: unsupported mode \"%s\"\n", mode);
@@ -1006,7 +1013,8 @@ int tps25750_probe(void)
 {
 	//struct power_supply_config psy_cfg = { };
 	//struct typec_capability typec_cap = { };
-	struct tps25750 *tps = NULL;
+	struct tps25750 tpsMem;
+	struct tps25750 *tps = &tpsMem; //NULL;
 	//struct fwnode_handle *fwnode;
 	int ret;
 	uint8_t pd_status;
@@ -1136,4 +1144,58 @@ void tps25750_remove(struct tps25750 *tps)
 
 	/* clear the patch by a hard reset */
 	tps25750_exec_normal_cmd(tps, TPS_4CC_GAID);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestUSBCPortController(void)
+{
+	struct tps25750 tps;
+	uint8_t mode;
+	char commType[5];
+	uint32_t version;
+	char deviceInfo[41];
+	uint8_t scratch;
+
+	debug("USBC Port Controller: Test device access...\r\n");
+
+	/*
+		The host must not read or write most registers while the device is in the 'BOOT' or 'PTCH' mode. Only the following registers are available	in 'BOOT' and 'PTCH' modes:
+		the 4CC patch commands
+		MODE (0x03)
+		TYPE (0x04), VERSION (0x0F)
+		CMD1 (0x08), DATA1 (0x09)
+		DEVICE_CAPABILITIES (0x0D)
+		INT_EVENT1 (0x14), INT_MASK1 (0x16), and INT_CLEAR1 (0x18)
+		BOOT_STATUS (0x2D)
+		DEVICE_INFO (0x2F)
+	*/
+
+	mode = tps25750_get_mode(&tps);
+	if (mode < 0) { debugErr("USBC Port Controller: Startup mode is unknown\r\n"); }
+	else { debug("USBC Port Controller: Startup mode is %s\r\n", tps25750_modes[mode]); }
+
+	memset(commType, 0, sizeof(commType));
+	if (tps25750_read32(&tps, TPS_REG_TYPE, (void*)commType)) { debugErr("USBC Port Controller: I2C read error\r\n"); }
+	else { debug("USBC Port Controller: Type is %s\r\n", (char*)commType); }
+
+	memset(&version, 0, sizeof(version));
+	if (tps25750_read32(&tps, TPS_REG_VERSION, (void*)&version)) { debugErr("USBC Port Controller: I2C read error\r\n"); }
+	else { debug("USBC Port Controller: Type is %lu (%d.%d.%d)\r\n", version, (((version & 0xFF) << 8) | ((version >> 8) & 0xFF)), ((version >> 16) & 0x00FF), (version >> 24)); }
+
+	memset(deviceInfo, 0, sizeof(deviceInfo));
+	if (tps25750_block_read(&tps, TPS_REG_DEVICE_INFO, (void*)deviceInfo, 40)) { debugErr("USBC Port Controller: I2C read error\r\n"); }
+	else { debug("USBC Port Controller: Device type info: %s\r\n", (char*)deviceInfo); }
+
+	if (mode == TPS_MODE_APP)
+	{
+		scratch = 0xAA; tps25750_block_write(&tps, TPS_REG_CUSTUSE, &scratch, 1);
+		scratch = 0x00; tps25750_read(&tps, TPS_REG_CUSTUSE, &scratch);
+		debug("USBC Port Controller: 1st Custom use byte (scratchpad) test %s\r\n", (scratch == 0xAA) ? "Passed" : "Failed");
+
+		scratch = 0x55; tps25750_block_write(&tps, TPS_REG_CUSTUSE, &scratch, 1);
+		scratch = 0x00; tps25750_read(&tps, TPS_REG_CUSTUSE, &scratch);
+		debug("USBC Port Controller: 2nd Custom use byte (scratchpad) test %s\r\n", (scratch == 0x55) ? "Passed" : "Failed");
+	}
 }
