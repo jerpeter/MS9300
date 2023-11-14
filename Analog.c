@@ -1178,10 +1178,15 @@ void TestExternalADC(void)
 
     debug("External ADC: Test device access...\r\n");
 
-	debug("Power Control: Analog 5V enable and 50ms delay\r\n");
-	PowerControl(ANALOG_5V_ENABLE, ON);
-	MXC_Delay(MXC_DELAY_MSEC(50));
+    if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
+	{
+		debug("Power Control: Analog 5V enable being turned on\r\n");
+		PowerControl(ANALOG_5V_ENABLE, ON);
+		MXC_Delay(MXC_DELAY_MSEC(500));
+	}
+	else { debug("Power Control: Analog 5V enable already on\r\n"); }
 
+	debug("External ADC: Initializing...\r\n");
 	AD4695_Init();
 	debug("External ADC: Init complete\r\n");
 
