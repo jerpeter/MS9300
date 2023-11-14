@@ -287,33 +287,14 @@ void InitSerial232(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void InitDebug232(void)
+void DebugUartInitBanner(void)
 {
-#if 0 /* old hw */
-
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
-	// Setup debug serial port
-	usart_options_t usart_0_rs232_options =
-	{
-		.baudrate = 115200,
-		.charlength = 8,
-		.paritytype = USART_NO_PARITY,
-		.stopbits = USART_1_STOPBIT,
-		.channelmode = USART_NORMAL_CHMODE
-	};
-
-	// Initialize it in RS232 mode.
-	usart_init_rs232(&AVR32_USART0, &usart_0_rs232_options, FOSC0);
-
-	sprintf((char*)g_spareBuffer, "-----     NS8100 Debug port, App version: %s (Date: %s)     -----\r\n", (char*)g_buildVersion, (char*)g_buildDate);
-	usart_write_line((&AVR32_USART0), "\r\n\n");
-	usart_write_line((&AVR32_USART0), "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\r\n");
-	usart_write_line((&AVR32_USART0), "---------------------------------------------------------------------------------------\r\n");
-	usart_write_line((&AVR32_USART0), (char*)g_spareBuffer);
-	usart_write_line((&AVR32_USART0), "---------------------------------------------------------------------------------------\r\n");
-	usart_write_line((&AVR32_USART0), "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n\r\n");
-#endif
-#endif
+	debug("\r\n\n");
+	debug("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\r\n");
+	debug("---------------------------------------------------------------------------------------\r\n");
+	debug("-----     MS9300 Debug port, App version: %s (Date: %s)     -----\r\n", (char*)g_buildVersion, (char*)g_buildDate);
+	debug("---------------------------------------------------------------------------------------\r\n");
+	debug("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n\r\n");
 }
 
 ///----------------------------------------------------------------------------
@@ -364,7 +345,7 @@ void InitExternalKeypad(void)
 	uint8 keyScan = MXC_GPIO_InGet(MXC_GPIO1, BUTTON_GPIO_MASK);
 	if (keyScan)
 	{
-		debugWarn("Keypad key being pressed, likely a bug. Key: %x", keyScan);
+		debugWarn("Keypad key being pressed (likely a bug), Key: %x", keyScan);
 	}
 
 	// Todo: Find the right LED to light (1&2=Red, 3&4=Green)
@@ -1796,7 +1777,10 @@ void SetupWatchdog(void)
 
 	// Reset watchdog timer for enable sequence
 	MXC_WDT_ResetTimer(MXC_WDT0);
+
+#if 0 /* Todo: After hardware checks pass, enable once the executive loop runs */
     MXC_WDT_Enable(MXC_WDT0);
+#endif
 }
 
 #define SPI_SPEED_ADC 10000000 // Bit Rate
@@ -2973,6 +2957,7 @@ void InitSystemHardware_NS9100(void)
 	// Setup Debug Uart (UART2)
 	//-------------------------------------------------------------------------
 	SetupDebugUART();
+	DebugUartInitBanner();
 
 	//-------------------------------------------------------------------------
 	// Check power on source and validate for system startup
@@ -3053,24 +3038,10 @@ void InitSystemHardware_NS9100(void)
 	PowerControl(TRIGGER_OUT, OFF);
 
 	//-------------------------------------------------------------------------
-	// Configure Debug rs232
-	//-------------------------------------------------------------------------
-	if (GET_HARDWARE_ID != HARDWARE_ID_REV_8_WITH_GPS_MOD)
-	{
-		InitDebug232();	debug("Debug Port enabled\r\n");
-	}
-
-	//-------------------------------------------------------------------------
 	// Smart Sensor data/control init (Hardware pull up on signal)
 	//-------------------------------------------------------------------------
 	OneWireInit(); debug("One Wire init complete\r\n");
 
-	//-------------------------------------------------------------------------
-	// Init the SPI interfaces
-	//-------------------------------------------------------------------------
-	SPI_0_Init(); debug("SPI0 init complete\r\n");
-	SPI_1_Init(); debug("SPI1 init complete\r\n");
-	
 	//-------------------------------------------------------------------------
 	// Turn on rs232 driver and receiver (Active low control)
 	//-------------------------------------------------------------------------
@@ -3092,21 +3063,6 @@ void InitSystemHardware_NS9100(void)
 	InitLCD(); debug("LCD Display init complete\r\n");
 
 	//-------------------------------------------------------------------------
-	// Init the Internal RTC for half second tick used for state processing
-	//-------------------------------------------------------------------------
-	InitInternalRTC(); debug("Internal RTC init complete\r\n");
-
-	//-------------------------------------------------------------------------
-	// Enable Processor A/D
-	//-------------------------------------------------------------------------
-	InitInternalAD(); debug("Internal A/D init complete\r\n");
-
-	//-------------------------------------------------------------------------
-	// Initialize USB clock.
-	//-------------------------------------------------------------------------
-	InitUSBClockAndIOLines(); debug("USB Clock and I/O lines init complete\r\n");
-
-	//-------------------------------------------------------------------------
 	// Init Keypad
 	//-------------------------------------------------------------------------
 	InitExternalKeypad(); debug("Keyboard init complete\r\n");
@@ -3120,11 +3076,6 @@ void InitSystemHardware_NS9100(void)
 	// Set the power savings mode based on the saved setting
 	//-------------------------------------------------------------------------
 	AdjustPowerSavings(); debug("Power Savings init complete\r\n");
-
-	//-------------------------------------------------------------------------
-	// Test the External RAM Event buffer to make sure it's valid
-	//-------------------------------------------------------------------------
-	TestExternalRAM(); debug("External RAM Test init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Read and cache Smart Sensor data
