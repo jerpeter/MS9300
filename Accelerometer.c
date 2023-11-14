@@ -286,4 +286,7 @@ void TestAccelerometer(void)
 
     if (VerifyAccCommandTestResponse() == PASSED) { debug("Acc: Command Test response passed\r\n"); }
     else { debugErr("Acc: Command Test response failed\r\n"); }
+
+    debug("Accelerometer: Setting manual sleep\r\n");
+    SetAccRegister(ACC_CONTROL_5_REGISTER, 0x01);
 }
