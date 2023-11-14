@@ -1829,6 +1829,10 @@ int main(void)
 	TestExternalDeviceAccessAndComms();
 #endif
 
+#if 1 /* Hardware test phase */
+	// End execution here for now until hardware passes testing
+	while (1) {}
+#else /* Normal operation */
  	// ==============
 	// Executive loop
 	// ==============
@@ -1861,10 +1865,13 @@ int main(void)
 		// Count Exec cycles
 		g_execCycles++;
 
+#if 0 /* Todo: Re-enable in init, disabled for testing */
 		//Reset watchdog
 		MXC_WDT_ResetTimer(MXC_WDT0);
+#endif
 	}
 	// End of NS8100 Main
+#endif
 
 	// End of the world
 	return (0);
