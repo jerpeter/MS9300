@@ -21,6 +21,7 @@
 #include "mxc_errors.h"
 #include "i2c.h"
 #include "uart.h"
+#include "mxc_delay.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -724,5 +725,14 @@ void TestExpansionI2CBridge(void)
 {
     debug("Expansion I2C Uart Bridge: Test device access...\r\n");
 
+    if (GetPowerControlState(EXPANSION_ENABLE == OFF))
+	{
+		debug("Power Control: Expansion I2C UART bridge enable being turned on\r\n");
+		PowerControl(EXPANSION_ENABLE, ON);
+		MXC_Delay(MXC_DELAY_MSEC(500));
+	}
+	else { debugWarn("Power Control: Expansion I2C UART bridge enable already on\r\n"); }
+
+	debug("Expansion I2C Uart Bridge: Scratchpad test...\r\n");
 	TestUartBridgeScratchpad();
 }
