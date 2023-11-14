@@ -1600,12 +1600,10 @@ void select_spi_byte_width()
 
 void ft81x_init_display_settings()
 {
-	// Todo: Change to Newhaven display
-
+#if 0 /* original display */
 	// Screen specific settings
 	// NHD-7.0-800480FT-CSXV-CTP
 	// http://newhavendisplay.com/learnmore/EVE2_7-CSXV-CTP/
-#if 0
 	ft81x_wr32(REG_HCYCLE, 900);
 	ft81x_wr32(REG_HOFFSET, 43);
 	ft81x_wr32(REG_HSIZE, FT81X_DISPLAY_WIDTH);
@@ -1623,7 +1621,7 @@ void ft81x_init_display_settings()
 #endif
 
 	// Screen specific settings
-	// Pulling from:
+	// Pulling from: NHD-4.3-480272FT datasheet, but different package/options (display settings should be the same)
 	// NHD-4.3-480272FT-CSXP-T
 	ft81x_wr32(REG_HCYCLE, 548);
 	ft81x_wr32(REG_HOFFSET, 43);
@@ -1639,10 +1637,11 @@ void ft81x_init_display_settings()
 	ft81x_wr32(REG_PCLK_POL, 1);
 	ft81x_wr(REG_ROTATE, 0);
 	ft81x_wr(REG_SWIZZLE, 0);
+
 	// Get screen size W,H to confirm
 	ft81x_display_width = ft81x_rd16(REG_HSIZE);
 	ft81x_display_height = ft81x_rd16(REG_VSIZE);
-	debug("FT81X REG_HSIZE:%i  REG_VSIZE:%i\n", ft81x_display_width, ft81x_display_height);
+	debug("LCD: Horizontal/Width: %i, Vertical/Height: %i\r\n", ft81x_display_width, ft81x_display_height);
 }
 
 void ft81x_init_touch_settings()
@@ -1664,11 +1663,12 @@ void ft81x_init_audio_settings()
 void ft81x_init_gpio()
 {
 	// Setup the FT81X GPIO PINS. These assume little-endian.
-	// DISP = output, GPIO 3 - 0 = input
-	ft81x_wr16(REG_GPIOX_DIR, 0x8000);
-	// Turn on GPIO power to 10ma for SPI pins: MOSI, IO2, IO3, INT_N
-	// Retain all other settings.
-	ft81x_wr16(REG_GPIOX, (ft81x_rd16(REG_GPIOX) & !0xc00) | 0x400);
+	// DISP = output, GPIO 0 to 2 are unconnected so set to output, GPIO 3 is not included in the 810 version so leave default (input)
+	ft81x_wr16(REG_GPIOX_DIR, 0x8007);
+
+	// Retain default settings, skip writing
+	//ft81x_wr16(REG_GPIOX, 0x8000);
+
 	// Sleep a little
 #if 0
 	vTaskDelay(100 / portTICK_PERIOD_MS);
@@ -1734,21 +1734,15 @@ void test_sound(
 #define test_sound();
 #endif
 
-#if 0
+#if 1
 // Display the built in FTDI logo animation and then calibrate
 void test_logo(
 )
 {
-	// SPI Debugging
-	gpio_set_level(GPIO_NUM_16, 1);
-	gpio_set_level(GPIO_NUM_16, 0);
-
 	ft81x_logo();
-	ft81x_calibrate();
 
-	// SPI Debugging
-	gpio_set_level(GPIO_NUM_16, 1);
-	gpio_set_level(GPIO_NUM_16, 0);
+	// Todo: look into calibrate further
+	//ft81x_calibrate();
 }
 #else
 #define test_logo()
@@ -1764,12 +1758,8 @@ void test_load_image(
 	uint32_t lasttag = 0;
 	uint8_t  soundplaying = 0;
 
-	// SPI Debugging
-	gpio_set_level(GPIO_NUM_16, 1);
-	gpio_set_level(GPIO_NUM_16, 0);
-
-  // wakeup the display and set brightness
-  ft81x_wake(22);
+	// wakeup the display and set brightness
+	ft81x_wake(22);
 
 	// Load the OFF image to the MEDIA FIFO
 	//// Start streaming
@@ -1822,10 +1812,6 @@ void test_load_image(
 	height = ft81x_rd32(heightptr);
 	ESP_LOGW(TAG, "loadimage off: start:0x%04x end: 0x%04x width: 0x%04x height: 0x%04x", ptroff, ptron-1, width, height);
 
-	// SPI Debugging
-	gpio_set_level(GPIO_NUM_16, 1);
-	gpio_set_level(GPIO_NUM_16, 0);
-
 	// Load the OFF image
 	//// Start streaming
 	ft81x_stream_start();
@@ -1854,10 +1840,6 @@ void test_load_image(
 	width = ft81x_rd32(widthptr);
 	height = ft81x_rd32(heightptr);
 	ESP_LOGW(TAG, "loadimage on: start:0x%04x end: 0x%04x width: 0x%04x height: 0x%04x", ptron, ptrnext-1, width, height);
-
-	// SPI Debugging
-	gpio_set_level(GPIO_NUM_16, 1);
-	gpio_set_level(GPIO_NUM_16, 0);
 
 	//ft81x_get_touch_inputs();
 	//ESP_LOGW(TAG, "ctouch mode: 0x%04x multi-touch: %s", ft81x_touch_mode(), ft81x_multi_touch_enabled() ? "true" : "false");
@@ -1971,24 +1953,16 @@ void test_load_image(
 		vTaskDelay(10 / portTICK_PERIOD_MS);
 
 	}
-
-	// SPI Debugging
-	gpio_set_level(GPIO_NUM_16, 1);
-	gpio_set_level(GPIO_NUM_16, 0);
 }
 #else
 #define test_load_image()
 #endif
 
-#if 0
+#if 1
 // Test memory operation(s) and CRC32 on 6 bytes of 0x00 will be 0xB1C2A1A3
 void test_memory_ops(
 )
 {
-	// SPI Debugging
-	gpio_set_level(GPIO_NUM_16, 1);
-	gpio_set_level(GPIO_NUM_16, 0);
-
 	// Start streaming
 	ft81x_stream_start();
 
@@ -2009,33 +1983,33 @@ void test_memory_ops(
 
 	// Dump results
 	uint32_t res = ft81x_rd32(r);
-	ESP_LOGW(TAG, "crc: ptr: 0x%04x val: 0x%4x expected: 0xB1C2A1A3", r, res);
-
-	// SPI Debugging
-	gpio_set_level(GPIO_NUM_16, 1);
-	gpio_set_level(GPIO_NUM_16, 0);
+	//ESP_LOGW(TAG, "crc: ptr: 0x%04x val: 0x%4x expected: 0xB1C2A1A3", r, res);
+	if (res == 0xB1C2A1A3) { debug("LCD: Memory operation and CRC32 verified\r\n"); }
+	else { debugErr("LCD: Memory operation and CRC32 failed, expected 0xB1C2A1A3 but returned 0x%4x\r\n", res); }
 }
 #else
 #define test_memory_ops()
 #endif
 
-#if 0
+#if 1
 // Draw a gray screen and write Hello World, 123, button etc.
 void test_display(
 )
 {
 	ft81x_wr(REG_PWM_DUTY, 8);
-	// SPI Debugging
-	gpio_set_level(GPIO_NUM_16, 1);
-	gpio_set_level(GPIO_NUM_16, 0);
 
 	// Wait till the GPU is finished
-	for (int x=0; x<300; x++) {
+	for (int x=0; x<300; x++)
+	{
+#if 0 /* diff hw */
 		// Sleep
 		vTaskDelay(200 / portTICK_PERIOD_MS);
+#else
+		MXC_Delay(MXC_DELAY_MSEC(200));
+#endif
 
 		// download the display touch memory into ft81x_touch_tracker
-		ft81x_get_touch_inputs();
+		//ft81x_get_touch_inputs();
 
 		ft81x_stream_start(); // Start streaming
 		ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
@@ -2050,27 +2024,33 @@ void test_display(
 		ft81x_tag_mask(0);
 
 		// Draw some text and a number display value of dial
-		ft81x_cmd_text(240, 300, 30, OPT_CENTERY, "Hello World");
+		ft81x_cmd_text(240, 136, 30, OPT_CENTER, "Hello World");
 
-		ft81x_cmd_text(130, 200, 30, OPT_RIGHTX, "TAG");
-		ft81x_cmd_number(140, 200, 30, 0, ft81x_touch_tracker[0].tag);
+		//ft81x_cmd_text(130, 200, 30, OPT_RIGHTX, "TAG");
+		//ft81x_cmd_number(140, 200, 30, 0, ft81x_touch_tracker[0].tag);
 
-		ft81x_cmd_text(130, 230, 30, OPT_RIGHTX, "VALUE");
-		ft81x_cmd_number(140, 230, 30, 0, ft81x_touch_tracker[0].value * 100 / FT81X_TRACKER_UNITS);
+		//ft81x_cmd_text(130, 230, 30, OPT_RIGHTX, "VALUE");
+		//ft81x_cmd_number(140, 230, 30, 0, ft81x_touch_tracker[0].value * 100 / FT81X_TRACKER_UNITS);
 
 		ft81x_bgcolor_rgb32(0x007f7f);
-		ft81x_cmd_clock(730,80,50,0,12,1,2,4);
+		ft81x_cmd_clock(440,40,30,0,12,1,2,4);
 
 		// Turn on tagging
 		ft81x_tag_mask(1);
 
-		ft81x_tag(3); // tag the button #3
-		ft81x_cmd_track(10, 10, 140, 100, 3); // track touches to the tag
-		ft81x_cmd_button(10, 10, 140, 100, 31, 0, "OK");
+		// Add buttons to the bottom
+		ft81x_cmd_button(1, 212, 120, 60, 18, 0, "OK");
+		ft81x_cmd_button(121, 212, 120, 60, 18, 0, "ESCAPE");
+		ft81x_cmd_button(241, 212, 120, 60, 18, 0, "MENU");
+		ft81x_cmd_button(361, 212, 120, 60, 18, 0, "HELP");
 
-		ft81x_tag(4); // tag the button #4
-		ft81x_cmd_track(300, 100, 1, 1, 4); // track touches to the tag
-		ft81x_cmd_dial(300, 100, 100, OPT_FLAT, x * 100);
+		//ft81x_tag(3); // tag the button #3
+		//ft81x_cmd_track(10, 10, 140, 100, 3); // track touches to the tag
+		//ft81x_cmd_button(10, 10, 140, 100, 18, 0, "OK");
+
+		//ft81x_tag(4); // tag the button #4
+		//ft81x_cmd_track(300, 100, 1, 1, 4); // track touches to the tag
+		//ft81x_cmd_dial(300, 100, 100, OPT_FLAT, x * 100);
 
 		uint8_t tstate = rand()%((253+1)-0) + 0;
 		if(tstate > 128)
@@ -2079,16 +2059,16 @@ void test_display(
 			ft81x_bgcolor_rgb32(0xff0000);
 
 		ft81x_tag(5); // tag the spinner #5
-		ft81x_cmd_toggle(500, 100, 100, 30, 0, tstate > 128 ? 0 : 65535, "YES\xffNO");
+		//ft81x_cmd_toggle(70, 70, 60, 18, 0, tstate > 128 ? 0 : 65535, "YES\xffNO");
 
 		// Turn off tagging
 		ft81x_tag_mask(0);
 
 		// Draw a keyboard
-		ft81x_cmd_keys(10, 400, 300, 50, 26, 0, "12345");
+		ft81x_cmd_keys(1, 182, 480, 30, 26, 0, "1234");
 
 		// FIXME: Spinner if used above does odd stuff? Seems ok at the end of the display.
-		ft81x_cmd_spinner(500, 200, 3, 0);
+		ft81x_cmd_spinner(80, 80, 3, 0);
 
 		ft81x_display();
 		ft81x_getfree(0);     // trigger FT81x to read the command buffer
@@ -2097,26 +2077,18 @@ void test_display(
 		//// Wait till the GPU is finished
 		ft81x_wait_finish();
 	}
-
-	// SPI Debugging
-	gpio_set_level(GPIO_NUM_16, 1);
-	gpio_set_level(GPIO_NUM_16, 0);
 }
 #else
 #define test_display()
 #endif
 
-#if 0
+#if 1
 // Fill the screen with a solid color cycling colors
 void test_cycle_colors(
 )
 {
 	uint32_t rgb = 0xff0000;
 	for (int x=0; x<300; x++) {
-		// SPI Debugging
-		gpio_set_level(GPIO_NUM_16, 1);
-		gpio_set_level(GPIO_NUM_16, 0);
-
 		ft81x_stream_start(); // Start streaming
 		ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
 		ft81x_cmd_swap();     // Set AUTO swap at end of display list
@@ -2133,27 +2105,23 @@ void test_cycle_colors(
 		rgb>>=8; if(!rgb) rgb=0xff0000;
 
 		// Sleep
+#if 0 /* diff hw */
 		vTaskDelay(100 / portTICK_PERIOD_MS);
-
-		// SPI Debugging
-		gpio_set_level(GPIO_NUM_16, 1);
-		gpio_set_level(GPIO_NUM_16, 0);
+#else
+		MXC_Delay(MXC_DELAY_MSEC(100));
+#endif
 	}
 }
 #else
 #define test_cycle_colors()
 #endif
 
-#if 0
+#if 1
 // Draw some dots of rand size, location and color.
 void test_dots(
 )
 {
 	for (int x=0; x<300; x++) {
-		// SPI Debugging
-		gpio_set_level(GPIO_NUM_16, 1);
-		gpio_set_level(GPIO_NUM_16, 0);
-
 		ft81x_stream_start(); // Start streaming
 		//ft81x_alpha_funct(0b111, 0b00000000);
 		//ft81x_bitmap_handle(0b10101010);
@@ -2173,25 +2141,29 @@ void test_dots(
 		rblue = rand()%((253+1)-0) + 0;
 		ft81x_color_rgb888(rred, rgreen, rblue);
 		ft81x_begin(POINTS);
-		uint16_t size = rand()%((600+1)-0) + 0;
+		//uint16_t size = rand()%((600+1)-0) + 0;
+		uint16_t size = rand()%((360+1)-0) + 0;
 		uint16_t rndx = rand()%((ft81x_display_width+1)-0) + 0;
 		uint16_t rndy = rand()%((ft81x_display_height+1)-0) + 0;
 		ft81x_point_size(size);
 		ft81x_vertex2f(rndx<<4,rndy<<4); // defaut is 1/16th pixel precision
-		ESP_LOGW(TAG, "c: x:%i y:%i z:%i", rndx, rndy, size);
+		//ESP_LOGW(TAG, "c: x:%i y:%i z:%i", rndx, rndy, size);
 		ft81x_display();
 		ft81x_getfree(0);     // trigger FT81x to read the command buffer
 		ft81x_stream_stop();  // Finish streaming to command buffer
+#if 0 /* diff hw */
 		vTaskDelay(100 / portTICK_PERIOD_MS);
-
+#else
+		MXC_Delay(MXC_DELAY_MSEC(100));
+#endif
 	}
 
 	// Sleep
+#if 0 /* diff hw */
 	vTaskDelay(10 / portTICK_PERIOD_MS);
-
-	// SPI Debugging
-	gpio_set_level(GPIO_NUM_16, 1);
-	gpio_set_level(GPIO_NUM_16, 0);
+#else
+	MXC_Delay(MXC_DELAY_MSEC(10));
+#endif
 }
 #else
 #define test_dots()
@@ -4777,4 +4749,69 @@ void TestLCD(void)
 {
     debug("LCD: Test device access...\r\n");
 
+    if (GetPowerControlState(LCD_POWER_ENABLE) == OFF)
+	{
+		debug("Power Control: LCD Power enable bring turned on\r\n");
+		PowerControl(LCD_POWER_ENABLE, ON);
+		MXC_Delay(MXC_DELAY_MSEC(500));
+	}
+	else { debugWarn("Power Control: LCD Power enable already on\r\n"); }
+
+    if (GetPowerControlState(LCD_POWER_DISPLAY) == OFF)
+	{
+		debug("Power Control: LCD Power display being turned on\r\n");
+		PowerControl(LCD_POWER_DISPLAY, ON);
+		MXC_Delay(MXC_DELAY_MSEC(500));
+	}
+	else { debugWarn("Power Control: LCD Power display already on\r\n"); }
+
+    debug("LCD: Restart code...\r\n");
+	restart_core();
+
+	// Read CHIP ID address until it returns a valid result.
+	for (uint16_t count = 0; count < 100; count++)
+	{
+		ft81x_chip_id = ft81x_rd16(MEM_CHIP_ID);
+		// Chip id: 08h, [id], 01h, 00h
+		// [id]: FT8xx=10h, 11h, 12h, 13h
+		if ((ft81x_chip_id & 0xff) == 0x08) { break; }
+
+		MXC_Delay(MXC_DELAY_MSEC(10));
+	}
+
+	if ((ft81x_chip_id & 0xff) == 0x08) { debug("LCD: Chip ID is 0x%04x\r\n", ft81x_chip_id); }
+	else { debugErr("LCD: Chip ID problem, reports 0x%04x\r\n", ft81x_chip_id); }
+
+    debug("LCD: Single byte width selected\r\n");
+	select_spi_byte_width();
+
+    debug("LCD: Turning the backlight off (PWM set to 0)\r\n");
+	ft81x_wr(REG_PWM_DUTY, 0);
+
+    debug("LCD: FIFO reset\r\n");
+	ft81x_fifo_reset();
+
+    debug("LCD: Init display settings\r\n");
+	ft81x_init_display_settings();
+
+    debug("LCD: Test black screen\r\n");
+	test_black_screen();
+
+    debug("LCD: Init GPIO\r\n");
+	ft81x_init_gpio();
+
+    debug("LCD: Test logo\r\n");
+	test_logo();
+
+    debug("LCD: Test memory operation\r\n");
+	test_memory_ops();
+
+    debug("LCD: Test display\r\n");
+	test_display();
+
+    debug("LCD: Test color cycle\r\n");
+	test_cycle_colors();
+
+    debug("LCD: Test dots\r\n");
+	test_dots();
 }
