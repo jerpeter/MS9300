@@ -38,7 +38,6 @@
 ///	Globals
 ///----------------------------------------------------------------------------
 
-ANALOG_CONTROL_STRUCT g_analogControl;
 OFFSET_DATA_STRUCT g_channelOffset;
 INPUT_MSG_STRUCT g_input_buffer[INPUT_BUFFER_SIZE];
 //char g_appVersion[16];

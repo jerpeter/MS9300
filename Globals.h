@@ -30,7 +30,6 @@
 
 // Global Externs ---------------------------------------------------------------------
 
-extern ANALOG_CONTROL_STRUCT g_analogControl;
 extern OFFSET_DATA_STRUCT g_channelOffset;
 extern INPUT_MSG_STRUCT g_input_buffer[INPUT_BUFFER_SIZE];
 extern MONTH_TABLE_STRUCT g_monthTable[];
