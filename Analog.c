@@ -274,11 +274,9 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 ///----------------------------------------------------------------------------
 void InitAnalogControl(void)
 {
-	g_analogControl.reg = 0x0;
-
-	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1);
-	SetSeismicGainSelect(SEISMIC_GAIN_LOW);
-	SetAcousticGainSelect(ACOUSTIC_GAIN_NORMAL);
+	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K);
+	SetSeismicGainSelect(SEISMIC_GAIN_NORMAL);
+	SetAcousticPathSelect(ACOUSTIC_PATH_AOP);
 }
 
 ///----------------------------------------------------------------------------
@@ -384,10 +382,7 @@ void WriteAnalogControl(uint16 control)
 ///----------------------------------------------------------------------------
 void AdSetCalSignalLow(void)
 {
-	g_analogControl.bit.calSignal = 0;
-	g_analogControl.bit.calSignalEnable = 1;
 
-	WriteAnalogControl(g_analogControl.reg);
 }
 
 ///----------------------------------------------------------------------------
@@ -395,10 +390,7 @@ void AdSetCalSignalLow(void)
 ///----------------------------------------------------------------------------
 void AdSetCalSignalHigh(void)
 {
-	g_analogControl.bit.calSignal = 1;
-	g_analogControl.bit.calSignalEnable = 1;
 
-	WriteAnalogControl(g_analogControl.reg);
 }
 
 ///----------------------------------------------------------------------------
@@ -406,10 +398,7 @@ void AdSetCalSignalHigh(void)
 ///----------------------------------------------------------------------------
 void AdSetCalSignalOff(void)
 {
-	g_analogControl.bit.calSignal = 0;
-	g_analogControl.bit.calSignalEnable = 0;
 
-	WriteAnalogControl(g_analogControl.reg);
 }
 
 ///----------------------------------------------------------------------------
@@ -417,40 +406,14 @@ void AdSetCalSignalOff(void)
 ///----------------------------------------------------------------------------
 void SetAnalogCutoffFrequency(uint8 freq)
 {
-	// Validated bit selection 8/20/2012
-	
 	switch (freq)
 	{
-		case ANALOG_CUTOFF_FREQ_LOW: // 500 Hz
-			g_analogControl.bit.cutoffFreqSelectEnable = 1;
-		break;
-
-		case ANALOG_CUTOFF_FREQ_1: // 1K Hz
-			g_analogControl.bit.cutoffFreqSelectLow = 1;
-			g_analogControl.bit.cutoffFreqSelectHi = 1;
-			g_analogControl.bit.cutoffFreqSelectEnable = 0;
-		break;
-
-		case ANALOG_CUTOFF_FREQ_2: // 2K Hz
-			g_analogControl.bit.cutoffFreqSelectLow = 0;
-			g_analogControl.bit.cutoffFreqSelectHi = 1;
-			g_analogControl.bit.cutoffFreqSelectEnable = 0;
-		break;
-
-		case ANALOG_CUTOFF_FREQ_3: // 4K Hz
-			g_analogControl.bit.cutoffFreqSelectLow = 1;
-			g_analogControl.bit.cutoffFreqSelectHi = 0;
-			g_analogControl.bit.cutoffFreqSelectEnable = 0;
-		break;
-
-		case ANALOG_CUTOFF_FREQ_4: // 14.3K Hz
-			g_analogControl.bit.cutoffFreqSelectLow = 0;
-			g_analogControl.bit.cutoffFreqSelectHi = 0;
-			g_analogControl.bit.cutoffFreqSelectEnable = 0;
-		break;
+		case ANALOG_CUTOFF_FREQ_1K: /* A1:X A0:X EN:0 */ SetNyquist1State(OFF); SetNyquist0State(OFF); SetNyquist2EnableState(OFF); break; // ~960 Hz
+		case ANALOG_CUTOFF_FREQ_2K: /* A1:0 A0:0 EN:1 */ SetNyquist1State(OFF); SetNyquist0State(OFF); SetNyquist2EnableState(ON); break; // ~2.1 kHz
+		case ANALOG_CUTOFF_FREQ_4K: /* A1:0 A0:1 EN:1 */ SetNyquist1State(OFF); SetNyquist0State(ON); SetNyquist2EnableState(ON); break; // ~3.9 kHz
+		case ANALOG_CUTOFF_FREQ_8K: /* A1:1 A0:0 EN:1 */ SetNyquist1State(ON); SetNyquist0State(OFF); SetNyquist2EnableState(ON); break; // ~8.0 kHz
+		case ANALOG_CUTOFF_FREQ_16K: /* A1:1 A0:1 EN:1 */ SetNyquist1State(ON); SetNyquist0State(ON); SetNyquist2EnableState(ON); break; // ~15.8 kHz
 	}
-
-	WriteAnalogControl(g_analogControl.reg);
 }
 
 ///----------------------------------------------------------------------------
@@ -458,35 +421,37 @@ void SetAnalogCutoffFrequency(uint8 freq)
 ///----------------------------------------------------------------------------
 void SetSeismicGainSelect(uint8 seismicGain)
 {
-	if (seismicGain == SEISMIC_GAIN_LOW)
+	if (seismicGain == SEISMIC_GAIN_NORMAL)
 	{
-		// Control is swapped (Low is 1)
-		g_analogControl.bit.seismicGainSelect = 1;
+		// Logic 1 on Geo gain select line achieves normal gain
+		SetGainGeo1State(HIGH);
+		SetGainGeo2State(HIGH);
 	}
 	else // seismicGain == SEISMIC_GAIN_HIGH
 	{
-		// Control is swapped (High is 0)
-		g_analogControl.bit.seismicGainSelect = 0;
+		// Logic 0 on Geo gain select line achieves high gain
+		SetGainGeo1State(LOW);
+		SetGainGeo2State(LOW);
 	}
-
-	WriteAnalogControl(g_analogControl.reg);
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SetAcousticGainSelect(uint8 acousticGain)
+void SetAcousticPathSelect(uint8 acousticGain)
 {
-	if (acousticGain == ACOUSTIC_GAIN_NORMAL)
+	if (acousticGain == ACOUSTIC_PATH_AOP)
 	{
-		g_analogControl.bit.acousticGainSelect = 0;
+		// Logic 1 on AOP path select line achieves AOP
+		SetPathSelectAop1State(HIGH);
+		SetPathSelectAop2State(HIGH);
 	}
-	else // seismicGain == ACOUSTIC_GAIN_A_WEIGHTED
+	else // seismicGain == ACOUSTIC_PATH_A_WEIGHTED
 	{
-		g_analogControl.bit.acousticGainSelect = 1;
+		// Logic 1 on AOP path select line achieves A-weighting
+		SetPathSelectAop1State(LOW);
+		SetPathSelectAop2State(LOW);
 	}
-
-	WriteAnalogControl(g_analogControl.reg);
 }
 
 ///----------------------------------------------------------------------------
@@ -494,33 +459,17 @@ void SetAcousticGainSelect(uint8 acousticGain)
 ///----------------------------------------------------------------------------
 void SetCalSignalEnable(uint8 enable)
 {
-	if (enable == ON)
-	{
-		g_analogControl.bit.calSignalEnable = 1;
-	}
-	else // enable == OFF
-	{
-		g_analogControl.bit.calSignalEnable = 0;
-	}
-
-	WriteAnalogControl(g_analogControl.reg);
+	if (enable == ON) { PowerControl(SENSOR_CHECK_ENABLE, ON); }
+	else /* (enable == OFF) */ { PowerControl(SENSOR_CHECK_ENABLE, OFF); }
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SetCalSignal(uint8 data)
+void SetCalSignal(uint8 state)
 {
-	if (data)
-	{
-		g_analogControl.bit.calSignal = 1;
-	}
-	else // data == NULL
-	{
-		g_analogControl.bit.calSignal = 0;
-	}
-
-	WriteAnalogControl(g_analogControl.reg);
+	if (state) { SetSensorCheckState(ON); }
+	else /* (state == NULL) */ { SetSensorCheckState(OFF); }
 }
 
 ///----------------------------------------------------------------------------

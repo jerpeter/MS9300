@@ -67,18 +67,18 @@ enum {
 };
 
 enum {
-	SEISMIC_GAIN_LOW,
+	SEISMIC_GAIN_NORMAL,
 	SEISMIC_GAIN_HIGH,
-	ACOUSTIC_GAIN_NORMAL,
-	ACOUSTIC_GAIN_A_WEIGHTED
+	ACOUSTIC_PATH_AOP,
+	ACOUSTIC_PATH_A_WEIGHTED
 };
 
 enum {
-	ANALOG_CUTOFF_FREQ_LOW,	// Filters ~500 HZ and above 
-	ANALOG_CUTOFF_FREQ_1,	// Filters ~1000 HZ and above 
-	ANALOG_CUTOFF_FREQ_2,	// Filters ~2000 HZ and above 
-	ANALOG_CUTOFF_FREQ_3,	// Filters ~4000 HZ and above 
-	ANALOG_CUTOFF_FREQ_4	// Filters ~14000 HZ and above 
+	ANALOG_CUTOFF_FREQ_1K,	// Filters ~960 Hz and above
+	ANALOG_CUTOFF_FREQ_2K,	// Filters ~2.1 kHz and above
+	ANALOG_CUTOFF_FREQ_4K,	// Filters ~3.9 kHz and above
+	ANALOG_CUTOFF_FREQ_8K,	// Filters ~8.0 kHz and above
+	ANALOG_CUTOFF_FREQ_16K	// Filters ~15.8 kHz and above
 };
 
 enum {
@@ -123,9 +123,9 @@ void InitAnalogControl(void);
 void WriteAnalogControl(uint16 data);
 void SetAnalogCutoffFrequency(uint8 freq);
 void SetSeismicGainSelect(uint8 seismicGain);
-void SetAcousticGainSelect(uint8 acousticGain);
+void SetAcousticPathSelect(uint8 acousticGain);
 void SetCalSignalEnable(uint8 enable);
-void SetCalSignal(uint8 data);
+void SetCalSignal(uint8 state);
 void GenerateCalSignal(void);
 void GetChannelOffsets(uint32 sampleRate);
 void ZeroSensors(void);
