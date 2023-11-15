@@ -325,32 +325,14 @@ void InitGps232(void)
 ///----------------------------------------------------------------------------
 void InitExternalKeypad(void)
 {
-#if 0 /* old hw */
-
-	InitTWI();
-	InitMcp23018();
-
-	// Primer read
-	uint8 keyScan = ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-	if (keyScan)
-	{
-		debugWarn("Keypad key being pressed, likely a bug. Key: %x", keyScan);
-	}
-
-#if NS8100_ORIGINAL_PROTOTYPE
-	// Turn on the red keypad LED while loading
-	WriteMcp23018(IO_ADDRESS_KPD, GPIOA, ((ReadMcp23018(IO_ADDRESS_KPD, GPIOA) & 0xCF) | RED_LED_PIN));
-#endif
-#else
 	uint8 keyScan = MXC_GPIO_InGet(MXC_GPIO1, BUTTON_GPIO_MASK);
 	if (keyScan)
 	{
-		debugWarn("Keypad key being pressed (likely a bug), Key: %x", keyScan);
+		debugWarn("Keypad button being pressed (likely a bug), Key: %x", keyScan);
 	}
 
-	// Todo: Find the right LED to light (1&2=Red, 3&4=Green)
+	// Todo: Find the right LED to light (1&2=Red?, 3&4=Green?)
 	PowerControl(LED_1, ON);
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -3037,15 +3019,40 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	PowerControl(TRIGGER_OUT, OFF); // Technically done with SetupGPIO call
 
+	//---------------------
+	// Device specific init
+	//---------------------
+	// Accelerometer
+	// 1-Wire
+	// Battery Charger
+	// USB-C Port Controller
+	// External RTC
+	// Fuel Gauge
+	// Expansion I2C bridge
+	// External ADC
+	// LCD
+	// EEPROM (should be none)
+	// eMMC + FF driver (should be none)
+
+	//-------------------------------------------------------------------------
+	// Initalize the Accelerometer
+	//-------------------------------------------------------------------------
+	//AccelerometerInit(); debug("Accelerometer init complete\r\n");
+
 	//-------------------------------------------------------------------------
 	// Smart Sensor data/control init (Hardware pull up on signal)
 	//-------------------------------------------------------------------------
 	OneWireInit(); debug("One Wire init complete\r\n");
 
 	//-------------------------------------------------------------------------
-	// Turn on rs232 driver and receiver (Active low control)
+	// Initalize the Battery Charger
 	//-------------------------------------------------------------------------
-	InitSerial232(); debug("Craft RS232 init complete\r\n");
+	//BatteryChargerInit(); debug("Battery Charger init complete\r\n");
+
+	//-------------------------------------------------------------------------
+	// Initalize the USB-C Port Controller
+	//-------------------------------------------------------------------------
+	//USBCPortControllerInit(); debug("USB-C Port Controller init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initialize the external RTC
@@ -3053,9 +3060,24 @@ void InitSystemHardware_MS9300(void)
 	InitExternalRTC(); debug("External RTC init complete\r\n");
 
 	//-------------------------------------------------------------------------
+	// Initalize the Fuel Gauge
+	//-------------------------------------------------------------------------
+	//FuelGaugeInit(); debug("Fuel Gauge init complete\r\n");
+
+	//-------------------------------------------------------------------------
+	// Initalize the Expansion I2C UART Bridge
+	//-------------------------------------------------------------------------
+	//ExpansionBridgeInit(); debug("Expansion I2C Uart Bridge init complete\r\n");
+
+	//-------------------------------------------------------------------------
 	// Initialize the AD Control
 	//-------------------------------------------------------------------------
 	InitAnalogControl(); debug("Analog Control init complete\r\n");
+
+	//-------------------------------------------------------------------------
+	// Init and configure the A/D to prevent the unit from burning current charging internal reference (default config)
+	//-------------------------------------------------------------------------
+	InitExternalAD(); debug("External A/D init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Init the LCD display
@@ -3066,11 +3088,6 @@ void InitSystemHardware_MS9300(void)
 	// Init Keypad
 	//-------------------------------------------------------------------------
 	InitExternalKeypad(); debug("Keyboard init complete\r\n");
-
-	//-------------------------------------------------------------------------
-	// Init and configure the A/D to prevent the unit from burning current charging internal reference (default config)
-	//-------------------------------------------------------------------------
-	InitExternalAD(); debug("External A/D init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Set the power savings mode based on the saved setting
