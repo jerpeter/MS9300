@@ -386,7 +386,7 @@ void StopInteralSampleTimer(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void InitInterrupts_NS9100(void)
+void InitInterrupts_MS9300(void)
 {
 #if 0 /* old hw */
 	// Disable all interrupts (Actually done at the start of InitHardware but calling here again just in case some local code enables)

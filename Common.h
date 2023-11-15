@@ -660,11 +660,11 @@ void SetGainGeo2State(uint8_t state);
 void SetPathSelectAop2State(uint8_t state);
 
 // Init Hardware prototype extensions
-void InitSystemHardware_NS9100(void);
+void InitSystemHardware_MS9300(void);
 void InitGps232(void);
 
 // Init Interrupts prototype extensions
-void InitInterrupts_NS9100(void);
+void InitInterrupts_MS9300(void);
 void Setup_8100_EIC_External_RTC_ISR(void);
 void Setup_8100_EIC_Keypad_ISR(void);
 void Setup_8100_EIC_System_ISR(void);
@@ -677,7 +677,7 @@ void StartInteralSampleTimer(void);
 void StopInteralSampleTimer(void);
 
 // Init Software prototype extensions
-void InitSoftwareSettings_NS9100(void);
+void InitSoftwareSettings_MS9300(void);
 
 // ISRs prototype extensions
 void DataIsrInit(uint16 sampleRate);

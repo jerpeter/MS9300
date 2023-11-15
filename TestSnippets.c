@@ -523,9 +523,9 @@ void garbage(void)
 	AVR32_PM.gplp[1] = 0x90ABCDEF;
 
 	// Initialize the system
-	InitSystemHardware_NS9100(); TestIntMem("After HW Init");
-	InitInterrupts_NS9100(); TestIntMem("After Int Init");
-	InitSoftwareSettings_NS9100(); TestIntMem("After SW Init");
+	InitSystemHardware_MS9300(); TestIntMem("After HW Init");
+	InitInterrupts_MS9300(); TestIntMem("After Int Init");
+	InitSoftwareSettings_MS9300(); TestIntMem("After SW Init");
 
 	BootLoadManager(); TestIntMem("After BLM Init");
 	DisplayVersionToCraft(); TestIntMem("After DVC Init");

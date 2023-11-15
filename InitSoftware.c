@@ -306,7 +306,7 @@ void InitSensorParameters(uint16 seismicSensorType, uint8 sensitivity)
 ///	Function Break
 ///----------------------------------------------------------------------------
 //#include "navigation.h"
-void InitSoftwareSettings_NS9100(void)
+void InitSoftwareSettings_MS9300(void)
 {
 	INPUT_MSG_STRUCT mn_msg;
 

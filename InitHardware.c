@@ -2951,7 +2951,7 @@ void ValidatePowerOn(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void InitSystemHardware_NS9100(void)
+void InitSystemHardware_MS9300(void)
 {
 	//-------------------------------------------------------------------------
 	// Setup Debug Uart (UART2)
@@ -3029,13 +3029,13 @@ void InitSystemHardware_NS9100(void)
 	//-------------------------------------------------------------------------
 	// Set Alarm 1 and Alarm 2 low (Active high control)
 	//-------------------------------------------------------------------------
-	PowerControl(ALARM_1_ENABLE, OFF);
-	PowerControl(ALARM_2_ENABLE, OFF);
+	PowerControl(ALARM_1_ENABLE, OFF); // Technically done with SetupGPIO call
+	PowerControl(ALARM_2_ENABLE, OFF); // Technically done with SetupGPIO call
 
 	//-------------------------------------------------------------------------
 	// Set Trigger Out low (Active high control)
 	//-------------------------------------------------------------------------
-	PowerControl(TRIGGER_OUT, OFF);
+	PowerControl(TRIGGER_OUT, OFF); // Technically done with SetupGPIO call
 
 	//-------------------------------------------------------------------------
 	// Smart Sensor data/control init (Hardware pull up on signal)

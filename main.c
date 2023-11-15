@@ -1820,9 +1820,9 @@ void TestExternalDeviceAccessAndComms(void)
 int main(void)
 {
 	// Initialize the system
-	InitSystemHardware_NS9100();
-	InitInterrupts_NS9100();
-	InitSoftwareSettings_NS9100();
+	InitSystemHardware_MS9300();
+	InitInterrupts_MS9300();
+	InitSoftwareSettings_MS9300();
 	EnableGlobalException();
 
 #if 1 /* test */
