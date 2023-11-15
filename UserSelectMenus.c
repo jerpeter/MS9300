@@ -3560,11 +3560,11 @@ void SeismicSensorTypeMenuHandler(uint8 keyPressed, void* data)
 USER_MENU_STRUCT seismicFilteringMenu[SEISMIC_FILTERING_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, SEISMIC_FILTERING_TAG, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, SEISMIC_FILTERING_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
-{ITEM_1, 500, HZ_TEXT, NO_TAG, {ANALOG_CUTOFF_FREQ_LOW}},
-{ITEM_2, 1000, HZ_TEXT, NO_TAG, {ANALOG_CUTOFF_FREQ_1}},
-{ITEM_3, 2000, HZ_TEXT, NO_TAG, {ANALOG_CUTOFF_FREQ_2}},
-{ITEM_4, 4000, HZ_TEXT, NO_TAG, {ANALOG_CUTOFF_FREQ_3}},
-{ITEM_5, 14300, HZ_TEXT, NO_TAG, {ANALOG_CUTOFF_FREQ_4}},
+{ITEM_1, 960, HZ_TEXT, NO_TAG, {ANALOG_CUTOFF_FREQ_1K}},
+{ITEM_2, 2100, HZ_TEXT, NO_TAG, {ANALOG_CUTOFF_FREQ_2K}},
+{ITEM_3, 3900, HZ_TEXT, NO_TAG, {ANALOG_CUTOFF_FREQ_4K}},
+{ITEM_4, 8000, HZ_TEXT, NO_TAG, {ANALOG_CUTOFF_FREQ_8K}},
+{ITEM_5, 15800, HZ_TEXT, NO_TAG, {ANALOG_CUTOFF_FREQ_16K}},
 {END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SeismicFilteringMenuHandler}}
 };
 
@@ -3579,7 +3579,7 @@ void SeismicFilteringMenuHandler(uint8 keyPressed, void* data)
 	if (keyPressed == ENTER_KEY)
 	{
 		g_calSetupParameters.seismicFiltering = seismicFilteringMenu[newItemIndex].data;
-		if (g_calSetupParameters.airFiltering == ACOUSTIC_GAIN_A_WEIGHTED) { SETUP_USER_MENU_MSG(&airScaleMenu, AIR_SCALE_A_WEIGHTING); }
+		if (g_calSetupParameters.airFiltering == ACOUSTIC_PATH_A_WEIGHTED) { SETUP_USER_MENU_MSG(&airScaleMenu, AIR_SCALE_A_WEIGHTING); }
 		else { SETUP_USER_MENU_MSG(&airScaleMenu, AIR_SCALE_LINEAR); }
 	}
 	else if (keyPressed == ESC_KEY)

@@ -250,28 +250,29 @@ void StartMonitoring(uint8 operationMode, TRIGGER_EVENT_DATA_STRUCT* opModeParam
 	// Set the cutoff frequency based on sample rate
 	switch (opModeParamsPtr->sample_rate)
 	{
-		case SAMPLE_RATE_1K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_LOW); break;
-		case SAMPLE_RATE_2K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1); break;
-		case SAMPLE_RATE_4K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_2); break;
-		case SAMPLE_RATE_8K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_3); break;
-		case SAMPLE_RATE_16K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_4); break;
+		case SAMPLE_RATE_1K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
+		case SAMPLE_RATE_2K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
+		case SAMPLE_RATE_4K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_2K); break;
+		case SAMPLE_RATE_8K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_4K); break;
+		case SAMPLE_RATE_16K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_8K); break;
+		case SAMPLE_RATE_32K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_16K); break;
 
 		// Default just in case it's a custom frequency
-		default: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_LOW); break;
+		default: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
 	}
 
 	// Set the sensitivity (aka gain) based on the current settings
-	if (g_triggerRecord.srec.sensitivity == LOW) { SetSeismicGainSelect(SEISMIC_GAIN_LOW); }
+	if (g_triggerRecord.srec.sensitivity == LOW) { SetSeismicGainSelect(SEISMIC_GAIN_NORMAL); }
 	else { SetSeismicGainSelect(SEISMIC_GAIN_HIGH); }
 
 	// Check if A-weighting is enabled
 	if ((g_factorySetupRecord.aWeightOption == ENABLED) && (g_unitConfig.airScale == AIR_SCALE_A_WEIGHTING))
 	{
 		// Set acoustic for A-weighted gain
-		SetAcousticGainSelect(ACOUSTIC_GAIN_A_WEIGHTED);
+		SetAcousticPathSelect(ACOUSTIC_PATH_A_WEIGHTED);
 	}
 	// Set acoustic for normal gain
-	else { SetAcousticGainSelect(ACOUSTIC_GAIN_NORMAL); }
+	else { SetAcousticPathSelect(ACOUSTIC_PATH_AOP); }
 
 #if 0 /* Necessary? Probably need 1 sec for changes, however 1 sec worth of samples thrown away with getting channel offsets  */
 	// Delay for Analog cutoff and gain select changes to propagate
@@ -549,19 +550,19 @@ void GetManualCalibration(void)
 	g_manualCalSampleCount = MAX_CAL_SAMPLES;
 
 	// Set the analog cutoff for low (for fixed Cal 1K sample rate)
-	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_LOW);
+	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K);
 
 	// Set the seismic gain to low (part of the fixed Calibration settings)
-	SetSeismicGainSelect(SEISMIC_GAIN_LOW);
+	SetSeismicGainSelect(SEISMIC_GAIN_NORMAL);
 
 	// Check if A-weighting is enabled
 	if ((g_factorySetupRecord.aWeightOption == ENABLED) && (g_unitConfig.airScale == AIR_SCALE_A_WEIGHTING))
 	{
 		// Set acoustic for A-weighted gain
-		SetAcousticGainSelect(ACOUSTIC_GAIN_A_WEIGHTED);
+		SetAcousticPathSelect(ACOUSTIC_PATH_A_WEIGHTED);
 	}
 	// Set acoustic for normal gain
-	else { SetAcousticGainSelect(ACOUSTIC_GAIN_NORMAL); }
+	else { SetAcousticPathSelect(ACOUSTIC_PATH_AOP); }
 
 	StartDataCollection(MANUAL_CAL_DEFAULT_SAMPLE_RATE);
 
@@ -614,28 +615,29 @@ void HandleManualCalibration(void)
 				switch (g_triggerRecord.trec.sample_rate)
 				{
 					// Set the cutoff frequency based on sample rate
-					case SAMPLE_RATE_1K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_LOW); break;
-					case SAMPLE_RATE_2K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1); break;
-					case SAMPLE_RATE_4K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_2); break;
-					case SAMPLE_RATE_8K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_3); break;
-					case SAMPLE_RATE_16K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_4); break;
+					case SAMPLE_RATE_1K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
+					case SAMPLE_RATE_2K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
+					case SAMPLE_RATE_4K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_2K); break;
+					case SAMPLE_RATE_8K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_4K); break;
+					case SAMPLE_RATE_16K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_8K); break;
+					case SAMPLE_RATE_32K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_16K); break;
 
 					// Default just in case it's a custom frequency
-					default: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_LOW); break;
+					default: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
 				}
 
 				// Set the sensitivity (aka gain) based on the current settings
-				if (g_triggerRecord.srec.sensitivity == LOW) { SetSeismicGainSelect(SEISMIC_GAIN_LOW); }
+				if (g_triggerRecord.srec.sensitivity == LOW) { SetSeismicGainSelect(SEISMIC_GAIN_NORMAL); }
 				else { SetSeismicGainSelect(SEISMIC_GAIN_HIGH); }
 
 				// Check if A-weighting is enabled
 				if ((g_factorySetupRecord.aWeightOption == ENABLED) && (g_unitConfig.airScale == AIR_SCALE_A_WEIGHTING))
 				{
 					// Set acoustic for A-weighted gain
-					SetAcousticGainSelect(ACOUSTIC_GAIN_A_WEIGHTED);
+					SetAcousticPathSelect(ACOUSTIC_PATH_A_WEIGHTED);
 				}
 				// Set acoustic for normal gain
-				else { SetAcousticGainSelect(ACOUSTIC_GAIN_NORMAL); }
+				else { SetAcousticPathSelect(ACOUSTIC_PATH_AOP); }
 
 				StartDataCollection(g_triggerRecord.trec.sample_rate);
 			}
@@ -799,9 +801,9 @@ void StopMonitoringForLowPowerState(void)
 void StartADDataCollectionForCalibration(uint16 sampleRate)
 {
 	// Setup Analog controls
-	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_LOW);
-	SetSeismicGainSelect(SEISMIC_GAIN_LOW);
-	SetAcousticGainSelect(ACOUSTIC_GAIN_NORMAL);
+	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K);
+	SetSeismicGainSelect(SEISMIC_GAIN_NORMAL);
+	SetAcousticPathSelect(ACOUSTIC_PATH_AOP);
 
 	// Enable the A/D
 	debug("Enable the A/D\r\n");

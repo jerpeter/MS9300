@@ -1718,7 +1718,7 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 			if (s_calSampleCount == START_CAL_SIGNAL)
 			{
 				// Check if on high sensitivity and if so set to low sensitivity for Cal pulse
-				if (g_triggerRecord.srec.sensitivity == HIGH) { SetSeismicGainSelect(SEISMIC_GAIN_LOW); }
+				if (g_triggerRecord.srec.sensitivity == HIGH) { SetSeismicGainSelect(SEISMIC_GAIN_NORMAL); }
 
 				g_testTimeSinceLastCalPulse = g_lifetimeHalfSecondTickCount;
 
