@@ -1508,6 +1508,78 @@ void PowerManager(void)
 	{
 		g_sleepModeEngaged = NO;
 	}
+#else
+	// ACTIVE Mode
+	/*
+		This is the highest performance mode. All internal clocks, registers, memory, and peripherals are enabled. The CPU is
+		running and executing application code. The Smart DMA can perform background processing and data transfers. All
+		oscillators are available.
+		Dynamic clocking allows firmware to selectively enable or disable clocks and power to individual peripherals, providing the
+		optimal mix of high-performance and power conservation. Internal RAM that can be enabled, disabled, or placed in low-
+		power RAM Retention Mode include data SRAM memory blocks, on-chip caches, and on-chip FIFOs.
+	*/
+
+	// SLEEP Low-Power Mode
+	/*
+		This is a low-power mode that suspends the CPU with a fast wakeup time to ACTIVE mode. It is like ACTIVE mode except the
+		CPU clock is disabled, which temporarily prevents the CPU from executing code. The Smart DMA can operate in the
+		background to perform background processing and data transfers. All oscillators remain active if enabled and the Always On
+		Domain (AOD) and RAM retention is retain state.
+		The device returns to ACTIVE mode from any internal or external interrupt.
+	*/
+	//SCR.sleepdeep = 0; // SLEEP mode enabled
+	//__WFI; // Wait for interrupt, enter the low-power mode enabled by SCR.sleepdeep
+	// -or-
+	//__WFE; // Wait for event, enter the low-power mode enabled by SCR.sleepdeep
+
+	// BACKGROUND Low-Power Mode
+	/*
+		This mode is suitable for the Smart DMA to operate in the background and perform background processing data transfers
+		on peripheral and SRAM data.
+		This is the same as SLEEP mode except both the CPU clock and CPU power (VCORE) are temporarily gated off. State retention
+		of the CPU is enabled, allowing all CPU registers to maintain their contents and the oscillators remain active if enabled.
+		Because both the clock and power to the CPU is disabled, this has the advantage of drawing less power than SLEEP.
+		However, the CPU takes longer to wakeup compared to SLEEP.
+	*/
+	//LP_CTRL.bkgrnd = 1; // BACKGROUND mode enabled when entering DEEPSLEEP
+	//SCR.sleepdeep = 1; // DEEPSLEEP mode enabled
+	//__WFI; // Enter BACKGROUND mode
+	// -or-
+	//__WFE; // Enter BACKGROUND mode
+
+	// DEEPSLEEP Low-Power Mode
+	/*
+		This is like BACKGROUND mode except that all internal clocks are gated off. SYSOSC is gated off, so the two main bus clocks
+		PCLK and HCLK are inactive. The CPU state is retained.
+		Because the main bus clocks are disabled, all peripherals are inactive except for the RTC which has its own independent
+		oscillator. Only the RTC, USB wakeup or external interrupt can return the device to ACTIVE. The Smart DMA and Watchdog
+		Timers are inactive in this mode.
+		All internal register contents and all RAM contents are preserved. The GPIO pins retain their state in this mode. The Always-
+		on Domain (AoD) and RAM Retention are available.
+		Three oscillators can be set to optionally automatically disable themselves when the device enters DEEPSLEEP mode: the
+		7.3728MHz oscillator, the 50MHz oscillator, and the 120MHz oscillator. The 8Khz and 32.768kHz oscillators are available.
+	*/
+	//LP_CTRL.bkgrnd = 0; // BACKGROUND mode disabled when entering DEEPSLEEP
+	//SCR.sleepdeep = 1; // DEEPSLEEP mode enabled
+	//__WFI; // Enter DEEPSLEEP mode
+	// -or-
+	//__WFE; // Enter DEEPSLEEP mode
+
+	// BACKUP Low-Power Mode
+	/*
+		This is the lowest power operating mode. All oscillators are disabled except for the 8kHz and the 32kHz oscillator. SYSOSC is
+		gated off, so PCLK and HCLK are inactive. The CPU state is not maintained.
+		Only the RTC can operate in BACKUP mode. The AoD and RAM Retention can optionally be set to automatically disable (and
+		clear) themselves when entering this mode. Data retention in this mode is maintained using VCORE and/or VRTC. The type of
+		data retained is dependent upon whether only one, or both, of these voltages are enabled.
+		Optionally, VCORE can be gated off and the internal retention regulator enabled, allowing the device to be powered only by
+		VRTC. Enabling VCORE will wake the device to ACTIVE mode.
+		The amount of RAM memory retained is dependent upon which voltages are enabled.
+		If only VRTC is enabled, up to 96KBytes of SRAM can be retained.
+		If both VRTC and VCORE are enabled, up to 1024KBytes SRAM can be retained.
+		BACKUP mode supports the same wakeup sources as DEEPSLEEP mode.
+	*/
+	//GCR_PMR.mode = 0b100;
 #endif
 }
 
