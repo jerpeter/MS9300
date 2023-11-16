@@ -1089,7 +1089,10 @@ void AD4695_Init()
 	AD4695_Standart_MODE_SET(); //Standard mode is set
 	AD4695_RefControl(R2V4_2V7); /*Setting the reference voltage */
 	AD4695_STD_SEQ_EN_Channels(AD4695_REG_STD_SEQ_CONFIG); /*Enables selected channels*/
+
+#if 0 /* Not ready to enter conversion mode at this time */
 	AD4695_Enter_Conservation_Mode(); /*Enters conservation mode*/
+#endif
 
 	// Delay 100ms?
 	MXC_Delay(MXC_DELAY_MSEC(100));
@@ -1121,9 +1124,24 @@ void AD4695_Exit_Conservation_Mode() /*To pass from conservaiton mode to registe
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+int AD4695_temperatureConversion(uint16_t tempCode)
+{
+	float temperature;
+	temperature = ((tempCode - 725) / (-1.8));
+
+	// Conversion from C to F, (0°C × 9/5) + 32 = 32°F
+	temperature = ((temperature * 9 / 5) + 32);
+
+	return ((int)temperature);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void TestExternalADC(void)
 {
 	uint8_t testData;
+	uint8_t vendorIdValid = NO;
 
     debug("External ADC: Test device access...\r\n");
 
@@ -1138,6 +1156,18 @@ void TestExternalADC(void)
 	debug("External ADC: Initializing...\r\n");
 	AD4695_Init();
 	debug("External ADC: Init complete\r\n");
+
+	SPI_Read_Reg_AD4695(AD4695_REG_VENDOR_L, &testData);
+	if (testData == 0x56)
+	{
+		SPI_Read_Reg_AD4695(AD4695_REG_VENDOR_H, &testData);
+		if (testData == 0x04)
+		{
+			debug("External ADC: Vendor ID verification passed\r\n");
+			vendorIdValid = YES;
+		}
+	}
+	if (vendorIdValid == NO) { debug("External ADC: Vendor ID verification failed\r\n"); }
 
 	testData = 0xAA; SPI_Write_Reg_AD4695(AD4695_REG_SCRATCH_PAD, testData);
 	testData = 0x00; SPI_Read_Reg_AD4695(AD4695_REG_SCRATCH_PAD, &testData);
