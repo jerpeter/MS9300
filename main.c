@@ -54,6 +54,11 @@
 #include "M23018.h"
 //#include "cycle_counter.h"
 
+#include "max32650.h"
+#include "gcr_regs.h"
+#include "mxc_sys.h"
+#include "pwrseq_regs.h"
+
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
@@ -1518,6 +1523,7 @@ void PowerManager(void)
 		optimal mix of high-performance and power conservation. Internal RAM that can be enabled, disabled, or placed in low-
 		power RAM Retention Mode include data SRAM memory blocks, on-chip caches, and on-chip FIFOs.
 	*/
+	MXC_GCR->pmr = ((MXC_GCR->pmr & ~(MXC_F_GCR_PMR_MODE)) | MXC_S_GCR_PMR_MODE_ACTIVE);
 
 	// SLEEP Low-Power Mode
 	/*
@@ -1527,10 +1533,13 @@ void PowerManager(void)
 		Domain (AOD) and RAM retention is retain state.
 		The device returns to ACTIVE mode from any internal or external interrupt.
 	*/
-	//SCR.sleepdeep = 0; // SLEEP mode enabled
+	//SCB->SCR.sleepdeep = 0; // SLEEP mode enabled
+	SCB->SCR &= ~(SCB_SCR_SLEEPDEEP_Msk);
 	//__WFI; // Wait for interrupt, enter the low-power mode enabled by SCR.sleepdeep
+	__ASM volatile("wfi");
 	// -or-
 	//__WFE; // Wait for event, enter the low-power mode enabled by SCR.sleepdeep
+	__ASM volatile("wfe");
 
 	// BACKGROUND Low-Power Mode
 	/*
@@ -1542,8 +1551,13 @@ void PowerManager(void)
 		However, the CPU takes longer to wakeup compared to SLEEP.
 	*/
 	//LP_CTRL.bkgrnd = 1; // BACKGROUND mode enabled when entering DEEPSLEEP
-	//SCR.sleepdeep = 1; // DEEPSLEEP mode enabled
+	MXC_PWRSEQ->ctrl |= (MXC_F_PWRSEQ_CTRL_BKGRND);
+
+	//SCB->SCR.sleepdeep = 1; // DEEPSLEEP mode enabled
+	SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
+
 	//__WFI; // Enter BACKGROUND mode
+	__ASM volatile("wfi");
 	// -or-
 	//__WFE; // Enter BACKGROUND mode
 
@@ -1560,8 +1574,13 @@ void PowerManager(void)
 		7.3728MHz oscillator, the 50MHz oscillator, and the 120MHz oscillator. The 8Khz and 32.768kHz oscillators are available.
 	*/
 	//LP_CTRL.bkgrnd = 0; // BACKGROUND mode disabled when entering DEEPSLEEP
-	//SCR.sleepdeep = 1; // DEEPSLEEP mode enabled
+	MXC_PWRSEQ->ctrl &= ~(MXC_F_PWRSEQ_CTRL_BKGRND);
+
+	//SCB->SCR.sleepdeep = 1; // DEEPSLEEP mode enabled
+	SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
+
 	//__WFI; // Enter DEEPSLEEP mode
+	__ASM volatile("wfi");
 	// -or-
 	//__WFE; // Enter DEEPSLEEP mode
 
@@ -1579,7 +1598,8 @@ void PowerManager(void)
 		If both VRTC and VCORE are enabled, up to 1024KBytes SRAM can be retained.
 		BACKUP mode supports the same wakeup sources as DEEPSLEEP mode.
 	*/
-	//GCR_PMR.mode = 0b100;
+	//GCR_PMR.mode = 0x4;
+	MXC_GCR->pmr = ((MXC_GCR->pmr & ~(MXC_F_GCR_PMR_MODE)) | MXC_S_GCR_PMR_MODE_BACKUP);
 #endif
 }
 
