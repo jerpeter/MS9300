@@ -303,7 +303,7 @@ typedef struct {
 	uint8_t Set_STD_Mode;
 	uint8_t SetRef;
 	uint8_t STD_En_Channels;
-	uint8_t EnterConservationMode;
+	uint8_t EnterConversionMode;
 	uint8_t SDO_State;
 } AD4695_Init_Error_Struct;
 
@@ -315,11 +315,12 @@ void SPI_Write_Mask(uint16_t reg_addr, uint8_t mask, uint8_t data);
 void AD5695_Register_Access_Mode( enum ad4695_reg_access access);
 void AD4695_Init();
 void AD4695_Set_Busy_State(/*Enum ad4695_busy_gpio_sel gp_sel*/);
-void AD4695_Standart_Seq_MODEandOSR(enum ad4695_osr_ratios ratio);
-void AD4695_Enter_Conservation_Mode(void);
-void AD4695_Exit_Conservation_Mode(void);
-void AD4695_Standart_MODE_SET(void);
-void AD4695_STD_SEQ_EN_Channels(uint16_t reg_addr);
+void AD4695_Standard_Seq_MODEandOSR(enum ad4695_osr_ratios ratio);
+void AD4695_Enter_Conversion_Mode(void);
+void AD4695_Exit_Conversion_Mode(void);
+void AD4695_Standard_MODE_SET(void);
+void AD4695_STD_SEQ_EN_Channels(uint16_t reg_addr, uint8_t channels);
+void AD4695_TemperatureSensorEnable(uint8_t mode);
 void AllConfigForAD4695();
 
 #endif /* INC_AD4695_H_ */

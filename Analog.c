@@ -266,6 +266,67 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &(dataPtr->a));
 		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
 	}	
+#else
+	uint8_t chanDataRaw[2];
+
+	// Current no readback option unless going into two-cycle or single-cycle command mode, so make readback and no readback the same for now
+	if ((g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP) | (g_adChannelConfig == FOUR_AD_CHANNELS_NO_READBACK_WITH_TEMP))
+	{
+		// Chan 0
+		SetAdcConversionState(ON);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SetAdcConversionState(OFF);
+		dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+
+		// Chan 1
+		SetAdcConversionState(ON);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SetAdcConversionState(OFF);
+		dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+
+		// Chan 2
+		SetAdcConversionState(ON);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SetAdcConversionState(OFF);
+		dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+
+		// Chan 3
+		SetAdcConversionState(ON);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SetAdcConversionState(OFF);
+		dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+
+		// Temp
+		SetAdcConversionState(ON);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SetAdcConversionState(OFF);
+	}
+	else // FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP
+	{
+		// Chan 0
+		SetAdcConversionState(ON);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SetAdcConversionState(OFF);
+		dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+
+		// Chan 1
+		SetAdcConversionState(ON);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SetAdcConversionState(OFF);
+		dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+
+		// Chan 2
+		SetAdcConversionState(ON);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SetAdcConversionState(OFF);
+		dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+
+		// Chan 3
+		SetAdcConversionState(ON);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SetAdcConversionState(OFF);
+		dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+	}
 #endif
 }
 
@@ -382,7 +443,10 @@ void WriteAnalogControl(uint16 control)
 ///----------------------------------------------------------------------------
 void AdSetCalSignalLow(void)
 {
+	// Enable driving of the sensor check signal if not enabled
+	if (GetPowerControlState(SENSOR_CHECK_ENABLE) == OFF) {	PowerControl(SENSOR_CHECK_ENABLE, ON); }
 
+	SetSensorCheckState(LOW);
 }
 
 ///----------------------------------------------------------------------------
@@ -390,7 +454,10 @@ void AdSetCalSignalLow(void)
 ///----------------------------------------------------------------------------
 void AdSetCalSignalHigh(void)
 {
+	// Enable driving of the sensor check signal if not enabled
+	if (GetPowerControlState(SENSOR_CHECK_ENABLE) == OFF) {	PowerControl(SENSOR_CHECK_ENABLE, ON); }
 
+	SetSensorCheckState(HIGH);
 }
 
 ///----------------------------------------------------------------------------
@@ -398,7 +465,11 @@ void AdSetCalSignalHigh(void)
 ///----------------------------------------------------------------------------
 void AdSetCalSignalOff(void)
 {
+	// Disable driving of the sensor check signal if not enabled
+	PowerControl(SENSOR_CHECK_ENABLE, OFF);
 
+	// Leave sensor state in the high position since this will be the desired state next sensor check
+	SetSensorCheckState(HIGH);
 }
 
 ///----------------------------------------------------------------------------
@@ -884,12 +955,10 @@ uint8_t TestSTD_Sq_Mode_OSR;
 uint8_t TestSet_STD_Mode;
 uint8_t TestSetRef;
 uint8_t TestSTD_En_Channels;
-uint8_t TestEnterConservationMode;
+uint8_t TestEnterConversionMode;
 uint8_t TestSDO_State;
 
 AD4695_Init_Error_Struct AD4695_Init_Error;
-
-extern void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeassert, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method);
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -1003,7 +1072,7 @@ void AD4695_Set_SDO_Mode(uint8_t sdoMode)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_Standart_Seq_MODEandOSR(enum ad4695_osr_ratios ratio) /*over sampling ratio in standard sequencer mode*/
+void AD4695_Standard_Seq_MODEandOSR(enum ad4695_osr_ratios ratio) /*over sampling ratio in standard sequencer mode*/
 {
 	SPI_Write_Mask(AD4695_REG_CONFIG_IN(0), AD4695_REG_CONFIG_IN_OSR_MASK, AD4695_REG_CONFIG_IN_OSR(ratio));
 	SPI_Read_Reg_AD4695(AD4695_REG_CONFIG_IN(0), &TestSTD_Sq_Mode_OSR);
@@ -1014,7 +1083,7 @@ void AD4695_Standart_Seq_MODEandOSR(enum ad4695_osr_ratios ratio) /*over samplin
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_Standart_MODE_SET() /*Standard Sequencer Enable Bit*/
+void AD4695_Standard_MODE_SET() /*Standard Sequencer Enable Bit*/
 {
 	SPI_Write_Mask(AD4695_REG_SEQ_CTRL, AD4695_SEQ_CTRL_STD_SEQ_EN_MASK, AD4695_SEQ_CTRL_STD_SEQ_EN(1));
 	SPI_Read_Reg_AD4695(AD4695_REG_SEQ_CTRL, &TestSet_STD_Mode);
@@ -1042,25 +1111,12 @@ void AD4695_RefControl(enum ad4695_ref REF)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_STD_SEQ_EN_Channels(uint16_t reg_addr)
+void AD4695_STD_SEQ_EN_Channels(uint16_t reg_addr, uint8_t channels)
 {
 	//uint8_t Reg_Data;
 
-	// Setup for one full sensor group, set 1
-	SPI_Write_Reg_AD4695(reg_addr, (AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_AOP_1));
-
-	// Setup for one full sensor group, set 2
-	//SPI_Write_Reg_AD4695(reg_addr, (AD4695_STD_SEQ_GEO_2 | AD4695_STD_SEQ_AOP_2));
-
-	// Setup for both geophones only
-	//SPI_Write_Reg_AD4695(reg_addr, (AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_GEO_2));
-
-	// Setup for both microphones only
-	//SPI_Write_Reg_AD4695(reg_addr, (AD4695_STD_SEQ_AOP_1 | AD4695_STD_SEQ_AOP_2));
-
-	// Setup for both full sensor groups, set 1 and 2
-	//SPI_Write_Reg_AD4695(reg_addr, (AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_AOP_1 | AD4695_STD_SEQ_GEO_2 | AD4695_STD_SEQ_AOP_2));
-
+	// Setup channels to be sequenced
+	SPI_Write_Reg_AD4695(reg_addr, channels);
 	SPI_Read_Reg_AD4695(reg_addr, &TestSTD_En_Channels);
 
 	if(TestSTD_En_Channels != WBuf[2]) { AD4695_Init_Error.STD_En_Channels = TRUE; }
@@ -1074,7 +1130,20 @@ void AD4695_Autocycle_MODE_SET(uint16_t reg_addr)
 	uint8_t Reg_Data;
 
 	SPI_Write_Reg_AD4695(reg_addr, 0x01);
-	SPI_Read_Reg_AD4695(reg_addr, &Reg_Data);;
+	SPI_Read_Reg_AD4695(reg_addr, &Reg_Data);
+
+	// Looks unfinished
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD4695_TemperatureSensorEnable(uint8_t mode)
+{
+	// Make sure mode is binary control
+	if (mode > ON) { mode = ON; }
+
+	SPI_Write_Reg_AD4695(AD4695_REG_TEMP_CTRL, mode);
 }
 
 ///----------------------------------------------------------------------------
@@ -1085,23 +1154,30 @@ void AD4695_Init()
 	//This field disables the CRC
 	AD5695_Register_Access_Mode(AD4695_BYTE_ACCESS); //individual bytes in multibyte registers are read from or written to in individual data phases
 	AD4695_Set_Busy_State();
-	AD4695_Standart_Seq_MODEandOSR(AD4695_OSR_1); //16 bit not 17,18 or 19
-	AD4695_Standart_MODE_SET(); //Standard mode is set
+
+	// In standard sequence mode only In channel 0 needs to be set for most of the settings
+	// The default value of the In channel registers is pretty much what we want; Unipolar, paired with RefGND (same as COM for us), High-Z mode enabled, No oversampling, no threshold detection
+	AD4695_Standard_Seq_MODEandOSR(AD4695_OSR_1); //16 bit not 17,18 or 19
+
+	AD4695_Standard_MODE_SET(); //Standard mode is set
 	AD4695_RefControl(R2V4_2V7); /*Setting the reference voltage */
-	AD4695_STD_SEQ_EN_Channels(AD4695_REG_STD_SEQ_CONFIG); /*Enables selected channels*/
+
+	// Some combination of the following: AD4695_STD_SEQ_GEO_1, AD4695_STD_SEQ_AOP_1, AD4695_STD_SEQ_GEO_2, AD4695_STD_SEQ_AOP_2
+	// Set default Geo1 + AOP1
+	AD4695_STD_SEQ_EN_Channels(AD4695_REG_STD_SEQ_CONFIG, (AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_AOP_1)); /*Enables selected channels*/
 
 #if 0 /* Not ready to enter conversion mode at this time */
-	AD4695_Enter_Conservation_Mode(); /*Enters conservation mode*/
-#endif
+	AD4695_Enter_Conversion_Mode(); /*Enters conversion mode*/
 
 	// Delay 100ms?
 	MXC_Delay(MXC_DELAY_MSEC(100));
+#endif
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_Enter_Conservation_Mode() /*Enter conversion mode*/
+void AD4695_Enter_Conversion_Mode() /*Enter conversion mode*/
 {
 	SPI_Write_Mask(AD4695_REG_SETUP, AD4695_SETUP_IF_SDO_STATE_MASK, AD4695_SETUP_IF_SDO_STATE);
 	SPI_Read_Reg_AD4695(AD4695_REG_SETUP, &TestSDO_State);
@@ -1114,7 +1190,7 @@ void AD4695_Enter_Conservation_Mode() /*Enter conversion mode*/
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_Exit_Conservation_Mode() /*To pass from conservaiton mode to register configuration mode */
+void AD4695_Exit_Conversion_Mode() /*To pass from conversion mode to register configuration mode */
 {
 	uint8_t command = AD4695_CMD_REG_CONFIG_MODE;
 
