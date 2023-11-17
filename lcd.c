@@ -1407,8 +1407,6 @@ uint8 Bit_Swap(uint8 data)
 #define FT_SPI_SPEED 4000000
 #endif
 
-extern void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeassert, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method);
-
 /*
  * Constants/Statics/Globals
  */

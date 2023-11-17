@@ -746,4 +746,7 @@ void ProcessUsbCoreHandling(void);
 // Wrapper to help I2C slave device comms
 int WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize);
 
+// Wrapper to help SPI transactions
+void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeassert, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method);
+
 #endif // _COMMON_H_
