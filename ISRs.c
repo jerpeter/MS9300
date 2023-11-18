@@ -2419,17 +2419,14 @@ static inline void HandleChannelSyncError_ISR_Inline(void)
 	}
 #else /* New method */
 	// Disable A/D due to error
+	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
 
-	// Delay to allow AD to power up/stabilize
-	SoftUsecWait(50 * SOFT_MSECS);
+	// Delay to allow power down
+	SoftUsecWait(10 * SOFT_MSECS);
 
-	// Re-Enable the A/D
-	PowerControl(ANALOG_5V_ENABLE, ON);
-	WaitAnalogPower5vGood();
-
-	// Delay to allow AD to power up/stabilize
-	SoftUsecWait(50 * SOFT_MSECS);
+	// Re-Enable the Analog 5V and External ADC
+	PowerUpAnalog5VandExternalADC();
 
 	// Setup the A/D Channel configuration
 	SetupADChannelConfig(s_sampleRate, UNIT_CONFIG_CHANNEL_VERIFICATION);

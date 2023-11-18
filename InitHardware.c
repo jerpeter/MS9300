@@ -373,32 +373,19 @@ void InitInternalAD(void)
 ///----------------------------------------------------------------------------
 void InitExternalAD(void)
 {
-#if 0 /* old hw */
-	// Enable the A/D
-#if EXTENDED_DEBUG
-	debug("Enable the A/D\r\n");
-#endif
-
-	PowerControl(ANALOG_5V_ENABLE, ON);
-	WaitAnalogPower5vGood();
-
-	// Delay to allow AD to power up/stabilize
-	SoftUsecWait(50 * SOFT_MSECS);
+	if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
+	{
+		PowerUpAnalog5VandExternalADC();
+	}
 
 	// Setup the A/D Channel configuration
-#if EXTENDED_DEBUG
-	debug("Setup A/D config and channels (External Ref, Temp On)\r\n");
-#endif
 	SetupADChannelConfig(SAMPLE_RATE_DEFAULT, UNIT_CONFIG_CHANNEL_VERIFICATION);
 
 	// Read a few test samples
 	GetChannelOffsets(SAMPLE_RATE_DEFAULT);
 
-#if EXTENDED_DEBUG
-	debug("Disable the A/D\r\n");
-#endif
+	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
-#endif
 }
 
 ///----------------------------------------------------------------------------

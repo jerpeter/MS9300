@@ -289,12 +289,11 @@ void StartMonitoring(uint8 operationMode, TRIGGER_EVENT_DATA_STRUCT* opModeParam
 void StartDataCollection(uint32 sampleRate)
 {
 	// Enable the A/D
-	debug("Enable the A/D\r\n");
-	PowerControl(ANALOG_5V_ENABLE, ON);
-	WaitAnalogPower5vGood();
-
-	// Delay to allow AD to power up/stabilize
-	SoftUsecWait(50 * SOFT_MSECS);
+	if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
+	{
+		debug("Enable the A/D\r\n");
+		PowerUpAnalog5VandExternalADC();
+	}
 
 	// Setup the A/D Channel configuration
 	SetupADChannelConfig(sampleRate, UNIT_CONFIG_CHANNEL_VERIFICATION);
@@ -434,6 +433,8 @@ void StopDataCollection(void)
 	StopExternalRtcClock();
 #endif
 
+	AD4695_Exit_Conversion_Mode();
+	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
 
 	ClearSoftTimer(MENU_UPDATE_TIMER_NUM);
@@ -452,6 +453,8 @@ void StopDataClock(void)
 	StopExternalRtcClock();
 #endif
 
+	AD4695_Exit_Conversion_Mode();
+	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
 }
 
@@ -805,10 +808,12 @@ void StartADDataCollectionForCalibration(uint16 sampleRate)
 	SetSeismicGainSelect(SEISMIC_GAIN_NORMAL);
 	SetAcousticPathSelect(ACOUSTIC_PATH_AOP);
 
-	// Enable the A/D
-	debug("Enable the A/D\r\n");
-	PowerControl(ANALOG_5V_ENABLE, ON);
-	WaitAnalogPower5vGood();
+	// Enable the Analog section
+	if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
+	{
+		debug("Enable the Analog 5V section\r\n");
+		PowerUpAnalog5VandExternalADC();
+	}
 
 	// Delay to allow AD to power up/stabilize
 	SoftUsecWait(50 * SOFT_MSECS);
@@ -845,5 +850,7 @@ void StopADDataCollectionForCalibration(void)
 	StopExternalRtcClock();
 #endif
 
+	AD4695_Exit_Conversion_Mode();
+	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
 }

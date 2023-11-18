@@ -1543,8 +1543,7 @@ void Test1Wire(void)
     if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
 	{
 		debug("Power Control: Analog 5V enable being turned on\r\n");
-		PowerControl(ANALOG_5V_ENABLE, ON);
-		MXC_Delay(MXC_DELAY_MSEC(500));
+		PowerUpAnalog5VandExternalADC();
 	}
 	else { debug("Power Control: Analog 5V enable already on\r\n"); }
 
