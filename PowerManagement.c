@@ -300,7 +300,7 @@ BOOLEAN GetPowerControlState(POWER_MGMT_OPTIONS option)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-BOOLEAN GetPowerControlShadowState(POWER_MGMT_OPTIONS option)
+BOOLEAN GetShadowPowerControlState(POWER_MGMT_OPTIONS option)
 {
 	BOOLEAN state = OFF;
 
