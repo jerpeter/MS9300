@@ -136,6 +136,7 @@ void AdSetCalSignalHigh(void);
 void AdSetCalSignalOff(void);
 void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification);
 void WaitAnalogPower5vGood(void);
+void PowerUpAnalog5VandExternalADC(void);
 
 #endif //_ANALOG_H_
 
@@ -197,8 +198,10 @@ void WaitAnalogPower5vGood(void);
 /* AD4695_REG_SETUP */
 #define AD4695_SETUP_IF_MODE_MASK			(0x01 << 2)
 #define AD4695_SETUP_IF_MODE_CONV			(0x01 << 2)
-#define AD4695_SETUP_IF_SDO_STATE			(0x01 << 6)
+#define AD4695_SETUP_IF_STATUS_EN_MASK		(0x01 << 5)
+#define AD4695_SETUP_IF_STATUS_EN_STATE		(0x01 << 5)
 #define AD4695_SETUP_IF_SDO_STATE_MASK		(0x01 << 6)
+#define AD4695_SETUP_IF_SDO_STATE			(0x01 << 6)
 #define AD4695_SETUP_CYC_CTRL_MASK			(0x01 << 1)
 #define AD4695_SETUP_CYC_CTRL_SINGLE(x)		((x & 0x01) << 1)
 
@@ -316,11 +319,12 @@ void AD5695_Register_Access_Mode( enum ad4695_reg_access access);
 void AD4695_Init();
 void AD4695_Set_Busy_State(/*Enum ad4695_busy_gpio_sel gp_sel*/);
 void AD4695_Standard_Seq_MODEandOSR(enum ad4695_osr_ratios ratio);
-void AD4695_Enter_Conversion_Mode(void);
+void AD4695_Enter_Conversion_Mode(uint8_t enableStatus);
 void AD4695_Exit_Conversion_Mode(void);
 void AD4695_Standard_MODE_SET(void);
 void AD4695_STD_SEQ_EN_Channels(uint16_t reg_addr, uint8_t channels);
 void AD4695_TemperatureSensorEnable(uint8_t mode);
+void AD4695_DisableInternalLDO(void);
 void AllConfigForAD4695();
 
 #endif /* INC_AD4695_H_ */

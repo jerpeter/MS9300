@@ -272,6 +272,8 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 	// Current no readback option unless going into two-cycle or single-cycle command mode, so make readback and no readback the same for now
 	if ((g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP) | (g_adChannelConfig == FOUR_AD_CHANNELS_NO_READBACK_WITH_TEMP))
 	{
+		// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
+
 		// Chan 0
 		SetAdcConversionState(ON);
 		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
@@ -598,8 +600,7 @@ void GetChannelOffsets(uint32 sampleRate)
 	if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
 	{
 		// Power the A/D on to set the offsets
-		PowerControl(ANALOG_5V_ENABLE, ON);
-		WaitAnalogPower5vGood();
+		PowerUpAnalog5VandExternalADC();
 
 		// Set flag to signal powering off the A/D when finished
 		powerAnalogDown = YES;
@@ -710,6 +711,7 @@ void GetChannelOffsets(uint32 sampleRate)
 	// If we had to power on the A/D here locally, then power it off
 	if (powerAnalogDown == YES)
 	{
+		PowerControl(ADC_RESET, ON);
 		PowerControl(ANALOG_5V_ENABLE, OFF);
 	}		
 }
@@ -935,6 +937,25 @@ void WaitAnalogPower5vGood(void)
 			report = NO;
 		}
 	}
+
+	// Bring External ADC out of reset
+	PowerControl(ADC_RESET, OFF);
+
+	// External ADC internal reference buffer turn on time for Cref = 1.1uF is ~11ms (should only needs ~3ms from cold power on for digital interface)
+	SoftUsecWait(11 * SOFT_MSECS);
+
+	// Any extra delay needed for the analog to power up/stabilize?
+	//SoftUsecWait(50 * SOFT_MSECS);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void PowerUpAnalog5VandExternalADC(void)
+{
+	PowerControl(ANALOG_5V_ENABLE, ON);
+	WaitAnalogPower5vGood();
+	AD4695_Init();
 }
 
 ///============================================================================
@@ -1146,6 +1167,15 @@ void AD4695_TemperatureSensorEnable(uint8_t mode)
 	SPI_Write_Reg_AD4695(AD4695_REG_TEMP_CTRL, mode);
 }
 
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD4695_DisableInternalLDO(void)
+{
+	SPI_Write_Reg_AD4695(AD4695_REG_SETUP, 0x00);
+}
+
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -1153,21 +1183,22 @@ void AD4695_Init()
 {
 	//This field disables the CRC
 	AD5695_Register_Access_Mode(AD4695_BYTE_ACCESS); //individual bytes in multibyte registers are read from or written to in individual data phases
+	AD4695_DisableInternalLDO();
 	AD4695_Set_Busy_State();
 
 	// In standard sequence mode only In channel 0 needs to be set for most of the settings
 	// The default value of the In channel registers is pretty much what we want; Unipolar, paired with RefGND (same as COM for us), High-Z mode enabled, No oversampling, no threshold detection
 	AD4695_Standard_Seq_MODEandOSR(AD4695_OSR_1); //16 bit not 17,18 or 19
 
-	AD4695_Standard_MODE_SET(); //Standard mode is set
-	AD4695_RefControl(R2V4_2V7); /*Setting the reference voltage */
+	AD4695_Standard_MODE_SET();
+	AD4695_RefControl(R4V5_R5V1); // Setting the reference voltage range
 
 	// Some combination of the following: AD4695_STD_SEQ_GEO_1, AD4695_STD_SEQ_AOP_1, AD4695_STD_SEQ_GEO_2, AD4695_STD_SEQ_AOP_2
 	// Set default Geo1 + AOP1
-	AD4695_STD_SEQ_EN_Channels(AD4695_REG_STD_SEQ_CONFIG, (AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_AOP_1)); /*Enables selected channels*/
+	AD4695_STD_SEQ_EN_Channels(AD4695_REG_STD_SEQ_CONFIG, (AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_AOP_1)); // Enable selected channels
 
 #if 0 /* Not ready to enter conversion mode at this time */
-	AD4695_Enter_Conversion_Mode(); /*Enters conversion mode*/
+	AD4695_Enter_Conversion_Mode(NO); /*Enters conversion mode*/
 
 	// Delay 100ms?
 	MXC_Delay(MXC_DELAY_MSEC(100));
@@ -1177,12 +1208,18 @@ void AD4695_Init()
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_Enter_Conversion_Mode() /*Enter conversion mode*/
+void AD4695_Enter_Conversion_Mode(uint8_t enableStatus) /*Enter conversion mode*/
 {
+#if 0 /* only needed if BSY_ALT_GP0 is no longer a status line */
 	SPI_Write_Mask(AD4695_REG_SETUP, AD4695_SETUP_IF_SDO_STATE_MASK, AD4695_SETUP_IF_SDO_STATE);
 	SPI_Read_Reg_AD4695(AD4695_REG_SETUP, &TestSDO_State);
-
 	if(TestSDO_State != WBuf[2]) { AD4695_Init_Error.SDO_State = TRUE; }
+#endif
+
+	if (enableStatus)
+	{
+		SPI_Write_Mask(AD4695_REG_SETUP, AD4695_SETUP_IF_STATUS_EN_MASK, AD4695_SETUP_IF_STATUS_EN_STATE);
+	}
 
 	SPI_Write_Mask(AD4695_REG_SETUP, AD4695_SETUP_IF_MODE_MASK, AD4695_SETUP_IF_MODE_CONV);
 }
@@ -1224,8 +1261,7 @@ void TestExternalADC(void)
     if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
 	{
 		debug("Power Control: Analog 5V enable being turned on\r\n");
-		PowerControl(ANALOG_5V_ENABLE, ON);
-		MXC_Delay(MXC_DELAY_MSEC(500));
+		PowerUpAnalog5VandExternalADC();
 	}
 	else { debug("Power Control: Analog 5V enable already on\r\n"); }
 
