@@ -117,10 +117,9 @@ typedef union
 ///----------------------------------------------------------------------------
 ///	Prototypes
 ///----------------------------------------------------------------------------
-void GetAnalogConfigReadback(void);
+uint8_t GetAnalogConfigReadback(void);
 void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr);
 void InitAnalogControl(void);
-void WriteAnalogControl(uint16 data);
 void SetAnalogCutoffFrequency(uint8 freq);
 void SetSeismicGainSelect(uint8 seismicGain);
 void SetAcousticPathSelect(uint8 acousticGain);
@@ -258,6 +257,9 @@ void PowerUpAnalog5VandExternalADC(void);
 #define AD4695_SINGLE_SDO_MODE	0x00
 #define AD4695_DUAL_SDO_MODE	0x01
 
+#define AD4695_CHANNEL_DATA_READ_SIZE				2
+#define AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS	3
+
 #if 0
 typedef enum {
 	FALSE = 0,
@@ -298,23 +300,11 @@ enum ad4695_osr_ratios { /* oversampling */
 	AD4695_OSR_64 = 3,
 };
 
-typedef struct {
-	uint8_t StractPad;
-	uint8_t RegisterAccessMode;
-	uint8_t BusyState;
-	uint8_t STD_Sq_Mode_OSR;
-	uint8_t Set_STD_Mode;
-	uint8_t SetRef;
-	uint8_t STD_En_Channels;
-	uint8_t EnterConversionMode;
-	uint8_t SDO_State;
-} AD4695_Init_Error_Struct;
-
 void AD4695_Test(void);
 void SPI_Write_Reg_AD4695(uint16_t reg_addr,uint8_t reg_data);
 void SPI_Read_Reg_AD4695(uint16_t reg_addr,uint8_t *reg_data);
 void SPI_Read_Mask(uint16_t reg_addr, uint8_t mask, uint8_t *data);
-void SPI_Write_Mask(uint16_t reg_addr, uint8_t mask, uint8_t data);
+uint8_t SPI_Write_Mask(uint16_t reg_addr, uint8_t mask, uint8_t data);
 void AD5695_Register_Access_Mode( enum ad4695_reg_access access);
 void AD4695_Init();
 void AD4695_Set_Busy_State(/*Enum ad4695_busy_gpio_sel gp_sel*/);
@@ -322,7 +312,8 @@ void AD4695_Standard_Seq_MODEandOSR(enum ad4695_osr_ratios ratio);
 void AD4695_Enter_Conversion_Mode(uint8_t enableStatus);
 void AD4695_Exit_Conversion_Mode(void);
 void AD4695_Standard_MODE_SET(void);
-void AD4695_STD_SEQ_EN_Channels(uint16_t reg_addr, uint8_t channels);
+void AD4695_SetStandardSequenceActiveChannels(uint8_t channels);
+uint8_t AD4695_GetStandardSequenceActiveChannels(void);
 void AD4695_TemperatureSensorEnable(uint8_t mode);
 void AD4695_DisableInternalLDO(void);
 void AllConfigForAD4695();

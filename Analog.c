@@ -62,82 +62,13 @@ static CHANNEL_OFFSET_TOTALS s_compareChannelOffset;
 ///	Analog information
 ///----------------------------------------------------------------------------
 
-// INA1 - R channel
-// INA2 - T channel
-// INB1 - V channel
-// INB2 - A channel
-
-// CNVST (A.L.) | A0 | A/B (A.L.)	|	Read	| Address Select
-// -------------------------------------------------------------
-//	inactive	| 0	 |		1		| INA1 (R)	|	0010 - 0x2
-//	active		| 0	 |		0		| INB1 (V)	|	0000 - 0x0
-//	inactive	| 1	 |		1		| INA2 (T)	|	0110 - 0x6
-//	active		| 1	 |		0		| INB2 (A)	|	0100 - 0x4
-//--------------------------------------------------------------
-// Processor Pin| A2 |		A1		|
-
-/*
-Config readback reference for different reference configs
-
-(Debug |      0s) Setup A/D config and channels (External Ref, Temp On) (Channel config: 0x39D4)
-Chan 0 Config: 0xe150, Chan 1 Config: 0xe350, Chan 2 Config: 0xe550, Chan 3 Config: 0xe750, Temp Config: 0xb750
-
-(Debug |      0s) Setup A/D config and channels (External Ref, Internal Buffer, Temp On) (Channel config: 0x39DC)
-Chan 0 Config: 0xe170, Chan 1 Config: 0xe370, Chan 2 Config: 0xe570, Chan 3 Config: 0xe770, Temp Config: 0xb770
-
-(Debug |      0s) Setup A/D config and channels (External Ref, Temp Off) (Channel config: 0x39F4)
-Chan 0 Config: 0xe1d0, Chan 1 Config: 0xe3d0, Chan 2 Config: 0xe5d0, Chan 3 Config: 0xe7d0, Temp Config: 0xb7d0
-
-(Debug |      0s) Setup A/D config and channels (External Ref, Internal Buffer, Temp Off) (Channel config: 0x39FC)
-Chan 0 Config: 0xe1f0, Chan 1 Config: 0xe3f0, Chan 2 Config: 0xe5f0, Chan 3 Config: 0xe7f0, Temp Config: 0xb7f0
-*/
-
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
 #if 0 /* Unused at this time */
-void GetAnalogConfigReadback(void)
+uint8_t GetAnalogConfigReadback(void)
 {
-	SAMPLE_DATA_STRUCT dummyData;
-	uint16 channelConfigReadback;
-
-	if (g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP)
-	{
-		// Chan 0
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &(dummyData.r));
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &channelConfigReadback);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		debugRaw("\nChan 0 Config: 0x%x, ", channelConfigReadback);
-
-		// Chan 1
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &(dummyData.t));
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &channelConfigReadback);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		debugRaw("Chan 1 Config: 0x%x, ", channelConfigReadback);
-
-		// Chan 2
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &(dummyData.v));
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &channelConfigReadback);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		debugRaw("Chan 2 Config: 0x%x, ", channelConfigReadback);
-
-		// Chan 3
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &(dummyData.a));
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &channelConfigReadback);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		debugRaw("Chan 3 Config: 0x%x, ", channelConfigReadback);
-
-		// Temp
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, (uint16*)&g_currentTempReading);
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &channelConfigReadback);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		debugRaw("Temp Config: 0x%x", channelConfigReadback);
-	}
+	return(AD4695_GetStandardSequenceActiveChannels());
 }
 #endif
 
@@ -146,60 +77,49 @@ void GetAnalogConfigReadback(void)
 ///----------------------------------------------------------------------------
 void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 {
-#if 0 /* old hw */
-	uint16 channelConfigReadback;
-	uint8 configError = NO;
+	uint8_t chanDataRaw[3];
+	uint8_t configError = NO;
 
-	// Chan 0 Config: 0xe150, Chan 1 Config: 0xe350, Chan 2 Config: 0xe550, Chan 3 Config: 0xe750, Temp Config: 0xb750
+	// Todo: need variable channel config for selectable dynamic channels
 
 	if (g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP)
 	{
+		// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
+
 		// Chan 0
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		if (g_factorySetupRecord.analogChannelConfig == CHANNELS_R_AND_V_SCHEMATIC)
-			{ spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &(dataPtr->r)); }
-		else // (g_factorySetupRecord.analogChannelConfig == CHANNELS_R_AND_V_SWAPPED)
-			{ spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &(dataPtr->v)); }
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &channelConfigReadback);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		//if (channelConfigReadback != 0xe0d0) { configError = YES; debug("Chan 0 Config: 0x%x\r\n", channelConfigReadback);}
-		if (channelConfigReadback != 0xe150) { configError = YES; }
+		SetAdcConversionState(ON);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
+		SetAdcConversionState(OFF);
+		dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+		if (chanDataRaw[3] != 0) { configError = YES; }
 
 		// Chan 1
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &(dataPtr->t));
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &channelConfigReadback);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		//if (channelConfigReadback != 0xe2d0) { configError = YES; debug("Chan 1 Config: 0x%x\r\n", channelConfigReadback);}
-		if (channelConfigReadback != 0xe350) { configError = YES; }
+		SetAdcConversionState(ON);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
+		SetAdcConversionState(OFF);
+		dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+		if (chanDataRaw[3] != 1) { configError = YES; }
 
 		// Chan 2
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		if (g_factorySetupRecord.analogChannelConfig == CHANNELS_R_AND_V_SCHEMATIC)
-			{ spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &(dataPtr->v)); }
-		else // (g_factorySetupRecord.analogChannelConfig == CHANNELS_R_AND_V_SWAPPED)
-			{ spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &(dataPtr->r)); }
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &channelConfigReadback);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		//if (channelConfigReadback != 0xe4d0) { configError = YES; debug("Chan 2 Config: 0x%x\r\n", channelConfigReadback);}
-		if (channelConfigReadback != 0xe550) { configError = YES; }
+		SetAdcConversionState(ON);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
+		SetAdcConversionState(OFF);
+		dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+		if (chanDataRaw[3] != 2) { configError = YES; }
 
 		// Chan 3
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &(dataPtr->a));
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &channelConfigReadback);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		//if (channelConfigReadback != 0xe6d0) { configError = YES; debug("Chan 3 Config: 0x%x\r\n", channelConfigReadback);}
-		if (channelConfigReadback != 0xe750) { configError = YES; }
+		SetAdcConversionState(ON);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
+		SetAdcConversionState(OFF);
+		dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+		if (chanDataRaw[3] != 3) { configError = YES; }
 
 		// Temp
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, (uint16*)&g_currentTempReading);
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &channelConfigReadback);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		//if (channelConfigReadback != 0xb6d0) { configError = YES; debug("Temp Config: 0x%x\r\n", channelConfigReadback);}
-		if (channelConfigReadback != 0xb750) { configError = YES; }
-			
+		SetAdcConversionState(ON);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
+		SetAdcConversionState(OFF);
+		if (chanDataRaw[3] != 15) { configError = YES; } // An INx value of 15 corresponds to either IN15 or the temperature sensor
+
 		if (configError == YES)
 		{
 			debugErr("AD Channel config error! Channel data is not in sync\r\n");
@@ -207,129 +127,63 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 	}
 	else if (g_adChannelConfig == FOUR_AD_CHANNELS_NO_READBACK_WITH_TEMP)
 	{
-		// Chan 0
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		if (g_factorySetupRecord.analogChannelConfig == CHANNELS_R_AND_V_SCHEMATIC)
-			{ spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &(dataPtr->r)); }
-		else // (g_factorySetupRecord.analogChannelConfig == CHANNELS_R_AND_V_SWAPPED)
-			{ spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &(dataPtr->v)); }
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-
-		// Chan 1
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &(dataPtr->t));
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-
-		// Chan 2
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		if (g_factorySetupRecord.analogChannelConfig == CHANNELS_R_AND_V_SCHEMATIC)
-			{ spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &(dataPtr->v)); }
-		else // (g_factorySetupRecord.analogChannelConfig == CHANNELS_R_AND_V_SWAPPED)
-			{ spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &(dataPtr->r)); }
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-
-		// Chan 3
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &(dataPtr->a));
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-
-		// Temp
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, (uint16*)&g_currentTempReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-	}
-	else // FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP
-	{
-		// Chan 0
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		if (g_factorySetupRecord.analogChannelConfig == CHANNELS_R_AND_V_SCHEMATIC)
-			{ spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &(dataPtr->r)); }
-		else // (g_factorySetupRecord.analogChannelConfig == CHANNELS_R_AND_V_SWAPPED)
-			{ spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &(dataPtr->v)); }
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-
-		// Chan 1
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &(dataPtr->t));
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-
-		// Chan 2
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		if (g_factorySetupRecord.analogChannelConfig == CHANNELS_R_AND_V_SCHEMATIC)
-			{ spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &(dataPtr->v)); }
-		else // (g_factorySetupRecord.analogChannelConfig == CHANNELS_R_AND_V_SWAPPED)
-			{ spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &(dataPtr->r)); }
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-
-		// Chan 3
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000);	spi_read(&AVR32_SPI0, &(dataPtr->a));
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-	}	
-#else
-	uint8_t chanDataRaw[2];
-
-	// Current no readback option unless going into two-cycle or single-cycle command mode, so make readback and no readback the same for now
-	if ((g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP) | (g_adChannelConfig == FOUR_AD_CHANNELS_NO_READBACK_WITH_TEMP))
-	{
 		// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
 
 		// Chan 0
 		SetAdcConversionState(ON);
-		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
 		SetAdcConversionState(OFF);
 		dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 		// Chan 1
 		SetAdcConversionState(ON);
-		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
 		SetAdcConversionState(OFF);
 		dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 		// Chan 2
 		SetAdcConversionState(ON);
-		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
 		SetAdcConversionState(OFF);
 		dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 		// Chan 3
 		SetAdcConversionState(ON);
-		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
 		SetAdcConversionState(OFF);
 		dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 		// Temp
 		SetAdcConversionState(ON);
-		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
 		SetAdcConversionState(OFF);
 	}
 	else // FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP
 	{
 		// Chan 0
 		SetAdcConversionState(ON);
-		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
 		SetAdcConversionState(OFF);
 		dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 		// Chan 1
 		SetAdcConversionState(ON);
-		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
 		SetAdcConversionState(OFF);
 		dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 		// Chan 2
 		SetAdcConversionState(ON);
-		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
 		SetAdcConversionState(OFF);
 		dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 		// Chan 3
 		SetAdcConversionState(ON);
-		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, sizeof(chanDataRaw), BLOCKING);
+		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
 		SetAdcConversionState(OFF);
 		dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 	}
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -345,99 +199,35 @@ void InitAnalogControl(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void WriteADConfig(unsigned int config)
-{
-#if 0 /* old hw */
-	spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-	spi_write(&AVR32_SPI0, ((unsigned short) config << 2));
-	spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 {
-	// AD config all channels, with temp, with read back
-	// Overwrite (set config), Unipolar, INx referenced to COM = GND � 0.1 V, Stop after Channel 3 (0 bias), Full BW, 
-	//	External reference, temperature enabled (assumed internal buffer disabled), Scan IN0 to IN3 then read temp, Read back the CFG register
-	// 00 1 110 011 1 010 10 0
-	// 0011 1001 1101 0100 - 0x39D4
+	// Todo: make channel config dynamic
 	
-	// AD config all channels, with temp, no read back
-	// Overwrite (set config), Unipolar, INx referenced to COM = GND � 0.1 V, Stop after Channel 3 (0 bias), Full BW,
-	//	External reference, temperature enabled (assumed internal buffer disabled), Scan IN0 to IN3 then read temp, Do not read back the CFG register
-	// 00 1 110 011 1 010 10 1
-	// 0011 1001 1101 0101 - 0x39D5
-	
-	// AD config all channels, no temp, no read back
-	// Overwrite (set config), Unipolar, INx referenced to COM = GND � 0.1 V, Stop after Channel 3 (0 bias), Full BW,
-	//	External reference, temperature disabled (assumed internal buffer disabled), Scan IN0 to IN3 only, Do not read back the CFG register
-	// 00 1 110 011 1 110 11 1
-	// 0011 1001 1111 0111 - 0x39F7
+	// Setup the stantard sequence channels to be monitored
+	AD4695_SetStandardSequenceActiveChannels((AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_AOP_1));
 
-	// For any sample rate 8K and below
-	if (sampleRate <= SAMPLE_RATE_8K)
+	// For any sample rate 16K and below
+	if (sampleRate <= SAMPLE_RATE_16K)
 	{
 		// Check if channel verification is not disabled or verification override is enabled to allow reading back the config
 		if ((g_unitConfig.adChannelVerification != DISABLED) || (channelVerification == OVERRIDE_ENABLE_CHANNEL_VERIFICATION))
 		{
-			//===================================================
-			// Setup config for 4 Chan, With read back, With temp
-			//---------------------------------------------------
-			WriteADConfig(0x39D4);
-			WriteADConfig(0x39D4);
-			WriteADConfig(0x39D4);
-		
 			g_adChannelConfig = FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP;
 		}
 		else // Verification disabled, don't read back config
 		{
-			//=================================================
-			// Setup config for 4 Chan, No read back, With temp
-			//-------------------------------------------------
-			WriteADConfig(0x39D5);
-			WriteADConfig(0x39D5);
-			WriteADConfig(0x39D5);
-		
 			g_adChannelConfig = FOUR_AD_CHANNELS_NO_READBACK_WITH_TEMP;
 		}
 	}
-	else // Sample rates above 8192 take too long to read back config and temp, so skip them
+	else // Sample rates above 16384 might take too long to read back config and temp, so skip them
 	{
-		//===============================================
-		// Setup config for 4 Chan, No read back, No temp
-		//-----------------------------------------------
-		WriteADConfig(0x39F7);
-		WriteADConfig(0x39F7);
-		WriteADConfig(0x39F7);
-
 		g_adChannelConfig = FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP;
 	}
 
-	//Delay for 1.2us at least
-	SoftUsecWait(2);
-
-#if 0 /* old hw */
-	spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-	spi_write(&AVR32_SPI0, 0x0000);
-	spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-#endif
-
-	SoftUsecWait(2);
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void WriteAnalogControl(uint16 control)
-{
-#if 0 /* old hw */
-	spi_selectChip(&AVR32_SPI1, AD_CTL_SPI_NPCS);
-	spi_write(&AVR32_SPI1, (unsigned short) control);
-	spi_unselectChip(&AVR32_SPI1, AD_CTL_SPI_NPCS);
-#endif
+	// Enable temp sensor if channel config is anything but no temperature reading, otherwise disable
+	AD4695_TemperatureSensorEnable(((g_adChannelConfig != FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP) ? YES : NO));
+	// Start conversion mode and enable status if readback is enabled, otherwise disable status
+	AD4695_Enter_Conversion_Mode(((g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP) ? YES : NO));
 }
 
 ///----------------------------------------------------------------------------
@@ -963,33 +753,19 @@ void PowerUpAnalog5VandExternalADC(void)
 ///	External ADC - AD4695
 ///----------------------------------------------------------------------------
 ///============================================================================
-uint8_t TEST_DATA = 0x1f; //can be changed
-
-uint8_t WBuf[3];
-uint8_t WBuf2[3];
-uint8_t RBuf[3];
-uint8_t TestData;
-
-uint8_t TestRegisterAccessModeCTR;
-uint8_t TestBusyState;
-uint8_t TestSTD_Sq_Mode_OSR;
-uint8_t TestSet_STD_Mode;
-uint8_t TestSetRef;
-uint8_t TestSTD_En_Channels;
-uint8_t TestEnterConversionMode;
-uint8_t TestSDO_State;
-
-AD4695_Init_Error_Struct AD4695_Init_Error;
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
 void AD4695_Test() //test the SPI com
 {
-	while(TestData != TEST_DATA)
+	uint8_t testDataValue = 0x1f; //can be changed
+	uint8_t testData;
+
+	while(testData != testDataValue)
 	{
-		SPI_Write_Reg_AD4695(AD4695_REG_SCRATCH_PAD, TEST_DATA);
-		SPI_Read_Reg_AD4695(AD4695_REG_SCRATCH_PAD, &TestData);
+		SPI_Write_Reg_AD4695(AD4695_REG_SCRATCH_PAD, testDataValue);
+		SPI_Read_Reg_AD4695(AD4695_REG_SCRATCH_PAD, &testData);
 
 		// Delay 100ms?
 		MXC_Delay(MXC_DELAY_MSEC(100));
@@ -1001,11 +777,13 @@ void AD4695_Test() //test the SPI com
 ///----------------------------------------------------------------------------
 void SPI_Write_Reg_AD4695(uint16_t reg_addr, uint8_t reg_data)
 {
-	WBuf[0] = ((reg_addr >> 8) & 0x7F);
-	WBuf[1] = 0xFF & reg_addr;
-	WBuf[2] = reg_data;
+	uint8_t writeData[3];
 
-	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, WBuf, sizeof(WBuf), NULL, 0, BLOCKING);
+	writeData[0] = ((reg_addr >> 8) & 0x7F);
+	writeData[1] = 0xFF & reg_addr;
+	writeData[2] = reg_data;
+
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 }
 
 ///----------------------------------------------------------------------------
@@ -1013,12 +791,15 @@ void SPI_Write_Reg_AD4695(uint16_t reg_addr, uint8_t reg_data)
 ///----------------------------------------------------------------------------
 void SPI_Read_Reg_AD4695(uint16_t reg_addr, uint8_t* reg_data)
 {
-	WBuf2[0] = (1 << 7) | ((reg_addr >> 8) & 0x7F);
-	WBuf2[1] = 0xFF & reg_addr;
-	WBuf2[2] = 0xFF;
+	uint8_t writeData[3];
+	uint8_t readData[3];
 
-	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, WBuf2, sizeof(WBuf2), RBuf, sizeof(RBuf), BLOCKING);
-	*reg_data = RBuf[2];
+	writeData[0] = (1 << 7) | ((reg_addr >> 8) & 0x7F);
+	writeData[1] = 0xFF & reg_addr;
+	writeData[2] = 0xFF;
+
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
+	*reg_data = readData[2];
 }
 
 ///----------------------------------------------------------------------------
@@ -1026,23 +807,25 @@ void SPI_Read_Reg_AD4695(uint16_t reg_addr, uint8_t* reg_data)
 ///----------------------------------------------------------------------------
 void SPI_Read_Mask(uint16_t reg_addr, uint8_t mask, uint8_t* data)
 {
-	uint8_t Reg_Data[3];
+	uint8_t regData[3];
 
-	SPI_Read_Reg_AD4695(reg_addr, Reg_Data);
-	*data = (Reg_Data[2] & mask);
+	SPI_Read_Reg_AD4695(reg_addr, regData);
+	*data = (regData[2] & mask);
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SPI_Write_Mask(uint16_t reg_addr, uint8_t mask, uint8_t data)
+uint8_t SPI_Write_Mask(uint16_t reg_addr, uint8_t mask, uint8_t data)
 {
-	uint8_t Reg_Data;
+	uint8_t regData;
 
-	SPI_Read_Reg_AD4695(reg_addr, &Reg_Data);
-	Reg_Data &= ~mask;
-	Reg_Data |= data;
-	SPI_Write_Reg_AD4695(reg_addr, Reg_Data);
+	SPI_Read_Reg_AD4695(reg_addr, &regData);
+	regData &= ~mask;
+	regData |= data;
+	SPI_Write_Reg_AD4695(reg_addr, regData);
+
+	return (regData);
 }
 
 ///----------------------------------------------------------------------------
@@ -1050,10 +833,12 @@ void SPI_Write_Mask(uint16_t reg_addr, uint8_t mask, uint8_t data)
 ///----------------------------------------------------------------------------
 void AD5695_Register_Access_Mode(enum ad4695_reg_access access)
 {
-	SPI_Write_Mask(AD4695_REG_SPI_CONFIG_C, AD4695_REG_SPI_CONFIG_C_MB_STRICT_MASK, AD4695_REG_SPI_CONFIG_C_MB_STRICT(access));
-	SPI_Read_Reg_AD4695(AD4695_REG_SPI_CONFIG_C, &TestRegisterAccessModeCTR);
+	uint8_t test, verify;
 
-	if(TestRegisterAccessModeCTR != WBuf[2]) { AD4695_Init_Error.RegisterAccessMode = TRUE; }
+	test = SPI_Write_Mask(AD4695_REG_SPI_CONFIG_C, AD4695_REG_SPI_CONFIG_C_MB_STRICT_MASK, AD4695_REG_SPI_CONFIG_C_MB_STRICT(access));
+	SPI_Read_Reg_AD4695(AD4695_REG_SPI_CONFIG_C, &verify);
+
+	if(test != verify) { debugErr("Ext ADC: Access mode error\r\n"); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1061,15 +846,17 @@ void AD5695_Register_Access_Mode(enum ad4695_reg_access access)
 ///----------------------------------------------------------------------------
 void AD4695_Set_Busy_State(/*enum ad4695_busy_gpio_sel gp_sel*/)
 {
+	uint8_t test, verify;
+
 	// Set BSY_ALT_GP0 GPO Enable bit (general-purpose output function on BSY_ALT_GP0 enabled)
-	SPI_Write_Mask(AD4695_REG_GPIO_CTRL, AD4695_GPIO_CTRL_GPO0_EN_MASK, AD4695_GPIO_CTRL_GPO0_EN_EN(1));
-	SPI_Read_Reg_AD4695(AD4695_REG_GPIO_CTRL, &TestBusyState);
-	if(TestBusyState != WBuf[2]) { AD4695_Init_Error.BusyState = TRUE; }
+	test = SPI_Write_Mask(AD4695_REG_GPIO_CTRL, AD4695_GPIO_CTRL_GPO0_EN_MASK, AD4695_GPIO_CTRL_GPO0_EN_EN(1));
+	SPI_Read_Reg_AD4695(AD4695_REG_GPIO_CTRL, &verify);
+	if(test != verify) { debugErr("Ext ADC: Busy state error (1)\r\n"); }
 
 	// Set BUSY_GP_EN bit (busy indicator on the general-purpose pin function enabled)
-	SPI_Write_Mask(AD4695_REG_GP_MODE, AD4695_GP_MODE_BUSY_GP_EN_MASK, AD4695_GP_MODE_BUSY_GP_EN(1));
-	SPI_Read_Reg_AD4695(AD4695_REG_GP_MODE, &TestBusyState);
-	if(TestBusyState != WBuf[2]) { AD4695_Init_Error.BusyState = TRUE; }
+	test = SPI_Write_Mask(AD4695_REG_GP_MODE, AD4695_GP_MODE_BUSY_GP_EN_MASK, AD4695_GP_MODE_BUSY_GP_EN(1));
+	SPI_Read_Reg_AD4695(AD4695_REG_GP_MODE, &verify);
+	if(test != verify) { debugErr("Ext ADC: Busy state error (1)\r\n"); }
 
 	// Once the BSY_ALT_GP0 is configured as an output from the External ADC, disable the weak pull down
 	MXC_GPIO0->pdpu_sel0 &= ~MXC_GPIO_PIN_17;
@@ -1082,12 +869,12 @@ void AD4695_Set_Busy_State(/*enum ad4695_busy_gpio_sel gp_sel*/)
 ///----------------------------------------------------------------------------
 void AD4695_Set_SDO_Mode(uint8_t sdoMode)
 {
-	uint8_t verify;
+	uint8_t test, verify;
 
-	SPI_Write_Mask(AD4695_REG_GP_MODE, AD4695_GP_MODE_SDO_MODE_MASK, AD4695_GP_MODE_SDO_MODE_SEL(sdoMode));
+	test = SPI_Write_Mask(AD4695_REG_GP_MODE, AD4695_GP_MODE_SDO_MODE_MASK, AD4695_GP_MODE_SDO_MODE_SEL(sdoMode));
 	SPI_Read_Reg_AD4695(AD4695_REG_GP_MODE, &verify);
 
-	if(verify != WBuf[2]) { /* report error */ }
+	if(test != verify) { /* report error */ }
 }
 
 ///----------------------------------------------------------------------------
@@ -1095,10 +882,12 @@ void AD4695_Set_SDO_Mode(uint8_t sdoMode)
 ///----------------------------------------------------------------------------
 void AD4695_Standard_Seq_MODEandOSR(enum ad4695_osr_ratios ratio) /*over sampling ratio in standard sequencer mode*/
 {
-	SPI_Write_Mask(AD4695_REG_CONFIG_IN(0), AD4695_REG_CONFIG_IN_OSR_MASK, AD4695_REG_CONFIG_IN_OSR(ratio));
-	SPI_Read_Reg_AD4695(AD4695_REG_CONFIG_IN(0), &TestSTD_Sq_Mode_OSR);
+	uint8_t test, verify;
 
-	if(TestSTD_Sq_Mode_OSR != WBuf[2]){ AD4695_Init_Error.STD_Sq_Mode_OSR = TRUE; }
+	test = SPI_Write_Mask(AD4695_REG_CONFIG_IN(0), AD4695_REG_CONFIG_IN_OSR_MASK, AD4695_REG_CONFIG_IN_OSR(ratio));
+	SPI_Read_Reg_AD4695(AD4695_REG_CONFIG_IN(0), &verify);
+
+	if(test != verify){ debugErr("Ext ADC: Seq mode and OSR error\r\n"); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1106,10 +895,12 @@ void AD4695_Standard_Seq_MODEandOSR(enum ad4695_osr_ratios ratio) /*over samplin
 ///----------------------------------------------------------------------------
 void AD4695_Standard_MODE_SET() /*Standard Sequencer Enable Bit*/
 {
-	SPI_Write_Mask(AD4695_REG_SEQ_CTRL, AD4695_SEQ_CTRL_STD_SEQ_EN_MASK, AD4695_SEQ_CTRL_STD_SEQ_EN(1));
-	SPI_Read_Reg_AD4695(AD4695_REG_SEQ_CTRL, &TestSet_STD_Mode);
+	uint8_t test, verify;
 
-	if(TestSet_STD_Mode != WBuf[2]) { AD4695_Init_Error.Set_STD_Mode = TRUE; }
+	test = SPI_Write_Mask(AD4695_REG_SEQ_CTRL, AD4695_SEQ_CTRL_STD_SEQ_EN_MASK, AD4695_SEQ_CTRL_STD_SEQ_EN(1));
+	SPI_Read_Reg_AD4695(AD4695_REG_SEQ_CTRL, &verify);
+
+	if(test != verify) { debugErr("Ext ADC: Standard mode set error\r\n"); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1117,30 +908,45 @@ void AD4695_Standard_MODE_SET() /*Standard Sequencer Enable Bit*/
 ///----------------------------------------------------------------------------
 void AD4695_RefControl(enum ad4695_ref REF)
 {
+	uint8_t test, verify;
+
 	/*Reference Input Range Control  0x0: 2.4 V ≤ VREF ≤ 2.75 V.
 		0x1: 2.75 V < VREF ≤ 3.25 V.
 		0x2: 3.25 V < VREF ≤ 3.75 V.
 		0x3: 3.75 V < VREF ≤ 4.50 V.
 		0x4: 4.5 V < VREF ≤ 5.10 V.*/
 
-	SPI_Write_Mask(AD4695_REG_REF_CTRL, AD4695_REG_REF_CTRL_MASK, AD4695_REG_REF_CTRL_EN(REF));
-	SPI_Read_Reg_AD4695(AD4695_REG_REF_CTRL, &TestSetRef);
+	test = SPI_Write_Mask(AD4695_REG_REF_CTRL, AD4695_REG_REF_CTRL_MASK, AD4695_REG_REF_CTRL_EN(REF));
+	SPI_Read_Reg_AD4695(AD4695_REG_REF_CTRL, &verify);
 
-	if(TestSetRef != WBuf[2]) { AD4695_Init_Error.SetRef = TRUE; }
+	if(test != verify) { debugErr("Ext ADC: Reference control error\r\n"); }
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_STD_SEQ_EN_Channels(uint16_t reg_addr, uint8_t channels)
+void AD4695_SetStandardSequenceActiveChannels(uint8_t channels)
 {
-	//uint8_t Reg_Data;
+	uint8_t verify;
 
 	// Setup channels to be sequenced
-	SPI_Write_Reg_AD4695(reg_addr, channels);
-	SPI_Read_Reg_AD4695(reg_addr, &TestSTD_En_Channels);
+	SPI_Write_Reg_AD4695(AD4695_REG_STD_SEQ_CONFIG, channels);
+	SPI_Read_Reg_AD4695(AD4695_REG_STD_SEQ_CONFIG, &verify);
 
-	if(TestSTD_En_Channels != WBuf[2]) { AD4695_Init_Error.STD_En_Channels = TRUE; }
+	if(channels != verify) { debugErr("Ext ADC: Set standard sequence active channels error\r\n"); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t AD4695_GetStandardSequenceActiveChannels(void)
+{
+	uint8_t regData;
+
+	// Setup channels to be sequenced
+	SPI_Read_Reg_AD4695(AD4695_REG_STD_SEQ_CONFIG, &regData);
+
+	return (regData);
 }
 
 ///----------------------------------------------------------------------------
@@ -1195,7 +1001,7 @@ void AD4695_Init()
 
 	// Some combination of the following: AD4695_STD_SEQ_GEO_1, AD4695_STD_SEQ_AOP_1, AD4695_STD_SEQ_GEO_2, AD4695_STD_SEQ_AOP_2
 	// Set default Geo1 + AOP1
-	AD4695_STD_SEQ_EN_Channels(AD4695_REG_STD_SEQ_CONFIG, (AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_AOP_1)); // Enable selected channels
+	AD4695_SetStandardSequenceActiveChannels((AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_AOP_1)); // Enable selected channels
 
 #if 0 /* Not ready to enter conversion mode at this time */
 	AD4695_Enter_Conversion_Mode(NO); /*Enters conversion mode*/
@@ -1211,9 +1017,10 @@ void AD4695_Init()
 void AD4695_Enter_Conversion_Mode(uint8_t enableStatus) /*Enter conversion mode*/
 {
 #if 0 /* only needed if BSY_ALT_GP0 is no longer a status line */
-	SPI_Write_Mask(AD4695_REG_SETUP, AD4695_SETUP_IF_SDO_STATE_MASK, AD4695_SETUP_IF_SDO_STATE);
-	SPI_Read_Reg_AD4695(AD4695_REG_SETUP, &TestSDO_State);
-	if(TestSDO_State != WBuf[2]) { AD4695_Init_Error.SDO_State = TRUE; }
+	uint8_t test, verify;
+	test = SPI_Write_Mask(AD4695_REG_SETUP, AD4695_SETUP_IF_SDO_STATE_MASK, AD4695_SETUP_IF_SDO_STATE);
+	SPI_Read_Reg_AD4695(AD4695_REG_SETUP, &verify);
+	if(test != verify) { debugErr("Ext ADC: Enter conversion mode failed\r\n"); }
 #endif
 
 	if (enableStatus)
