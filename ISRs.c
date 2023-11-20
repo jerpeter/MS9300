@@ -2161,96 +2161,47 @@ static inline void applyOffsetAndCacheSampleData_ISR_Inline(void)
 ///----------------------------------------------------------------------------
 static inline void getChannelDataWithReadbackWithTemp_ISR_Inline(void)
 {
-	//___________________________________________________________________________________________
-	//___Sample Output with return config words for reference
-	// R: 7f26 (e0d0) | V: 7f10 (e2d0) | T: 7f15 (e4d0) | A: 7f13 (e6d0) | Temp: dbe (b6d0)
-	
-#if 0 /* old hw */
-	if (s_channelConfig == CHANNELS_R_AND_V_SCHEMATIC)
-	{
-		// Chan 0 - R
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_R_channelReading);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_channelConfigReadBack);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		//if (s_channelConfigReadBack != 0xe0d0) { s_channelSyncError = YES; }
-		if (s_channelConfigReadBack != 0xe150) { s_channelSyncError = YES; }
+	uint8_t chanDataRaw[3];
 
-		// Chan 1 - T
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_T_channelReading);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_channelConfigReadBack);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		//if (s_channelConfigReadBack != 0xe2d0) { s_channelSyncError = YES; }
-		if (s_channelConfigReadBack != 0xe350) { s_channelSyncError = YES; }
+	// Todo: need variable channel config for selectable dynamic channels
+	// Todo: verify channel inputs
 
-		// Chan 2 - V
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_V_channelReading);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_channelConfigReadBack);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		//if (s_channelConfigReadBack != 0xe4d0) { s_channelSyncError = YES; }
-		if (s_channelConfigReadBack != 0xe550) { s_channelSyncError = YES; }
+	// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
 
-		// Chan 3 - A
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_A_channelReading);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_channelConfigReadBack);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		//if (s_channelConfigReadBack != 0xe6d0) { s_channelSyncError = YES; }
-		if (s_channelConfigReadBack != 0xe750) { s_channelSyncError = YES; }
+	// Chan 0 - R?
+	SetAdcConversionState(ON);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
+	SetAdcConversionState(OFF);
+	s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+	if (chanDataRaw[3] != 0) { s_channelSyncError = YES; }
 
-		// Temperature
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, (uint16*)&g_currentTempReading);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_channelConfigReadBack);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		//if (s_channelConfigReadBack != 0xb6d0) { s_channelSyncError = YES; }
-		if (s_channelConfigReadBack != 0xb750) { s_channelSyncError = YES; }
-	}
-	else // (s_channelConfig == CHANNELS_R_AND_V_SWAPPED)
-	{
-		// Chan 0 - V
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_V_channelReading);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_channelConfigReadBack);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		//if (s_channelConfigReadBack != 0xe0d0) { s_channelSyncError = YES; }
-		if (s_channelConfigReadBack != 0xe150) { s_channelSyncError = YES; }
+	// Chan 1 - T?
+	SetAdcConversionState(ON);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
+	SetAdcConversionState(OFF);
+	s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+	if (chanDataRaw[3] != 1) { s_channelSyncError = YES; }
 
-		// Chan 1 - T
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_T_channelReading);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_channelConfigReadBack);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		//if (s_channelConfigReadBack != 0xe2d0) { s_channelSyncError = YES; }
-		if (s_channelConfigReadBack != 0xe350) { s_channelSyncError = YES; }
+	// Chan 2 - V?
+	SetAdcConversionState(ON);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
+	SetAdcConversionState(OFF);
+	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+	if (chanDataRaw[3] != 2) { s_channelSyncError = YES; }
 
-		// Chan 2 - R
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_R_channelReading);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_channelConfigReadBack);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		//if (s_channelConfigReadBack != 0xe4d0) { s_channelSyncError = YES; }
-		if (s_channelConfigReadBack != 0xe550) { s_channelSyncError = YES; }
+	// Chan 3 - A
+	SetAdcConversionState(ON);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
+	SetAdcConversionState(OFF);
+	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+	if (chanDataRaw[3] != 3) { s_channelSyncError = YES; }
 
-		// Chan 3 - A
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_A_channelReading);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_channelConfigReadBack);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		//if (s_channelConfigReadBack != 0xe6d0) { s_channelSyncError = YES; }
-		if (s_channelConfigReadBack != 0xe750) { s_channelSyncError = YES; }
-
-		// Temperature
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, (uint16*)&g_currentTempReading);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_channelConfigReadBack);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		//if (s_channelConfigReadBack != 0xb6d0) { s_channelSyncError = YES; }
-		if (s_channelConfigReadBack != 0xb750) { s_channelSyncError = YES; }
-	}
-#endif
+	// Temp
+	SetAdcConversionState(ON);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
+	SetAdcConversionState(OFF);
+	g_currentTempReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+	if (chanDataRaw[3] != 15) { s_channelSyncError = YES; } // An INx value of 15 corresponds to either IN15 or the temperature sensor
 }
 
 ///----------------------------------------------------------------------------
@@ -2258,62 +2209,42 @@ static inline void getChannelDataWithReadbackWithTemp_ISR_Inline(void)
 ///----------------------------------------------------------------------------
 static inline void getChannelDataNoReadbackWithTemp_ISR_Inline(void)
 {
-#if 0 /* old hw */
-	if (s_channelConfig == CHANNELS_R_AND_V_SCHEMATIC)
-	{
-		// Chan 0 - R
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_R_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
+	uint8_t chanDataRaw[2];
 
-		// Chan 1 - T
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_T_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
+	// Todo: need variable channel config for selectable dynamic channels
+	// Todo: verify channel inputs
 
-		// Chan 2 - V
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_V_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
+	// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
 
-		// Chan 3 - A
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_A_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
+	// Chan 0 - R?
+	SetAdcConversionState(ON);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
+	SetAdcConversionState(OFF);
+	s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
-		// Temperature
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, (uint16*)&g_currentTempReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-	}
-	else // (s_channelConfig == CHANNELS_R_AND_V_SWAPPED)
-	{
-		// Chan 0 - V
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_V_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
+	// Chan 1 - T?
+	SetAdcConversionState(ON);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
+	SetAdcConversionState(OFF);
+	s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
-		// Chan 1 - T
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_T_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
+	// Chan 2 - V?
+	SetAdcConversionState(ON);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
+	SetAdcConversionState(OFF);
+	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
-		// Chan 2 - R
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_R_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
+	// Chan 3 - A
+	SetAdcConversionState(ON);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
+	SetAdcConversionState(OFF);
+	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
-		// Chan 3 - A
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_A_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-
-		// Temperature
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, (uint16*)&g_currentTempReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-	}
-#endif
+	// Temp
+	SetAdcConversionState(ON);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
+	SetAdcConversionState(OFF);
+	g_currentTempReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 }
 
 ///----------------------------------------------------------------------------
@@ -2321,56 +2252,36 @@ static inline void getChannelDataNoReadbackWithTemp_ISR_Inline(void)
 ///----------------------------------------------------------------------------
 static inline void getChannelDataNoReadbackNoTemp_ISR_Inline(void)
 {
-	//___________________________________________________________________________________________
-	//___Sample Output with return config words for reference
-	// R: 7f26 (e0d0) | V: 7f10 (e2d0) | T: 7f15 (e4d0) | A: 7f13 (e6d0) | Temp: dbe (b6d0)
-	
-#if 0 /* old hw */
-	if (s_channelConfig == CHANNELS_R_AND_V_SCHEMATIC)
-	{
-		// Chan 0 - R
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_R_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
+	uint8_t chanDataRaw[2];
 
-		// Chan 1 - T
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_T_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
+	// Todo: need variable channel config for selectable dynamic channels
+	// Todo: verify channel inputs
 
-		// Chan 2 - V
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_V_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
+	// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
 
-		// Chan 3 - A
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_A_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-	}
-	else // (s_channelConfig == CHANNELS_R_AND_V_SWAPPED)
-	{
-		// Chan 0 - V
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_V_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
+	// Chan 0 - R?
+	SetAdcConversionState(ON);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
+	SetAdcConversionState(OFF);
+	s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
-		// Chan 1 - T
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_T_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
+	// Chan 1 - T?
+	SetAdcConversionState(ON);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
+	SetAdcConversionState(OFF);
+	s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
-		// Chan 2 - R
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_R_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
+	// Chan 2 - V?
+	SetAdcConversionState(ON);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
+	SetAdcConversionState(OFF);
+	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
-		// Chan 3 - A
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_A_channelReading);
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-	}
-#endif
+	// Chan 3 - A
+	SetAdcConversionState(ON);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
+	SetAdcConversionState(OFF);
+	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 }
 
 ///----------------------------------------------------------------------------
@@ -2380,44 +2291,6 @@ static inline void HandleChannelSyncError_ISR_Inline(void)
 {
 	debugErr("AD Channel Sync Error\r\n");
 
-#if 0 /* Old method */
-	// Attempt channel recovery (with a channel read to get the config read back value)
-	spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-	spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_channelConfigReadBack); // Data insignificant
-	spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_channelConfigReadBack); // Config read back
-	spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		
-	switch (s_channelConfigReadBack)
-	{
-#if 0 /* Old channel config */
-		case 0xe0d0: s_channelReadsToSync = 4; break; // R Chan
-		case 0xe2d0: s_channelReadsToSync = 3; break; // T Chan
-		case 0xe4d0: s_channelReadsToSync = 2; break; // V Chan
-		case 0xe6d0: s_channelReadsToSync = 1; break; // A Chan
-		case 0xb6d0: s_channelReadsToSync = 0; break; // Temp Chan
-#else
-		case 0xe150: s_channelReadsToSync = 4; break; // R Chan
-		case 0xe350: s_channelReadsToSync = 3; break; // T Chan
-		case 0xe550: s_channelReadsToSync = 2; break; // V Chan
-		case 0xe750: s_channelReadsToSync = 1; break; // A Chan
-		case 0xb750: s_channelReadsToSync = 0; break; // Temp Chan
-#endif
-
-		default: 
-			s_channelReadsToSync = 0; // Houston, we have a problem... all channels read and unable to match
-			debugErr("Error: ISR Processing AD --> Unable to Sync channels, data collection broken\r\n");
-			break;
-	}
-		
-	while (s_channelReadsToSync--)
-	{
-		// Dummy reads to realign channel processing
-		spi_selectChip(&AVR32_SPI0, AD_SPI_NPCS);
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_channelConfigReadBack); // Data insignificant
-		spi_write(&AVR32_SPI0, 0x0000); spi_read(&AVR32_SPI0, &s_channelConfigReadBack); // Config read back
-		spi_unselectChip(&AVR32_SPI0, AD_SPI_NPCS);
-	}
-#else /* New method */
 	// Disable A/D due to error
 	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
@@ -2430,7 +2303,6 @@ static inline void HandleChannelSyncError_ISR_Inline(void)
 
 	// Setup the A/D Channel configuration
 	SetupADChannelConfig(s_sampleRate, UNIT_CONFIG_CHANNEL_VERIFICATION);
-#endif
 }
 
 ///----------------------------------------------------------------------------
