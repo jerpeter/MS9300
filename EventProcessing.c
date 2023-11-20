@@ -429,7 +429,7 @@ void DumpSummaryListFileToEventBuffer(void)
 	{
 		if ((f_open(&file, (const TCHAR*)s_summaryListFileName, FA_READ)) != FR_OK)
 		{
-			debugErr("File access problem, Dump Summary List: %s\n", s_summaryListFileName);
+			debugErr("File access problem, Dump Summary List: %s\r\n", s_summaryListFileName);
 		}
 		else // File successfully opened
 		{
@@ -477,7 +477,7 @@ void AddEventToSummaryList(EVT_RECORD* event)
 
     if ((f_open(&file, (const TCHAR*)s_summaryListFileName, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
-		debugErr("File access problem: Add Event to Summary list with: %s\n", s_summaryListFileName);
+		debugErr("File access problem: Add Event to Summary list with: %s\r\n", s_summaryListFileName);
 		//debugErr("File access problem: Add Event to Summary list\r\n");
 	}
 	else // File successfully created or opened
@@ -517,7 +517,7 @@ SUMMARY_LIST_ENTRY_STRUCT* GetSummaryFromSummaryList(uint16 eventNumber)
 
 		if ((f_open(&file, (const TCHAR*)s_summaryListFileName, FA_READ)) != FR_OK)
 		{
-			debugErr("File access problem: Get Summary from Summary List: %s\n", s_summaryListFileName);
+			debugErr("File access problem: Get Summary from Summary List: %s\r\n", s_summaryListFileName);
 		}
 		else // File successfully opened
 		{
@@ -2392,7 +2392,7 @@ void TestEMMCFatFilesystem(void)
 	// -------------------------------------
     if ((f_open(&file, (const TCHAR*)testLogFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
-		debugErr("eMMC and FAT file system: Unable to open file: %s\n", testLogFilename);
+		debugErr("eMMC and FAT file system: Unable to open file: %s\r\n", testLogFilename);
 	}
 	else // File created or exists
 	{
@@ -2415,7 +2415,7 @@ void TestEMMCFatFilesystem(void)
 	// -------------------------------------
     if ((f_open(&file, (const TCHAR*)testLogFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
-		debugErr("eMMC and FAT file system: Unable to open file: %s\n", testLogFilename);
+		debugErr("eMMC and FAT file system: Unable to open file: %s\r\n", testLogFilename);
 	}
 	else // File created or exists
 	{

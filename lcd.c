@@ -2909,7 +2909,7 @@ uint16_t ft81x_fifo_rp(
 {
 	uint16_t rp = ft81x_rd16(REG_CMD_READ);
 	if (rp == DL_CMD_FAULT) {
-		debugErr("FT81X COPROCESSOR EXCEPTION\n");
+		debugErr("FT81X COPROCESSOR EXCEPTION\r\n");
 		//vTaskDelay(50 / portTICK_PERIOD_MS);
 		// Resetting co-processor sets REG_CMD_READ to zero.
 		ft81x_wr(REG_CPURESET, 1);

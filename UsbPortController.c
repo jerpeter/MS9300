@@ -338,13 +338,13 @@ int tps25750_exec_patch_cmd_pbms(struct tps25750 *tps, uint8_t *in_data, size_t 
 
 	switch (rc) {
 	case TPS_TASK_BPMS_INVALID_BUNDLE_SIZE:
-		debugErr("USB Port Controller: invalid fw size\n");
+		debugErr("USB Port Controller: invalid fw size\r\n");
 		return E_INVALID;
 	case TPS_TASK_BPMS_INVALID_SLAVE_ADDR:
-		debugErr("USB Port Controller: invalid slave address\n");
+		debugErr("USB Port Controller: invalid slave address\r\n");
 		return E_INVALID;
 	case TPS_TASK_BPMS_INVALID_TIMEOUT:
-		debugErr("USB Port Controller: timed out\n");
+		debugErr("USB Port Controller: timed out\r\n");
 		return E_TIME_OUT;
 	default:
 		break;
@@ -366,12 +366,12 @@ static int tps25750_complete_patch_process(struct tps25750 *tps)
 		return ret;
 
 	if (out_data[TPS_PBMC_RC]) {
-		debugErr("USB Port Controller: pbmc failed: %u\n", out_data[TPS_PBMC_RC]);
+		debugErr("USB Port Controller: pbmc failed: %u\r\n", out_data[TPS_PBMC_RC]);
 		return E_COMM_ERR;
 	}
 
 	if (out_data[TPS_PBMC_DPCS]) {
-		debugErr("USB Port Controller: failed device patch complete status: %u\n", out_data[TPS_PBMC_DPCS]);
+		debugErr("USB Port Controller: failed device patch complete status: %u\r\n", out_data[TPS_PBMC_DPCS]);
 		return E_COMM_ERR;
 	}
 	return (0);
@@ -386,7 +386,7 @@ static int tps25750_get_reg_boot_status(struct tps25750 *tps, uint64_t *status)
 
 	ret = tps25750_block_read(tps, TPS_REG_BOOT_STATUS, status, 5);
 	if (ret) {
-		debugErr("USB Port Controller: failed to get boot status %d", ret);
+		debugErr("USB Port Controller: failed to get boot status %d\r\n", ret);
 		return ret;
 	}
 
@@ -419,7 +419,7 @@ static int tps25750_get_mode(struct tps25750 *tps)
 #endif
 
 	if (ret < 0) {
-		debugErr("USB Port Controller: unsupported mode \"%s\"\n", mode);
+		debugErr("USB Port Controller: unsupported mode \"%s\"\r\n", mode);
 		return E_NO_DEVICE;
 	}
 
@@ -453,7 +453,7 @@ static int tps25750_abort_patch_process(struct tps25750 *tps)
 
 	ret = tps2750_is_mode(tps, TPS_MODE_PTCH);
 	if (ret != 1) {
-		debugErr("USB Port Controller: failed to switch to \"PTCH\" mode\n");
+		debugErr("USB Port Controller: failed to switch to \"PTCH\" mode\r\n");
 		if (ret < 0)
 			return ret;
 		return E_FAIL;
@@ -547,7 +547,7 @@ static void tps25750_handle_plug_event(struct tps25750 *tps, uint32_t status)
 	if (TPS_REG_STATUS_PLUG_PRESENT(status)) {
 		ret = tps25750_connect(tps, status);
 		if (ret)
-			debugErr("USB Port Controller: failed to register partner\n");
+			debugErr("USB Port Controller: failed to register partner\r\n");
 	} else {
 		tps25750_disconnect(tps, status);
 	}
@@ -582,7 +582,7 @@ int tps25750_interrupt(int irq, void *data)
 				  sizeof(event) - 1);
 
 	if (ret) {
-		debugErr("USB Port Controller: failed to read events ret: %d\n", ret);
+		debugErr("USB Port Controller: failed to read events ret: %d\r\n", ret);
 		goto err_unlock;
 	}
 
@@ -596,7 +596,7 @@ int tps25750_interrupt(int irq, void *data)
 
 	ret = tps25750_read32(tps, TPS_REG_STATUS, &status);
 	if (ret) {
-		debugErr("USB Port Controller: failed to read status\n");
+		debugErr("USB Port Controller: failed to read status\r\n");
 		goto clear_events;
 	}
 
@@ -807,7 +807,7 @@ wait_for_app:
 	if (ret == 0)
 		return E_FAIL;
 
-	debug("USB Port Controller: controller switched to \"APP\" mode\n");
+	debug("USB Port Controller: controller switched to \"APP\" mode\r\n");
 
 	return (0);
 };
@@ -904,7 +904,7 @@ static int tps25750_clear_dead_battery(struct tps25750 *tps)
 
 	ret = tps25750_exec_normal_cmd(tps, TPS_4CC_DBFG);
 	if (ret) {
-		debugErr("USB Port Controller: failed to clear dead battery %d\n", ret);
+		debugErr("USB Port Controller: failed to clear dead battery %d\r\n", ret);
 		return ret;
 	}
 
@@ -923,7 +923,7 @@ static int tps25750_init(struct tps25750 *tps)
 
 	ret = tps2750_is_mode(tps, TPS_MODE_BOOT);
 	if (ret == 1) {
-		debugWarn("USB Port Controller: Device booting in dead battery");
+		debugWarn("USB Port Controller: Device booting in dead battery\r\n");
 		return 0;
 	}
 

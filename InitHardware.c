@@ -328,7 +328,7 @@ void InitExternalKeypad(void)
 	uint8 keyScan = MXC_GPIO_InGet(MXC_GPIO1, BUTTON_GPIO_MASK);
 	if (keyScan)
 	{
-		debugWarn("Keypad button being pressed (likely a bug), Key: %x", keyScan);
+		debugWarn("Keypad button being pressed (likely a bug), Key: %x\r\n", keyScan);
 	}
 
 	// Todo: Find the right LED to light (1&2=Red?, 3&4=Green?)
@@ -1493,7 +1493,7 @@ void SetupUART(void)
 	int status;
 
     status = MXC_UART_Init(MXC_UART0, UART_BAUD);
-    if (status != E_SUCCESS) { debugErr("UART0 failed init with code: %d\n", status); }
+    if (status != E_SUCCESS) { debugErr("UART0 failed init with code: %d\r\n", status); }
 
     // Move to Interrupt init
 	NVIC_ClearPendingIRQ(UART0_IRQn);
@@ -1502,7 +1502,7 @@ void SetupUART(void)
     NVIC_EnableIRQ(UART0_IRQn);
 
     status = MXC_UART_Init(MXC_UART1, UART_BAUD);
-    if (status != E_SUCCESS) { debugErr("UART1 failed init with code: %d\n", status); }
+    if (status != E_SUCCESS) { debugErr("UART1 failed init with code: %d\r\n", status); }
 
     // Move to Interrupt init
     NVIC_ClearPendingIRQ(UART1_IRQn);
@@ -1527,10 +1527,10 @@ void SetupUART(void)
     uart1ReadRequest.callback = UART1_Read_Callback;
 
     status = MXC_UART_TransactionAsync(&uart0ReadRequest);
-    if (status != E_SUCCESS) { debugErr("Uart0 Read setup (async) failed with code: %d\n", status); }
+    if (status != E_SUCCESS) { debugErr("Uart0 Read setup (async) failed with code: %d\r\n", status); }
 
     status = MXC_UART_TransactionAsync(&uart1ReadRequest);
-    if (status != E_SUCCESS) { debugErr("Uart1 Read setup (async) failed with code: %d\n", status); }
+    if (status != E_SUCCESS) { debugErr("Uart1 Read setup (async) failed with code: %d\r\n", status); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1558,7 +1558,7 @@ void SetupDebugUART(void)
     uart2ReadRequest.callback = UART2_Read_Callback;
 
     status = MXC_UART_TransactionAsync(&uart2ReadRequest);
-    if (status != E_NO_ERROR) { debugErr("Debug Uart2 Read setup (async) failed with code: %d\n", status); }
+    if (status != E_NO_ERROR) { debugErr("Debug Uart2 Read setup (async) failed with code: %d\r\n", status); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1577,7 +1577,7 @@ void UART0_Write_Blocking(uint8_t* data, uint32_t size)
     uart0WriteRequest.callback = NULL;
 
     error = MXC_UART_Transaction(&uart0WriteRequest);
-    if (error != E_NO_ERROR) { debugErr("Uart0 write failed with code: %d\n", error); }
+    if (error != E_NO_ERROR) { debugErr("Uart0 write failed with code: %d\r\n", error); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1596,7 +1596,7 @@ void UART1_Write_Blocking(uint8_t* data, uint32_t size)
     uart1WriteRequest.callback = NULL;
 
     error = MXC_UART_Transaction(&uart1WriteRequest);
-    if (error != E_NO_ERROR) { debugErr("Uart0 write failed with code: %d\n", error); }
+    if (error != E_NO_ERROR) { debugErr("Uart0 write failed with code: %d\r\n", error); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1616,7 +1616,7 @@ void UART0_Write_Async_ISR(uint8_t* data, uint32_t size)
     uart0WriteRequest.callback = NULL;
 
     error = MXC_UART_TransactionAsync(&uart0WriteRequest);
-    if (error != E_NO_ERROR) { debugErr("Uart0 write setup (async) failed with code: %d\n", error); }
+    if (error != E_NO_ERROR) { debugErr("Uart0 write setup (async) failed with code: %d\r\n", error); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1636,7 +1636,7 @@ void UART1_Write_Async_ISR(uint8_t* data, uint32_t size)
     uart1WriteRequest.callback = NULL;
 
     error = MXC_UART_TransactionAsync(&uart1WriteRequest);
-    if (error != E_NO_ERROR) { debugErr("Uart1 write setup (async) failed with code: %d\n", error); }
+    if (error != E_NO_ERROR) { debugErr("Uart1 write setup (async) failed with code: %d\r\n", error); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1657,7 +1657,7 @@ int WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* write
     masterRequest.callback = NULL;
 
     status = MXC_I2C_MasterTransaction(&masterRequest);
-	if (status != E_SUCCESS) { debugErr("I2C%d Master transaction to Slave (%02x) failed with code: %d\n", ((i2cChannel == MXC_I2C0) ? 0 : 1), slaveAddr, status); }
+	if (status != E_SUCCESS) { debugErr("I2C%d Master transaction to Slave (%02x) failed with code: %d\r\n", ((i2cChannel == MXC_I2C0) ? 0 : 1), slaveAddr, status); }
 
 	return (status);
 }
@@ -1691,11 +1691,11 @@ void SetupI2C(void)
 
     // Setup I2C0 as Master (1.8V) 
     error = MXC_I2C_Init(MXC_I2C0, 1, 0);
-    if (error != E_NO_ERROR) { debugErr("I2C0 init (master) failed to initialize with code: %d\n", error); }
+    if (error != E_NO_ERROR) { debugErr("I2C0 init (master) failed to initialize with code: %d\r\n", error); }
 
     // Setup I2C1 as Master (3.3V) 
     error = MXC_I2C_Init(MXC_I2C1, 1, 0);
-    if (error != E_NO_ERROR) { debugErr("I2C1 init (master) failed to initialize with code: %d\n", error); }
+    if (error != E_NO_ERROR) { debugErr("I2C1 init (master) failed to initialize with code: %d\r\n", error); }
 
 #if 0 /* Needed if setting up the MXC I2C as a slave */
     MXC_NVIC_SetVector(I2C0_IRQn, I2C0_IRQHandler);
@@ -1716,7 +1716,7 @@ void WDT0_IRQHandler(void)
 {
     MXC_WDT_ClearIntFlag(MXC_WDT0);
 
-    debugErr("Watchdog ISR triggered, attempting to gracefully close shop before reset...\n");
+    debugErr("Watchdog ISR triggered, attempting to gracefully close shop before reset...\r\n");
 
 	// Shutdown/data handling before reset
 }
@@ -1732,7 +1732,7 @@ void SetupWatchdog(void)
 		MXC_WDT_ClearResetFlag(MXC_WDT0);
 		MXC_WDT_DisableReset(MXC_WDT0);
 		MXC_WDT_Disable(MXC_WDT0);
-		debugErr("Watchdog reset the unit\n");
+		debugErr("Watchdog reset the unit\r\n");
     }
 
 	// Reset the Watchdog peripheral 
@@ -1838,7 +1838,7 @@ void SetupSPI(void)
 	// SPI3 - External ADC
 	//--------------------
 	status = MXC_SPI_Init(MXC_SPI3, YES, NO, 1, LOW, SPI_SPEED_ADC);
-	if (status != E_SUCCESS) { debugErr("SPI3 (ADC) Init failed with code: %d\n", status); }
+	if (status != E_SUCCESS) { debugErr("SPI3 (ADC) Init failed with code: %d\r\n", status); }
 
 	mxc_gpio_cfg_t spi3SlaveSelect0GpioConfig = { MXC_GPIO0, (MXC_GPIO_PIN_19), MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE };
 	MXC_GPIO_Config(&spi3SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
@@ -1853,7 +1853,7 @@ void SetupSPI(void)
 	// SPI2 - LCD
 	//-----------
 	status = MXC_SPI_Init(MXC_SPI2, YES, NO, 1, LOW, SPI_SPEED_LCD);
-	if (status != E_SUCCESS) { debugErr("SPI2 (LCD) Init failed with code: %d\n", status); }
+	if (status != E_SUCCESS) { debugErr("SPI2 (LCD) Init failed with code: %d\r\n", status); }
 
 	mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { MXC_GPIO2, (MXC_GPIO_PIN_5), MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE };
 	MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
@@ -1953,10 +1953,10 @@ void SetupUSBComposite(void)
     usb_opts.shutdown_callback = usbShutdownCallback;
 
     // Initialize the usb module
-    if (MXC_USB_Init(&usb_opts) != 0) { debugErr("USB Init failed\n"); }
+    if (MXC_USB_Init(&usb_opts) != 0) { debugErr("USB Init failed\r\n"); }
 
     // Initialize the enumeration module
-    if (enum_init() != 0) { debugErr("Enumeration Init failed\n"); }
+    if (enum_init() != 0) { debugErr("Enumeration Init failed\r\n"); }
 
     // Register enumeration data
     enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&composite_device_descriptor, 0);
@@ -1982,8 +1982,8 @@ void SetupUSBComposite(void)
     enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
 
     // Initialize the class driver
-    if (msc_init(&composite_config_descriptor.msc_interface_descriptor, &ids, &mem) != 0) { debugErr("MSC Init failed\n"); }
-    if (acm_init(&composite_config_descriptor.comm_interface_descriptor) != 0) { debugErr("CDC/ACM Init failed\n"); }
+    if (msc_init(&composite_config_descriptor.msc_interface_descriptor, &ids, &mem) != 0) { debugErr("MSC Init failed\r\n"); }
+    if (acm_init(&composite_config_descriptor.comm_interface_descriptor) != 0) { debugErr("CDC/ACM Init failed\r\n"); }
 
     // Register callbacks
     MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, eventCallback, NULL);
@@ -2012,7 +2012,7 @@ static void echoUSB(void)
 
         // Read the data from USB
         if (acm_read(buffer, chars) != chars) {
-            debugErr("acm_read() failed\n");
+            debugErr("acm_read() failed\r\n");
             return;
         }
 
@@ -2021,7 +2021,7 @@ static void echoUSB(void)
             //sprintf((char*)&echoText[0], "Echo: ");
             //acm_write(&echoText[0], (unsigned int)strlen((char*)&echoText[0]));
             if (acm_write(buffer, chars) != chars) {
-                debugErr("acm_write() failed\n");
+                debugErr("acm_write() failed\r\n");
             }
         }
     }
@@ -2317,10 +2317,10 @@ int mount(void)
 {
     fs = &fs_obj;
     if ((err = f_mount(fs, "", 1)) != FR_OK) { //Mount the default drive to fs now
-        debugErr("Unable to open flash drive: %s\n", FF_ERRORS[err]);
+        debugErr("Unable to open flash drive: %s\r\n", FF_ERRORS[err]);
         f_mount(NULL, "", 0);
     } else {
-        debug("Flash drive mounted.\n");
+        debug("Flash drive mounted\r\n");
         mounted = 1;
     }
 
@@ -2335,9 +2335,9 @@ int mount(void)
 int umount(void)
 {
     if ((err = f_mount(NULL, "", 0)) != FR_OK) { //Unmount the default drive from its mount point
-        debugErr("Unable to unmount volume: %s\n", FF_ERRORS[err]);
+        debugErr("Unable to unmount volume: %s\r\n", FF_ERRORS[err]);
     } else {
-        debug("Flash drive unmounted.\n");
+        debug("Flash drive unmounted\r\n");
         mounted = 0;
     }
 
@@ -2349,8 +2349,8 @@ int umount(void)
 ///----------------------------------------------------------------------------
 int formatSDHC(void)
 {
-    debugWarn("\n\n*****THE DRIVE WILL BE FORMATTED IN 5 SECONDS*****\n");
-    debugWarn("**************PRESS ANY KEY TO ABORT**************\n\n");
+    debugWarn("\n\n*****THE DRIVE WILL BE FORMATTED IN 5 SECONDS*****r\n");
+    debugWarn("**************PRESS ANY KEY TO ABORT**************\r\n\n");
     MXC_UART_ClearRXFIFO(MXC_UART2);
     MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(5000));
     if (MXC_UART_GetRXFIFOAvailable(MXC_UART2) > 0) {
@@ -2361,7 +2361,7 @@ int formatSDHC(void)
 
     if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) !=
         FR_OK) { //Format the default drive to FAT32
-        debugErr("Formatting flash drive/device failed: %s\n", FF_ERRORS[err]);
+        debugErr("Formatting flash drive/device failed: %s\r\n", FF_ERRORS[err]);
     } else {
         debug("Flash drive formatted\n");
     }
@@ -2369,7 +2369,7 @@ int formatSDHC(void)
     mount();
 
     if ((err = f_setlabel("NOMIS")) != FR_OK) {
-        debugErr("Setting drive label failed: %s\n", FF_ERRORS[err]);
+        debugErr("Setting drive label failed: %s\r\n", FF_ERRORS[err]);
         f_mount(NULL, "", 0);
     }
 
@@ -2388,7 +2388,7 @@ int getSize(void)
     }
 
     if ((err = f_getfree(&volume, &clusters_free, &fs)) != FR_OK) {
-        debugErr("Problem finding free size of card: %s\n", FF_ERRORS[err]);
+        debugErr("Problem finding free size of card: %s\r\n", FF_ERRORS[err]);
         f_mount(NULL, "", 0);
     }
 
@@ -2410,7 +2410,7 @@ int ls(void)
         mount();
     }
 
-    debug("Listing Contents of %s - \n", cwd);
+    debug("Listing Contents of %s - \r\n", cwd);
 
     if ((err = f_opendir(&dir, cwd)) == FR_OK) {
         while (1) {
@@ -2428,11 +2428,11 @@ int ls(void)
         }
         f_closedir(&dir);
     } else {
-        debugErr("Unable to opening directory\n");
+        debugErr("Unable to opening directory\r\n");
         return err;
     }
 
-    debug("\nFinished listing contents\n");
+    debug("\nFinished listing contents\r\n");
 
     return err;
 }
@@ -2448,9 +2448,9 @@ int createFile(void)
         mount();
     }
 
-    debug("Enter the name of the text file: \n");
+    debug("Enter the name of the text file: \r\n");
     scanf("%255s", filename);
-    debug("Enter the length of the file: (256 max)\n");
+    debug("Enter the length of the file: (256 max)\r\n");
     scanf("%d", &length);
     debug("Creating file %s with length %d\n", filename, length);
 
@@ -2464,14 +2464,14 @@ int createFile(void)
     generateMessage(length);
 
     if ((err = f_write(&file, &message, length, &bytes_written)) != FR_OK) {
-        debugErr("Unable to write file: %s\n", FF_ERRORS[err]);
+        debugErr("Unable to write file: %s\r\n", FF_ERRORS[err]);
         f_mount(NULL, "", 0);
         return err;
     }
-    debug("%d bytes written to file\n", bytes_written);
+    debug("%d bytes written to file\r\n", bytes_written);
 
     if ((err = f_close(&file)) != FR_OK) {
-        debugErr("Unable to close file: %s\n", FF_ERRORS[err]);
+        debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]);
         f_mount(NULL, "", 0);
         return err;
     }
@@ -2490,17 +2490,17 @@ int appendFile(void)
         mount();
     }
 
-    debug("Type name of file to append: \n");
+    debug("Type name of file to append: \r\n");
     scanf("%255s", filename);
-    debug("Type length of random data to append: \n");
+    debug("Type length of random data to append: \r\n");
     scanf("%d", &length);
 
     if ((err = f_stat((const TCHAR *)filename, &fno)) == FR_NO_FILE) {
-        debugErr("File %s doesn't exist\n", (const TCHAR *)filename);
+        debugErr("File %s doesn't exist\r\n", (const TCHAR *)filename);
         return err;
     }
     if ((err = f_open(&file, (const TCHAR *)filename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK) {
-        debugErr("Unable to open file %s\n", FF_ERRORS[err]);
+        debugErr("Unable to open file %s\r\n", FF_ERRORS[err]);
         return err;
     }
     debug("File opened\n");
@@ -2508,16 +2508,16 @@ int appendFile(void)
     generateMessage(length);
 
     if ((err = f_write(&file, &message, length, &bytes_written)) != FR_OK) {
-        debugErr("Unable to write file: %s\n", FF_ERRORS[err]);
+        debugErr("Unable to write file: %s\r\n", FF_ERRORS[err]);
         return err;
     }
     debug("Bytes written to file: %d\n", bytes_written);
 
     if ((err = f_close(&file)) != FR_OK) {
-        debugErr("Unable to close file: %s\n", FF_ERRORS[err]);
+        debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]);
         return err;
     }
-    debug("File closed\n");
+    debug("File closed\r\n");
     return err;
 }
 
@@ -2530,23 +2530,23 @@ int mkdir(void)
         mount();
     }
 
-    debug("Enter directory name: \n");
+    debug("Enter directory name: \r\n");
     scanf("%255s", directory);
 
     err = f_stat((const TCHAR *)directory, &fno);
     if (err == FR_NO_FILE) {
-        debug("Creating directory...\n");
+        debug("Creating directory...\r\n");
 
         if ((err = f_mkdir((const TCHAR *)directory)) != FR_OK) {
-            debugErr("Unable to create directory: %s\n", FF_ERRORS[err]);
+            debugErr("Unable to create directory: %s\r\n", FF_ERRORS[err]);
             f_mount(NULL, "", 0);
             return err;
         } else {
-            debug("Directory %s created\n", directory);
+            debug("Directory %s created\r\n", directory);
         }
 
     } else {
-        debugWarn("Directory already exists\n");
+        debugWarn("Directory already exists\r\n");
     }
     return err;
 }
@@ -2560,21 +2560,21 @@ int cd(void)
         mount();
     }
 
-    debug("Directory to change into: \n");
+    debug("Directory to change into: \r\n");
     scanf("%255s", directory);
 
     if ((err = f_stat((const TCHAR *)directory, &fno)) == FR_NO_FILE) {
-        debugWarn("Directory doesn't exist (Did you mean mkdir?)\n");
+        debugWarn("Directory doesn't exist (Did you mean mkdir?)\r\n");
         return err;
     }
 
     if ((err = f_chdir((const TCHAR *)directory)) != FR_OK) {
-        debugErr("Unable to chdir: %s\n", FF_ERRORS[err]);
+        debugErr("Unable to chdir: %s\r\n", FF_ERRORS[err]);
         f_mount(NULL, "", 0);
         return err;
     }
 
-    debug("Changed to %s\n", directory);
+    debug("Changed to %s\r\n", directory);
     f_getcwd(cwd, sizeof(cwd));
 
     return err;
@@ -2589,19 +2589,19 @@ int delete(void)
         mount();
     }
 
-    debug("File or directory to delete (always recursive)\n");
+    debug("File or directory to delete (always recursive)\r\n");
     scanf("%255s", filename);
 
     if ((err = f_stat((const TCHAR *)filename, &fno)) == FR_NO_FILE) {
-        debugErr("File or directory doesn't exist\n");
+        debugErr("File or directory doesn't exist\r\n");
         return err;
     }
 
     if ((err = f_unlink(filename)) != FR_OK) {
-        debugErr("Unable to delete file\n");
+        debugErr("Unable to delete file\r\n");
         return err;
     }
-    debug("Deleted file %s\n", filename);
+    debug("Deleted file %s\r\n", filename);
     return err;
 }
 
@@ -2613,60 +2613,60 @@ int example(void)
     unsigned int length = 256;
 
     if ((err = formatSDHC()) != FR_OK) {
-        debugErr("Unable to format flash drive: %s\n", FF_ERRORS[err]);
+        debugErr("Unable to format flash drive: %s\r\n", FF_ERRORS[err]);
         return err;
     }
 
     //open SD Card
-    if ((err = mount()) != FR_OK) { debugErr("Unable to open flash drive: %s\n", FF_ERRORS[err]); return err; }
+    if ((err = mount()) != FR_OK) { debugErr("Unable to open flash drive: %s\r\n", FF_ERRORS[err]); return err; }
     debug("Flash drive opened\n");
 
-    if ((err = f_setlabel("NOMIS")) != FR_OK) { debugErr("Problem setting drive label: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+    if ((err = f_setlabel("NOMIS")) != FR_OK) { debugErr("Problem setting drive label: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
-    if ((err = f_getfree(&volume, &clusters_free, &fs)) != FR_OK) { debugErr("Problem finding free size of card: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+    if ((err = f_getfree(&volume, &clusters_free, &fs)) != FR_OK) { debugErr("Problem finding free size of card: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
-    if ((err = f_getlabel(&volume, volume_label, &volume_sn)) != FR_OK) { debugErr("Problem reading drive label: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err;  }
+    if ((err = f_getlabel(&volume, volume_label, &volume_sn)) != FR_OK) { debugErr("Problem reading drive label: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err;  }
 
-    if ((err = f_open(&file, "0:HelloWorld.txt", FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { debugErr("Unable to open file: %s\n", FF_ERRORS[err]);f_mount(NULL, "", 0); return err; }
+    if ((err = f_open(&file, "0:HelloWorld.txt", FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]);f_mount(NULL, "", 0); return err; }
     debug("File opened\n");
 
     generateMessage(length);
 
-    if ((err = f_write(&file, &message, length, &bytes_written)) != FR_OK) { debugErr("Unable to write file: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+    if ((err = f_write(&file, &message, length, &bytes_written)) != FR_OK) { debugErr("Unable to write file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
     debug("%d bytes written to file!\n", bytes_written);
 
     if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
     debug("File closed\n");
 
-    if ((err = f_chmod("HelloWorld.txt", 0, AM_RDO | AM_ARC | AM_SYS | AM_HID)) != FR_OK) { debugErr("Problem with chmod: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+    if ((err = f_chmod("HelloWorld.txt", 0, AM_RDO | AM_ARC | AM_SYS | AM_HID)) != FR_OK) { debugErr("Problem with chmod: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
     err = f_stat("MaximSDHC", &fno);
     if (err == FR_NO_FILE) {
         debug("Creating directory...\n");
-        if ((err = f_mkdir("MaximSDHC")) != FR_OK) { debugErr("Unable to create directory: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+        if ((err = f_mkdir("MaximSDHC")) != FR_OK) { debugErr("Unable to create directory: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
     }
 
     debug("Renaming File...\n");
-    if ((err = f_rename("0:HelloWorld.txt", "0:MaximSDHC/HelloMaxim.txt")) != FR_OK) { /* /cr: clearify 0:file notation */ debugErr("Unable to move file: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+    if ((err = f_rename("0:HelloWorld.txt", "0:MaximSDHC/HelloMaxim.txt")) != FR_OK) { /* /cr: clearify 0:file notation */ debugErr("Unable to move file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
-    if ((err = f_chdir("/MaximSDHC")) != FR_OK) { debugErr("Problem with chdir: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+    if ((err = f_chdir("/MaximSDHC")) != FR_OK) { debugErr("Problem with chdir: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
     debug("Attempting to read back file...\n");
-    if ((err = f_open(&file, "HelloMaxim.txt", FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+    if ((err = f_open(&file, "HelloMaxim.txt", FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
-    if ((err = f_read(&file, &message, bytes_written, &bytes_read)) != FR_OK) { debugErr("Unable to read file: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+    if ((err = f_read(&file, &message, bytes_written, &bytes_read)) != FR_OK) { debugErr("Unable to read file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
-    debug("Read Back %d bytes\n", bytes_read);
+    debug("Read Back %d bytes\r\n", bytes_read);
     debug("Message: ");
     debug("%s", message);
-    debug("\n");
+    debug("\r\n");
 
-    if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+    if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
     debug("File closed\n");
 
     //unmount SD Card
     //f_mount(fs, "", 0);
-    if ((err = f_mount(NULL, "", 0)) != FR_OK) { debugErr("Problem unmounting volume: %s\n", FF_ERRORS[err]); return err; }
+    if ((err = f_mount(NULL, "", 0)) != FR_OK) { debugErr("Problem unmounting volume: %s\r\n", FF_ERRORS[err]); return err; }
 
     return 0;
 }
@@ -2700,18 +2700,18 @@ void TestDriveAndFilesystem(void)
 	{
         f_getcwd(cwd, sizeof(cwd));
 
-        debug("\nChoose one of the following options: \n");
-        debug("0. Find the Size of the SD Card and Free Space\n");
-        debug("1. Format the Card\n");
-        debug("2. Manually Mount Card\n");
-        debug("3. List Contents of Current Directory\n");
-        debug("4. Create a Directory\n");
-        debug("5. Move into a Directory (cd)\n");
-        debug("6. Create a File of Random Data\n");
-        debug("7. Add Random Data to an Existing File\n");
-        debug("8. Delete a File\n");
-        debug("9. Format Card and Run Exmaple of FatFS Operations\n");
-        debug("10. Unmount Card and Quit\n");
+        debug("\nChoose one of the following options: \r\n");
+        debug("0. Find the Size of the SD Card and Free Space\r\n");
+        debug("1. Format the Card\r\n");
+        debug("2. Manually Mount Card\r\n");
+        debug("3. List Contents of Current Directory\r\n");
+        debug("4. Create a Directory\r\n");
+        debug("5. Move into a Directory (cd)\r\n");
+        debug("6. Create a File of Random Data\r\n");
+        debug("7. Add Random Data to an Existing File\r\n");
+        debug("8. Delete a File\r\n");
+        debug("9. Format Card and Run Exmaple of FatFS Operations\r\n");
+        debug("10. Unmount Card and Quit\r\n");
         debug("%s>>", cwd);
 
         input = -1;
@@ -2733,11 +2733,11 @@ void TestDriveAndFilesystem(void)
 			case 8: delete(); break;
 			case 9: example(); break;
 			case 10: umount(); run = 0; break;
-			default: debugErr("Invalid Selection %d!\n", input); err = -1; break;
+			default: debugErr("Invalid Selection %d!\r\n", input); err = -1; break;
 		}
 
-        if (err >= 0 && err <= 20) { debugErr("Function Returned with code: %d\n", FF_ERRORS[err]); }
-		else { debug("Function Returned with code: %d\n", err); }
+        if (err >= 0 && err <= 20) { debugErr("Function Returned with code: %d\r\n", FF_ERRORS[err]); }
+		else { debug("Function Returned with code: %d\r\n", err); }
 
         MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
     }
@@ -2755,24 +2755,24 @@ void SetupSDHCeMMC(void)
     cfg.block_gap = 0;
     cfg.clk_div = 0x0b0; // Maximum divide ratio, frequency must be >= 400 kHz during Card Identification phase
 
-    if (MXC_SDHC_Init(&cfg) != E_NO_ERROR) { debugErr("SDHC/eMMC initialization failed\n"); }
+    if (MXC_SDHC_Init(&cfg) != E_NO_ERROR) { debugErr("SDHC/eMMC initialization failed\r\n"); }
 
     // Set up card to get it ready for a transaction
-    if (MXC_SDHC_Lib_InitCard(10) == E_NO_ERROR) { debug("SDHC: Card/device Initialized\n"); }
+    if (MXC_SDHC_Lib_InitCard(10) == E_NO_ERROR) { debug("SDHC: Card/device Initialized\r\n"); }
 	else { debugErr("SDHC: No card/device response\n"); }
 
-    if (MXC_SDHC_Lib_Get_Card_Type() == CARD_MMC) { debug("SDHC: Card type discovered is MMC/eMMC\n"); }
-	else /* CARD_SDHC */ { debug("SDHC: Card type discovered is SD/SDHC\n"); }
+    if (MXC_SDHC_Lib_Get_Card_Type() == CARD_MMC) { debug("SDHC: Card type discovered is MMC/eMMC\r\n"); }
+	else /* CARD_SDHC */ { debug("SDHC: Card type discovered is SD/SDHC\r\n"); }
 
     // Configure for fastest possible clock, must not exceed 52 MHz for eMMC
     if (SystemCoreClock > 96000000)
 	{
-        debug("SD clock ratio (at card/device) is 4:1 (eMMC not to exceed 52 MHz)\n");
+        debug("SD clock ratio (at card/device) is 4:1 (eMMC not to exceed 52 MHz)\r\n");
         MXC_SDHC_Set_Clock_Config(1);
     }
 	else
 	{
-        debug("SD clock ratio (at card/device) is 2:1\n");
+        debug("SD clock ratio (at card/device) is 2:1\r\n");
         MXC_SDHC_Set_Clock_Config(0);
     }
 }
@@ -2788,39 +2788,39 @@ void SetupDriveAndFilesystem(void)
 		// Check if failure was due to no filesystem
 		if (err == FR_NO_FILESYSTEM)
 		{
-			debug("Drive(eMMC): Formatting...\n");
+			debug("Drive(eMMC): Formatting...\r\n");
 
 			// Format the default drive to a FAT filesystem
 			if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) !=  FR_OK)
 			{
-				debugErr("Drive(eMMC): Formatting failed with error %s\n", FF_ERRORS[err]);
+				debugErr("Drive(eMMC): Formatting failed with error %s\r\n", FF_ERRORS[err]);
 			}
 			else
 			{
-				debug("Drive(eMMC): Formatted successfully\n");
+				debug("Drive(eMMC): Formatted successfully\r\n");
 
 				// Remount
 				if ((err = f_mount(&fs_obj, "", 1)) != FR_OK)
 				{
-					debugErr("Drive(eMMC): filed to mount after formatting, with error %s\n", FF_ERRORS[err]);		
+					debugErr("Drive(eMMC): filed to mount after formatting, with error %s\r\n", FF_ERRORS[err]);
 				}
 
 				if ((err = f_setlabel("NOMIS")) != FR_OK)
 				{
-					debugErr("Drive(eMMC): Setting label failed with error %s\n", FF_ERRORS[err]);
+					debugErr("Drive(eMMC): Setting label failed with error %s\r\n", FF_ERRORS[err]);
 					f_mount(NULL, "", 0);
 				}
 			}
 		}
 		else
 		{
-			debugErr("Drive(eMMC): filed to mount with error %s\n", FF_ERRORS[err]);
+			debugErr("Drive(eMMC): filed to mount with error %s\r\n", FF_ERRORS[err]);
 			f_mount(NULL, "", 0);
 		}
     }
 	else
 	{
-        debug("Drive(eMMC): mounted successfully\n");
+        debug("Drive(eMMC): mounted successfully\r\n");
     }
 }
 
@@ -2829,7 +2829,7 @@ void SetupDriveAndFilesystem(void)
 ///----------------------------------------------------------------------------
 void GetDriveSize(void)
 {
-    if ((err = f_getfree(&volume, &clusters_free, &fs)) != FR_OK) { debugErr("Unable to find free size of card: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); }
+    if ((err = f_getfree(&volume, &clusters_free, &fs)) != FR_OK) { debugErr("Unable to find free size of card: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); }
 }
 
 ///----------------------------------------------------------------------------

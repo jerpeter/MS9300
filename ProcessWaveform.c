@@ -254,7 +254,7 @@ void MoveWaveformEventToFile(void)
 
 				if (f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
 				{
-					debugErr("Unable to create event file: %s, mode: %s\n", g_spareFileName, (g_triggerRecord.opMode == WAVEFORM_MODE) ? "Waveform" : "Combo - Waveform");
+					debugErr("Unable to create event file: %s, mode: %s\r\n", g_spareFileName, (g_triggerRecord.opMode == WAVEFORM_MODE) ? "Waveform" : "Combo - Waveform");
 				}
 				else // File created, write out the event
 				{
@@ -346,7 +346,7 @@ void MoveWaveformEventToFile(void)
 						GetERDataFilename(g_pendingEventRecord.summary.eventNumber);
 						if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
 						{
-							debugErr("Unable to create ERdata event file: %s\n", g_spareFileName);
+							debugErr("Unable to create ERdata event file: %s\r\n", g_spareFileName);
 						}
 						else // File created, write out the event
 						{

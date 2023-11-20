@@ -380,7 +380,7 @@ void AppendMonitorLogEntryFile(void)
 	// -------------------------------------
     if ((f_open(&file, (const TCHAR*)s_monitorLogFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
-		debugErr("Unable to open file: %s\n", s_monitorLogFilename);
+		debugErr("Unable to open file: %s\r\n", s_monitorLogFilename);
 	}
 	else // File created or exists
 	{
@@ -406,7 +406,7 @@ void AppendMonitorLogEntryFile(void)
 	// -------------------------------------
     if ((f_open(&file, (const TCHAR*)s_monitorLogHumanReadableFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
-		debugErr("Unable to open file: %s\n", s_monitorLogHumanReadableFilename);
+		debugErr("Unable to open file: %s\r\n", s_monitorLogHumanReadableFilename);
 	}
 	else // File created or exists
 	{
@@ -510,7 +510,7 @@ void InitMonitorLogTableFromLogFile(void)
 	}
 	else // File exists
 	{
-		if ((f_open(&file, (const TCHAR*)s_monitorLogFilename, FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\n", s_monitorLogFilename); }
+		if ((f_open(&file, (const TCHAR*)s_monitorLogFilename, FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\r\n", s_monitorLogFilename); }
 
 		if (f_size(&file) < sizeof(MONITOR_LOG_ENTRY_STRUCT))
 		{
@@ -588,7 +588,7 @@ void AddOnOffLogTimestamp(uint8 onOffState)
 
     if ((f_open(&file, (const TCHAR*)s_onOffLogHumanReadableFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
-		debugErr("Unable to open file: %s\n", s_onOffLogHumanReadableFilename);
+		debugErr("Unable to open file: %s\r\n", s_onOffLogHumanReadableFilename);
 	}
 	else // File successfully created or opened
 	{

@@ -1506,7 +1506,7 @@ int ds2484_probe(void)
 	/* Reset the device (sets the read_ptr to status) */
 	if (ds2484_send_cmd(data, DS2484_CMD_RESET) < 0)
 	{
-		debugWarn("1-wire Master: DS2484 reset failed\n");
+		debugWarn("1-wire Master: DS2484 reset failed\r\n");
 		goto exit_free;
 	}
 
@@ -1517,7 +1517,7 @@ int ds2484_probe(void)
 	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &temp1, sizeof(temp1));
 	if (temp1 != (DS2484_REG_STS_LL | DS2484_REG_STS_RST))
 	{
-		debugWarn("1-wire Master: DS2484 reset status 0x%02X\n", temp1);
+		debugWarn("1-wire Master: DS2484 reset status 0x%02X\r\n", temp1);
 		goto exit_free;
 	}
 
