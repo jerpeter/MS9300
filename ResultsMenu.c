@@ -351,8 +351,7 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 		for (; i < (TOTAL_DOTS-1); i++)		dotBuff[i] = ' ';
 		if (++dotState >= TOTAL_DOTS)		dotState = 0;
 
-		if (g_triggerRecord.trec.sample_rate == 512) { sprintf((char*)srBuff, ".5K"); }
-		else if (g_adaptiveState == ADAPTIVE_MIN_RATE) { sprintf((char*)srBuff, "A1K"); }
+		if (g_adaptiveState == ADAPTIVE_MIN_RATE) { sprintf((char*)srBuff, "A1K"); }
 		else { sprintf((char*)srBuff, "%dK", (int)(g_triggerRecord.trec.sample_rate / SAMPLE_RATE_1K)); }
 
 		// Set the mode character (default is 'W' for Waveform on init)

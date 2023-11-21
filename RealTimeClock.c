@@ -136,7 +136,6 @@ void StartExternalRtcClock(uint16 sampleRate)
 		case 4096	: clockOutControl = PCF85263_CTL_FUNC_COF_4KHZ; break;
 		case 2048	: clockOutControl = PCF85263_CTL_FUNC_COF_2KHZ; break;
 		case 1024	: clockOutControl = PCF85263_CTL_FUNC_COF_1KHZ; break;
-		case 512	: clockOutControl = PCF85263_CTL_FUNC_COF_1KHZ; break; // Skips every other call
 		case 1		: clockOutControl = PCF85263_CTL_FUNC_COF_1HZ; break;
 		case 0		: clockOutControl = PCF85263_CTL_FUNC_COF_LOW; break;
 		default		: clockOutControl = PCF85263_CTL_FUNC_COF_1KHZ; break; // Set to 1024

@@ -383,7 +383,7 @@ void InitAndSeedChannelOffsetVariables(void)
 void GetChannelOffsets(uint32 sampleRate)
 {
 	uint32 i = 0;
-	uint32 timeDelay = (977 / (sampleRate / 512) / 2);
+	uint32 timeDelay = (977 / (sampleRate / 1024));
 	uint8 powerAnalogDown = NO;
 
 	// Check to see if the A/D is in sleep mode
