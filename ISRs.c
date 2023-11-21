@@ -49,9 +49,6 @@
 ///	Externs
 ///----------------------------------------------------------------------------
 #include "Globals.h"
-#if 0 /* old hw */
-extern void rtc_clear_interrupt(volatile avr32_rtc_t *rtc);
-#endif
 
 extern BOOLEAN processCraftCmd;
 extern uint8 craft_g_input_buffer[];

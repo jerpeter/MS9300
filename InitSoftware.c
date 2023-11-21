@@ -460,12 +460,8 @@ void InitSoftwareSettings_MS9300(void)
 	// Turn on the Green keypad LED when system init complete
 	//-------------------------------------------------------------------------
 	debug("Init complete, turning Kepypad LED Green...\r\n");
-#if 0 /* old hw */
-	WriteMcp23018(IO_ADDRESS_KPD, GPIOA, ((ReadMcp23018(IO_ADDRESS_KPD, GPIOA) & 0xCF) | GREEN_LED_PIN));
-#else
 	// Todo: Correct for the right LED once LED map is available (1&2=Red, 3&4=Green)
 	PowerControl(LED_3, ON);
-#endif
 
 	//-------------------------------------------------------------------------
 	// Assign a one second keypad led update timer
@@ -483,7 +479,6 @@ void InitSoftwareSettings_MS9300(void)
 	// Enable Craft input (delayed to prevent serial input from locking unit)
 	//-------------------------------------------------------------------------
 	InitCraftInterruptBuffers();
-	Setup_8100_Usart1_RS232_ISR();
 
 	if (GET_HARDWARE_ID == HARDWARE_ID_REV_8_WITH_GPS_MOD)
 	{

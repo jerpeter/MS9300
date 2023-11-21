@@ -112,11 +112,7 @@ volatile uint32 g_msTimerTicks = 0;
 uint32 g_kpadKeyRepeatCount = 0;
 uint32 g_kpadDelayTickCount = 0;
 uint32 g_keypadNumberSpeed = 1;
-#if 0 /* old hw */
-uint8 g_keypadTable[9] = {KEY_BACKLIGHT, KEY_HELP, KEY_ESCAPE, KEY_UPARROW, KEY_DOWNARROW, KEY_MINUS, KEY_PLUS, KEY_ENTER, KEY_NONE};
-#else
 uint16 g_keypadTable[9] = {KB_SK_4, KB_SK_3, KB_SK_2, KB_SK_1, KB_ENTER, KB_RIGHT, KB_LEFT, KB_DOWN, KB_UP};
-#endif
 uint8 g_smc_tab_cs_size[4];
 SENSOR_PARAMETERS_STRUCT g_sensorInfo;
 EVT_RECORD g_pendingEventRecord;

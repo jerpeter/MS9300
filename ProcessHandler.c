@@ -308,7 +308,7 @@ void StartDataCollection(uint32 sampleRate)
 	SetupInteralSampleTimer(sampleRate);
 #elif EXTERNAL_SAMPLING_SOURCE
 	debug("Setup External RTC Sample clock...\r\n");
-	Setup_8100_EIC_External_RTC_ISR();
+	// Todo: Setup external sampling source
 #endif
 
 	// Init a few key values for data collection
@@ -833,8 +833,6 @@ void StartADDataCollectionForCalibration(uint16 sampleRate)
 	// Start the timer for collecting data
 	StartInteralSampleTimer();
 #elif EXTERNAL_SAMPLING_SOURCE
-	Setup_8100_EIC_External_RTC_ISR();
-
 	StartExternalRtcClock(sampleRate);
 #endif
 }

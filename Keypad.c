@@ -67,37 +67,23 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 	// Check if key source was an interrupt and the timer hasn't been started (new key interrupt)
 	if ((keySource == KEY_SOURCE_IRQ) && (g_tcTypematicTimerActive == NO))
 	{
-#if 0 /* old hw */
-		// Read the key that is being pressed (couple reads to try to pick up the key)
-		keyMapRead = ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-		SoftUsecWait(1 * SOFT_MSECS);
-		keyMapRead |= ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-		SoftUsecWait(1 * SOFT_MSECS);
-		keyMapRead |= ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-#else
 		// Read the buttons/keys
 		keyMapRead = READ_KEY_BUTTON_MAP;
+#if 0 /* Multiple reads to try to pick up the key */
+		SoftUsecWait(1 * SOFT_MSECS);
+		keyMapRead |= READ_KEY_BUTTON_MAP;
+		SoftUsecWait(1 * SOFT_MSECS);
+		keyMapRead |= READ_KEY_BUTTON_MAP;
 #endif
 	}
 	else if (keySource == KEY_SOURCE_TIMER) // Cyclic check
 	{
-#if 0 /* old hw */
 		// Read once (full key pressed shouldn't lose contact)
-		keyMapRead = ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-#else
 		keyMapRead = READ_KEY_BUTTON_MAP;
-#endif
 	}
 	else //((keySource == KEY_SOURCE_IRQ) && (g_tcTypematicTimerActive == YES)) // Either multi-key or key release processing
 	{
-#if 0 /* old hw */
 		// Read the key that is being released (couple reads to filter any bouncing contact)
-		keyMapRead = ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-		SoftUsecWait(3 * SOFT_MSECS);
-		keyMapRead |= ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-		SoftUsecWait(3 * SOFT_MSECS);
-		keyMapRead |= ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-#else
 		keyMapRead = READ_KEY_BUTTON_MAP;
 #if 0 /* Multiple reads to filter any bouncing contact */
 		SoftUsecWait(3 * SOFT_MSECS);
@@ -105,19 +91,9 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 		SoftUsecWait(3 * SOFT_MSECS);
 		keyMapRead |= READ_KEY_BUTTON_MAP;
 #endif
-#endif
 		// Check if the key to be released is still present and that this key is the only one present
 		if ((keyMapRead & g_kpadLastKeymap) && ((keyMapRead & (keyMapRead - 1)) == 0))
 		{
-#if 0 /* old hw */
-			keyMapRead = ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-			SoftUsecWait(5 * SOFT_MSECS);
-			keyMapRead &= ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-			SoftUsecWait(5 * SOFT_MSECS);
-			keyMapRead &= ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-			SoftUsecWait(5 * SOFT_MSECS);
-			keyMapRead &= ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-#else
 			keyMapRead = READ_KEY_BUTTON_MAP;
 #if 0 /* Multiple reads to filter any bouncing contact */
 			SoftUsecWait(5 * SOFT_MSECS);
@@ -126,7 +102,6 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 			keyMapRead &= READ_KEY_BUTTON_MAP;
 			SoftUsecWait(5 * SOFT_MSECS);
 			keyMapRead &= READ_KEY_BUTTON_MAP;
-#endif
 #endif
 		}
 	}
@@ -163,11 +138,8 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 		while (g_kpadInterruptWhileProcessing == YES)
 		{
 			g_kpadInterruptWhileProcessing = NO;
-#if 0 /* old hw */
-			ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-#else
+			// Clear interrupt flags
 			MXC_GPIO_ClearFlags(MXC_GPIO1, BUTTON_GPIO_MASK);
-#endif
 		}
 
 		// Done looking for keys
@@ -262,23 +234,9 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 		// Process new key
 		if (keyPressed != KEY_NONE)
 		{
-#if 0 /* old hw */
-			if (keyPressed == KEY_BACKLIGHT)
-			{
-				mn_msg.cmd = BACK_LIGHT_CMD;
-				mn_msg.length = 0;
-			}
-			else // all other keys
-			{
-				mn_msg.length = 1;
-				mn_msg.data[0] = keyPressed;
-				mn_msg.cmd = KEYPRESS_MENU_CMD;
-			}
-#else
 			mn_msg.length = 1;
 			mn_msg.data[0] = keyPressed;
 			mn_msg.cmd = KEYPRESS_MENU_CMD;
-#endif
 
 			//---------------------------------------------------------------------------------
 			// Factory setup staging
@@ -333,11 +291,7 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 			else
 			{
 				// Check if the On key is being pressed
-#if 0 /* old hw */
-				if (ReadMcp23018(IO_ADDRESS_KPD, GPIOA) & 0x04)
-#else
 				if (!MXC_GPIO_InGet(MXC_GPIO1, MXC_GPIO_PIN_15)) // g_PowerButtonIRQ: Port 1, Pin 15
-#endif
 				{
 					// Reset the factory setup process
 					g_factorySetupSequence = SEQ_NOT_STARTED;
@@ -375,18 +329,6 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 						__asm__ __volatile__ ("breakpoint");
 #endif
 					}
-#if 0 /* old hw */
-					//===================================================
-					// On-Backlight Combo key
-					//---------------------------------------------------
-					else if (keyPressed == KEY_BACKLIGHT)
-					{
-#if 1
-						TurnDisplayOff();
-						return(PASSED);
-#endif
-					}
-#endif
 				}
 				else if (g_factorySetupSequence != PROCESS_FACTORY_SETUP)
 				{
@@ -403,12 +345,8 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 	while (g_kpadInterruptWhileProcessing == YES)
 	{
 		g_kpadInterruptWhileProcessing = NO;
-#if 0 /* old hw */
-		ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-#else
+		// Clear interrupt flags
 		MXC_GPIO_ClearFlags(MXC_GPIO1, BUTTON_GPIO_MASK);
-#endif
-
 	}
 
 	g_kpadProcessingFlag = DEACTIVATED;
@@ -590,12 +528,8 @@ uint16 GetKeypadKey(uint8 mode)
 			while (g_kpadInterruptWhileProcessing == YES)
 			{
 				g_kpadInterruptWhileProcessing = NO;
-#if 0 /* old hw */
-				ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-#else
+				// Clear interrupt flags
 				MXC_GPIO_ClearFlags(MXC_GPIO1, BUTTON_GPIO_MASK);
-#endif
-
 			}
 
 			g_kpadProcessingFlag = DEACTIVATED;
@@ -627,12 +561,8 @@ uint16 GetKeypadKey(uint8 mode)
 	while (g_kpadInterruptWhileProcessing == YES)
 	{
 		g_kpadInterruptWhileProcessing = NO;
-#if 0 /* old hw */
-		ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-#else
+		// Clear interrupt flags
 		MXC_GPIO_ClearFlags(MXC_GPIO1, BUTTON_GPIO_MASK);
-#endif
-
 	}
 
 	g_kpadProcessingFlag = DEACTIVATED;
@@ -653,20 +583,12 @@ uint16 ScanKeypad(void)
 	uint16 keyMapRead;
 	uint8 i = 0;
 
-#if 0 /* old hw */
-	keyMapRead = ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-	SoftUsecWait(1 * SOFT_MSECS);
-	keyMapRead &= ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-	SoftUsecWait(1 * SOFT_MSECS);
-	keyMapRead &= ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-#else
 	keyMapRead = READ_KEY_BUTTON_MAP;
 #if 0 /* extra reads for debounce? */
 	SoftUsecWait(1 * SOFT_MSECS);
 	keyMapRead &= READ_KEY_BUTTON_MAP;
 	SoftUsecWait(1 * SOFT_MSECS);
 	keyMapRead &= READ_KEY_BUTTON_MAP;
-#endif
 #endif
 
 	//debug("Scan Keypad: Key: %x\r\n", keyMapRead);

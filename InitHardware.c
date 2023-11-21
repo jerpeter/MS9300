@@ -92,11 +92,6 @@
 ///	Externs
 ///----------------------------------------------------------------------------
 #include "Globals.h"
-#if 0 /* old hw */
-extern int rtc_init(volatile avr32_rtc_t *rtc, unsigned char osc_type, unsigned char psel);
-extern void rtc_set_top_value(volatile avr32_rtc_t *rtc, unsigned long top);
-extern void rtc_enable(volatile avr32_rtc_t *rtc);
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Local Scope Globals
@@ -105,116 +100,6 @@ extern void rtc_enable(volatile avr32_rtc_t *rtc);
 ///----------------------------------------------------------------------------
 ///	Prototypes
 ///----------------------------------------------------------------------------
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void SPI_0_Init(void)
-{
-#if 0 /* old hw */
-	const gpio_map_t spi0Map =
-	{
-		{AVR32_SPI0_SCK_0_0_PIN, AVR32_SPI0_SCK_0_0_FUNCTION }, // SPI Clock.
-		{AVR32_SPI0_MISO_0_0_PIN, AVR32_SPI0_MISO_0_0_FUNCTION}, // MISO.
-		{AVR32_SPI0_MOSI_0_0_PIN, AVR32_SPI0_MOSI_0_0_FUNCTION}, // MOSI.
-		{AVR32_SPI0_NPCS_0_0_PIN, AVR32_SPI0_NPCS_0_0_FUNCTION} // Chip Select NPCS.
-	};
-	
-	// SPI options.
-	spi_options_t spiOptions =
-	{
-		.reg = 0,
-		.baudrate = 33000000, //36000000, //33000000, // 33 MHz
-		.bits = 16,
-		.spck_delay	= 0,
-		.trans_delay = 0,
-		.stay_act = 1,
-		.spi_mode = 0,
-		.modfdis = 1
-	};
-
-	// Assign I/Os to SPI.
-	gpio_enable_module(spi0Map, sizeof(spi0Map) / sizeof(spi0Map[0]));
-
-	// Initialize as master.
-	spi_initMaster(&AVR32_SPI0, &spiOptions);
-
-	// Set SPI selection mode: variable_ps, pcs_decode, delay.
-	spi_selectionMode(&AVR32_SPI0, 0, 0, 0);
-
-	// Enable SPI module.
-	spi_enable(&AVR32_SPI0);
-
-	// Initialize AD driver with SPI clock (PBA).
-	// Setup SPI registers according to spiOptions.
-	spi_setupChipReg(&AVR32_SPI0, &spiOptions, FOSC0);
-
-	// Make sure SPI0 input isn't floating
-	gpio_enable_pin_pull_up(AVR32_SPI0_MISO_0_0_PIN);
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void SPI_1_Init(void)
-{
-#if 0 /* old hw */	
-	// SPI 1 MAP Pin select
-	const gpio_map_t spi1Map =
-	{
-		{AVR32_SPI1_SCK_0_0_PIN, AVR32_SPI1_SCK_0_0_FUNCTION },		// SPI Clock.
-		{AVR32_SPI1_MISO_0_0_PIN, AVR32_SPI1_MISO_0_0_FUNCTION},	// MISO.
-		{AVR32_SPI1_MOSI_0_0_PIN, AVR32_SPI1_MOSI_0_0_FUNCTION},	// MOSI.
-		{AVR32_SPI1_NPCS_3_PIN,	AVR32_SPI1_NPCS_3_FUNCTION},		// AD Control Chip Select NPCS.
-		{AVR32_SPI1_NPCS_0_0_PIN, AVR32_SPI1_NPCS_0_0_FUNCTION},	// EEprom Chip Select NPCS.
-		{AVR32_SPI1_NPCS_1_0_PIN, AVR32_SPI1_NPCS_1_0_FUNCTION},	// RTC Chip Select NPCS.
-		{AVR32_SPI1_NPCS_2_0_PIN, AVR32_SPI1_NPCS_2_0_FUNCTION},	// SDMMC Chip Select NPCS.
-	};
-
-	// Generic SPI options
-	spi_options_t spiOptions =
-	{
-		.bits = 8,
-		.spck_delay = 0,
-		.trans_delay = 0,
-		.stay_act = 1,
-		.spi_mode = 0,
-		.modfdis = 1
-	};
-
-	// Assign I/Os to SPI.
-	gpio_enable_module(spi1Map, sizeof(spi1Map) / sizeof(spi1Map[0]));
-
-	// Initialize as master.
-	spi_initMaster(&AVR32_SPI1, &spiOptions);
-
-	// Set SPI selection mode: variable_ps, pcs_decode, delay.
-	spi_selectionMode(&AVR32_SPI1, 0, 0, 0);
-
-	// Enable SPI module.
-	spi_enable(&AVR32_SPI1);
-
-	spiOptions.reg = AD_CTL_SPI_CS_NUM; // 3
-	spiOptions.baudrate = AD_CTL_SPI_MAX_SPEED; // 4 MHz
-	spi_setupChipReg(&AVR32_SPI1, &spiOptions, FOSC0);
-
-	spiOptions.reg = EEPROM_SPI_CS_NUM; // 0
-	spiOptions.baudrate = EEPROM_SPI_MAX_SPEED; // 2.1 MHz
-	spi_setupChipReg(&AVR32_SPI1, &spiOptions, FOSC0);
-
-	spiOptions.reg = RTC_SPI_CS_NUM; // 1
-	spiOptions.baudrate = RTC_SPI_MAX_SPEED; // 1 MHz
-	spi_setupChipReg(&AVR32_SPI1, &spiOptions, FOSC0);
-
-	spiOptions.reg = SDMMC_SPI_CS_NUM; // 2
-	spiOptions.baudrate = SDMMC_SPI_MAX_SPEED; // 12 MHz
-	spi_setupChipReg(&AVR32_SPI1, &spiOptions, FOSC0);
-
-	// Make sure SPI1 input isn't floating
-	gpio_enable_pin_pull_up(AVR32_SPI1_MISO_0_0_PIN);
-#endif
-}
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -340,18 +225,6 @@ void InitExternalKeypad(void)
 ///----------------------------------------------------------------------------
 void InitInternalRTC(void)
 {
-#if 0 /* old hw */
-
-	rtc_init(&AVR32_RTC, 1, 0);
-
-	// Set top value to generate an interrupt every 1/2 second
-	// Data sheet: When enabled, the RTC will increment until it reaches TOP, and then wrap to 0x0. The status bit TOPI in ISR is set when this occurs
-	// From 0x0 the counter will count TOP+1 cycles of the source clock before it wraps back to 0x0
-	rtc_set_top_value(&AVR32_RTC, 8191);
-
-	// Enable the Internal RTC
-	rtc_enable(&AVR32_RTC);
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -359,13 +232,6 @@ void InitInternalRTC(void)
 ///----------------------------------------------------------------------------
 void InitInternalAD(void)
 {
-#if 0 /* old hw */
-
-	adc_configure(&AVR32_ADC);
-
-	// Enable the A/D channels; Warning: Can't use the driver call 'adc_enable' because it's a single channel enable only (write only register)
-	AVR32_ADC.cher = 0x0C; // Directly enable
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -421,33 +287,6 @@ void TestPowerDownAndStop(void)
 	SLEEP(AVR32_PM_SMODE_STOP);
 	//SLEEP(AVR32_PM_SMODE_STANDBY);
 	while (1) {}
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void InitUSBClockAndIOLines(void)
-{
-#if 0 /* old hw */
-
-	pm_configure_usb_clock();
-
-#if 0 /* Moved to USB device manager */
-	// Init USB and Mass Storage drivers
-	usb_task_init();
-	device_mass_storage_task_init();
-#endif
-
-#if NS8100_ORIGINAL_PROTOTYPE
-	// Enable internal pullup for USB ID since external pullup isn't present
-	gpio_enable_pin_pull_up(AVR32_PIN_PA21);
-#elif (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
-	// Enable internal pullup for USB ID since external pullup isn't present
-	gpio_enable_pin_pull_up(AVR32_USBB_USB_ID_0_1_PIN);
-	// Enable internal pullup for USB OC (Active low) since external pullup isn't present
-	gpio_enable_pin_pull_up(AVR32_PIN_PB12);
-#endif
 #endif
 }
 

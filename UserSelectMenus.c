@@ -1433,9 +1433,6 @@ void BaudRateMenuHandler(uint8 keyPressed, void* data)
 
 			InitCraftInterruptBuffers();
 
-			// Re-setup the interrupt since the handler is removed on usart_reset (buried in the usart_init)
-			Setup_8100_Usart1_RS232_ISR();
-
 #if 1 /* ns8100 (Added to help Dave's Supergraphics handle Baud change) */
 			//-------------------------------------------------------------------------
 			// Signal remote end that RS232 Comm is available

@@ -2104,6 +2104,7 @@ void UpdateSDCardUsageStats(uint32 removeSize)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* unused with new filesystem */
 int ReadWithSizeFix(int file, void* bufferPtr, uint32 length)
 {
 	uint32 remainingByteLengthToRead = length;
@@ -2143,10 +2144,12 @@ int ReadWithSizeFix(int file, void* bufferPtr, uint32 length)
 
 	return (length);
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* unused with new filesystem */
 int WriteWithSizeFix(int file, void* bufferPtr, uint32 length)
 {
 	uint32 remainingByteLengthToWrite = length;
@@ -2186,6 +2189,7 @@ int WriteWithSizeFix(int file, void* bufferPtr, uint32 length)
 
 	return (length);
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break

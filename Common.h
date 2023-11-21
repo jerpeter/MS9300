@@ -665,13 +665,6 @@ void InitGps232(void);
 
 // Init Interrupts prototype extensions
 void InitInterrupts_MS9300(void);
-void Setup_8100_EIC_External_RTC_ISR(void);
-void Setup_8100_EIC_Keypad_ISR(void);
-void Setup_8100_EIC_System_ISR(void);
-void Setup_8100_Soft_Timer_Tick_ISR(void);
-void Setup_8100_TC_Clock_ISR(uint32 sampleRate, TC_CHANNEL_NUM);
-void Setup_8100_Usart1_RS232_ISR(void);
-void Setup_8100_Usart0_RS232_ISR(void);
 void SetupInteralSampleTimer(uint16_t sampleRate);
 void StartInteralSampleTimer(void);
 void StopInteralSampleTimer(void);

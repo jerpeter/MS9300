@@ -173,7 +173,6 @@ void EnableGps(void)
 
 			// Reset buffers, flags and re-setup interrupt handler
 			InitGpsBuffers();
-			Setup_8100_Usart0_RS232_ISR();
 
 			if (g_gpsOutputToCraft)
 			{
