@@ -2448,36 +2448,6 @@ void Sample_irq(void)
 	uint32 startTiming = Get_system_register(AVR32_COUNT);
 #endif
 
-#if EXTERNAL_SAMPLING_SOURCE
-	static uint8 skipProcessingFor512 = 0;
-	
-	//___________________________________________________________________________________________
-	//___Test timing (throw away at some point)
-	if (g_triggerRecord.trec.sample_rate == 512)
-	{
-		// Toggle the bit to toss away half the samples for a 512 sample rate clocked at 1024
-		skipProcessingFor512 ^= 1;
-		
-		if (skipProcessingFor512 == 0)
-		{
-#if 0 /* old hw */
-			AVR32_EIC.ICR.int1 = 1;
-#endif
-			return;
-		}
-	}
-#endif
-
-#if 1 /* Test */
-	//___________________________________________________________________________________________
-	//___Revert power savings for sleep
-	if (g_powerSavingsForSleepEnabled == YES)
-	{
-extern void RevertPowerSavingsAfterSleeping(void);
-		RevertPowerSavingsAfterSleeping();
-	}
-#endif
-
 	//___________________________________________________________________________________________
 	//___Test timing (throw away at some point)
 	g_sampleCount++;
@@ -2532,14 +2502,11 @@ extern void RevertPowerSavingsAfterSleeping(void);
 				HandleChannelSyncError_ISR_Inline();
 			}
 
-#if 0 /* old hw */
-			// clear the interrupt flags and bail
+			// Clear the interrupt flag
 #if INTERNAL_SAMPLING_SOURCE
-			DUMMY_READ(AVR32_TC.channel[TC_SAMPLE_TIMER_CHANNEL].sr);
-			DUMMY_READ(AVR32_TC.channel[TC_CALIBRATION_TIMER_CHANNEL].sr);
+			MXC_TMR1->intr = MXC_F_TMR_INTR_IRQ;
 #elif EXTERNAL_SAMPLING_SOURCE
-			AVR32_EIC.ICR.int1 = 1;
-#endif
+			MXC_GPIO_ClearFlags(MXC_GPIO3, MXC_GPIO_PIN_9);
 #endif
 			return;
 		}
@@ -2625,7 +2592,7 @@ SKIP_PRIOR_PROCESSING_FOR_ADAPTIVE_MIN_RATE:
 	else { sampleProcessTiming = (Get_system_register(AVR32_COUNT) - startTiming); }
 #endif
 
-	// clear the interrupt flag
+	// Clear the interrupt flag
 #if INTERNAL_SAMPLING_SOURCE
 	MXC_TMR1->intr = MXC_F_TMR_INTR_IRQ;
 #elif EXTERNAL_SAMPLING_SOURCE
