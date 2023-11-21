@@ -225,9 +225,9 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 	}
 
 	// Enable temp sensor if channel config is anything but no temperature reading, otherwise disable
-	AD4695_TemperatureSensorEnable(((g_adChannelConfig != FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP) ? YES : NO));
+	AD4695_SetTemperatureSensorEnable(((g_adChannelConfig != FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP) ? YES : NO));
 	// Start conversion mode and enable status if readback is enabled, otherwise disable status
-	AD4695_Enter_Conversion_Mode(((g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP) ? YES : NO));
+	AD4695_EnterConversionMode(((g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP) ? YES : NO));
 }
 
 ///----------------------------------------------------------------------------
@@ -757,25 +757,7 @@ void PowerUpAnalog5VandExternalADC(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_Test() //test the SPI com
-{
-	uint8_t testDataValue = 0x1f; //can be changed
-	uint8_t testData;
-
-	while(testData != testDataValue)
-	{
-		SPI_Write_Reg_AD4695(AD4695_REG_SCRATCH_PAD, testDataValue);
-		SPI_Read_Reg_AD4695(AD4695_REG_SCRATCH_PAD, &testData);
-
-		// Delay 100ms?
-		MXC_Delay(MXC_DELAY_MSEC(100));
-	}
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void SPI_Write_Reg_AD4695(uint16_t reg_addr, uint8_t reg_data)
+void AD4695_SpiWriteRegister(uint16_t reg_addr, uint8_t reg_data)
 {
 	uint8_t writeData[3];
 
@@ -789,7 +771,7 @@ void SPI_Write_Reg_AD4695(uint16_t reg_addr, uint8_t reg_data)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SPI_Read_Reg_AD4695(uint16_t reg_addr, uint8_t* reg_data)
+void AD4695_SpiReadRegister(uint16_t reg_addr, uint8_t* reg_data)
 {
 	uint8_t writeData[3];
 	uint8_t readData[3];
@@ -805,25 +787,25 @@ void SPI_Read_Reg_AD4695(uint16_t reg_addr, uint8_t* reg_data)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SPI_Read_Mask(uint16_t reg_addr, uint8_t mask, uint8_t* data)
+void AD4695_SpiReadRegisterWithMask(uint16_t reg_addr, uint8_t mask, uint8_t* data)
 {
 	uint8_t regData[3];
 
-	SPI_Read_Reg_AD4695(reg_addr, regData);
+	AD4695_SpiReadRegister(reg_addr, regData);
 	*data = (regData[2] & mask);
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8_t SPI_Write_Mask(uint16_t reg_addr, uint8_t mask, uint8_t data)
+uint8_t AD4695_SpiWriteRegisterWithMask(uint16_t reg_addr, uint8_t mask, uint8_t data)
 {
 	uint8_t regData;
 
-	SPI_Read_Reg_AD4695(reg_addr, &regData);
+	AD4695_SpiReadRegister(reg_addr, &regData);
 	regData &= ~mask;
 	regData |= data;
-	SPI_Write_Reg_AD4695(reg_addr, regData);
+	AD4695_SpiWriteRegister(reg_addr, regData);
 
 	return (regData);
 }
@@ -831,12 +813,12 @@ uint8_t SPI_Write_Mask(uint16_t reg_addr, uint8_t mask, uint8_t data)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD5695_Register_Access_Mode(enum ad4695_reg_access access)
+void AD4695_SetRegisterAccessMode(enum ad4695_reg_access access)
 {
 	uint8_t test, verify;
 
-	test = SPI_Write_Mask(AD4695_REG_SPI_CONFIG_C, AD4695_REG_SPI_CONFIG_C_MB_STRICT_MASK, AD4695_REG_SPI_CONFIG_C_MB_STRICT(access));
-	SPI_Read_Reg_AD4695(AD4695_REG_SPI_CONFIG_C, &verify);
+	test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_SPI_CONFIG_C, AD4695_REG_SPI_CONFIG_C_MB_STRICT_MASK, AD4695_REG_SPI_CONFIG_C_MB_STRICT(access));
+	AD4695_SpiReadRegister(AD4695_REG_SPI_CONFIG_C, &verify);
 
 	if(test != verify) { debugErr("Ext ADC: Access mode error\r\n"); }
 }
@@ -844,18 +826,18 @@ void AD5695_Register_Access_Mode(enum ad4695_reg_access access)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_Set_Busy_State(/*enum ad4695_busy_gpio_sel gp_sel*/)
+void AD4695_SetBusyState(void)
 {
 	uint8_t test, verify;
 
 	// Set BSY_ALT_GP0 GPO Enable bit (general-purpose output function on BSY_ALT_GP0 enabled)
-	test = SPI_Write_Mask(AD4695_REG_GPIO_CTRL, AD4695_GPIO_CTRL_GPO0_EN_MASK, AD4695_GPIO_CTRL_GPO0_EN_EN(1));
-	SPI_Read_Reg_AD4695(AD4695_REG_GPIO_CTRL, &verify);
+	test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_GPIO_CTRL, AD4695_GPIO_CTRL_GPO0_EN_MASK, AD4695_GPIO_CTRL_GPO0_EN_EN(1));
+	AD4695_SpiReadRegister(AD4695_REG_GPIO_CTRL, &verify);
 	if(test != verify) { debugErr("Ext ADC: Busy state error (1)\r\n"); }
 
 	// Set BUSY_GP_EN bit (busy indicator on the general-purpose pin function enabled)
-	test = SPI_Write_Mask(AD4695_REG_GP_MODE, AD4695_GP_MODE_BUSY_GP_EN_MASK, AD4695_GP_MODE_BUSY_GP_EN(1));
-	SPI_Read_Reg_AD4695(AD4695_REG_GP_MODE, &verify);
+	test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_GP_MODE, AD4695_GP_MODE_BUSY_GP_EN_MASK, AD4695_GP_MODE_BUSY_GP_EN(1));
+	AD4695_SpiReadRegister(AD4695_REG_GP_MODE, &verify);
 	if(test != verify) { debugErr("Ext ADC: Busy state error (1)\r\n"); }
 
 	// Once the BSY_ALT_GP0 is configured as an output from the External ADC, disable the weak pull down
@@ -867,12 +849,12 @@ void AD4695_Set_Busy_State(/*enum ad4695_busy_gpio_sel gp_sel*/)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_Set_SDO_Mode(uint8_t sdoMode)
+void AD4695_SetSDOMode(uint8_t sdoMode)
 {
 	uint8_t test, verify;
 
-	test = SPI_Write_Mask(AD4695_REG_GP_MODE, AD4695_GP_MODE_SDO_MODE_MASK, AD4695_GP_MODE_SDO_MODE_SEL(sdoMode));
-	SPI_Read_Reg_AD4695(AD4695_REG_GP_MODE, &verify);
+	test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_GP_MODE, AD4695_GP_MODE_SDO_MODE_MASK, AD4695_GP_MODE_SDO_MODE_SEL(sdoMode));
+	AD4695_SpiReadRegister(AD4695_REG_GP_MODE, &verify);
 
 	if(test != verify) { /* report error */ }
 }
@@ -880,25 +862,38 @@ void AD4695_Set_SDO_Mode(uint8_t sdoMode)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_Standard_Seq_MODEandOSR(enum ad4695_osr_ratios ratio) /*over sampling ratio in standard sequencer mode*/
+void AD4695_SetStandardSequenceModeChannelOSR(enum ad4695_osr_ratios ratio) /*over sampling ratio in standard sequencer mode*/
 {
 	uint8_t test, verify;
 
-	test = SPI_Write_Mask(AD4695_REG_CONFIG_IN(0), AD4695_REG_CONFIG_IN_OSR_MASK, AD4695_REG_CONFIG_IN_OSR(ratio));
-	SPI_Read_Reg_AD4695(AD4695_REG_CONFIG_IN(0), &verify);
+	test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_CONFIG_IN(0), AD4695_REG_CONFIG_IN_OSR_MASK, AD4695_REG_CONFIG_IN_OSR(ratio));
+	AD4695_SpiReadRegister(AD4695_REG_CONFIG_IN(0), &verify);
 
-	if(test != verify){ debugErr("Ext ADC: Seq mode and OSR error\r\n"); }
+	if(test != verify){ debugErr("Ext ADC: Channel input OSR setting error\r\n"); }
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_Standard_MODE_SET() /*Standard Sequencer Enable Bit*/
+void AD4695_SetStandardSequenceModeChannelInputConfig(uint8_t regData)
+{
+	uint8_t verify;
+
+	AD4695_SpiWriteRegister(AD4695_REG_CONFIG_IN(0), regData);
+	AD4695_SpiReadRegister(AD4695_REG_CONFIG_IN(0), &verify);
+
+	if(regData != verify){ debugErr("Ext ADC: Standard sequence mode channel input config error\r\n"); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD4695_SetStandardMode() /*Standard Sequencer Enable Bit*/
 {
 	uint8_t test, verify;
 
-	test = SPI_Write_Mask(AD4695_REG_SEQ_CTRL, AD4695_SEQ_CTRL_STD_SEQ_EN_MASK, AD4695_SEQ_CTRL_STD_SEQ_EN(1));
-	SPI_Read_Reg_AD4695(AD4695_REG_SEQ_CTRL, &verify);
+	test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_SEQ_CTRL, AD4695_SEQ_CTRL_STD_SEQ_EN_MASK, AD4695_SEQ_CTRL_STD_SEQ_EN(1));
+	AD4695_SpiReadRegister(AD4695_REG_SEQ_CTRL, &verify);
 
 	if(test != verify) { debugErr("Ext ADC: Standard mode set error\r\n"); }
 }
@@ -906,7 +901,7 @@ void AD4695_Standard_MODE_SET() /*Standard Sequencer Enable Bit*/
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_RefControl(enum ad4695_ref REF)
+void AD4695_SetReferenceInputRange(enum ad4695_ref REF)
 {
 	uint8_t test, verify;
 
@@ -916,8 +911,8 @@ void AD4695_RefControl(enum ad4695_ref REF)
 		0x3: 3.75 V < VREF ≤ 4.50 V.
 		0x4: 4.5 V < VREF ≤ 5.10 V.*/
 
-	test = SPI_Write_Mask(AD4695_REG_REF_CTRL, AD4695_REG_REF_CTRL_MASK, AD4695_REG_REF_CTRL_EN(REF));
-	SPI_Read_Reg_AD4695(AD4695_REG_REF_CTRL, &verify);
+	test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_REF_CTRL, AD4695_REG_REF_CTRL_MASK, AD4695_REG_REF_CTRL_EN(REF));
+	AD4695_SpiReadRegister(AD4695_REG_REF_CTRL, &verify);
 
 	if(test != verify) { debugErr("Ext ADC: Reference control error\r\n"); }
 }
@@ -930,8 +925,8 @@ void AD4695_SetStandardSequenceActiveChannels(uint8_t channels)
 	uint8_t verify;
 
 	// Setup channels to be sequenced
-	SPI_Write_Reg_AD4695(AD4695_REG_STD_SEQ_CONFIG, channels);
-	SPI_Read_Reg_AD4695(AD4695_REG_STD_SEQ_CONFIG, &verify);
+	AD4695_SpiWriteRegister(AD4695_REG_STD_SEQ_CONFIG, channels);
+	AD4695_SpiReadRegister(AD4695_REG_STD_SEQ_CONFIG, &verify);
 
 	if(channels != verify) { debugErr("Ext ADC: Set standard sequence active channels error\r\n"); }
 }
@@ -944,7 +939,7 @@ uint8_t AD4695_GetStandardSequenceActiveChannels(void)
 	uint8_t regData;
 
 	// Setup channels to be sequenced
-	SPI_Read_Reg_AD4695(AD4695_REG_STD_SEQ_CONFIG, &regData);
+	AD4695_SpiReadRegister(AD4695_REG_STD_SEQ_CONFIG, &regData);
 
 	return (regData);
 }
@@ -952,25 +947,20 @@ uint8_t AD4695_GetStandardSequenceActiveChannels(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_Autocycle_MODE_SET(uint16_t reg_addr)
+void AD4695_SetAutocycleControl(uint8_t regData)
 {
-	uint8_t Reg_Data;
-
-	SPI_Write_Reg_AD4695(reg_addr, 0x01);
-	SPI_Read_Reg_AD4695(reg_addr, &Reg_Data);
-
-	// Looks unfinished
+	AD4695_SpiWriteRegister(AD4695_REG_AC_CTRL, regData);
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_TemperatureSensorEnable(uint8_t mode)
+void AD4695_SetTemperatureSensorEnable(uint8_t mode)
 {
 	// Make sure mode is binary control
 	if (mode > ON) { mode = ON; }
 
-	SPI_Write_Reg_AD4695(AD4695_REG_TEMP_CTRL, mode);
+	AD4695_SpiWriteRegister(AD4695_REG_TEMP_CTRL, mode);
 }
 
 
@@ -979,7 +969,8 @@ void AD4695_TemperatureSensorEnable(uint8_t mode)
 ///----------------------------------------------------------------------------
 void AD4695_DisableInternalLDO(void)
 {
-	SPI_Write_Reg_AD4695(AD4695_REG_SETUP, 0x00);
+	AD4695_SpiWriteRegister(AD4695_REG_SETUP, 0x00);
+	AD4695_SpiWriteRegisterWithMask(AD4695_REG_SETUP, AD4695_SETUP_LDO_ENABLE_MASK, AD4695_SETUP_LDO_ENABLE_EN(OFF));
 }
 
 ///----------------------------------------------------------------------------
@@ -988,23 +979,23 @@ void AD4695_DisableInternalLDO(void)
 void AD4695_Init()
 {
 	//This field disables the CRC
-	AD5695_Register_Access_Mode(AD4695_BYTE_ACCESS); //individual bytes in multibyte registers are read from or written to in individual data phases
+	AD4695_SetRegisterAccessMode(AD4695_BYTE_ACCESS); //individual bytes in multibyte registers are read from or written to in individual data phases
 	AD4695_DisableInternalLDO();
-	AD4695_Set_Busy_State();
+	AD4695_SetBusyState();
 
 	// In standard sequence mode only In channel 0 needs to be set for most of the settings
 	// The default value of the In channel registers is pretty much what we want; Unipolar, paired with RefGND (same as COM for us), High-Z mode enabled, No oversampling, no threshold detection
-	AD4695_Standard_Seq_MODEandOSR(AD4695_OSR_1); //16 bit not 17,18 or 19
+	AD4695_SetStandardSequenceModeChannelOSR(AD4695_OSR_1); //16 bit not 17,18 or 19
 
-	AD4695_Standard_MODE_SET();
-	AD4695_RefControl(R4V5_R5V1); // Setting the reference voltage range
+	AD4695_SetStandardMode();
+	AD4695_SetReferenceInputRange(R4V5_R5V1); // Setting the reference voltage range
 
 	// Some combination of the following: AD4695_STD_SEQ_GEO_1, AD4695_STD_SEQ_AOP_1, AD4695_STD_SEQ_GEO_2, AD4695_STD_SEQ_AOP_2
 	// Set default Geo1 + AOP1
 	AD4695_SetStandardSequenceActiveChannels((AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_AOP_1)); // Enable selected channels
 
 #if 0 /* Not ready to enter conversion mode at this time */
-	AD4695_Enter_Conversion_Mode(NO); /*Enters conversion mode*/
+	AD4695_EnterConversionMode(NO); /*Enters conversion mode*/
 
 	// Delay 100ms?
 	MXC_Delay(MXC_DELAY_MSEC(100));
@@ -1014,37 +1005,32 @@ void AD4695_Init()
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_Enter_Conversion_Mode(uint8_t enableStatus) /*Enter conversion mode*/
+void AD4695_EnterConversionMode(uint8_t enableChannelStatus)
 {
-#if 0 /* only needed if BSY_ALT_GP0 is no longer a status line */
-	uint8_t test, verify;
-	test = SPI_Write_Mask(AD4695_REG_SETUP, AD4695_SETUP_IF_SDO_STATE_MASK, AD4695_SETUP_IF_SDO_STATE);
-	SPI_Read_Reg_AD4695(AD4695_REG_SETUP, &verify);
-	if(test != verify) { debugErr("Ext ADC: Enter conversion mode failed\r\n"); }
-#endif
-
-	if (enableStatus)
+	if (enableChannelStatus)
 	{
-		SPI_Write_Mask(AD4695_REG_SETUP, AD4695_SETUP_IF_STATUS_EN_MASK, AD4695_SETUP_IF_STATUS_EN_STATE);
+		AD4695_SpiWriteRegisterWithMask(AD4695_REG_SETUP, AD4695_SETUP_STATUS_ENABLE_MASK, AD4695_SETUP_STATUS_ENABLE_EN(ON));
 	}
 
-	SPI_Write_Mask(AD4695_REG_SETUP, AD4695_SETUP_IF_MODE_MASK, AD4695_SETUP_IF_MODE_CONV);
+	// Enter conversion mode
+	AD4695_SpiWriteRegisterWithMask(AD4695_REG_SETUP, AD4695_SETUP_IF_MODE_MASK, AD4695_SETUP_IF_MODE_EN(ON));
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AD4695_Exit_Conversion_Mode() /*To pass from conversion mode to register configuration mode */
+void AD4695_ExitConversionMode()
 {
 	uint8_t command = AD4695_CMD_REG_CONFIG_MODE;
 
+	// Swap from conversion mode to register configuration mode
 	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, &command, sizeof(command), NULL, 0, BLOCKING);
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int AD4695_temperatureConversion(uint16_t tempCode)
+int AD4695_TemperatureConversionCtoF(uint16_t tempCode)
 {
 	float temperature;
 	temperature = ((tempCode - 725) / (-1.8));
@@ -1053,6 +1039,24 @@ int AD4695_temperatureConversion(uint16_t tempCode)
 	temperature = ((temperature * 9 / 5) + 32);
 
 	return ((int)temperature);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AD4695_Test() //test the SPI com
+{
+	uint8_t testDataValue = 0x1f; //can be changed
+	uint8_t testData;
+
+	while(testData != testDataValue)
+	{
+		AD4695_SpiWriteRegister(AD4695_REG_SCRATCH_PAD, testDataValue);
+		AD4695_SpiReadRegister(AD4695_REG_SCRATCH_PAD, &testData);
+
+		// Delay 100ms?
+		MXC_Delay(MXC_DELAY_MSEC(100));
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -1076,10 +1080,10 @@ void TestExternalADC(void)
 	AD4695_Init();
 	debug("External ADC: Init complete\r\n");
 
-	SPI_Read_Reg_AD4695(AD4695_REG_VENDOR_L, &testData);
+	AD4695_SpiReadRegister(AD4695_REG_VENDOR_L, &testData);
 	if (testData == 0x56)
 	{
-		SPI_Read_Reg_AD4695(AD4695_REG_VENDOR_H, &testData);
+		AD4695_SpiReadRegister(AD4695_REG_VENDOR_H, &testData);
 		if (testData == 0x04)
 		{
 			debug("External ADC: Vendor ID verification passed\r\n");
@@ -1088,11 +1092,11 @@ void TestExternalADC(void)
 	}
 	if (vendorIdValid == NO) { debug("External ADC: Vendor ID verification failed\r\n"); }
 
-	testData = 0xAA; SPI_Write_Reg_AD4695(AD4695_REG_SCRATCH_PAD, testData);
-	testData = 0x00; SPI_Read_Reg_AD4695(AD4695_REG_SCRATCH_PAD, &testData);
+	testData = 0xAA; AD4695_SpiWriteRegister(AD4695_REG_SCRATCH_PAD, testData);
+	testData = 0x00; AD4695_SpiReadRegister(AD4695_REG_SCRATCH_PAD, &testData);
 	debug("External ADC: 1st Scratchpad test %s\r\n", (testData == 0xAA) ? "Passed" : "Failed");
 
-	testData = 0x55; SPI_Write_Reg_AD4695(AD4695_REG_SCRATCH_PAD, testData);
-	testData = 0x00; SPI_Read_Reg_AD4695(AD4695_REG_SCRATCH_PAD, &testData);
+	testData = 0x55; AD4695_SpiWriteRegister(AD4695_REG_SCRATCH_PAD, testData);
+	testData = 0x00; AD4695_SpiReadRegister(AD4695_REG_SCRATCH_PAD, &testData);
 	debug("External ADC: 2nd Scratchpad test %s\r\n", (testData == 0x55) ? "Passed" : "Failed");
 }

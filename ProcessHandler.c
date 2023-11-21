@@ -433,7 +433,7 @@ void StopDataCollection(void)
 	StopExternalRtcClock();
 #endif
 
-	AD4695_Exit_Conversion_Mode();
+	AD4695_ExitConversionMode();
 	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
 
@@ -453,7 +453,7 @@ void StopDataClock(void)
 	StopExternalRtcClock();
 #endif
 
-	AD4695_Exit_Conversion_Mode();
+	AD4695_ExitConversionMode();
 	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
 }
@@ -850,7 +850,7 @@ void StopADDataCollectionForCalibration(void)
 	StopExternalRtcClock();
 #endif
 
-	AD4695_Exit_Conversion_Mode();
+	AD4695_ExitConversionMode();
 	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
 }

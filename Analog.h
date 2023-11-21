@@ -195,14 +195,18 @@ void PowerUpAnalog5VandExternalADC(void);
 #define AD4695_CMD_CONFIG_CH_SEL(x)			((0x10 | (0x0F & x)) << 3)
 
 /* AD4695_REG_SETUP */
-#define AD4695_SETUP_IF_MODE_MASK			(0x01 << 2)
-#define AD4695_SETUP_IF_MODE_CONV			(0x01 << 2)
-#define AD4695_SETUP_IF_STATUS_EN_MASK		(0x01 << 5)
-#define AD4695_SETUP_IF_STATUS_EN_STATE		(0x01 << 5)
-#define AD4695_SETUP_IF_SDO_STATE_MASK		(0x01 << 6)
-#define AD4695_SETUP_IF_SDO_STATE			(0x01 << 6)
 #define AD4695_SETUP_CYC_CTRL_MASK			(0x01 << 1)
-#define AD4695_SETUP_CYC_CTRL_SINGLE(x)		((x & 0x01) << 1)
+#define AD4695_SETUP_CYC_CTRL_EN(x)			((x & 0x01) << 1)
+#define AD4695_SETUP_IF_MODE_MASK			(0x01 << 2)
+#define AD4695_SETUP_IF_MODE_EN(x)			((x & 0x01) << 2)
+#define AD4695_SETUP_LDO_ENABLE_MASK		(0x01 << 4)
+#define AD4695_SETUP_LDO_ENABLE_EN(x)		((x & 0x01) << 4)
+#define AD4695_SETUP_STATUS_ENABLE_MASK		(0x01 << 5)
+#define AD4695_SETUP_STATUS_ENABLE_EN(x)	((x & 0x01) << 5)
+#define AD4695_SETUP_SDO_STATE_MASK			(0x01 << 6)
+#define AD4695_SETUP_SDO_STATE_EN(x)		((x & 0x01) << 6)
+#define AD4695_SETUP_ALERT_MODE_MASK		(0x01 << 7)
+#define AD4695_SETUP_ALERT_MODE_EN(x)		((x & 0x01) << 7)
 
 /* AD4695_REG_GPIO_CTRL */
 #define AD4695_GPIO_CTRL_GPO0_EN_MASK		(0x01 << 0)
@@ -301,21 +305,21 @@ enum ad4695_osr_ratios { /* oversampling */
 };
 
 void AD4695_Test(void);
-void SPI_Write_Reg_AD4695(uint16_t reg_addr,uint8_t reg_data);
-void SPI_Read_Reg_AD4695(uint16_t reg_addr,uint8_t *reg_data);
-void SPI_Read_Mask(uint16_t reg_addr, uint8_t mask, uint8_t *data);
-uint8_t SPI_Write_Mask(uint16_t reg_addr, uint8_t mask, uint8_t data);
-void AD5695_Register_Access_Mode( enum ad4695_reg_access access);
+void AD4695_SpiWriteRegister(uint16_t reg_addr,uint8_t reg_data);
+void AD4695_SpiReadRegister(uint16_t reg_addr,uint8_t *reg_data);
+void AD4695_SpiReadRegisterWithMask(uint16_t reg_addr, uint8_t mask, uint8_t *data);
+uint8_t AD4695_SpiWriteRegisterWithMask(uint16_t reg_addr, uint8_t mask, uint8_t data);
+void AD4695_SetRegisterAccessMode( enum ad4695_reg_access access);
 void AD4695_Init();
-void AD4695_Set_Busy_State(/*Enum ad4695_busy_gpio_sel gp_sel*/);
-void AD4695_Standard_Seq_MODEandOSR(enum ad4695_osr_ratios ratio);
-void AD4695_Enter_Conversion_Mode(uint8_t enableStatus);
-void AD4695_Exit_Conversion_Mode(void);
-void AD4695_Standard_MODE_SET(void);
+void AD4695_SetBusyState(void);
+void AD4695_SetStandardSequenceModeChannelOSR(enum ad4695_osr_ratios ratio);
+void AD4695_SetStandardSequenceModeChannelInputConfig(uint8_t regData);
+void AD4695_EnterConversionMode(uint8_t enableStatus);
+void AD4695_ExitConversionMode(void);
+void AD4695_SetStandardMode(void);
 void AD4695_SetStandardSequenceActiveChannels(uint8_t channels);
 uint8_t AD4695_GetStandardSequenceActiveChannels(void);
-void AD4695_TemperatureSensorEnable(uint8_t mode);
+void AD4695_SetTemperatureSensorEnable(uint8_t mode);
 void AD4695_DisableInternalLDO(void);
-void AllConfigForAD4695();
 
 #endif /* INC_AD4695_H_ */
