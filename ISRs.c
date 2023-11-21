@@ -2523,7 +2523,7 @@ extern void RevertPowerSavingsAfterSleeping(void);
 			if (s_channelSyncErrorCount)
 			{
 				g_breakpointCause = BP_AD_CHAN_SYNC_ERR;
-				__asm__ __volatile__ ("breakpoint");
+				// Todo: Issue a breakpoint
 			}
 			else
 			{
