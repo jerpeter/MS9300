@@ -253,10 +253,10 @@ void PowerUpAnalog5VandExternalADC(void);
 #define AD4695_SLOTS_NO						0x80
 #define AD4695_CHANNEL_TEMP					16
 
-#define AD4695_STD_SEQ_GEO_1	0x07
-#define AD4695_STD_SEQ_AOP_1	0x08
-#define AD4695_STD_SEQ_GEO_2	0x70
-#define AD4695_STD_SEQ_AOP_2	0x80
+#define ANALOG_GEO_1	0x07
+#define ANALOG_AOP_1	0x08
+#define ANALOG_GEO_2	0x70
+#define ANALOG_AOP_2	0x80
 
 #define AD4695_SINGLE_SDO_MODE	0x00
 #define AD4695_DUAL_SDO_MODE	0x01

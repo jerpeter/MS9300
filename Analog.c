@@ -204,7 +204,7 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 	// Todo: make channel config dynamic
 	
 	// Setup the stantard sequence channels to be monitored
-	AD4695_SetStandardSequenceActiveChannels((AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_AOP_1));
+	AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_AOP_1));
 
 	// For any sample rate 16K and below
 	if (sampleRate <= SAMPLE_RATE_16K)
@@ -990,9 +990,9 @@ void AD4695_Init()
 	AD4695_SetStandardMode();
 	AD4695_SetReferenceInputRange(R4V5_R5V1); // Setting the reference voltage range
 
-	// Some combination of the following: AD4695_STD_SEQ_GEO_1, AD4695_STD_SEQ_AOP_1, AD4695_STD_SEQ_GEO_2, AD4695_STD_SEQ_AOP_2
+	// Some combination of the following: ANALOG_GEO_1, ANALOG_AOP_1, ANALOG_GEO_2, ANALOG_AOP_2
 	// Set default Geo1 + AOP1
-	AD4695_SetStandardSequenceActiveChannels((AD4695_STD_SEQ_GEO_1 | AD4695_STD_SEQ_AOP_1)); // Enable selected channels
+	AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_AOP_1)); // Enable selected channels
 
 #if 0 /* Not ready to enter conversion mode at this time */
 	AD4695_EnterConversionMode(NO); /*Enters conversion mode*/
