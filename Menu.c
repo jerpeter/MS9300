@@ -200,19 +200,19 @@ void DisplaySelectMenu(WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LAYOUT_STRUCT *mn_l
 		{
 			if (menu_ln == (mn_layout_ptr->curr_ln - mn_layout_ptr->top_ln))
 			{
-			if (mn_layout_ptr->sub_ln == 0)
-			{
-				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, CURSOR_LN);
+				if (mn_layout_ptr->sub_ln == 0)
+				{
+					WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, CURSOR_LN);
+				}
+				else // sub_ln > 0
+				{
+					wnd_layout_ptr->index = mn_layout_ptr->sub_ln;
+					WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, CURSOR_CHAR);
+				}
 			}
 			else
 			{
-				wnd_layout_ptr->index = mn_layout_ptr->sub_ln;
-				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, CURSOR_CHAR);
-			}
-			}
-			else
-			{
-			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 			}
 		}
 		else
@@ -289,7 +289,7 @@ void DisplayUserMenu(WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LAYOUT_STRUCT *mn_lay
 					// Write the text to the LCD map highlighted
 					WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, CURSOR_LN);
 				}
-				else
+				else // sub_ln > 0
 				{
 					// Write just one char highlighted
 					wnd_layout_ptr->index = mn_layout_ptr->sub_ln;
@@ -311,6 +311,35 @@ void DisplayUserMenu(WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LAYOUT_STRUCT *mn_lay
 		menu_ln++;
 	}
 }
+
+/*
+New LCD display steps, LCD map clear replacement
+	Start stream -- ft81x_stream_start();
+	Set color -- ft81x_color_rgb32();
+	Set foreground color -- ft81x_fgcolor_rgb32();
+	Set background color -- ft81x_bgcolor_rgb32();
+*/
+
+/*
+WndMpWrtString replacement
+	if line type is cursor line (CURSOR_LN)
+		Swap foreground color
+		Swap background color
+	Adjust the layout coordinates to the new LCD size (positioned top left)
+	Draw text at layout coordinates -- ft81x_cmd_text();
+	When finished, if line type is cursor line (CURSOR_LN)
+		Reset foreground color
+		Reset background color
+*/
+
+/*
+Write map to LCD replacement
+	End the display list -- ft81x_display();
+	Trigger FT81x to read the command buffer -- ft81x_getfree(0);
+	Finish streaming to command buffer -- ft81x_stream_stop();
+
+	Wait till the GPU is finished?? -- ft81x_wait_finish();
+*/
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -478,7 +507,7 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 
 	// Store next column location
 	wnd_layout->next_col = mmcurr_col;
-	}
+}
 
 ///----------------------------------------------------------------------------
 ///	Function Break
