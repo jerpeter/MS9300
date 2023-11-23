@@ -365,7 +365,7 @@ uint8 Bit_Swap(uint8 data);
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0
+#if 0 /* unused */
 void WriteLCD_Vline(uint8 x_pos, uint8 y_pos1, uint8 y_pos2, uint8 bLineType)
 {
 	uint8 ColAddr;
@@ -497,7 +497,7 @@ void WriteLCD_Vline(uint8 x_pos, uint8 y_pos1, uint8 y_pos2, uint8 bLineType)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0
+#if 0 /* unused */
 void WriteLCD_Hline(uint8 y_pos, uint8 start, uint8 end, uint8 bLineType)
 {
 	uint8 bTemp;
@@ -578,6 +578,7 @@ void WriteLCD_Hline(uint8 y_pos, uint8 start, uint8 end, uint8 bLineType)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* essentially unused */
 void Display_small_char(uint8 number, uint8 h_position, uint8 v_position, uint8 polarity, uint8 bConfig)
 {
 	uint8 bTemp;
@@ -859,10 +860,12 @@ void Display_small_char(uint8 number, uint8 h_position, uint8 v_position, uint8 
 		} // End of if
 	} // End if if
 } // End of function
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* unused */
 void WriteLCD_lgText(uint8 line, uint8 position, const uint8 *lcd_data, uint8 polarity)
 {
 	uint8 data_byte;
@@ -877,10 +880,12 @@ void WriteLCD_lgText(uint8 line, uint8 position, const uint8 *lcd_data, uint8 po
 		col += 11; // move over to the next space
 	}
 } // End of function
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* essentially unused */
 void Display_large_char(uint8 number, uint8 position, uint8 line, uint8 polarity)
 {
 	uint8 index;
@@ -975,10 +980,12 @@ void Display_large_char(uint8 number, uint8 position, uint8 line, uint8 polarity
 	Write_display(DATA_REGISTER, (polarity == REVERSE_LCD) ? 0xFF : 0x00, display_half);
 
 } //End of function
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* essentially unused, only in srec */
 void WriteLCD_smText(uint8 x_pos, uint8 y_pos, const uint8 *lcd_data, uint8 polarity)
 {
 	uint8 data_byte;
@@ -1026,10 +1033,12 @@ void WriteLCD_smText(uint8 x_pos, uint8 y_pos, const uint8 *lcd_data, uint8 pola
 
 	} // End of if
 } // End of function
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* essentially unused */
 void ClearLCDscreen(void)
 {
 	uint8 count;
@@ -1038,10 +1047,12 @@ void ClearLCDscreen(void)
 		Clear_line(count);
 	}
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* essentially unused */
 void Clear_line(uint8 line)
 {
 	uint8 column;
@@ -1073,6 +1084,7 @@ void Clear_line(uint8 line)
 	//} // End if for
 
 } //End of function
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -1116,6 +1128,7 @@ void InitDisplay(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* essentially unused */
 void Write_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 {
 #if 0 /* old hw */
@@ -1170,20 +1183,24 @@ void Write_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 	SoftUsecWait(100);
 #endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* unused */
 void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 {
 	UNUSED(lcd_register);
 	UNUSED(lcd_data);
 	UNUSED(display_half);
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* unused */
 uint8 Read_display(uint8 lcd_register, uint8 display_half)
 {
 	uint16 lcd_data = 0;
@@ -1234,6 +1251,7 @@ uint8 Read_display(uint8 lcd_register, uint8 display_half)
 
 	return((uint8)(lcd_data & 0xFF));
 }// End of function
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -2076,7 +2094,7 @@ void test_memory_ops(
 void test_display(
 )
 {
-	ft81x_wr(REG_PWM_DUTY, 8);
+	ft81x_wr(REG_PWM_DUTY, 8); // Values range from 0 to 128, 0 is no backlight, 128 is max backlight
 
 	// Wait till the GPU is finished
 	for (int x=0; x<300; x++)
@@ -2103,7 +2121,7 @@ void test_display(
 		// Turn off tagging
 		ft81x_tag_mask(0);
 
-		// Draw some text and a number display value of dial
+		// Draw some text
 		ft81x_cmd_text(240, 136, 30, OPT_CENTER, "Hello World");
 
 		//ft81x_cmd_text(130, 200, 30, OPT_RIGHTX, "TAG");
