@@ -410,6 +410,7 @@ void WriteStringToLcd(uint8* p, uint8 x, uint8 y, uint8 (*table_ptr)[2][10])
 ///----------------------------------------------------------------------------
 void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 {
+#if 0 /* original function */
 	uint8 segment;
 	uint8* pixel_byte_ptr;
 	uint8 col_index;
@@ -468,6 +469,22 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 
 		row_index++;
 	}
+#else /* new LCd driver */
+	/*
+	Write map to LCD replacement
+		End the display list -- ft81x_display();
+		Trigger FT81x to read the command buffer -- ft81x_getfree(0);
+		Finish streaming to command buffer -- ft81x_stream_stop();
+
+		Wait till the GPU is finished?? -- ft81x_wait_finish();
+	*/
+	ft81x_display(); // End the display list started with the ClearLcdMap function
+	ft81x_getfree(0); // Trigger FT81x to read the command buffer
+	ft81x_stream_stop(); // Finish streaming to command buffer
+
+	ft81x_wait_finish(); // Wait till the GPU is finished? (or delay at start of next display interaction?)
+
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -519,7 +536,27 @@ void ClearLcdDisplay(void)
 ///----------------------------------------------------------------------------
 void ClearLcdMap(void)
 {
+#if 0 /* original function */
 	memset(&(g_mmap[0][0]), 0, sizeof(g_mmap));
+#else /* new LCD driver */
+	/*
+	New LCD display steps, LCD map clear replacement
+		Start stream -- ft81x_stream_start();
+		Set color -- ft81x_color_rgb32();
+		Set foreground color -- ft81x_fgcolor_rgb32();
+		Set background color -- ft81x_bgcolor_rgb32();
+	*/
+		ft81x_stream_start(); // Start streaming
+		ft81x_cmd_dlstart(); // Set REG_CMD_DL when done?
+		ft81x_cmd_swap(); // Set AUTO swap at end of display list?
+		ft81x_clear_color_rgb32(0xfdfdfd); // Todo: Determine color? (datasheet example shows this order, clear color before clear)
+		ft81x_clear();
+		ft81x_color_rgb32(0x101010); // Todo: Determine palatte color
+		ft81x_bgcolor_rgb32(0xff0000); // Todo: Determine background color of graphics objects
+		ft81x_fgcolor_rgb32(0x0000ff); // Todo: Determine foreground color of graphics objects
+
+		ft81x_tag_mask(0); // Turn off tagging
+#endif
 }
 
 ///----------------------------------------------------------------------------
