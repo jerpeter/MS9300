@@ -232,7 +232,7 @@ void TimerModeTimeMenuDisplay(REC_MN_STRUCT *rec_ptr, WND_LAYOUT_STRUCT *wnd_lay
 	//uint8 menu_ln;
 	uint8 length = 0;
 
-	memset(&(g_mmap[0][0]), 0, sizeof(g_mmap));
+	ClearLcdMap();
 
 	//menu_ln = 0;
 	//top = (uint8)mn_layout_ptr->top_ln;

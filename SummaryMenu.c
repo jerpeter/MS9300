@@ -205,7 +205,7 @@ void SummaryMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 	uint16 tempSummaryIndex = 0;
 
 	// Clear the LCD map
-	memset(&(g_mmap[0][0]), 0, sizeof(g_mmap));
+	ClearLcdMap();
 
 	// Display the Title centered on the Top line
 	length = (uint8)sprintf(lineBuff, "-%s-", getLangText(LIST_OF_SUMMARIES_TEXT));

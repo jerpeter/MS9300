@@ -167,7 +167,7 @@ void DisplaySelectMenu(WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LAYOUT_STRUCT *mn_l
 	uint8 menu_ln;
 	uint32 length;
 
-	memset(&(g_mmap[0][0]), 0, sizeof(g_mmap));
+	ClearLcdMap();
 
 	menu_ln = 0;
 	top = 0;
@@ -234,7 +234,7 @@ void DisplayUserMenu(WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LAYOUT_STRUCT *mn_lay
 	uint32 length;
 
 	// Clear out LCD map buffer
-	memset(&(g_mmap[0][0]), 0, sizeof(g_mmap));
+	ClearLcdMap();
 
 	// Init var's
 	menu_ln = 0;
@@ -895,7 +895,7 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 	}
 
 	// Clear LCD map buffer to remove message from showing up
-	memset(&(g_mmap[0][0]), 0, sizeof(g_mmap));
+	ClearLcdMap();
 	WriteMapToLcd(g_mmap);
 
 #if 0 /* ET Test */
@@ -998,7 +998,7 @@ void DisplaySplashScreen(void)
 	wnd_layout.end_col = DEFAULT_END_COL;
 
 	// Clear cached LCD memory map
-	memset(&(g_mmap[0][0]), 0, sizeof(g_mmap));
+	ClearLcdMap();
 
 	//----------------------------------------------------------------------------------------
 	// Add in a title for the menu

@@ -180,7 +180,7 @@ void MonitorLogMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 {
 	uint8 length;
 
-	memset(&(g_mmap[0][0]), 0, sizeof(g_mmap));
+	ClearLcdMap();
 
 	// Add in a title for the menu
 	length = (uint8)sprintf((char*)g_spareBuffer, "-%s-", getLangText(VIEW_MONITOR_LOG_TEXT));

@@ -94,7 +94,7 @@ void MonitorMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 			mn_layout_ptr->curr_ln = MONITOR_MN_TBL_START_LINE;
 			mn_layout_ptr->top_ln = MONITOR_MN_TBL_START_LINE;
 
-			memset(&(g_mmap[0][0]), 0, sizeof(g_mmap));
+			ClearLcdMap();
 			
 			// Check if USB device mode is active and connected to a PC (where it's possible to change the contents of the SD card under the covers)
 #if 0 /* old hw */
@@ -416,7 +416,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 	wnd_layout_ptr->next_row = wnd_layout_ptr->start_row;
 	wnd_layout_ptr->next_col = wnd_layout_ptr->start_col;
 
-	memset(&(g_mmap[0][0]), 0, sizeof(g_mmap));
+	ClearLcdMap();
 
 	//-----------------------------------------------------------------------
 	// PRINT MONITORING

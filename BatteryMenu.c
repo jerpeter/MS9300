@@ -124,7 +124,7 @@ void BatteryMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 	float batt_rng;
 	uint8 length;
 
-	memset(&(g_mmap[0][0]), 0, sizeof(g_mmap));
+	ClearLcdMap();
 
 	// Add in a title for the menu
 	length = sprintf((char*)g_spareBuffer, "-%s-", getLangText(BATTERY_VOLTAGE_TEXT));

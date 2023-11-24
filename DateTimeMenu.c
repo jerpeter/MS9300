@@ -325,7 +325,7 @@ void DisplayDateTimeMn(REC_MN_STRUCT *rec_ptr, WND_LAYOUT_STRUCT *wnd_layout_ptr
 		s_halfSecTick = g_lifetimeHalfSecondTickCount;
 	}
 
-	memset(&(g_mmap[0][0]), 0, sizeof(g_mmap));
+	ClearLcdMap();
 	memset(&sbuff[0], 0, sizeof(sbuff));
 
 	//menu_ln = 0;

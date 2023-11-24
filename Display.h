@@ -130,6 +130,7 @@ void WriteStringToLcd (uint8*, uint8, uint8, uint8 (*table_ptr)[2][10]);
 void WriteMapToLcd (uint8 (*g_mmap_ptr)[128]);
 void InitLcdDisplay(void);
 void ClearLcdDisplay(void);
+void ClearLcdMap(void);
 void FillLcdDisplay(void);
 void ClearControlLinesLcdDisplay(void);
 void SetNextLcdBacklightState(void);

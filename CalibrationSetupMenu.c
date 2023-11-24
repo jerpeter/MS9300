@@ -463,7 +463,7 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 	}
 	else // Clear the whole map
 	{
-		memset(&(g_mmap[0][0]), 0, sizeof(g_mmap));
+		ClearLcdMap();
 	}
 
 	if ((s_calDisplayScreen == CAL_MENU_DEFAULT_NON_CALIBRATED_DISPLAY) || (s_calDisplayScreen == CAL_MENU_CALIBRATED_DISPLAY) ||

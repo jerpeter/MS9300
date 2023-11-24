@@ -306,7 +306,7 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 					g_summaryList.cachedEntry.channelSummary.v.peak, g_summaryList.cachedEntry.channelSummary.t.peak);
 	}
 
-	memset(&(g_mmap[0][0]), 0, sizeof(g_mmap));
+	ClearLcdMap();
 
 	//-------------------------------------------------------------
 	// Event specific scaling factors
