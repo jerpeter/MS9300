@@ -347,7 +347,7 @@ Write map to LCD replacement
 ///----------------------------------------------------------------------------
 void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, int ln_type)
 {
-#if 0 /* original function */
+#if 1 /* original function */
 	const uint8 (*fmap_ptr)[FONT_MAX_COL_SIZE];
 	uint8 mmcurr_row;
 	uint8 mmend_row;
@@ -511,7 +511,9 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 	wnd_layout->next_col = mmcurr_col;
 #else /* new LCD driver */
 	/*
-	WndMpWrtString replacement
+		----------------------------
+		WndMpWrtString replacement
+		----------------------------
 		if line type is cursor line (CURSOR_LN or CURSOR_CHAR)
 			Swap foreground color
 			Swap background color
@@ -529,21 +531,25 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 	}
 
 	/*
-	<Graphics Engine> CMD_TEXT (draw text) parameter details:
-	x = x-coordinate of text base, in pixels
-	y = y-coordinate of text base, in pixels
-	font = Font to use for text, 0-31. See ROM and RAM Fonts
-	options = by default (x,y) is the top-left pixel of the text and the value of options is zero
-			OPT_CENTERX centers the text horizontally
-			OPT_CENTERY centers it vertically
-			OPT_CENTER centers the text in both directions
-			OPT_RIGHTX right-justifies the text, so that the x is the rightmost pixel
-	Text string = The text string itself which should be terminated by a null character
+		----------------------------
+		<Graphics Engine> CMD_TEXT (draw text) parameter details:
+		----------------------------
+		x = x-coordinate of text base, in pixels
+		y = y-coordinate of text base, in pixels
+		font = Font to use for text, 0-31. See ROM and RAM Fonts
+		options = by default (x,y) is the top-left pixel of the text and the value of options is zero
+				OPT_CENTERX centers the text horizontally
+				OPT_CENTERY centers it vertically
+				OPT_CENTER centers the text in both directions
+				OPT_RIGHTX right-justifies the text, so that the x is the rightmost pixel
+		Text string = The text string itself which should be terminated by a null character
 	*/
 
 	// Draw some text
 	// Todo: update to handle text wrapping and any other special abilities previously handled by this prior function duties
-	ft81x_cmd_text(wnd_layout->curr_col, wnd_layout->curr_row, 30, 0, (char*)buff);
+
+	// Scale old row by 15/4 (30 pixels instead of 8 per row), scale old column by 15/4 (480/128)
+	ft81x_cmd_text((int16_t)(wnd_layout->curr_col * 15 / 4), (int16_t)(wnd_layout->curr_row * 15 / 4), 30, 0, (char*)buff);
 
 	if ((ln_type == CURSOR_LN) || (ln_type == CURSOR_CHAR))
 	{
