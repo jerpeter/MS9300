@@ -2661,7 +2661,7 @@ void ft81x_rdn(uint32_t addr, uint8_t *results, int8_t len) {
  * Write 24 bit address + 8 bit value
  * A total of 4 bytes will be on the SPI BUS.
  */
-void ft81x_wr(uint32_t addr, uint8_t byte)
+void ft81x_wr(uint32_t addr, uint8_t byteVal)
 {
 #if 0
   // setup trans memory
@@ -2683,7 +2683,7 @@ void ft81x_wr(uint32_t addr, uint8_t byte)
 
   trans.base.length = 8;
   trans.base.rx_buffer = NULL;
-  trans.base.tx_buffer = &byte;
+  trans.base.tx_buffer = &byteVal;
 
   // start the transaction ISR watches CS bit
   ft81x_assert_cs(true);
@@ -2701,7 +2701,7 @@ void ft81x_wr(uint32_t addr, uint8_t byte)
 	writeData[0] = ((addr >> 16) & 0xFF);
 	writeData[1] = ((addr >> 8) & 0xFF);
 	writeData[2] = (addr & 0xFF);
-	writeData[3] = byte;
+	writeData[3] = byteVal;
 
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 #endif
@@ -2711,7 +2711,7 @@ void ft81x_wr(uint32_t addr, uint8_t byte)
  * Write 24 bit address + 16 bit value
  * A total of 5 bytes will be on the SPI BUS.
  */
-void ft81x_wr16(uint32_t addr, uint16_t word)
+void ft81x_wr16(uint32_t addr, uint16_t wordVal)
 {
 #if 0
   // setup trans memory
@@ -2733,7 +2733,7 @@ void ft81x_wr16(uint32_t addr, uint16_t word)
 
   trans.base.length = 16;
   trans.base.rx_buffer = NULL;
-  trans.base.tx_buffer = &word;
+  trans.base.tx_buffer = &wordVal;
 
   // start the transaction ISR watches CS bit
   ft81x_assert_cs(true);
@@ -2751,8 +2751,8 @@ void ft81x_wr16(uint32_t addr, uint16_t word)
 	writeData[0] = ((addr >> 16) & 0xFF);
 	writeData[1] = ((addr >> 8) & 0xFF);
 	writeData[2] = (addr & 0xFF);
-	writeData[3] = ((word >> 8) & 0xFF);
-	writeData[4] = (word & 0xFF);
+	writeData[3] = ((wordVal >> 8) & 0xFF);
+	writeData[4] = (wordVal & 0xFF);
 
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 #endif
@@ -2762,7 +2762,7 @@ void ft81x_wr16(uint32_t addr, uint16_t word)
  * Write 24 bit address + 32 bit value
  * A total of 7 bytes will be on the SPI BUS.
  */
-void ft81x_wr32(uint32_t addr, uint32_t word)
+void ft81x_wr32(uint32_t addr, uint32_t longVal)
 {
 #if 0
   // setup trans memory
@@ -2784,7 +2784,7 @@ void ft81x_wr32(uint32_t addr, uint32_t word)
 
   trans.base.length = 32;
   trans.base.rx_buffer = NULL;
-  trans.base.tx_buffer = &word;
+  trans.base.tx_buffer = &longVal;
 
   // start the transaction ISR watches CS bit
   ft81x_assert_cs(true);
@@ -2802,10 +2802,10 @@ void ft81x_wr32(uint32_t addr, uint32_t word)
 	writeData[0] = ((addr >> 16) & 0xFF);
 	writeData[1] = ((addr >> 8) & 0xFF);
 	writeData[2] = (addr & 0xFF);
-	writeData[3] = ((word >> 24) & 0xFF);
-	writeData[4] = ((word >> 16) & 0xFF);
-	writeData[5] = ((word >> 8) & 0xFF);
-	writeData[6] = (word & 0xFF);
+	writeData[3] = ((longVal >> 24) & 0xFF);
+	writeData[4] = ((longVal >> 16) & 0xFF);
+	writeData[5] = ((longVal >> 8) & 0xFF);
+	writeData[6] = (longVal & 0xFF);
 
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 #endif

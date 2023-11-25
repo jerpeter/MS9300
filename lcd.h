@@ -442,13 +442,13 @@ void ft81x_wrN(uint8_t *buffer, uint8_t size);
 void ft81x_wrE();
 
 // Send a 16 bit address and write 8 bits of data
-void ft81x_wr(uint32_t addr, uint8_t byte);
+void ft81x_wr(uint32_t addr, uint8_t byteVal);
 
 // Send a 16 bit address and write 16 bits of data
-void ft81x_wr16(uint32_t addr, uint16_t word);
+void ft81x_wr16(uint32_t addr, uint16_t wordVal);
 
 // Send a 16 bit address and write 32 bits of data
-void ft81x_wr32(uint32_t addr, uint32_t word);
+void ft81x_wr32(uint32_t addr, uint32_t longVal);
 
 // Read the FT81x command pointer
 uint16_t ft81x_fifo_rp();
