@@ -113,8 +113,8 @@ void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 
 #define DL_CMD_FAULT 0xfff
 #define MAX_FIFO_SPACE (4096 - 4)
-#define FT81X_DISPLAY_WIDTH 480 //800
-#define FT81X_DISPLAY_HEIGHT 272 //480
+#define FT81X_DISPLAY_WIDTH 480
+#define FT81X_DISPLAY_HEIGHT 272
 
 // Currently with DMA setting of 0 the ESP32 can only transfer 32 bytes per transaction.
 // Setting DMA mode > 0 has other issues with data not readable. Bugs that may change
@@ -363,42 +363,24 @@ void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 #define CMD_PINDRIVE       0x70   // Pin driver power levels
 #define PIN_PD_STATE       0x71   // Pin state when powered down Float/Pull-Down
 
-#define FT81X_TOUCH_POINTS 5
 #define FT81X_TRACKER_UNITS 65535
 
 /*
  * Types
  */
 
-// FT813 touch screen state loaded by calls to get_touch_inputs
-//// Capacitive touch state
-struct ft81x_touch_input_t {
-	uint16_t tag;
-	uint16_t tag_x;
-	uint16_t tag_y;
-	int16_t display_x; //no-touch: -32768
-	int16_t display_y; //no-touch: -32768
-};
-
-//// touch tracker state
-struct ft81x_touch_tracker_t {
-	uint16_t tag;
-	uint16_t value;
-};
-
 /*
  * Prototypes
  */
 
-uint8_t ft81x_multi_touch_enabled(void);
-void ft81x_multi_touch_enable(uint8_t enable);
-uint8_t ft81x_touch_mode();
-
-// Initialize the ESP32 SPI device driver for the FT81X chip attached to the VSPI pins
-uint8_t ft81x_init_spi(void);
-
 // Initialize FT81X GPU
 uint8_t ft81x_init_gpu(void);
+
+// Turn the backlight off
+void ft81x_backlight_off(void);
+
+// Set the backlight level
+void ft81x_set_backlight_level(uint8_t backlightLevel);
 
 // Put the display to sleep low power mode
 void ft81x_sleep();
