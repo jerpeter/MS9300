@@ -2679,9 +2679,7 @@ void ft81x_cSPOOL_MF(uint8_t *buffer, int32_t size)
 
   // Calculate how full our fifo is based upon our read/write pointers
   fullness = (mf_wp - mf_rp) & (mf_size - 1);
-#if 0
-  ESP_LOGI(TAG, "rp1 0x%08x wp 0x%08x full 0x%08x", mf_rp, mf_wp, fullness);
-#endif
+
   // Blocking! Keep going until all the data is sent. 
   do {
 
