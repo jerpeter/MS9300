@@ -540,6 +540,9 @@ void ClearLcdMap(void)
 		ft81x_fgcolor_rgb32(0x0000ff); // Todo: Determine foreground color of graphics objects
 
 		ft81x_tag_mask(0); // Turn off tagging
+
+		// Todo: clear soft key map until the new screen has been written (changed)
+		//memset(&g_softKeyTranslation[0], 0, sizeof(g_softKeyTranslation));
 #endif
 }
 
