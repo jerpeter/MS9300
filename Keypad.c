@@ -234,6 +234,16 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 		// Process new key
 		if (keyPressed != KEY_NONE)
 		{
+#if 0 /* Fill in */
+			// Todo: Process soft key translation?
+			// Turn soft keys 1..4 into their mapped action?
+			if (keyPressed == KB_SK_1) { keyPressed = g_softKeyTranslation[0]; }
+			if (keyPressed == KB_SK_2) { keyPressed = g_softKeyTranslation[1]; }
+			if (keyPressed == KB_SK_3) { keyPressed = g_softKeyTranslation[2]; }
+			if (keyPressed == KB_SK_4) { keyPressed = g_softKeyTranslation[3]; }
+#else /* Temporary hard translation */
+			// Setup in the header defines
+#endif
 			mn_msg.length = 1;
 			mn_msg.data[0] = keyPressed;
 			mn_msg.cmd = KEYPRESS_MENU_CMD;
