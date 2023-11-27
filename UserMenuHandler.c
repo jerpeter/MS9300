@@ -949,6 +949,14 @@ void CopyMenuToCache(USER_MENU_STRUCT* currentMenu)
 	
 	// Copy ".end." to the text to signal the end of the user menu display text data
 	strcpy(g_userMenuCachePtr[i].text, ".end.");
+
+#if 0 /* Todo: Fill in/Complete */
+	// Utilize last menu line for dynamic soft key assignment
+	g_softKeyTranslation[0] = g_userMenuCachePtr[i].preNum;
+	g_softKeyTranslation[1] = g_userMenuCachePtr[i].textEntry;
+	g_softKeyTranslation[2] = g_userMenuCachePtr[i].postTag;
+	g_softKeyTranslation[3] = ESC_KEY;
+#endif
 }
 
 ///----------------------------------------------------------------------------
