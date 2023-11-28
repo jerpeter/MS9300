@@ -309,6 +309,10 @@ void InitLCD(void)
 	memcpy(g_mmap, sign_on_logo, (8*128));
 	WriteMapToLcd(g_mmap);
 #endif
+#else
+	// Attempt to load a bitmap to the display controller
+	// Todo: Add in bitmap load and display
+	memcpy(g_mmap, &sign_on_logo_l1_bottom_left[8], (8*128));
 #endif
 }
 
