@@ -74,9 +74,15 @@
 #define CONTRAST_STEPPING 		1
 #define CONTRAST_FINE_STEPPING 	1
 
+/* Original top left row x column */
 #define LCD_NUM_OF_ROWS			8
 #define LCD_NUM_OF_BIT_COLUMNS	128
 #define MMAP_SIZE_IN_BYTES		(LCD_NUM_OF_ROWS * LCD_NUM_OF_BIT_COLUMNS)
+#if 1 /* Updated bottom left scan line x heigth*/
+#define LCD_NUM_OF_SCAN_LINES	16
+#define LCD_NUM_OF_BIT_HEIGTH	64
+#define LCD_MAP_SIZE_IN_BYTES	(LCD_NUM_OF_SCAN_LINES * LCD_NUM_OF_BIT_HEIGTH)
+#endif
 
 #define SEGMENT_ONE_BLOCK_BORDER 		63
 #define SEGMENT_TWO_BLOCK_BORDER 		127
