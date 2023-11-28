@@ -45,7 +45,11 @@ INPUT_MSG_STRUCT g_input_buffer[INPUT_BUFFER_SIZE];
 //char g_appTime[16];
 MONTH_TABLE_STRUCT g_monthTable[] = { {0, "\0\0\0\0", 0}, {JAN, "JAN\0", 31}, {FEB, "FEB\0", 28}, {MAR, "MAR\0", 31}, {APR, "APR\0", 30}, {MAY, "MAY\0", 31},
 	{JUN, "JUN\0", 30}, {JUL, "JUL\0", 31}, {AUG, "AUG\0", 31}, {SEP, "SEP\0", 30}, {OCT, "OCT\0", 31}, {NOV, "NOV\0", 30}, {DEC, "DEC\0", 31} };
+/* Original top left, row x column */
 uint8 g_mmap[LCD_NUM_OF_ROWS][LCD_NUM_OF_BIT_COLUMNS];
+#if 1 /* New bottom left, scan line x heigth */
+uint8 g_bitmap[LCD_MAP_SIZE_IN_BYTES];
+#endif
 uint8 g_contrast_value;
 uint8 g_powerSavingsForSleepEnabled = NO;
 uint16 g_nextEventNumberToUse = 1;

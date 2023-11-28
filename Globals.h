@@ -34,6 +34,9 @@ extern OFFSET_DATA_STRUCT g_channelOffset;
 extern INPUT_MSG_STRUCT g_input_buffer[INPUT_BUFFER_SIZE];
 extern MONTH_TABLE_STRUCT g_monthTable[];
 extern uint8 g_mmap[LCD_NUM_OF_ROWS][LCD_NUM_OF_BIT_COLUMNS];
+#if 1 /* New bottom left, scan line x heigth */
+extern uint8 g_bitmap[LCD_MAP_SIZE_IN_BYTES];
+#endif
 extern uint8 g_contrast_value;
 extern uint8 g_powerSavingsForSleepEnabled;
 extern uint16 g_nextEventNumberToUse;
