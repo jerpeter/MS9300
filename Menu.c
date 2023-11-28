@@ -563,6 +563,23 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void LcdMapTranslationToBitMap(void)
+{
+	for (int row = 7; row >= 0; row--)
+	{
+		for (int sub_row = 7; sub_row >= 0; sub_row--)
+		{
+			for (int column = 0; column < 127; column++)
+			{
+				g_bitmap[((7 - row) * 128) + ((7 - sub_row) * 16) + (column / 8)] |= (g_mmap[row][column] & (1 << sub_row));
+			}
+		}
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void MessageBorder(void)
 {
 	uint8 i = 0;
