@@ -347,7 +347,7 @@ Write map to LCD replacement
 ///----------------------------------------------------------------------------
 void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, int ln_type)
 {
-#if 1 /* original function */
+#if 0 /* original function */
 	const uint8 (*fmap_ptr)[FONT_MAX_COL_SIZE];
 	uint8 mmcurr_row;
 	uint8 mmend_row;
@@ -565,13 +565,13 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 ///----------------------------------------------------------------------------
 void LcdMapTranslationToBitMap(void)
 {
-	for (int row = 7; row >= 0; row--)
+	for (int row = 0; row < 8; row++)
 	{
-		for (int sub_row = 7; sub_row >= 0; sub_row--)
+		for (int sub_row_bit = 7; sub_row_bit <= 0; sub_row_bit--)
 		{
-			for (int column = 0; column < 127; column++)
+			for (int column = 0; column < 128; column++)
 			{
-				g_bitmap[((7 - row) * 128) + ((7 - sub_row) * 16) + (column / 8)] |= (g_mmap[row][column] & (1 << sub_row));
+				g_bitmap[(row * 128) + ((7 - sub_row_bit) * 16) + (column / 8)] |= (g_mmap[row][column] & (1 << sub_row_bit));
 			}
 		}
 	}
@@ -921,7 +921,12 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 	MessageText(textString);
 	MessageChoice(choiceType);
 
+#if 0 /* Original */
 	WriteMapToLcd(g_mmap);
+#else /* New display controller */
+	// Write bitmap to LCD controller
+	// Display bitmap
+#endif
 
 	debug("MB: Look for a key\r\n");
 
@@ -942,7 +947,12 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 					{
 						// Swap the active choice
 						MessageChoiceActiveSwap(choiceType);
+#if 0 /* Original */
 						WriteMapToLcd(g_mmap);
+#else /* New display controller */
+						// Write bitmap to LCD controller
+						// Display bitmap
+#endif
 
 						activeChoice = MB_FIRST_CHOICE;
 					}
@@ -953,7 +963,12 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 					{
 						// Swap the active choice
 						MessageChoiceActiveSwap(choiceType);
+#if 0 /* Original */
 						WriteMapToLcd(g_mmap);
+#else /* New display controller */
+						// Write bitmap to LCD controller
+						// Display bitmap
+#endif
 
 						activeChoice = MB_SECOND_CHOICE;
 					}
@@ -962,9 +977,14 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 		}
 	}
 
+#if 0 /* Original */
 	// Clear LCD map buffer to remove message from showing up
 	ClearLcdMap();
 	WriteMapToLcd(g_mmap);
+#else /* New display controller */
+	// Clear bitmap?
+	// Display update?
+#endif
 
 #if 0 /* ET Test */
 	g_debugBufferCount = 0;
