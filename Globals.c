@@ -111,6 +111,7 @@ uint8 g_kpadInterruptWhileProcessing = 0;
 uint16 g_kpadLastKeyPressed = KEY_NONE;
 uint16 g_kpadLastKeymap = 0;
 uint16 g_kpadIsrKeymap = 0;
+uint16 g_dynamicSoftKeyLayout[4];
 volatile uint32 g_keypadTimerTicks = 0;
 volatile uint32 g_msTimerTicks = 0;
 uint32 g_kpadKeyRepeatCount = 0;

@@ -98,6 +98,7 @@ extern uint16 g_kpadLastKeyPressed;
 extern uint8 g_kpadInterruptWhileProcessing;
 extern uint16 g_kpadLastKeymap;
 extern uint16 g_kpadIsrKeymap;
+extern uint16 g_dynamicSoftKeyLayout[4];
 extern uint8 g_allowQuickPowerOffForTimerModeSetup;
 extern volatile uint32 g_keypadTimerTicks;
 extern volatile uint32 g_msTimerTicks;
