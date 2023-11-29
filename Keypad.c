@@ -616,3 +616,14 @@ uint16 ScanKeypad(void)
 
 	return (keyPressed);
 }
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetDynamicSoftKeyLayout(uint16 softKey1, uint16 softKey2, uint16 softKey3, uint16 softKey4)
+{
+	g_dynamicSoftKeyLayout[0] = softKey1;
+	g_dynamicSoftKeyLayout[1] = softKey2;
+	g_dynamicSoftKeyLayout[2] = softKey3;
+	g_dynamicSoftKeyLayout[3] = softKey4;
+}
