@@ -93,7 +93,7 @@ USER_MENU_STRUCT airTriggerMenu[AIR_TRIGGER_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(INTEGER_SPECIAL_TYPE, AIR_TRIGGER_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(DB_TYPE, MB_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AirTriggerMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AirTriggerMenuHandler}}
 };
 
 //-------------------------
@@ -215,7 +215,7 @@ USER_MENU_STRUCT alarmOneSeismicLevelMenu[ALARM_ONE_SEISMIC_LEVEL_MENU_ENTRIES] 
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(IN_TYPE, MM_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AlarmOneSeismicLevelMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AlarmOneSeismicLevelMenuHandler}}
 };
 
 //-------------------------------------
@@ -271,7 +271,7 @@ USER_MENU_STRUCT alarmOneAirLevelMenu[ALARM_ONE_AIR_LEVEL_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(INTEGER_SPECIAL_TYPE, ALARM_ONE_AIR_LEVEL_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(DB_TYPE, MB_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AlarmOneAirLevelMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AlarmOneAirLevelMenuHandler}}
 };
 
 //---------------------------------
@@ -321,7 +321,7 @@ USER_MENU_STRUCT alarmOneTimeMenu[ALARM_ONE_TIME_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(FLOAT_TYPE, ALARM_ONE_TIME_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(SECS_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AlarmOneTimeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AlarmOneTimeMenuHandler}}
 };
 
 //----------------------------
@@ -376,7 +376,7 @@ USER_MENU_STRUCT alarmTwoSeismicLevelMenu[ALARM_TWO_SEISMIC_LEVEL_MENU_ENTRIES] 
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(IN_TYPE, MM_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AlarmTwoSeismicLevelMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AlarmTwoSeismicLevelMenuHandler}}
 };
 
 //-------------------------------------
@@ -432,7 +432,7 @@ USER_MENU_STRUCT alarmTwoAirLevelMenu[ALARM_TWO_AIR_LEVEL_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(INTEGER_SPECIAL_TYPE, ALARM_TWO_AIR_LEVEL_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(DB_TYPE, MB_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AlarmTwoAirLevelMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AlarmTwoAirLevelMenuHandler}}
 };
 
 //---------------------------------
@@ -482,7 +482,7 @@ USER_MENU_STRUCT alarmTwoTimeMenu[ALARM_TWO_TIME_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(FLOAT_TYPE, ALARM_TWO_TIME_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(SECS_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AlarmTwoTimeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AlarmTwoTimeMenuHandler}}
 };
 
 //----------------------------
@@ -540,7 +540,7 @@ USER_MENU_STRUCT companyMenu[COMPANY_MENU_ENTRIES] = {
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {MAX_COMPANY_CHARS}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&CompanyMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&CompanyMenuHandler}}
 };
 
 //---------------------
@@ -584,7 +584,7 @@ USER_MENU_STRUCT copiesMenu[COPIES_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(INTEGER_BYTE_TYPE, COPIES_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(NO_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&CopiesMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&CopiesMenuHandler}}
 };
 
 //--------------------
@@ -631,7 +631,7 @@ USER_MENU_STRUCT cycleEndTimeMenu[CYCLE_END_TIME_HOUR_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(INTEGER_BYTE_TYPE, CYCLE_END_TIME_HOUR_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(HOUR_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&CycleEndTimeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&CycleEndTimeMenuHandler}}
 };
 
 //----------------------------
@@ -683,7 +683,7 @@ USER_MENU_STRUCT distanceToSourceMenu[DISTANCE_TO_SOURCE_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(FLOAT_WITH_N_TYPE, DISTANCE_TO_SOURCE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(FT_TYPE, M_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&DistanceToSourceMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&DistanceToSourceMenuHandler}}
 };
 
 //--------------------------------
@@ -733,7 +733,7 @@ USER_MENU_STRUCT gpsTimeoutMenu[GPS_TIMEOUT_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(INTEGER_LONG_TYPE, GPS_TIMEOUT_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(SECS_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&GpsTimeoutMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&GpsTimeoutMenuHandler}}
 };
 
 //-------------------------
@@ -769,7 +769,7 @@ USER_MENU_STRUCT lcdImpulseTimeMenu[LCD_IMPULSE_TIME_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(INTEGER_BYTE_TYPE, LCD_IMPULSE_TIME_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(SECS_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&LcdImpulseTimeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&LcdImpulseTimeMenuHandler}}
 };
 
 //------------------------------
@@ -851,7 +851,7 @@ USER_MENU_STRUCT lcdTimeoutMenu[LCD_TIMEOUT_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(INTEGER_BYTE_TYPE, LCD_TIMEOUT_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(MINS_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&LcdTimeoutMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&LcdTimeoutMenuHandler}}
 };
 
 //-------------------------
@@ -892,7 +892,7 @@ USER_MENU_STRUCT modemDialMenu[MODEM_DIAL_MENU_ENTRIES] = {
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {MAX_MODEM_DIAL_CHARS}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&ModemDialMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&ModemDialMenuHandler}}
 };
 
 //------------------------
@@ -939,7 +939,7 @@ USER_MENU_STRUCT modemDialOutCycleTimeMenu[MODEM_DIAL_OUT_CYCLE_TIME_MENU_ENTRIE
 	{INSERT_USER_MENU_INFO(INTEGER_WORD_TYPE, MODEM_DIAL_OUT_CYCLE_TIME_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(MINS_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&ModemDialOutCycleTimeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&ModemDialOutCycleTimeMenuHandler}}
 };
 
 //---------------------------------------
@@ -977,7 +977,7 @@ USER_MENU_STRUCT modemInitMenu[MODEM_INIT_MENU_ENTRIES] = {
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&ModemInitMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&ModemInitMenuHandler}}
 };
 
 //------------------------
@@ -1014,7 +1014,7 @@ USER_MENU_STRUCT modemResetMenu[MODEM_RESET_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(STRING_TYPE, MODEM_RESET_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {MAX_MODEM_RESET_CHARS}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&ModemResetMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&ModemResetMenuHandler}}
 };
 
 //-------------------------
@@ -1066,7 +1066,7 @@ USER_MENU_STRUCT modemRetryMenu[MODEM_RETRY_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(INTEGER_BYTE_TYPE, MODEM_RETRY_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(NO_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&ModemRetryMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&ModemRetryMenuHandler}}
 };
 
 //-------------------------
@@ -1103,7 +1103,7 @@ USER_MENU_STRUCT modemRetryTimeMenu[MODEM_RETRY_TIME_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(INTEGER_BYTE_TYPE, MODEM_RETRY_TIME_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(MINS_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&ModemRetryTimeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&ModemRetryTimeMenuHandler}}
 };
 
 //------------------------------
@@ -1146,7 +1146,7 @@ USER_MENU_STRUCT notesMenu[NOTES_MENU_ENTRIES] = {
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&NotesMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&NotesMenuHandler}}
 };
 
 //-------------------
@@ -1186,7 +1186,7 @@ USER_MENU_STRUCT operatorMenu[OPERATOR_MENU_ENTRIES] = {
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {MAX_OPERATOR_CHARS}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&OperatorMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&OperatorMenuHandler}}
 };
 
 //----------------------
@@ -1260,7 +1260,7 @@ USER_MENU_STRUCT percentLimitTriggerMenu[PERCENT_OF_LIMIT_TRIGGER_MENU_ENTRIES] 
 	{INSERT_USER_MENU_INFO(INTEGER_BYTE_TYPE, PERCENT_OF_LIMIT_TRIGGER_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(PERCENT_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&PercentOfLimitTriggerMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&PercentOfLimitTriggerMenuHandler}}
 };
 
 //-----------------------------------
@@ -1332,7 +1332,7 @@ USER_MENU_STRUCT recordTimeMenu[RECORD_TIME_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(INTEGER_LONG_TYPE, RECORD_TIME_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(SECS_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&RecordTimeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&RecordTimeMenuHandler}}
 };
 
 //-------------------------
@@ -1385,7 +1385,7 @@ USER_MENU_STRUCT saveRecordMenu[SAVE_RECORD_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(STRING_TYPE, SAVE_RECORD_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {MAX_SAVE_RECORD_CHARS}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SaveRecordMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SaveRecordMenuHandler}}
 };
 
 //-------------------------
@@ -1496,7 +1496,7 @@ USER_MENU_STRUCT seismicLocationMenu[SEISMIC_LOCATION_MENU_ENTRIES] = {
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {MAX_SEISMIC_LOCATION_CHARS}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SeismicLocationMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SeismicLocationMenuHandler}}
 };
 
 //------------------------------
@@ -1533,7 +1533,7 @@ USER_MENU_STRUCT seismicTriggerMenu[SEISMIC_TRIGGER_MENU_ENTRIES] = {
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(IN_TYPE, MM_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SeismicTriggerMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SeismicTriggerMenuHandler}}
 };
 
 //-----------------------------
@@ -1597,7 +1597,7 @@ USER_MENU_STRUCT serialNumberMenu[SERIAL_NUMBER_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(STRING_SPECIAL_TYPE, SERIAL_NUMBER_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {MAX_SERIAL_NUMBER_CHARS}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SerialNumberMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SerialNumberMenuHandler}}
 };
 
 //---------------------------
@@ -1640,7 +1640,7 @@ USER_MENU_STRUCT storedEventLimitMenu[STORED_EVENT_LIMIT_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(INTEGER_WORD_TYPE, STORED_EVENT_LIMIT_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(NO_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&StoredEventLimitMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&StoredEventLimitMenuHandler}}
 };
 
 //--------------------------------
@@ -1688,7 +1688,7 @@ USER_MENU_STRUCT weightPerDelayMenu[WEIGHT_PER_DELAY_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(FLOAT_WITH_N_TYPE, WEIGHT_PER_DELAY_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(LBS_TYPE, KG_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&WeightPerDelayMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&WeightPerDelayMenuHandler}}
 };
 
 //------------------------------
@@ -1730,7 +1730,7 @@ USER_MENU_STRUCT unlockCodeMenu[UNLOCK_CODE_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(INTEGER_WORD_FIXED_TYPE, UNLOCK_CODE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(NO_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&UnlockCodeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&UnlockCodeMenuHandler}}
 };
 
 //-------------------------
@@ -1780,7 +1780,7 @@ USER_MENU_STRUCT utcZoneOffsetMenu[UTC_ZONE_OFFSET_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(INTEGER_BYTE_OFFSET_TYPE, UTC_ZONE_OFFSET_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(NO_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&UtcZoneOffsetMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&UtcZoneOffsetMenuHandler}}
 };
 
 //------------------------

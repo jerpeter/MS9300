@@ -136,7 +136,7 @@ USER_MENU_STRUCT adaptiveSamplingMenu[ADAPTIVE_SAMPLING_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, ADAPTIVE_SAMPLING_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {NO_TAG, 0, SHOW_OPTION_IN_SETUP_TEXT,	NO_TAG,	{ENABLED}},
 {NO_TAG, 0, HIDE_OPTION_DISABLE_TEXT,	NO_TAG,	{DISABLED}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AdaptiveSamplingMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AdaptiveSamplingMenuHandler}}
 };
 
 //-------------------------------------
@@ -179,7 +179,7 @@ USER_MENU_STRUCT adChannelVerificationMenu[AD_CHANNEL_VERIFICATION_MENU_ENTRIES]
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, AD_CHANNEL_VERIFICATION_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, ENABLED_TEXT,	NO_TAG,	{ENABLED}},
 {ITEM_2, 0, DISABLED_TEXT,	NO_TAG,	{DISABLED}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AdChannelVerificationMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AdChannelVerificationMenuHandler}}
 };
 
 //-------------------------------------
@@ -216,7 +216,7 @@ USER_MENU_STRUCT airScaleMenu[AIR_SCALE_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, AIR_SCALE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, LINEAR_TEXT,		NO_TAG,	{AIR_SCALE_LINEAR}},
 {ITEM_2, 0, A_WEIGHTING_TEXT,	NO_TAG,	{AIR_SCALE_A_WEIGHTING}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AirScaleMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AirScaleMenuHandler}}
 };
 
 //-----------------------
@@ -286,7 +286,7 @@ USER_MENU_STRUCT airSetupMenu[AIR_SETUP_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, AIR_SETUP_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, INCLUDED_TEXT,		NO_TAG, {ENABLED}},
 {ITEM_2, 0, NOT_INCLUDED_TEXT,	NO_TAG, {DISABLED}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AirSetupMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AirSetupMenuHandler}}
 };
 
 //-----------------------
@@ -338,7 +338,7 @@ USER_MENU_STRUCT alarmTestingMenu[ALARM_TESTING_MENU_ENTRIES] = {
 {ITEM_3, 0, ALARM_1_TEXT,	DISABLED_TAG,	{ALARM_1_TESTING_DISABLED}},
 {ITEM_4, 0, ALARM_2_TEXT,	ENABLED_TAG,	{ALARM_2_TESTING_ENABLED}},
 {ITEM_5, 0, ALARM_2_TEXT,	DISABLED_TAG,	{ALARM_2_TESTING_DISABLED}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AlarmTestingMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AlarmTestingMenuHandler}}
 };
 
 //---------------------------
@@ -417,7 +417,7 @@ USER_MENU_STRUCT alarmOneMenu[ALARM_ONE_MENU_ENTRIES] = {
 {ITEM_2, 0, SEISMIC_TEXT,	NO_TAG, {ALARM_MODE_SEISMIC}},
 {ITEM_3, 0, AIR_TEXT,		NO_TAG, {ALARM_MODE_AIR}},
 {ITEM_4, 0, BOTH_TEXT,		NO_TAG, {ALARM_MODE_BOTH}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AlarmOneMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AlarmOneMenuHandler}}
 };
 
 //-----------------------
@@ -622,7 +622,7 @@ USER_MENU_STRUCT alarmTwoMenu[ALARM_TWO_MENU_ENTRIES] = {
 {ITEM_2, 0, SEISMIC_TEXT,	NO_TAG, {ALARM_MODE_SEISMIC}},
 {ITEM_3, 0, AIR_TEXT,		NO_TAG, {ALARM_MODE_AIR}},
 {ITEM_4, 0, BOTH_TEXT,		NO_TAG, {ALARM_MODE_BOTH}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AlarmTwoMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AlarmTwoMenuHandler}}
 };
 
 //-----------------------
@@ -817,7 +817,7 @@ USER_MENU_STRUCT alarmOutputMenu[ALARM_OUTPUT_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, ALARM_OUTPUT_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, DISABLED_TEXT,	NO_TAG, {DISABLED}},
 {ITEM_2, 0, ENABLED_TEXT,	NO_TAG, {ENABLED}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AlarmOutputMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AlarmOutputMenuHandler}}
 };
 
 //--------------------------
@@ -856,7 +856,7 @@ USER_MENU_STRUCT analogChannelConfigMenu[ANALOG_CHANNEL_CONFIG_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, ANALOG_CHANNEL_CONFIG_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_2)}},
 {NO_TAG, 0, CHANNELS_R_AND_V_SCHEMATIC_TEXT,	NO_TAG, {CHANNELS_R_AND_V_SCHEMATIC}},
 {NO_TAG, 0, CHANNELS_R_AND_V_SWAPPED_TEXT,		NO_TAG, {CHANNELS_R_AND_V_SWAPPED}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AnalogChannelConfigMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AnalogChannelConfigMenuHandler}}
 };
 
 //-----------------------------------
@@ -896,7 +896,7 @@ USER_MENU_STRUCT autoCalMenu[AUTO_CAL_MENU_ENTRIES] = {
 {ITEM_2, 0, AFTER_EVERY_48_HRS_TEXT,	NO_TAG, {AUTO_48_HOUR_TIMEOUT}},
 {ITEM_3, 0, AFTER_EVERY_72_HRS_TEXT,	NO_TAG, {AUTO_72_HOUR_TIMEOUT}},
 {ITEM_4, 0, NO_AUTO_CAL_TEXT,			NO_TAG, {AUTO_NO_CAL_TIMEOUT}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AutoCalMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AutoCalMenuHandler}}
 };
 
 //----------------------
@@ -945,7 +945,7 @@ USER_MENU_STRUCT autoMonitorMenu[AUTO_MONITOR_MENU_ENTRIES] = {
 {ITEM_2, 3, MINUTES_TEXT,			NO_TAG, {AUTO_THREE_MIN_TIMEOUT}},
 {ITEM_3, 4, MINUTES_TEXT,			NO_TAG, {AUTO_FOUR_MIN_TIMEOUT}},
 {ITEM_4, 0, NO_AUTO_MONITOR_TEXT,	NO_TAG, {AUTO_NO_TIMEOUT}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AutoMonitorMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AutoMonitorMenuHandler}}
 };
 
 //--------------------------
@@ -987,7 +987,7 @@ USER_MENU_STRUCT barChannelMenu[BAR_CHANNEL_MENU_ENTRIES] = {
 {ITEM_1, 0, BOTH_TEXT,		NO_TAG, {BAR_BOTH_CHANNELS}},
 {ITEM_2, 0, SEISMIC_TEXT,	NO_TAG, {BAR_SEISMIC_CHANNEL}},
 {ITEM_3, 0, AIR_TEXT,		NO_TAG, {BAR_AIR_CHANNEL}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&BarChannelMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&BarChannelMenuHandler}}
 };
 
 //-------------------------
@@ -1083,7 +1083,7 @@ USER_MENU_STRUCT barIntervalMenu[BAR_INTERVAL_MENU_ENTRIES] = {
 {ITEM_5, 40, SECONDS_TEXT,	NO_TAG, {FOURTY_SEC_PRD}},
 {ITEM_6, 50, SECONDS_TEXT,	NO_TAG, {FIFTY_SEC_PRD}},
 {ITEM_7, 60, SECONDS_TEXT,	NO_TAG, {SIXTY_SEC_PRD}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&BarIntervalMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&BarIntervalMenuHandler}}
 };
 
 //--------------------------
@@ -1128,7 +1128,7 @@ USER_MENU_STRUCT barIntervalDataTypeMenu[BAR_INTERVAL_MENU_ENTRIES] = {
 {ITEM_1, 0,	A_RVT_MAX_TEXT,			NO_TAG, {BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE}},
 {ITEM_2, 0, A_R_V_T_MAX_TEXT,		NO_TAG, {BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE}},
 {ITEM_3, 0, A_R_V_T_MAX_WITH_FREQ,	NO_TAG, {BAR_INTERVAL_A_R_V_T_WITH_FREQ_DATA_TYPE_SIZE}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&BarIntervalDataTypeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&BarIntervalDataTypeMenuHandler}}
 };
 
 //------------------------------------
@@ -1164,7 +1164,7 @@ USER_MENU_STRUCT barLiveMonitorMenu[BAR_LIVE_MONITOR_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, BAR_LIVE_MONITOR_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, REMOTE_CONTROL_TEXT,	NO_TAG, {NO}},
 {ITEM_2, 0, BLIND_SEND_TEXT,		NO_TAG,	{YES}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&BarLiveMonitorMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&BarLiveMonitorMenuHandler}}
 };
 
 //------------------------------
@@ -1203,7 +1203,7 @@ USER_MENU_STRUCT barScaleMenu[BAR_SCALE_MENU_ENTRIES] = {
 {ITEM_2, 0, NULL_TEXT,	BAR_SCALE_HALF_TAG,		{BAR_SCALE_HALF}},
 {ITEM_3, 0, NULL_TEXT,	BAR_SCALE_QUARTER_TAG,	{BAR_SCALE_QUARTER}},
 {ITEM_4, 0, NULL_TEXT,	BAR_SCALE_EIGHTH_TAG,	{BAR_SCALE_EIGHTH}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&BarScaleMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&BarScaleMenuHandler}}
 };
 
 //--------------------------
@@ -1241,7 +1241,7 @@ USER_MENU_STRUCT calibratonDateSourceMenu[CALIBRATION_DATE_SOURCE_MENU_ENTRIES] 
 {ITEM_1, 0, SENSOR_A_TEXT,	NO_TAG, {ACOUSTIC_SMART_SENSOR_CAL_DATE}},
 {ITEM_2, 0, SENSOR_B_TEXT,	NO_TAG, {SEISMIC_SMART_SENSOR_CAL_DATE}},
 {ITEM_3, 0, CALIBRATION_GRAPH_TEXT,	NO_TAG, {UNIT_CAL_DATE}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&CalibratonDateSourceMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&CalibratonDateSourceMenuHandler}}
 };
 
 //-------------------------------------
@@ -1281,7 +1281,7 @@ USER_MENU_STRUCT barResultMenu[BAR_RESULT_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, BAR_RESULT_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, PEAK_TEXT,			NO_TAG, {BAR_RESULT_PEAK}},
 {ITEM_2, 0, VECTOR_SUM_TEXT,	NO_TAG, {BAR_RESULT_VECTOR_SUM}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&BarResultMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&BarResultMenuHandler}}
 };
 
 //------------------------
@@ -1361,7 +1361,7 @@ USER_MENU_STRUCT baudRateMenu[BAUD_RATE_MENU_ENTRIES] = {
 {ITEM_3, 38400, BAUD_RATE_TEXT,	NO_TAG, {BAUD_RATE_38400}},
 {ITEM_4, 19200, BAUD_RATE_TEXT,	NO_TAG, {BAUD_RATE_19200}},
 {ITEM_5, 9600, BAUD_RATE_TEXT,	NO_TAG, {BAUD_RATE_9600}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&BaudRateMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&BaudRateMenuHandler}}
 };
 
 //-----------------------
@@ -1466,7 +1466,7 @@ USER_MENU_STRUCT bitAccuracyMenu[BIT_ACCURACY_MENU_ENTRIES] = {
 {ITEM_2, ACCURACY_14_BIT, BIT_TEXT, NO_TAG, {ACCURACY_14_BIT}},
 {ITEM_3, ACCURACY_12_BIT, BIT_TEXT, NO_TAG, {ACCURACY_12_BIT}},
 {ITEM_4, ACCURACY_10_BIT, BIT_TEXT, NO_TAG, {ACCURACY_10_BIT}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&BitAccuracyMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&BitAccuracyMenuHandler}}
 };
 
 //-------------------------
@@ -1582,7 +1582,7 @@ USER_MENU_STRUCT configMenu[CONFIG_MENU_ENTRIES] = {
 {NO_TAG, 0, VECTOR_SUM_TEXT,			NO_TAG, {VECTOR_SUM}},
 #endif
 {NO_TAG, 0, WAVEFORM_AUTO_CAL_TEXT,		NO_TAG, {WAVEFORM_AUTO_CAL}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&ConfigMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&ConfigMenuHandler}}
 };
 
 //--------------------
@@ -1835,7 +1835,7 @@ USER_MENU_STRUCT customCurveMenu[CUSTOM_CURVE_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, CUSTOM_CURVE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, STEP_THRESHOLD_TEXT,	NO_TAG,	{CUSTOM_STEP_THRESHOLD}},
 {ITEM_2, 0, STEP_LIMITING_TEXT,		NO_TAG,	{CUSTOM_STEP_LIMITING}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&CustomCurveMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&CustomCurveMenuHandler}}
 };
 
 //----------------------------
@@ -1899,7 +1899,7 @@ USER_MENU_STRUCT displacementMenu[DISPLACEMENT_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, DISPLACEMENT_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_2)}},
 {ITEM_1, 0, YES_TEXT,	NO_TAG, {YES}},
 {ITEM_2, 0, NO_TEXT,	NO_TAG, {NO}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&DisplacementMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&DisplacementMenuHandler}}
 };
 
 //------------------------------
@@ -1938,7 +1938,7 @@ USER_MENU_STRUCT eraseEventsMenu[ERASE_EVENTS_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, ERASE_EVENTS_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, YES_TEXT,	NO_TAG, {YES}},
 {ITEM_2, 0, NO_TEXT,	NO_TAG, {NO}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&EraseEventsMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&EraseEventsMenuHandler}}
 };
 
 //--------------------------
@@ -2011,7 +2011,7 @@ USER_MENU_STRUCT eraseSettingsMenu[ERASE_SETTINGS_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, ERASE_SETTINGS_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_2)}},
 {ITEM_1, 0, YES_TEXT,	NO_TAG, {YES}},
 {ITEM_2, 0, NO_TEXT,	NO_TAG, {NO}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&EraseSettingsMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&EraseSettingsMenuHandler}}
 };
 
 //----------------------------
@@ -2082,7 +2082,7 @@ USER_MENU_STRUCT externalTriggerMenu[EXTERNAL_TRIGGER_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, EXTERNAL_TRIGGER_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, ENABLED_TEXT,	NO_TAG, {ENABLED}},
 {ITEM_2, 0, DISABLED_TEXT,	NO_TAG, {DISABLED}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&ExternalTriggerMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&ExternalTriggerMenuHandler}}
 };
 
 //------------------------------
@@ -2172,7 +2172,7 @@ USER_MENU_STRUCT flashWrappingMenu[FLASH_WRAPPING_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, FLASH_WRAPPING_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_2)}},
 {ITEM_1, 0, YES_TEXT,	NO_TAG, {YES}},
 {ITEM_2, 0, NO_TEXT,	NO_TAG, {NO}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&FlashWrappingMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&FlashWrappingMenuHandler}}
 };
 
 //----------------------------
@@ -2218,7 +2218,7 @@ USER_MENU_STRUCT freqPlotMenu[FREQ_PLOT_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, FREQ_PLOT_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, YES_TEXT,	NO_TAG, {YES}},
 {ITEM_2, 0, NO_TEXT,	NO_TAG, {NO}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&FreqPlotMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&FreqPlotMenuHandler}}
 };
 
 //-----------------------
@@ -2266,7 +2266,7 @@ USER_MENU_STRUCT freqPlotStandardMenu[FREQ_PLOT_STANDARD_MENU_ENTRIES] = {
 {ITEM_3, 0, DIN_4150_TEXT,	NO_TAG, {FREQ_PLOT_DIN_4150_STANDARD}},
 {ITEM_4, 0, BRITISH_TEXT,	NO_TAG, {FREQ_PLOT_BRITISH_7385_STANDARD}},
 {ITEM_5, 0, SPANISH_TEXT,	NO_TAG, {FREQ_PLOT_SPANISH_STANDARD}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&FreqPlotStandardMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&FreqPlotStandardMenuHandler}}
 };
 
 
@@ -2306,7 +2306,7 @@ USER_MENU_STRUCT hardwareIDMenu[HARDWARE_ID_MENU_ENTRIES] = {
 {ITEM_1, 0, REV_8_NORMAL_TEXT,			NO_TAG, {HARDWARE_ID_REV_8_NORMAL}},
 {ITEM_2, 0, REV_8_WITH_GPS_MOD_TEXT,	NO_TAG, {HARDWARE_ID_REV_8_WITH_GPS_MOD}},
 {ITEM_3, 0, REV_8_WITH_USART_TEXT,		NO_TAG, {HARDWARE_ID_REV_8_WITH_USART}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&HardwareIDMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&HardwareIDMenuHandler}}
 };
 
 //------------------
@@ -2348,7 +2348,7 @@ USER_MENU_STRUCT helpMenu[HELP_MENU_ENTRIES] = {
 {ITEM_3, 0, SENSOR_CHECK_TEXT,			NO_TAG, {SENSOR_CHECK_CHOICE}},
 {ITEM_4, 0, GPS_LOCATION_TEXT,			NO_TAG, {GPS_LOCATION_DISPLAY_CHOICE}},
 {ITEM_5, 0, CHECK_SUMMARY_FILE_TEXT,	NO_TAG, {CHECK_SUMMARY_FILE_CHOICE}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&HelpMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&HelpMenuHandler}}
 };
 
 //------------------
@@ -2452,7 +2452,7 @@ USER_MENU_STRUCT infoMenu[INFO_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, INFO_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {NO_TAG, 0, NULL_TEXT,	NO_TAG, {DEFAULT_ITEM_1}},
 {NO_TAG, 0, NOT_INCLUDED_TEXT,	NO_TAG, {DEFAULT_ITEM_2}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&InfoMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&InfoMenuHandler}}
 };
 
 //------------------
@@ -2490,7 +2490,7 @@ USER_MENU_STRUCT languageMenu[LANGUAGE_MENU_ENTRIES] = {
 {ITEM_3, 0, SPANISH_TEXT,	NO_TAG, {SPANISH_LANG}},
 {ITEM_4, 0, ITALIAN_TEXT,	NO_TAG, {ITALIAN_LANG}},
 {ITEM_5, 0, GERMAN_TEXT,	NO_TAG, {GERMAN_LANG}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&LanguageMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&LanguageMenuHandler}}
 };
 
 //----------------------
@@ -2541,7 +2541,7 @@ USER_MENU_STRUCT gpsPowerMenu[GPS_POWER_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, GPS_POWER_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {NO_TAG, 0, NORMAL_SAVE_POWER_TEXT,				NO_TAG, {GPS_POWER_NORMAL_SAVE_POWER}},
 {NO_TAG, 0, ALWAYS_ON_ACQUIRING_TEXT,			NO_TAG, {GPS_POWER_ALWAYS_ON_ACQUIRING}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&GpsPowerMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&GpsPowerMenuHandler}}
 };
 
 //------------------------------
@@ -2609,7 +2609,7 @@ USER_MENU_STRUCT legacyDqmLimitMenu[LEGACY_DQM_LIMIT_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, LEGACY_DQM_LIMIT_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {NO_TAG, 0, DISABLED_TEXT,				NO_TAG, {DISABLED}},
 {NO_TAG, 0, ENABLED_TEXT,				NO_TAG, {ENABLED}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&LegacyDqmLimitMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&LegacyDqmLimitMenuHandler}}
 };
 
 //------------------------------
@@ -2646,7 +2646,7 @@ USER_MENU_STRUCT modeMenu[MODE_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, MODE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, MONITOR_TEXT,	NO_TAG, {MONITOR}},
 {ITEM_2, 0, EDIT_TEXT,		NO_TAG, {EDIT}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&ModeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&ModeMenuHandler}}
 };
 
 //------------------
@@ -2705,7 +2705,7 @@ USER_MENU_STRUCT modemDialOutTypeMenu[MODEM_DIAL_OUT_TYPE_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, MODEM_DIAL_OUT_TYPE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, EVENTS_CONFIG_STATUS_TEXT,	NO_TAG, {AUTODIALOUT_EVENTS_CONFIG_STATUS}},
 {ITEM_2, 0, EVENTS_ONLY_TEXT,			NO_TAG, {AUTODIALOUT_EVENTS_ONLY}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&ModemDialOutTypeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&ModemDialOutTypeMenuHandler}}
 };
 
 //---------------------------------
@@ -2748,7 +2748,7 @@ USER_MENU_STRUCT modemSetupMenu[MODEM_SETUP_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, MODEM_SETUP_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, YES_TEXT,	NO_TAG, {YES}},
 {ITEM_2, 0, NO_TEXT,	NO_TAG, {NO}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&ModemSetupMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&ModemSetupMenuHandler}}
 };
 
 //-------------------------
@@ -2804,7 +2804,7 @@ USER_MENU_STRUCT monitorLogMenu[MONITOR_LOG_MENU_ENTRIES] = {
 {ITEM_1, 0, VIEW_MONITOR_LOG_TEXT,	NO_TAG, {VIEW_LOG}},
 {ITEM_2, 0, PRINT_MONITOR_LOG_TEXT,	NO_TAG, {PRINT_LOG}},
 {ITEM_3, 0, LOG_RESULTS_TEXT,		NO_TAG, {LOG_RESULTS}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&MonitorLogMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&MonitorLogMenuHandler}}
 };
 
 //-------------------------
@@ -2850,7 +2850,7 @@ USER_MENU_STRUCT peakAccMenu[PEAK_ACC_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, PEAK_ACC_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_2)}},
 {ITEM_1, 0, YES_TEXT, NO_TAG, {YES}},
 {ITEM_2, 0, NO_TEXT, NO_TAG, {NO}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&PeakAccMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&PeakAccMenuHandler}}
 };
 
 //-------------------------------
@@ -2890,7 +2890,7 @@ USER_MENU_STRUCT pretriggerSizeMenu[PRETRIGGER_SIZE_MENU_ENTRIES] = {
 {ITEM_1, 0, QUARTER_SECOND_TEXT,	NO_TAG, {4}},
 {ITEM_2, 0, HALF_SECOND_TEXT,	NO_TAG, {2}},
 {ITEM_3, 0, FULL_SECOND_TEXT,	NO_TAG, {1}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&PretriggerSizeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&PretriggerSizeMenuHandler}}
 };
 
 //-----------------------------
@@ -2930,7 +2930,7 @@ USER_MENU_STRUCT printerEnableMenu[PRINTER_ENABLE_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, PRINTER_ENABLE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, YES_TEXT,	NO_TAG, {YES}},
 {ITEM_2, 0, NO_TEXT,	NO_TAG, {NO}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&PrinterEnableMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&PrinterEnableMenuHandler}}
 };
 
 //----------------------------
@@ -2969,7 +2969,7 @@ USER_MENU_STRUCT printOutMenu[PRINT_OUT_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, PRINT_OUT_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, YES_TEXT,	NO_TAG, {YES}},
 {ITEM_2, 0, NO_TEXT,	NO_TAG, {NO}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&PrintOutMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&PrintOutMenuHandler}}
 };
 
 //-----------------------
@@ -3015,7 +3015,7 @@ USER_MENU_STRUCT printMonitorLogMenu[PRINT_MONITOR_LOG_RESULTS_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, PRINT_MONITOR_LOG_RESULTS_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, YES_TEXT,	NO_TAG, {YES}},
 {ITEM_2, 0, NO_TEXT,	NO_TAG, {NO}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&PrintMonitorLogMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&PrintMonitorLogMenuHandler}}
 };
 
 //---------------------------------------
@@ -3054,7 +3054,7 @@ USER_MENU_STRUCT rs232PowerSavingsMenu[RS232_POWER_SAVINGS_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, RS232_POWER_SAVINGS_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {NO_TAG, 0, ENABLED_TEXT,				NO_TAG, {ENABLED}},
 {NO_TAG, 0, DISABLED_TEXT,				NO_TAG, {DISABLED}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&Rs232PowerSavingsMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&Rs232PowerSavingsMenuHandler}}
 };
 
 //---------------------------------------
@@ -3091,7 +3091,7 @@ USER_MENU_STRUCT recalibrateMenu[RECALIBRATE_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, RECALIBRATE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, ON_TEMP_CHANGE_TEXT,	NO_TAG, {YES}},
 {ITEM_2, 0, NO_TEXT,				NO_TAG, {NO}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&RecalibrateMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&RecalibrateMenuHandler}}
 };
 
 //--------------------------------
@@ -3133,7 +3133,7 @@ USER_MENU_STRUCT sampleRateMenu[SAMPLE_RATE_MENU_ENTRIES] = {
 {ITEM_3, SAMPLE_RATE_4K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_4K}},
 {ITEM_4, SAMPLE_RATE_8K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_8K}},
 {ITEM_5, SAMPLE_RATE_16K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_16K}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SampleRateMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SampleRateMenuHandler}}
 };
 
 #define SAMPLE_RATE_BARGRAPH_MENU_ENTRIES 6
@@ -3144,7 +3144,7 @@ USER_MENU_STRUCT sampleRateBargraphMenu[SAMPLE_RATE_BARGRAPH_MENU_ENTRIES] = {
 {ITEM_2, SAMPLE_RATE_2K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_2K}},
 {ITEM_3, SAMPLE_RATE_4K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_4K}},
 {ITEM_4, SAMPLE_RATE_8K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_8K}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SampleRateMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SampleRateMenuHandler}}
 };
 
 #define SAMPLE_RATE_COMBO_MENU_ENTRIES 6
@@ -3155,7 +3155,7 @@ USER_MENU_STRUCT sampleRateComboMenu[SAMPLE_RATE_COMBO_MENU_ENTRIES] = {
 {ITEM_2, SAMPLE_RATE_2K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_2K}},
 {ITEM_3, SAMPLE_RATE_4K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_4K}},
 {ITEM_4, SAMPLE_RATE_8K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_8K}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SampleRateMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SampleRateMenuHandler}}
 };
 
 //-------------------------
@@ -3236,7 +3236,7 @@ USER_MENU_STRUCT samplingMethodMenu[SAMPLING_METHOD_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, SAMPLING_METHOD_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {NO_TAG, 0, FIXED_NORMAL_TEXT,			NO_TAG, {FIXED_SAMPLING}},
 {NO_TAG, 0, ADAPTIVE_SAVE_BATT_TEXT,	NO_TAG, {ADAPTIVE_SAMPLING}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SamplingMethodMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SamplingMethodMenuHandler}}
 };
 
 //----------------------------------
@@ -3283,7 +3283,7 @@ USER_MENU_STRUCT saveCompressedDataMenu[SAVE_COMPRESSED_DATA_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, SAVE_COMPRESSED_DATA_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, YES_FASTER_DOWNLOAD_TEXT,	NO_TAG, {SAVE_EXTRA_FILE_COMPRESSED_DATA}},
 {ITEM_2, 0, NO_TEXT,					NO_TAG, {DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SaveCompressedDataMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SaveCompressedDataMenuHandler}}
 };
 
 //----------------------------------
@@ -3321,7 +3321,7 @@ USER_MENU_STRUCT saveSetupMenu[SAVE_SETUP_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, SAVE_SETUP_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, YES_TEXT,	NO_TAG, {YES}},
 {ITEM_2, 0, NO_TEXT,	NO_TAG, {NO}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SaveSetupMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SaveSetupMenuHandler}}
 };
 
 //------------------------
@@ -3398,7 +3398,7 @@ USER_MENU_STRUCT sensitivityMenu[SENSITIVITY_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, SENSITIVITY_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, NORMAL_TEXT,	LOW_SENSITIVITY_MAX_TAG, {LOW}},
 {ITEM_2, 0, HIGH_TEXT,		HIGH_SENSITIVITY_MAX_TAG, {HIGH}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SensitivityMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SensitivityMenuHandler}}
 };
 
 //-------------------------
@@ -3478,7 +3478,7 @@ USER_MENU_STRUCT acousticSensorTypeMenu[ACOUSTIC_SENSOR_TYPE_MENU_ENTRIES] = {
 {ITEM_2, 0, MIC_160_DB_TEXT,	NO_TAG, {SENSOR_MIC_160_DB}},
 {ITEM_3, 0, MIC_5_PSI_TEXT,		NO_TAG, {SENSOR_MIC_5_PSI}},
 {ITEM_2, 0, MIC_10_PSI_TEXT,	NO_TAG, {SENSOR_MIC_10_PSI}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&AcousticSensorTypeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&AcousticSensorTypeMenuHandler}}
 };
 
 //-------------------------
@@ -3519,7 +3519,7 @@ USER_MENU_STRUCT seismicSensorTypeMenu[SEISMIC_SENSOR_TYPE_MENU_ENTRIES] = {
 {ITEM_5, 0, X4_5_IPS_TEXT,		NO_TAG, {SENSOR_5_IN}},
 {ITEM_6, 0, X8_2_5_IPS_TEXT,	NO_TAG, {SENSOR_2_5_IN}},
 {ITEM_7, 0, ACC_793L_TEXT,		NO_TAG, {SENSOR_ACCELEROMETER}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SeismicSensorTypeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SeismicSensorTypeMenuHandler}}
 };
 
 //---------------------------------
@@ -3562,7 +3562,7 @@ USER_MENU_STRUCT seismicFilteringMenu[SEISMIC_FILTERING_MENU_ENTRIES] = {
 {ITEM_3, 3900, HZ_TEXT, NO_TAG, {ANALOG_CUTOFF_FREQ_4K}},
 {ITEM_4, 8000, HZ_TEXT, NO_TAG, {ANALOG_CUTOFF_FREQ_8K}},
 {ITEM_5, 15800, HZ_TEXT, NO_TAG, {ANALOG_CUTOFF_FREQ_16K}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SeismicFilteringMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SeismicFilteringMenuHandler}}
 };
 
 //-------------------------
@@ -3600,7 +3600,7 @@ USER_MENU_STRUCT seismicTriggerTypeMenu[SEISMIC_TRIGGER_TYPE_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, SEISMIC_TRIGGER_TYPE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {NO_TAG, 0, NORMAL_DEFAULT_TEXT,	NO_TAG,	{NO}},
 {NO_TAG, 0, VARIABLE_USBM_OSM_TEXT,	NO_TAG,	{YES}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SeismicTriggerTypeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SeismicTriggerTypeMenuHandler}}
 };
 
 //----------------------------------
@@ -3680,7 +3680,7 @@ USER_MENU_STRUCT storedEventsCapModeMenu[STORED_EVENTS_CAP_MODE_MENU_ENTRIES] = 
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, STORED_EVENTS_CAP_MODE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, DISABLED_TEXT,	NO_TAG, {DISABLED}},
 {ITEM_2, 0, ENABLED_TEXT,	NO_TAG, {ENABLED}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&StoredEventsCapModeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&StoredEventsCapModeMenuHandler}}
 };
 
 //------------------------------------
@@ -3731,7 +3731,7 @@ USER_MENU_STRUCT summaryIntervalMenu[SUMMARY_INTERVAL_MENU_ENTRIES] = {
 {ITEM_6, 4, HOURS_TEXT,		NO_TAG, {FOUR_HOUR_INTVL}},
 {ITEM_7, 8, HOURS_TEXT,		NO_TAG, {EIGHT_HOUR_INTVL}},
 {ITEM_8, 12, HOURS_TEXT,	NO_TAG, {TWELVE_HOUR_INTVL}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SummaryIntervalMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SummaryIntervalMenuHandler}}
 };
 
 //------------------------------
@@ -3770,7 +3770,7 @@ USER_MENU_STRUCT usbSyncModeMenu[USB_SYNC_MODE_MENU_ENTRIES] = {
 {ITEM_2, 0, SKIP_ALL_TEXT,				NO_TAG, {SKIP_ALL_OPTION}},
 {ITEM_3, 0, REPLACE_ALL_TEXT,			NO_TAG, {REPLACE_ALL_OPTION}},
 {ITEM_4, 0, DUPLICATE_ALL_TEXT,			NO_TAG, {DUPLICATE_ALL_OPTION}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&UsbSyncModeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&UsbSyncModeMenuHandler}}
 };
 
 //---------------------------
@@ -3815,7 +3815,7 @@ USER_MENU_STRUCT syncFileExistsMenu[SYNC_FILE_EXISTS_MENU_ENTRIES] = {
 {ITEM_4, 0, SKIP_ALL_TEXT,			NO_TAG, {SKIP_ALL_OPTION}},
 {ITEM_5, 0, REPLACE_ALL_TEXT,		NO_TAG, {REPLACE_ALL_OPTION}},
 {ITEM_6, 0, DUPLICATE_ALL_TEXT,		NO_TAG, {DUPLICATE_ALL_OPTION}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&SyncFileExistsMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&SyncFileExistsMenuHandler}}
 };
 
 //--------------------------------
@@ -3854,7 +3854,7 @@ USER_MENU_STRUCT timerModeMenu[TIMER_MODE_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, TIMER_MODE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, DISABLED_TEXT,	NO_TAG, {DISABLED}},
 {ITEM_2, 0, ENABLED_TEXT,	NO_TAG, {ENABLED}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&TimerModeMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&TimerModeMenuHandler}}
 };
 
 //------------------------
@@ -3916,7 +3916,7 @@ USER_MENU_STRUCT timerModeFreqMenu[TIMER_MODE_FREQ_MENU_ENTRIES] = {
 {ITEM_4, 0, DAILY_WEEKDAYS_TEXT,	NO_TAG, {TIMER_MODE_WEEKDAYS}},
 {ITEM_5, 0, WEEKLY_TEXT,			NO_TAG, {TIMER_MODE_WEEKLY}},
 {ITEM_6, 0, MONTHLY_TEXT,			NO_TAG, {TIMER_MODE_MONTHLY}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&TimerModeFreqMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&TimerModeFreqMenuHandler}}
 };
 
 //-----------------------------
@@ -3960,7 +3960,7 @@ USER_MENU_STRUCT unitsOfMeasureMenu[UNITS_OF_MEASURE_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, UNITS_OF_MEASURE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, IMPERIAL_TEXT,	NO_TAG, {IMPERIAL_TYPE}},
 {ITEM_2, 0, METRIC_TEXT,	NO_TAG, {METRIC_TYPE}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&UnitsOfMeasureMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&UnitsOfMeasureMenuHandler}}
 };
 
 //------------------------------
@@ -4010,7 +4010,7 @@ USER_MENU_STRUCT unitsOfAirMenu[UNITS_OF_AIR_MENU_ENTRIES] = {
 {ITEM_1, 0, DECIBEL_TEXT,	NO_TAG, {DECIBEL_TYPE}},
 {ITEM_2, 0, MILLIBAR_TEXT,	NO_TAG, {MILLIBAR_TYPE}},
 {ITEM_2, 0, PSI_TEXT,		NO_TAG, {PSI_TYPE}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&UnitsOfAirMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&UnitsOfAirMenuHandler}}
 };
 
 //--------------------------
@@ -4056,7 +4056,7 @@ USER_MENU_STRUCT vectorSumMenu[VECTOR_SUM_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, VECTOR_SUM_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, OFF_TEXT,	NO_TAG, {DISABLED}},
 {ITEM_2, 0, ON_TEXT,	NO_TAG, {ENABLED}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&VectorSumMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&VectorSumMenuHandler}}
 };
 
 //------------------------
@@ -4098,7 +4098,7 @@ USER_MENU_STRUCT vibrationStandardMenu[VIBRATION_STARDARD_MENU_ENTRIES] = {
 {ITEM_2, 0, USBM_8507_PLASTER_TEXT,	NO_TAG,	{USBM_RI_8507_PLASTER_STANDARD}},
 {ITEM_3, 0, OSM_REGULATIONS_TEXT,	NO_TAG,	{OSM_REGULATIONS_STANDARD}},
 {ITEM_4, 0, CUSTOM_CURVE_TEXT,		NO_TAG,	{START_OF_CUSTOM_CURVES_LIST}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&VibrationStandardMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&VibrationStandardMenuHandler}}
 };
 
 //--------------------------------
@@ -4161,7 +4161,7 @@ USER_MENU_STRUCT waveformAutoCalMenu[WAVEFORM_AUTO_CAL_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, WAVEFORM_AUTO_CAL_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, DISABLED_TEXT,				NO_TAG, {DISABLED}},
 {ITEM_2, 0, START_OF_WAVEFORM_TEXT,	NO_TAG, {ENABLED}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&WaveformAutoCalMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&WaveformAutoCalMenuHandler}}
 };
 
 //-------------------------------
@@ -4199,7 +4199,7 @@ USER_MENU_STRUCT zeroEventNumberMenu[ZERO_EVENT_NUMBER_MENU_ENTRIES] = {
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, ZERO_EVENT_NUMBER_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
 {ITEM_1, 0, YES_TEXT,	NO_TAG, {YES}},
 {ITEM_2, 0, NO_TEXT,	NO_TAG, {NO}},
-{END_OF_MENU, (uint8)0, (uint8)0, (uint8)0, {(uint32)&ZeroEventNumberMenuHandler}}
+{END_OF_MENU, ESC_KEY, HELP_KEY, DELETE_KEY, {(uint32)&ZeroEventNumberMenuHandler}}
 };
 
 //-------------------------------
