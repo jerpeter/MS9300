@@ -498,6 +498,7 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 		4th start: 394
 	*/
 	// Option parameter: By default, the button is drawn with a 3D effect (value is zero), OPT_FLAT removes the 3D effect (value of OPT_FLAT is 256)
+	// Todo: Load the dynamic key label
 	ft81x_cmd_button(12, 240, 70, 32, 18, 0, "OK");
 	ft81x_cmd_button(140, 240, 70, 32, 18, 0, "ESCAPE");
 	ft81x_cmd_button(264, 240, 70, 32, 18, 0, "MENU");
