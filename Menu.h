@@ -1068,6 +1068,7 @@ void MessageChoice(MB_CHOICE_TYPE choiceType);
 void MessageChoiceActiveSwap(MB_CHOICE_TYPE choiceType);
 uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE messageType);
 void OverlayMessage(char* titleString, char* textString, uint32 displayTime);
+void DisplayLogoToLcd(void);
 
 // Prototypes needed across menus
 void LoadTempMenuTable(TEMP_MENU_DATA_STRUCT* currentMenu);

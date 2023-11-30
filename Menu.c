@@ -905,6 +905,66 @@ void MessageChoiceActiveSwap(MB_CHOICE_TYPE choiceType)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+extern const char sign_on_logo_l2_top_left[2064];
+void DisplayLogoToLcd(void)
+{
+	ft81x_cmd_memwrite(0x9000, (sizeof(sign_on_logo_l2_top_left) - 16));
+	ft81x_cSPOOL((uint8_t*)&sign_on_logo_l2_top_left[16], (sizeof(sign_on_logo_l2_top_left) - 16));
+
+	ft81x_stream_start(); // Start streaming
+	ft81x_cmd_dlstart(); // Set REG_CMD_DL when done?
+	ft81x_cmd_swap(); // Set AUTO swap at end of display list?
+
+	ft81x_bitmap_handle(1);
+	ft81x_bitmap_source(0x9000);
+	ft81x_bitmap_layout(L2, 16, 64);
+	ft81x_bitmap_size(NEAREST, BORDER, BORDER, 128, 64);
+	ft81x_bitmap_transform_a(128); // Scale up width 2x
+	ft81x_bitmap_transform_e(128); // Scale up heigth 2x
+
+	ft81x_begin(BITMAPS);
+	ft81x_vertex2ii(112, 72, 0, 0); // X: (480/2 - (128*2)/2), Y: (272/2 - (64*2)/2), Notes: bitmap scaled up 2x
+	ft81x_end();
+
+	ft81x_display();
+	ft81x_getfree(0);
+	ft81x_stream_stop();
+	ft81x_wait_finish();
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void BitmapDisplayToLcd(void)
+{
+	LcdMapTranslationToBitMap();
+	ft81x_cmd_memwrite(0x8000, sizeof(g_bitmap));
+	ft81x_cSPOOL(g_bitmap, sizeof(g_bitmap));
+
+	ft81x_stream_start(); // Start streaming
+	ft81x_cmd_dlstart(); // Set REG_CMD_DL when done?
+	ft81x_cmd_swap(); // Set AUTO swap at end of display list?
+
+	ft81x_bitmap_handle(0);
+	ft81x_bitmap_source(0x8000);
+	ft81x_bitmap_layout(L1, 16, 64);
+	ft81x_bitmap_size(NEAREST, BORDER, BORDER, 128, 64);
+	ft81x_bitmap_transform_a(69); // Scale up width as close to full screen (just under 3.75)
+	ft81x_bitmap_transform_e(61); // Scale up heigth as close to full screen (just under 4.25)
+
+	ft81x_begin(BITMAPS);
+	ft81x_vertex2ii(0, 0, 0, 0);
+	ft81x_end();
+
+	ft81x_display();
+	ft81x_getfree(0);
+	ft81x_stream_stop();
+	ft81x_wait_finish();
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 {
 	uint8 activeChoice = MB_FIRST_CHOICE;
@@ -925,7 +985,7 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 	WriteMapToLcd(g_mmap);
 #else /* New display controller */
 	// Write bitmap to LCD controller
-	// Display bitmap
+	BitmapDisplayToLcd();
 #endif
 
 	debug("MB: Look for a key\r\n");
@@ -951,7 +1011,7 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 						WriteMapToLcd(g_mmap);
 #else /* New display controller */
 						// Write bitmap to LCD controller
-						// Display bitmap
+						BitmapDisplayToLcd();
 #endif
 
 						activeChoice = MB_FIRST_CHOICE;
@@ -967,7 +1027,7 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 						WriteMapToLcd(g_mmap);
 #else /* New display controller */
 						// Write bitmap to LCD controller
-						// Display bitmap
+						BitmapDisplayToLcd();
 #endif
 
 						activeChoice = MB_SECOND_CHOICE;
@@ -977,14 +1037,9 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 		}
 	}
 
-#if 0 /* Original */
 	// Clear LCD map buffer to remove message from showing up
 	ClearLcdMap();
 	WriteMapToLcd(g_mmap);
-#else /* New display controller */
-	// Clear bitmap?
-	// Display update?
-#endif
 
 #if 0 /* ET Test */
 	g_debugBufferCount = 0;
@@ -1007,7 +1062,12 @@ void OverlayMessage(char* titleString, char* textString, uint32 displayTime)
 	MessageTitle(titleString);
 	MessageText(textString);
 
+#if 0 /* Original */
 	WriteMapToLcd(g_mmap);
+#else /* New display controller */
+	// Write bitmap to LCD controller
+	BitmapDisplayToLcd();
+#endif
 
 #if EXTERNAL_SAMPLING_SOURCE
 	volatile uint32 msDisplayTime = (displayTime / SOFT_MSECS);
