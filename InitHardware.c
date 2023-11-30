@@ -311,8 +311,8 @@ void InitLCD(void)
 #endif
 #else
 	// Attempt to load a bitmap to the display controller
-	// Todo: Add in bitmap load and display
-	memcpy(g_mmap, &sign_on_logo_l1_bottom_left[8], (8*128));
+	// Todo: Add in LCD init and startup for display
+	DisplayLogoToLcd();
 #endif
 }
 
