@@ -26,6 +26,8 @@
 //#include "host_mass_storage_task.h"
 #include "string.h"
 
+#include "lcd.h"
+
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
@@ -374,10 +376,14 @@ void KeypressEventMgr(void)
 	{
 		g_lcdPowerFlag = ENABLED;
 		raiseSystemEventFlag(UPDATE_MENU_EVENT);
+#if 0 /* old hw */
 		PowerControl(LCD_POWER_ENABLE, ON);
 		SoftUsecWait(LCD_ACCESS_DELAY);
 		SetLcdContrast(g_contrast_value);
 		InitLcdDisplay();					// Setup LCD segments and clear display buffer
+#else
+		ft81x_init();
+#endif
 		AssignSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM, (uint32)(g_unitConfig.lcdTimeout * TICKS_PER_MIN), LcdPwTimerCallBack);
 
 		// Check if the unit is monitoring, if so, reassign the monitor update timer
@@ -396,7 +402,7 @@ void KeypressEventMgr(void)
 	if (g_lcdBacklightFlag == DISABLED)
 	{
 		g_lcdBacklightFlag = ENABLED;
-		SetLcdBacklightState(BACKLIGHT_BRIGHT);
+		SetLcdBacklightState(BACKLIGHT_MID);
 		AssignSoftTimer(LCD_BACKLIGHT_ON_OFF_TIMER_NUM, LCD_BACKLIGHT_TIMEOUT, DisplayTimerCallBack);
 	}
 	else // Reassign the LCD Backlight countdown timer

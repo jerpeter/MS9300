@@ -856,19 +856,23 @@ void UsbDeviceManager(void)
 					if (g_lcdPowerFlag == DISABLED)
 					{
 						g_lcdPowerFlag = ENABLED;
+#if 0 /* old hw */
 						PowerControl(LCD_POWER_ENABLE, ON);
 						SoftUsecWait(LCD_ACCESS_DELAY);
 						SetLcdContrast(g_contrast_value);
 						InitLcdDisplay();					// Setup LCD segments and clear display buffer
+#else
+						ft81x_init();
+#endif
 						AssignSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM, (uint32)(g_unitConfig.lcdTimeout * TICKS_PER_MIN), LcdPwTimerCallBack);
 
 						g_lcdBacklightFlag = ENABLED;
-						SetLcdBacklightState(BACKLIGHT_BRIGHT);
+						SetLcdBacklightState(BACKLIGHT_MID);
 						AssignSoftTimer(LCD_BACKLIGHT_ON_OFF_TIMER_NUM, LCD_BACKLIGHT_TIMEOUT, DisplayTimerCallBack);
 					}
 					else
 					{
-						SetLcdBacklightState(BACKLIGHT_BRIGHT);
+						SetLcdBacklightState(BACKLIGHT_MID);
 					}
 
 					sprintf((char*)g_spareBuffer, "%s %s", getLangText(USB_THUMB_DRIVE_TEXT), getLangText(DISCOVERED_TEXT));
@@ -1236,15 +1240,19 @@ void BootLoadManager(void)
 
 		if (g_lcdPowerFlag == DISABLED)
 		{
+#if 0 /* old hw */
 			PowerControl(LCD_POWER_ENABLE, ON);
 			SoftUsecWait(LCD_ACCESS_DELAY);
 			SetLcdContrast(g_contrast_value);
 			InitLcdDisplay();
-			SetLcdBacklightState(BACKLIGHT_BRIGHT);
+#else
+			ft81x_init();
+#endif
+			SetLcdBacklightState(BACKLIGHT_MID);
 		}
 		else
 		{
-			SetLcdBacklightState(BACKLIGHT_BRIGHT);
+			SetLcdBacklightState(BACKLIGHT_MID);
 		}
 
 		if (g_quickBootEntryJump == QUICK_BOOT_ENTRY_FROM_MENU)
@@ -1709,17 +1717,21 @@ void exception(uint32_t r12, uint32_t r11, uint32_t r10, uint32_t r9, uint32_t e
 	if (g_lcdPowerFlag == DISABLED)
 	{
 		g_lcdPowerFlag = ENABLED;
+#if 0 /* old hw */
 		PowerControl(LCD_POWER_ENABLE, ON);
 		SoftUsecWait(LCD_ACCESS_DELAY);
 		SetLcdContrast(g_contrast_value);
 		InitLcdDisplay();
+#else
+		ft81x_init();
+#endif
 	}
 
 	// Check if the LCD Backlight was turned off
 	if (g_lcdBacklightFlag == DISABLED)
 	{
 		g_lcdBacklightFlag = ENABLED;
-		SetLcdBacklightState(BACKLIGHT_BRIGHT);
+		SetLcdBacklightState(BACKLIGHT_MID);
 	}
 
 #if 0 /* old hw */
