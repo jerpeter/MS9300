@@ -919,11 +919,11 @@ void DisplayLogoToLcd(void)
 	ft81x_bitmap_source(0x9000);
 	ft81x_bitmap_layout(L2, 16, 64);
 	ft81x_bitmap_size(NEAREST, BORDER, BORDER, 128, 64);
-	ft81x_bitmap_transform_a(128); // Scale up width 2x
-	ft81x_bitmap_transform_e(128); // Scale up heigth 2x
+	ft81x_bitmap_transform_a(64); // Scale up width (128 = 2x, 64 = 4x)
+	ft81x_bitmap_transform_e(64); // Scale up heigth (128 = 2x, 64 = 4x)
 
 	ft81x_begin(BITMAPS);
-	ft81x_vertex2ii(112, 72, 0, 0); // X: (480/2 - (128*2)/2), Y: (272/2 - (64*2)/2), Notes: bitmap scaled up 2x
+	ft81x_vertex2ii(((FT81X_DISPLAY_WIDTH / 2) - ((128 * 4) / 2)), ((FT81X_DISPLAY_HEIGHT / 2) - ((64 * 4) / 2)), 0, 0); // X: (Width/2 - (128*2)/2), Y: (Height/2 - (64*2)/2), Notes: bitmap scaled up 2x
 	ft81x_end();
 
 	ft81x_display();
@@ -949,8 +949,8 @@ void BitmapDisplayToLcd(void)
 	ft81x_bitmap_source(0x8000);
 	ft81x_bitmap_layout(L1, 16, 64);
 	ft81x_bitmap_size(NEAREST, BORDER, BORDER, 128, 64);
-	ft81x_bitmap_transform_a(69); // Scale up width as close to full screen (just under 3.75)
-	ft81x_bitmap_transform_e(61); // Scale up heigth as close to full screen (just under 4.25)
+	ft81x_bitmap_transform_a(41); // Scale up width as close to full screen (69 for just under 3.75, 41 for just under 6.25)
+	ft81x_bitmap_transform_e(35); // Scale up heigth as close to full screen (61 for just under 4.25, 35 for just under 7.5)
 
 	ft81x_begin(BITMAPS);
 	ft81x_vertex2ii(0, 0, 0, 0);
