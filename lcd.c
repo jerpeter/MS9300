@@ -10,6 +10,7 @@
 #include "PowerManagement.h"
 #include "Display.h"
 
+#include "Globals.h"
 #include "stdint.h"
 #include "spi.h"
 #include "mxc_delay.h"
@@ -1612,19 +1613,39 @@ void ft81x_init_display_settings()
 		ft81x_wr(REG_SWIZZLE, 0);
 	*/
 
+	/*
+		// Screen specific settings
+		// Pulling from: NHD-4.3-480272FT datasheet, but different package/options (display settings should be the same)
+		// NHD-4.3-480272FT-CSXP-T
+		ft81x_wr32(REG_HCYCLE, 548);
+		ft81x_wr32(REG_HOFFSET, 43);
+		ft81x_wr32(REG_HSIZE, FT81X_DISPLAY_WIDTH);
+		ft81x_wr32(REG_HSYNC0, 0);
+		ft81x_wr32(REG_HSYNC1, 41);
+		ft81x_wr32(REG_VCYCLE, 292);
+		ft81x_wr32(REG_VOFFSET, 12);
+		ft81x_wr32(REG_VSIZE, FT81X_DISPLAY_HEIGHT);
+		ft81x_wr32(REG_VSYNC0, 0);
+		ft81x_wr32(REG_VSYNC1, 10);
+		ft81x_wr32(REG_DITHER, 1);
+		ft81x_wr32(REG_PCLK_POL, 1);
+		ft81x_wr(REG_ROTATE, 0);
+		ft81x_wr(REG_SWIZZLE, 0);
+	*/
+
 	// Screen specific settings
-	// Pulling from: NHD-4.3-480272FT datasheet, but different package/options (display settings should be the same)
-	// NHD-4.3-480272FT-CSXP-T
-	ft81x_wr32(REG_HCYCLE, 548);
-	ft81x_wr32(REG_HOFFSET, 43);
+	// Pulling from: NHD-4.3-800480FT-CSXP-CTP reference, but different package/options (display settings should be the same)
+	// NHD-4.3-800480CF-ASXP
+	ft81x_wr32(REG_HCYCLE, 928);
+	ft81x_wr32(REG_HOFFSET, 88);
 	ft81x_wr32(REG_HSIZE, FT81X_DISPLAY_WIDTH);
 	ft81x_wr32(REG_HSYNC0, 0);
-	ft81x_wr32(REG_HSYNC1, 41);
-	ft81x_wr32(REG_VCYCLE, 292);
-	ft81x_wr32(REG_VOFFSET, 12);
+	ft81x_wr32(REG_HSYNC1, 48);
+	ft81x_wr32(REG_VCYCLE, 525);
+	ft81x_wr32(REG_VOFFSET, 32);
 	ft81x_wr32(REG_VSIZE, FT81X_DISPLAY_HEIGHT);
 	ft81x_wr32(REG_VSYNC0, 0);
-	ft81x_wr32(REG_VSYNC1, 10);
+	ft81x_wr32(REG_VSYNC1, 3);
 	ft81x_wr32(REG_DITHER, 1);
 	ft81x_wr32(REG_PCLK_POL, 1);
 	ft81x_wr(REG_ROTATE, 0);
@@ -1888,25 +1909,19 @@ void test_display(
 		ft81x_tag_mask(0);
 
 		// Draw some text
-		ft81x_cmd_text(240, 136, 30, OPT_CENTER, "Hello World");
+		ft81x_cmd_text((FT81X_DISPLAY_WIDTH / 2), (FT81X_DISPLAY_HEIGHT / 2), 30, OPT_CENTER, "Hello World");
 
 		ft81x_bgcolor_rgb32(0x007f7f);
-		ft81x_cmd_clock(440,40,30,0,12,1,2,4);
+		ft81x_cmd_clock((FT81X_DISPLAY_WIDTH - 40),40,30,0,12,1,2,4);
 
 		// Turn on tagging
 		ft81x_tag_mask(1);
 
 		// Add buttons to the bottom
-		ft81x_cmd_button(1, 212, 120, 60, 18, 0, "OK");
-		ft81x_cmd_button(121, 212, 120, 60, 18, 0, "ESCAPE");
-		ft81x_cmd_button(241, 212, 120, 60, 18, 0, "MENU");
-		ft81x_cmd_button(361, 212, 120, 60, 18, 0, "HELP");
-
-		//ft81x_tag(3); // tag the button #3
-		//ft81x_cmd_button(10, 10, 140, 100, 18, 0, "OK");
-
-		//ft81x_tag(4); // tag the button #4
-		//ft81x_cmd_dial(300, 100, 100, OPT_FLAT, x * 100);
+		ft81x_cmd_button(0, (FT81X_DISPLAY_HEIGHT - 64), (FT81X_DISPLAY_WIDTH / 4), 64, 18, 0, "OK");
+		ft81x_cmd_button((FT81X_DISPLAY_WIDTH / 4), (FT81X_DISPLAY_HEIGHT - 64), (FT81X_DISPLAY_WIDTH / 4), 64, 18, 0, "ESCAPE");
+		ft81x_cmd_button((FT81X_DISPLAY_WIDTH / 2), (FT81X_DISPLAY_HEIGHT - 64), (FT81X_DISPLAY_WIDTH / 4), 64, 18, 0, "MENU");
+		ft81x_cmd_button((FT81X_DISPLAY_WIDTH * 3 / 4), (FT81X_DISPLAY_HEIGHT - 64), (FT81X_DISPLAY_WIDTH / 4), 64, 18, 0, "HELP");
 
 		uint8_t tstate = rand()%((253+1)-0) + 0;
 		if(tstate > 128)
@@ -1921,7 +1936,7 @@ void test_display(
 		ft81x_tag_mask(0);
 
 		// Draw a keyboard
-		ft81x_cmd_keys(1, 182, 480, 30, 26, 0, "1234");
+		ft81x_cmd_keys(((FT81X_DISPLAY_WIDTH / 2) - 60), ((FT81X_DISPLAY_HEIGHT / 2) + 80), 120, 30, 26, 0, "1234");
 
 		// FIXME: Spinner if used above does odd stuff? Seems ok at the end of the display.
 		ft81x_cmd_spinner(80, 80, 3, 0);
@@ -2015,6 +2030,32 @@ void test_dots(
 #endif
 
 /*
+ * Initialize the FT81x GPU
+ */
+uint8_t ft81x_init(void)
+{
+    if (GetPowerControlState(LCD_POWER_ENABLE) == OFF) { PowerControl(LCD_POWER_ENABLE, ON); }
+    if (GetPowerControlState(LCD_POWER_DISPLAY) == OFF)
+	{
+		PowerControl(LCD_POWER_DISPLAY, ON);
+		MXC_Delay(MXC_DELAY_MSEC(20)); // Per datasheet: From Sleep state, the host needs to wait at least 20ms before accessing any registers or commands
+		g_lcdPowerFlag = ENABLED;
+	}
+
+	restart_core();
+	if (!read_chip_id()) {
+		return false;
+	}
+	select_spi_byte_width();
+	ft81x_backlight_off();
+	ft81x_fifo_reset();
+	ft81x_init_display_settings();
+	test_black_screen();
+	ft81x_init_gpio();
+	return true;
+}
+
+/*
  * Initialize the FT81x GPU and test for a valid chip response
  */
 uint8_t ft81x_init_gpu(void)
@@ -2062,6 +2103,16 @@ void ft81x_set_backlight_level(uint8_t backlightLevel)
 }
 
 /*
+ * Set the backlight level
+ */
+uint8_t ft81x_get_backlight_level(void)
+{
+	// Backlight range is 0 (off) to 128 (max brightness) per data sheet
+
+	return (ft81x_rd(REG_PWM_DUTY));
+}
+
+/*
  * Turn off the display entering low power mode
  */
 void ft81x_sleep()
@@ -2084,8 +2135,12 @@ void ft81x_wake(uint8_t pwm)
   // Enable the pixel clock
 #if 0 /* NHD-7.0-800480FT-CSXV-CTP */
   ft81x_wr32(REG_PCLK, 3);
-#else // From NHD-4.3-480272FT-CSXP-T reference
+#endif
+#if 0 /* From NHD-4.3-480272FT-CSXP-T reference */
 	ft81x_wr32(REG_PCLK, 5);
+#endif
+#if 1 /* From NHD-4.3-800480FT-CSXP-CTP reference */
+	ft81x_wr32(REG_PCLK, 2);
 #endif
 
   // Set backlight PWM to pwm

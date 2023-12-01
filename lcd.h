@@ -104,6 +104,13 @@ void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 //// Enable QUAD spi mode on ESP32 and FT81X
 #define FT81X_QUADSPI         0
 
+#define FT81X_BACKLIGHT_MAX 128
+#define FT81X_BACKLIGHT_OFF (0)
+#define FT81X_BACKLIGHT_DIM (FT81X_BACKLIGHT_MAX / 4)
+#define FT81X_BACKLIGHT_MID (FT81X_BACKLIGHT_MAX / 2)
+#define FT81X_BACKLIGHT_BRIGHT (FT81X_BACKLIGHT_MAX * 3 / 4)
+#define FT81X_BACKLIGHT_FULL (FT81X_BACKLIGHT_MAX)
+
 #define HOST_MEMORY_WRITE	0x800000
 #define HOST_MEMORY_WRITE_ADDR_BITS_VALID	0x3FFFFF
 
@@ -113,8 +120,8 @@ void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 
 #define DL_CMD_FAULT 0xfff
 #define MAX_FIFO_SPACE (4096 - 4)
-#define FT81X_DISPLAY_WIDTH 480
-#define FT81X_DISPLAY_HEIGHT 272
+#define FT81X_DISPLAY_WIDTH 800 //480
+#define FT81X_DISPLAY_HEIGHT 480 //272
 
 // Currently with DMA setting of 0 the ESP32 can only transfer 32 bytes per transaction.
 // Setting DMA mode > 0 has other issues with data not readable. Bugs that may change
@@ -155,7 +162,6 @@ void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 #define PALETTED4444         15
 #define PALETTED8            16
 #define L2                   17
-
 
 #define NEAREST              0
 #define BILINEAR             1
@@ -209,46 +215,6 @@ void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 #define INCR                  3
 #define DECR                  4
 #define INVERT                5
-
-// Sound stream types
-#define LINEAR_SAMPLES       0
-#define ULAW_SAMPLES         1
-#define ADPCM_SAMPLES        2
-
-// Table 4-15 Sound Effect
-#define SILENCE            0x00
-#define SQUAREWAVE         0x01
-#define SINEWAVE           0x02
-#define SAWTOOTH           0x03
-#define TRIANGLE           0x04
-#define BEEPING            0x05
-#define ALARM              0x06
-#define WARBLE             0x07
-#define CAROUSEL           0x08
-#define PIPS(n)    (0x0f + (n))
-#define HARP               0x40
-#define XYLOPHONE          0x41
-#define TUBA               0x42
-#define GLOCKENSPIEL       0x43
-#define ORGAN              0x44
-#define TRUMPET            0x45
-#define PIANO              0x46
-#define CHIMES             0x47
-#define MUSICBOX           0x48
-#define BELL               0x49
-#define CLICK              0x50
-#define SWITCH             0x51
-#define COWBELL            0x52
-#define NOTCH              0x53
-#define HIHAT              0x54
-#define KICKDRUM           0x55
-#define POP                0x56
-#define CLACK              0x57
-#define CHACK              0x58
-#define MUTE               0x60
-#define UNMUTE             0x61
-
-
 
 // MEMORY MAP DEFINES
 #define RAM_G          0x000000UL // General purpose graphics RAM, Address range: 0x0 --> 0xFFFFF, 1024KB, called "main memory" (verified)
@@ -373,6 +339,9 @@ void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
  * Prototypes
  */
 
+// Initialize FT81X
+uint8_t ft81x_init(void);
+
 // Initialize FT81X GPU
 uint8_t ft81x_init_gpu(void);
 
@@ -381,6 +350,9 @@ void ft81x_backlight_off(void);
 
 // Set the backlight level
 void ft81x_set_backlight_level(uint8_t backlightLevel);
+
+// Get the backlight level
+uint8_t ft81x_get_backlight_level(void);
 
 // Put the display to sleep low power mode
 void ft81x_sleep();
