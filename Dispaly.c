@@ -615,8 +615,10 @@ void SetNextLcdBacklightState(void)
 	switch (backlightState)
 	{
 		case BACKLIGHT_OFF		: SetLcdBacklightState(BACKLIGHT_DIM);		break;
-		case BACKLIGHT_DIM		: SetLcdBacklightState(BACKLIGHT_BRIGHT);	break;
-		case BACKLIGHT_BRIGHT	: SetLcdBacklightState(BACKLIGHT_OFF);		break;
+		case BACKLIGHT_DIM		: SetLcdBacklightState(BACKLIGHT_MID);		break;
+		case BACKLIGHT_MID		: SetLcdBacklightState(BACKLIGHT_BRIGHT);	break;
+		case BACKLIGHT_BRIGHT	: SetLcdBacklightState(BACKLIGHT_FULL);		break;
+		case BACKLIGHT_FULL		: SetLcdBacklightState(BACKLIGHT_OFF);		break;
 	}
 }
 
@@ -625,9 +627,21 @@ void SetNextLcdBacklightState(void)
 ///----------------------------------------------------------------------------
 LCD_BACKLIGHT_STATES GetLcdBacklightState(void)
 {
-	// BACKLIGHT_BRIGHT, BACKLIGHT_DIM, BACKLIGHT_OFF
+	uint8_t backlightLevel, backlightState;
 
-	return (0);
+	backlightLevel = ft81x_get_backlight_level();
+
+	switch (backlightLevel)
+	{
+		case FT81X_BACKLIGHT_OFF: backlightState = BACKLIGHT_OFF; break;
+		case FT81X_BACKLIGHT_DIM: backlightState = BACKLIGHT_DIM; break;
+		case FT81X_BACKLIGHT_MID: backlightState = BACKLIGHT_MID; break;
+		case FT81X_BACKLIGHT_BRIGHT: backlightState = BACKLIGHT_BRIGHT; break;
+		case FT81X_BACKLIGHT_FULL: backlightState = BACKLIGHT_FULL; break;
+		default: backlightState = BACKLIGHT_OFF; break;
+	}
+
+	return (backlightState);
 }
 
 ///----------------------------------------------------------------------------
@@ -637,14 +651,11 @@ void SetLcdBacklightState(LCD_BACKLIGHT_STATES state)
 {
 	switch (state)
 	{
-		case BACKLIGHT_OFF:
-		break;
-
-		case BACKLIGHT_DIM:
-		break;
-
-		case BACKLIGHT_BRIGHT:
-		break;
+		case BACKLIGHT_OFF: ft81x_backlight_off(); break;
+		case BACKLIGHT_DIM: ft81x_set_backlight_level(FT81X_BACKLIGHT_DIM); break;
+		case BACKLIGHT_MID: ft81x_set_backlight_level(FT81X_BACKLIGHT_MID); break;
+		case BACKLIGHT_BRIGHT: ft81x_set_backlight_level(FT81X_BACKLIGHT_BRIGHT); break;
+		case BACKLIGHT_FULL: ft81x_set_backlight_level(FT81X_BACKLIGHT_FULL); break;
 	}
 }
 
@@ -801,10 +812,14 @@ void ActivateDisplayShortDuration(uint16 secondsToDisplay)
 	if (g_lcdPowerFlag == DISABLED)
 	{
 		g_lcdPowerFlag = ENABLED;
+#if 0 /* old hw */
 		PowerControl(LCD_POWER_ENABLE, ON);
 		SoftUsecWait(LCD_ACCESS_DELAY);
 		SetLcdContrast(g_contrast_value);
 		InitLcdDisplay();					// Setup LCD segments and clear display buffer
+#else
+		ft81x_init();
+#endif
 		AssignSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM, (secondsToDisplay * TICKS_PER_SEC), LcdPwTimerCallBack);
 
 		// Check if the unit is monitoring, if so, reassign the monitor update timer
@@ -819,7 +834,7 @@ void ActivateDisplayShortDuration(uint16 secondsToDisplay)
 	if (g_lcdBacklightFlag == DISABLED)
 	{
 		g_lcdBacklightFlag = ENABLED;
-		SetLcdBacklightState(BACKLIGHT_BRIGHT);
+		SetLcdBacklightState(BACKLIGHT_MID);
 		AssignSoftTimer(LCD_BACKLIGHT_ON_OFF_TIMER_NUM, (secondsToDisplay * TICKS_PER_SEC), DisplayTimerCallBack);
 	}
 }
