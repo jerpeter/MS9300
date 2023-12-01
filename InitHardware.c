@@ -295,25 +295,11 @@ void TestPowerDownAndStop(void)
 ///----------------------------------------------------------------------------
 void InitLCD(void)
 {
-#if 0 /* old hw */
+	// Power up and init the display controller
+	ft81x_init();
 
-	PowerControl(LCD_CONTRAST_ENABLE, ON);
-	PowerControl(LCD_POWER_ENABLE, ON);
-	SoftUsecWait(LCD_ACCESS_DELAY);
-	Backlight_On();
-	Backlight_High();
-	Set_Contrast(DEFUALT_CONTRAST);
-	InitDisplay();
-
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
-	memcpy(g_mmap, sign_on_logo, (8*128));
-	WriteMapToLcd(g_mmap);
-#endif
-#else
-	// Attempt to load a bitmap to the display controller
-	// Todo: Add in LCD init and startup for display
+	// Load the logo bitmap into the display controller and send to LCD
 	DisplayLogoToLcd();
-#endif
 }
 
 ///----------------------------------------------------------------------------
