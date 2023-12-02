@@ -41,11 +41,8 @@
 ///----------------------------------------------------------------------------
 void OneWireInit(void)
 {
-#if 0 /* old hw */
-	gpio_enable_gpio_pin(SMART_SENSOR_DATA);
-	PowerControl(SEISMIC_SENSOR_DATA_CONTROL, OFF);
-	PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, OFF);
-#endif
+	// Attempt to read the connected Smart Sensors
+	// Todo: fill in reading of sensors
 }
 
 ///----------------------------------------------------------------------------
