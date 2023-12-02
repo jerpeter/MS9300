@@ -672,6 +672,24 @@ void StopInteralSampleTimer(void);
 // Init Software prototype extensions
 void InitSoftwareSettings_MS9300(void);
 
+// Init devices prototype extensions
+void AccelerometerInit(void);
+void ExpansionBridgeInit(void);
+void USBCPortControllerInit(void);
+
+// Test device functions
+void TestAccelerometer(void);
+void TestBatteryCharger(void);
+void TestFuelGauge(void);
+void TestEEPROM(void);
+void TestExpansionI2CBridge(void);
+void TestEMMCFatFilesystem(void);
+void TestExternalRTC(void);
+void TestUSBCPortController(void);
+void Test1Wire(void);
+void TestExternalADC(void);
+void TestLCD(void);
+
 // ISRs prototype extensions
 void DataIsrInit(uint16 sampleRate);
 void Keypad_irq(void);
