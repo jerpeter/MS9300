@@ -1514,20 +1514,24 @@ uint32_t mf_base = 0;
 /*
  * Wrapper for CS to allow easier debugging
  */
-void ft81x_assert_cs(bool active)
+void ft81x_assert_cs(bool assert)
 {
-#if 0 /* diff hardware */
-	gpio_set_level(FT_CS_PIN, !active);
-#else
-	// SPI Master Slave Select Control
-	// 0: Slave Select is deasserted at the end of a transmission
-	// 1: Slave Select stays asserted at the end of a transmission
-	// Really doesn't look like direct control, therefore the following is likely useless
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL)
+	{
+		if (assert) { MXC_GPIO_OutClr(MXC_GPIO2, MXC_GPIO_PIN_5); }
+		else { MXC_GPIO_OutSet(MXC_GPIO2, MXC_GPIO_PIN_5); }
+	}
+	else // SPI2 Slave select controlled by the SPI driver
+	{
+		// SPI Master Slave Select Control
+		// 0: Slave Select is deasserted at the end of a transmission
+		// 1: Slave Select stays asserted at the end of a transmission
+		// Really doesn't look like direct control, therefore the following is likely useless
 
-	// Attempt direct control
-	if (active) { MXC_SPI2->ctrl0 |= MXC_F_SPI_CTRL0_SS_CTRL; }
-	else { MXC_SPI2->ctrl0 &= ~MXC_F_SPI_CTRL0_SS_CTRL; }
-#endif
+		// Attempt direct control (unlikely to work)
+		if (assert) { MXC_SPI2->ctrl0 |= MXC_F_SPI_CTRL0_SS_CTRL; }
+		else { MXC_SPI2->ctrl0 &= ~MXC_F_SPI_CTRL0_SS_CTRL; }
+	}
 }
 
 void restart_core(void)
@@ -2201,7 +2205,9 @@ void ft81x_hostcmd_param(uint8_t command, uint8_t args)
 	writeData[1] = args;
 	writeData[2] = 0x00; // Dummy byte
 
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 #endif
 }
 
@@ -2265,7 +2271,9 @@ uint8_t ft81x_rd(uint32_t addr)
 	writeData[3] = 0x00; // Dummy byte
 	writeData[4] = 0x00; // Swap byte for data read 1
 
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 
 	return (readData[4]);
 #endif
@@ -2334,7 +2342,9 @@ uint16_t ft81x_rd16(uint32_t addr)
 	writeData[4] = 0x00; // Swap byte for data read 1
 	writeData[5] = 0x00; // Swap byte for data read 2
 
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 
 	result = ((readData[4] << 8) | readData[5]);
 	return (result);
@@ -2406,7 +2416,9 @@ uint32_t ft81x_rd32(uint32_t addr)
 	writeData[6] = 0x00; // Swap byte for data read 3
 	writeData[7] = 0x00; // Swap byte for data read 4
 
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 
 	result = ((readData[4] << 24) | (readData[5] << 16) | (readData[6] << 8) | readData[7]);
 	return (result);
@@ -2526,7 +2538,9 @@ void ft81x_wr(uint32_t addr, uint8_t byteVal)
 	writeData[2] = (addr & 0xFF);
 	writeData[3] = byteVal;
 
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 #endif
 }
 
@@ -2577,7 +2591,9 @@ void ft81x_wr16(uint32_t addr, uint16_t wordVal)
 	writeData[3] = ((wordVal >> 8) & 0xFF);
 	writeData[4] = (wordVal & 0xFF);
 
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 #endif
 }
 
@@ -2630,7 +2646,9 @@ void ft81x_wr32(uint32_t addr, uint32_t longVal)
 	writeData[5] = ((longVal >> 8) & 0xFF);
 	writeData[6] = (longVal & 0xFF);
 
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 #endif
 }
 
@@ -2675,6 +2693,7 @@ void ft81x_wrA(uint32_t addr)
 	writeData[2] = (addr & 0xFF);
 
 	// SPI write but leave slave selected for future write data
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, NO, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 #endif
 }
@@ -2711,7 +2730,7 @@ void ft81x_wrN(uint8_t *buffer, uint8_t size)
 void ft81x_wrE(uint32_t addr)
 {
   // end the transaction
-	ft81x_assert_cs(false);
+	ft81x_assert_cs(NO);
 }
 
 /*
@@ -2867,7 +2886,7 @@ void ft81x_stream_start()
 void ft81x_stream_stop()
 {
   // end the transaction
-	ft81x_assert_cs(false);
+	ft81x_assert_cs(NO);
 }
 
 /*

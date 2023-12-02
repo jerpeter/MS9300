@@ -99,6 +99,9 @@ void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
  * Defines
  */
 
+// Determine if the GPIO line for SPI2 Slave Select should be manually controlled or selected for Alternate function 1 (controlled by the SPI driver)
+#define FT81X_SPI_2_SS_CONTROL_MANUAL   1
+
 // General settings/utils
 //// QUAD SPI is not stable yet. Noise or ...?
 //// Enable QUAD spi mode on ESP32 and FT81X

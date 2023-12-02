@@ -407,6 +407,7 @@ mxc_gpio_cfg_t g_ExternalTriggerOut;
 mxc_gpio_cfg_t g_ExternalTriggerIn;
 mxc_gpio_cfg_t g_LCDPowerEnable;
 mxc_gpio_cfg_t g_LCDPowerDisplay;
+mxc_gpio_cfg_t g_Spi2SlaveSelect0LCD;
 mxc_gpio_cfg_t g_LCDInt;
 mxc_gpio_cfg_t g_SensorCheckEnable;
 mxc_gpio_cfg_t g_SensorCheck;
@@ -1009,6 +1010,20 @@ void SetupGPIO(void)
 	g_LCDPowerDisplay.vssel = MXC_GPIO_VSSEL_VDDIO;
     MXC_GPIO_Config(&g_LCDPowerDisplay);
 	MXC_GPIO_OutSet(g_LCDPowerDisplay.port, g_LCDPowerDisplay.mask); // Start as disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// SPI2 Slave Select 0 LCD: Port 2, Pin 5, Output, External pullup, Active low, 1.8V (minimum 1.7V)
+	//----------------------------------------------------------------------------------------------------------------------
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL)
+	{
+		g_Spi2SlaveSelect0LCD.port = MXC_GPIO2;
+		g_Spi2SlaveSelect0LCD.mask = MXC_GPIO_PIN_5;
+		g_Spi2SlaveSelect0LCD.pad = MXC_GPIO_PAD_NONE;
+		g_Spi2SlaveSelect0LCD.func = MXC_GPIO_FUNC_OUT;
+		g_Spi2SlaveSelect0LCD.vssel = MXC_GPIO_VSSEL_VDDIO;
+		MXC_GPIO_Config(&g_Spi2SlaveSelect0LCD);
+		MXC_GPIO_OutSet(g_Spi2SlaveSelect0LCD.port, g_Spi2SlaveSelect0LCD.mask); // Start as disabled
+	}
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// LCD Int: Port 2, Pin 6, Input, External pullup, Active low, 1.8V
@@ -1684,8 +1699,16 @@ void SetupSPI(void)
 	status = MXC_SPI_Init(MXC_SPI2, YES, NO, 1, LOW, SPI_SPEED_LCD);
 	if (status != E_SUCCESS) { debugErr("SPI2 (LCD) Init failed with code: %d\r\n", status); }
 
-	mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { MXC_GPIO2, (MXC_GPIO_PIN_5), MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE };
-	MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL)
+	{
+		mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { MXC_GPIO2, (MXC_GPIO_PIN_5), MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE };
+		MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
+	}
+	else // SPI2 Slave Select controlled by the SPI driver
+	{
+		mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { MXC_GPIO2, (MXC_GPIO_PIN_5), MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE };
+		MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
+	}
 
 	// Set standard SPI 4-wire (MISO/MOSI, full duplex)
 	MXC_SPI_SetWidth(MXC_SPI2, SPI_WIDTH_STANDARD);
