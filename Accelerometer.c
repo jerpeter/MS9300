@@ -53,7 +53,7 @@ typedef struct
 ///----------------------------------------------------------------------------
 
 ///----------------------------------------------------------------------------
-///	Device Info
+///	Device Info - KX134-1211
 ///----------------------------------------------------------------------------
 /*
 Address	Register Name	R/W
@@ -288,5 +288,17 @@ void TestAccelerometer(void)
     else { debugErr("Acc: Command Test response failed\r\n"); }
 
     debug("Accelerometer: Setting manual sleep\r\n");
+    SetAccRegister(ACC_CONTROL_5_REGISTER, 0x01);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AccelerometerInit(void)
+{
+    // Put the Acc in standby mode to allow changing control register values
+    SetAccRegister(ACC_CONTROL_1_REGISTER, 0x00);
+
+    // Put the Accelerometer in manual sleep
     SetAccRegister(ACC_CONTROL_5_REGISTER, 0x01);
 }
