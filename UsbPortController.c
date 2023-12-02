@@ -1199,3 +1199,11 @@ void TestUSBCPortController(void)
 		debug("USBC Port Controller: 2nd Custom use byte (scratchpad) test %s\r\n", (scratch == 0x55) ? "Passed" : "Failed");
 	}
 }
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void USBCPortControllerInit(void)
+{
+	// Todo: Initial setup?
+}
