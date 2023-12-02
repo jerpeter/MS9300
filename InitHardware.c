@@ -2876,7 +2876,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initalize the Accelerometer
 	//-------------------------------------------------------------------------
-	//AccelerometerInit(); debug("Accelerometer init complete\r\n");
+	AccelerometerInit(); debug("Accelerometer init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Smart Sensor data/control init (Hardware pull up on signal)
@@ -2891,7 +2891,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initalize the USB-C Port Controller
 	//-------------------------------------------------------------------------
-	//USBCPortControllerInit(); debug("USB-C Port Controller init complete\r\n");
+	USBCPortControllerInit(); debug("USB-C Port Controller init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initialize the external RTC
@@ -2906,7 +2906,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initalize the Expansion I2C UART Bridge
 	//-------------------------------------------------------------------------
-	//ExpansionBridgeInit(); debug("Expansion I2C Uart Bridge init complete\r\n");
+	ExpansionBridgeInit(); debug("Expansion I2C Uart Bridge init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initialize the AD Control
