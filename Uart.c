@@ -736,3 +736,16 @@ void TestExpansionI2CBridge(void)
 	debug("Expansion I2C Uart Bridge: Scratchpad test...\r\n");
 	TestUartBridgeScratchpad();
 }
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void ExpansionBridgeInit(void)
+{
+	// Make sure Expansion bridge is turned off
+	if (GetPowerControlState(EXPANSION_ENABLE == ON))
+	{
+		debug("Power Control: Expansion I2C UART bridge being turned offr\n");
+		PowerControl(EXPANSION_ENABLE, OFF);
+	}
+}
