@@ -29,6 +29,7 @@
 #include "mxc_delay.h"
 
 #include "UsbPortController.h"
+#include "PowerManagement.h"
 
 /* Register offsets */
 #define TPS_REG_MODE			0x03
@@ -88,6 +89,9 @@
 #define TPS_4CC_SWDF	"SWDF" /* Swap to down facing stream (host) */
 #define TPS_4CC_DBFG	"DBfg" /* Clear dead battery flag */
 #define TPS_4CC_GAID	"GAID" /* Cold reset */
+#define TPS_4CC_GSKC	"GSkC" /* Get sink capabilities */
+#define TPS_4CC_GSRC	"GSrC" /* Get source capabilities */
+#define TPS_4CC_SSRC	"SSrC" /* Send source capabilities */
 
 /*
  * Address used in PBMs command where address would be invalid when
@@ -130,6 +134,7 @@ struct tps25750 {
 
 	uint32_t status_reg;
 	uint32_t max_source_current;
+	enum typec_data_role role;
 };
 
 enum power_supply_property tps25750_psy_props[] = {
@@ -310,7 +315,7 @@ static int tps25750_exec_normal_cmd(struct tps25750 *tps, const char *cmd)
 
 	switch (rc) {
 	case TPS_TASK_COMPLETED_SUCCESSFULLY:
-		return 0;
+		return E_SUCCESS;
 	case TPS_TASK_TIMEOUT_OR_ABRT:
 		return E_TIME_OUT;
 	case TPS_TASK_REJECTED:
@@ -467,18 +472,16 @@ static int tps25750_abort_patch_process(struct tps25750 *tps)
 ///----------------------------------------------------------------------------
 void tps25750_set_data_role(struct tps25750 *tps, enum typec_data_role role, bool connected)
 {
-#if 0 /* Todo: fill in equivalent */
-	enum usb_role role_val;
-
 	if (role == TYPEC_HOST)
-		role_val = USB_ROLE_HOST;
+		tps->role = USB_ROLE_HOST;
 	else
-		role_val = USB_ROLE_DEVICE;
+		tps->role = USB_ROLE_DEVICE;
 
 	if (!connected)
-		role_val = USB_ROLE_NONE;
+		tps->role = USB_ROLE_NONE;
 
-	usb_role_switch_set_role(tps->role_sw, role_val);
+#if 0 /* Todo: fill in equivalent */
+	usb_role_switch_set_role(tps->role_sw, tps->role);
 	typec_set_data_role(tps->port, role);
 #endif
 }
@@ -631,34 +634,28 @@ err_unlock:
 ///	Function Break
 ///----------------------------------------------------------------------------
 //static int tps25750_dr_set(struct typec_port *port, enum typec_data_role role)
-int tps25750_dr_set(void)
+int tps25750_dr_set(struct tps25750* tps, enum typec_data_role role)
 {
-	struct tps25750 *tps = NULL; //typec_get_drvdata(port);
 	int ret;
 	uint32_t status;
-#if 0 /* Todo: Fill in equivalent */
 	const char *cmd = (role == TYPEC_DEVICE) ? TPS_4CC_SWUF : TPS_4CC_SWDF;
-#else
-	char *cmd = NULL;
-#endif
+
 	//mutex_lock(&tps->lock);
 
 	ret = tps25750_exec_normal_cmd(tps, cmd);
-	if (ret)
-		goto release_lock;
+	if (ret) { goto release_lock; }
 
 	ret = tps25750_read32(tps, TPS_REG_STATUS, &status);
-	if (ret)
-		goto release_lock;
+	if (ret) { goto release_lock; }
 
-#if 0 /* Todo: fill in equivalent */
-	if (role != TPS_REG_STATUS_DATA_ROLE(status)) {
+	if (role != TPS_REG_STATUS_DATA_ROLE(status))
+	{
 		ret = E_FAIL;
+		debugErr("USBC Port Controller: Failed to change data role to <%s>\r\n", (role == TYPEC_DEVICE) ? "Device" : "Host");
 		goto release_lock;
 	}
 
 	tps25750_set_data_role(tps, role, true);
-#endif
 
 release_lock:
 	//mutex_unlock(&tps->lock);
@@ -816,33 +813,30 @@ wait_for_app:
 ///	Function Break
 ///----------------------------------------------------------------------------
 //static int tps25750_pr_set(struct typec_port *port, enum typec_role role)
-int tps25750_pr_set(void)
+int tps25750_pr_set(struct tps25750* tps, enum typec_role role)
 {
-	struct tps25750 *tps = NULL; //typec_get_drvdata(port);
 	int ret;
 	uint32_t status;
-#if 0 /* Todo: fill in equivalent */
 	const char *cmd = (role == TYPEC_SINK) ? TPS_4CC_SWSK : TPS_4CC_SWSR;
-#else
-	char *cmd = NULL;
-#endif
+
+	// Determine role for sourcing VBUS from the 5V Buck and set before swapping mode
+	if (role == TYPEC_SOURCE) { PowerControl(USB_SOURCE_ENABLE, ON); }
+	else { PowerControl(USB_SOURCE_ENABLE, OFF); }
 
 	//mutex_lock(&tps->lock);
 
 	ret = tps25750_exec_normal_cmd(tps, cmd);
-	if (ret)
-		goto release_lock;
+	if (ret) { goto release_lock; }
 
 	ret = tps25750_read32(tps, TPS_REG_STATUS, &status);
-	if (ret)
-		goto release_lock;
+	if (ret) { goto release_lock; }
 
-#if 0 /* Todo: fill in equivalent */
-	if (role != TPS_REG_STATUS_PORT_ROLE(status)) {
+	if (role != TPS_REG_STATUS_PORT_ROLE(status))
+	{
 		ret = E_FAIL;
+		debugErr("USBC Port Controller: Failed to change power role to <%s>\r\n", (role == TYPEC_SINK) ? "Sink" : "Source");
 		goto release_lock;
 	}
-#endif
 
 	// Todo: fill in equivalent
 	//typec_set_pwr_role(tps->port, role);
@@ -1206,4 +1200,19 @@ void TestUSBCPortController(void)
 void USBCPortControllerInit(void)
 {
 	// Todo: Initial setup?
+	struct tps25750 tps;
+
+	// In order to have VBUS charging supplying power, Aux Power Enable must be set
+	// In order to set the Aux Power Enable, external VBUS must be present
+	// Todo: Determine if in Source mode
+
+	// Check mode
+
+	// Check and clear Dead Battery flag if set
+
+	// Set Power role to Sink mode to start
+	tps25750_pr_set(&tps, TYPEC_SINK);
+
+	// Set Data role to Device mode to start
+	tps25750_dr_set(&tps, TYPEC_DEVICE);
 }
