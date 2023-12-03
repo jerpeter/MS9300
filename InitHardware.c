@@ -2886,7 +2886,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initalize the Battery Charger
 	//-------------------------------------------------------------------------
-	//BatteryChargerInit(); debug("Battery Charger init complete\r\n");
+	BatteryChargerInit(); debug("Battery Charger init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initalize the USB-C Port Controller
@@ -2901,7 +2901,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initalize the Fuel Gauge
 	//-------------------------------------------------------------------------
-	//FuelGaugeInit(); debug("Fuel Gauge init complete\r\n");
+	FuelGaugeInit(); debug("Fuel Gauge init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initalize the Expansion I2C UART Bridge

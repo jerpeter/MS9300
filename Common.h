@@ -676,6 +676,8 @@ void InitSoftwareSettings_MS9300(void);
 void AccelerometerInit(void);
 void ExpansionBridgeInit(void);
 void USBCPortControllerInit(void);
+void FuelGaugeInit(void);
+void BatteryChargerInit(void);
 
 // Test device functions
 void TestAccelerometer(void);

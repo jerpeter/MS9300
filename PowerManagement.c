@@ -780,6 +780,16 @@ void TestBatteryCharger(void)
 	debug("Battery Charger: Output current in discharge mode is %u (mA)\r\n", GetBattChargerOutputCurrentInDischargeMode()); // Result units: mA
 }
 
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void BatteryChargerInit(void)
+{
+	// Todo: What to set?
+
+	// ACOK (pin 11 of part) indicates when the input power supply (VBUS charging) is in charge mode
+}
+
 ///============================================================================
 ///----------------------------------------------------------------------------
 ///	Fuel Guage - LTC2944
@@ -1314,4 +1324,14 @@ void TestFuelGauge(void)
 
 	ltc294x_get_temperature(&info, &val);
 	debug("Fuel Gauge: Temperature is %d (degrees F)\r\n", val);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void FuelGaugeInit(void)
+{
+	// Todo: Determine accumulated charge
+
+	// Todo: Set thresholds for charge, voltage, current, temperature?
 }
