@@ -788,6 +788,10 @@ void BatteryChargerInit(void)
 	// Todo: What to set?
 
 	// ACOK (pin 11 of part) indicates when the input power supply (VBUS charging) is in charge mode
+	// ACOK prevents VCC from V_batt from powering the VBUS present line (Power logic latch)
+
+	// V_adp under voltage lockout threshold is 2.4-2.8V (typically 2.6V), over volatge ~24V
+	// V_batt under voltage lockout threshold is 2.5-2.7V (typically 2.6V)
 }
 
 ///============================================================================
