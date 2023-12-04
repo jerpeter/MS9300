@@ -1202,8 +1202,9 @@ void USBCPortControllerInit(void)
 	// Todo: Initial setup?
 	struct tps25750 tps;
 
-	// In order to have VBUS charging supplying power, Aux Power Enable must be set
+	// In relation to VBUS charging (supplied externally through VBUS), what purpose does Aux Power Enable have?
 	// In order to set the Aux Power Enable, external VBUS must be present
+
 	// Todo: Determine if in Source mode
 
 	// Check mode
