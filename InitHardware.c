@@ -250,6 +250,7 @@ void InitExternalAD(void)
 	// Read a few test samples
 	GetChannelOffsets(SAMPLE_RATE_DEFAULT);
 
+	DisableSensorBlocks();
 	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
 }
@@ -384,7 +385,7 @@ mxc_gpio_cfg_t g_Alert2;
 mxc_gpio_cfg_t g_LTEOTA;
 mxc_gpio_cfg_t g_ExpansionEnable;
 mxc_gpio_cfg_t g_ExpansionReset;
-mxc_gpio_cfg_t g_USBCI2CIRQ;
+mxc_gpio_cfg_t g_USBCPortControllerI2CIRQ;
 mxc_gpio_cfg_t g_AccelInt1;
 mxc_gpio_cfg_t g_AccelInt2;
 mxc_gpio_cfg_t g_AccelTrig;
@@ -558,7 +559,7 @@ void SetupGPIO(void)
 	g_Enable12V.func = MXC_GPIO_FUNC_OUT;
 	g_Enable12V.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
     MXC_GPIO_Config(&g_Enable12V);
-	MXC_GPIO_OutSet(g_Enable12V.port, g_Enable12V.mask); // Start enabled
+	MXC_GPIO_OutClr(g_Enable12V.port, g_Enable12V.mask); // Start disabled (only needed for alarms)
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Enable 5V: Port 0, Pin 7, Output, External pulldown, Active high, 1.8V (minimum 0.9V)
@@ -569,7 +570,7 @@ void SetupGPIO(void)
 	g_Enable5V.func = MXC_GPIO_FUNC_OUT;
 	g_Enable5V.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
     MXC_GPIO_Config(&g_Enable5V);
-	MXC_GPIO_OutSet(g_Enable5V.port, g_Enable5V.mask); // Start enabled
+	MXC_GPIO_OutClr(g_Enable5V.port, g_Enable5V.mask); // Start disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Expansion IRQ: Port 0, Pin 8, Input, External pullup, Active low, 3.3V (minimum 2V)
@@ -681,7 +682,7 @@ void SetupGPIO(void)
 	MXC_GPIO_OutSet(g_CalMuxPreADEnable.port, g_CalMuxPreADEnable.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// Cal Mux Pre-A/D Select: Port 0, Pin 23, Output, External pulldown, Active high, 3.3V (minimum 2V)
+	// Cal Mux Pre-A/D Select: Port 0, Pin 23, Output, External pulldown, Select (0 is default), 3.3V (minimum 2V)
 	//----------------------------------------------------------------------------------------------------------------------
 	g_CalMuxPreADSelect.port = MXC_GPIO0;
 	g_CalMuxPreADSelect.mask = MXC_GPIO_PIN_23;
@@ -689,7 +690,7 @@ void SetupGPIO(void)
 	g_CalMuxPreADSelect.func = MXC_GPIO_FUNC_OUT;
 	g_CalMuxPreADSelect.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&g_CalMuxPreADSelect);
-	MXC_GPIO_OutClr(g_CalMuxPreADSelect.port, g_CalMuxPreADSelect.mask); // Start as 0 (Full sensor group A/1)
+	MXC_GPIO_OutClr(g_CalMuxPreADSelect.port, g_CalMuxPreADSelect.mask); // Start as 0 (Full sensor group Geo1 + AOP1)
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Alert 1: Port 0, Pin 24, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
@@ -721,6 +722,8 @@ void SetupGPIO(void)
 	g_LTEOTA.pad = MXC_GPIO_PAD_NONE;
 	g_LTEOTA.func = MXC_GPIO_FUNC_IN;
 	g_LTEOTA.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_LTEOTA);
+	// Todo: Fill in handling when more information known
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Expansion Enable: Port 1, Pin 7, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
@@ -745,16 +748,16 @@ void SetupGPIO(void)
 	MXC_GPIO_OutClr(g_ExpansionReset.port, g_ExpansionReset.mask); // Start in reset
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// USBC I2C IRQ: Port 1, Pin 11, Input, External pullup, Active low, 1.8V
+	// USBC Port Controller I2C IRQ: Port 1, Pin 11, Input, External pullup, Active low, 1.8V
 	//----------------------------------------------------------------------------------------------------------------------
-	g_USBCI2CIRQ.port = MXC_GPIO1;
-	g_USBCI2CIRQ.mask = MXC_GPIO_PIN_11;
-	g_USBCI2CIRQ.pad = MXC_GPIO_PAD_NONE;
-	g_USBCI2CIRQ.func = MXC_GPIO_FUNC_IN;
-	g_USBCI2CIRQ.vssel = MXC_GPIO_VSSEL_VDDIO;
-	MXC_GPIO_RegisterCallback(&g_USBCI2CIRQ, (mxc_gpio_callback_fn)Usbc_i2c_irq, NULL);
-    MXC_GPIO_IntConfig(&g_USBCI2CIRQ, MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(g_USBCI2CIRQ.port, g_USBCI2CIRQ.mask);
+	g_USBCPortControllerI2CIRQ.port = MXC_GPIO1;
+	g_USBCPortControllerI2CIRQ.mask = MXC_GPIO_PIN_11;
+	g_USBCPortControllerI2CIRQ.pad = MXC_GPIO_PAD_NONE;
+	g_USBCPortControllerI2CIRQ.func = MXC_GPIO_FUNC_IN;
+	g_USBCPortControllerI2CIRQ.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_RegisterCallback(&g_USBCPortControllerI2CIRQ, (mxc_gpio_callback_fn)Usbc_port_controller_i2c_irq, NULL);
+    MXC_GPIO_IntConfig(&g_USBCPortControllerI2CIRQ, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(g_USBCPortControllerI2CIRQ.port, g_USBCPortControllerI2CIRQ.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Accel Int 1: Port 1, Pin 12, Input, No external pull, Active high, 1.8V
@@ -965,6 +968,8 @@ void SetupGPIO(void)
 	g_BLEOTA.pad = MXC_GPIO_PAD_NONE;
 	g_BLEOTA.func = MXC_GPIO_FUNC_IN;
 	g_BLEOTA.vssel = MXC_GPIO_VSSEL_VDDIOH;
+    MXC_GPIO_Config(&g_BLEOTA);
+	// Todo: Fill in handling when more information known
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Trig Out: Port 1, Pin 30, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
@@ -1083,7 +1088,7 @@ void SetupGPIO(void)
 	MXC_GPIO_OutSet(g_BLEReset.port, g_BLEReset.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// Smart Sensor Mux A0: Port 2, Pin 23, Output, External pulldown, Active high, 3.3V (minimum 2.0V)
+	// Smart Sensor Mux A0: Port 2, Pin 23, Output, External pulldown, Select, 3.3V (minimum 2.0V)
 	//----------------------------------------------------------------------------------------------------------------------
 	g_SmartSensorMux_A0.port = MXC_GPIO2;
 	g_SmartSensorMux_A0.mask = MXC_GPIO_PIN_23;
@@ -1091,10 +1096,10 @@ void SetupGPIO(void)
 	g_SmartSensorMux_A0.func = MXC_GPIO_FUNC_OUT;
 	g_SmartSensorMux_A0.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&g_SmartSensorMux_A0);
-	MXC_GPIO_OutClr(g_SmartSensorMux_A0.port, g_SmartSensorMux_A0.mask); // Start as low
+	MXC_GPIO_OutClr(g_SmartSensorMux_A0.port, g_SmartSensorMux_A0.mask); // Start as low (Smart Sensor Geo1 select)
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// Smart Sensor Mux A1: Port 2, Pin 25, Output, External pulldown, Active high, 3.3V (minimum 2.0V)
+	// Smart Sensor Mux A1: Port 2, Pin 25, Output, External pulldown, Select, 3.3V (minimum 2.0V)
 	//----------------------------------------------------------------------------------------------------------------------
 	g_SmartSensorMux_A1.port = MXC_GPIO2;
 	g_SmartSensorMux_A1.mask = MXC_GPIO_PIN_25;
@@ -1102,10 +1107,10 @@ void SetupGPIO(void)
 	g_SmartSensorMux_A1.func = MXC_GPIO_FUNC_OUT;
 	g_SmartSensorMux_A1.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&g_SmartSensorMux_A1);
-	MXC_GPIO_OutClr(g_SmartSensorMux_A1.port, g_SmartSensorMux_A1.mask); // Start as low
+	MXC_GPIO_OutClr(g_SmartSensorMux_A1.port, g_SmartSensorMux_A1.mask); // Start as low (Smart Sensor Geo1 select)
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// Nyquist 0/A0:Port 2, Pin 26, Output, External pulldown, Active high, 3.3V (minimum 2.4V)
+	// Nyquist 0/A0:Port 2, Pin 26, Output, External pulldown, Select, 3.3V (minimum 2.4V)
 	//----------------------------------------------------------------------------------------------------------------------
 	g_Nyquist0_A0.port = MXC_GPIO2;
 	g_Nyquist0_A0.mask = MXC_GPIO_PIN_26;
@@ -1113,10 +1118,10 @@ void SetupGPIO(void)
 	g_Nyquist0_A0.func = MXC_GPIO_FUNC_OUT;
 	g_Nyquist0_A0.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&g_Nyquist0_A0);
-	MXC_GPIO_OutClr(g_Nyquist0_A0.port, g_Nyquist0_A0.mask); // Start as disabled
+	MXC_GPIO_OutClr(g_Nyquist0_A0.port, g_Nyquist0_A0.mask); // Start as low
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// Nyquist 1/A1: Port 2, Pin 28, Output, External pulldown, Active high, 3.3V (minimum 2.4V))
+	// Nyquist 1/A1: Port 2, Pin 28, Output, External pulldown, Select, 3.3V (minimum 2.4V))
 	//----------------------------------------------------------------------------------------------------------------------
 	g_Nyquist1_A1.port = MXC_GPIO2;
 	g_Nyquist1_A1.mask = MXC_GPIO_PIN_28;
@@ -1124,7 +1129,7 @@ void SetupGPIO(void)
 	g_Nyquist1_A1.func = MXC_GPIO_FUNC_OUT;
 	g_Nyquist1_A1.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&g_Nyquist1_A1);
-	MXC_GPIO_OutClr(g_Nyquist1_A1.port, g_Nyquist1_A1.mask); // Start as disabled
+	MXC_GPIO_OutClr(g_Nyquist1_A1.port, g_Nyquist1_A1.mask); // Start as low
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Nyquist 2/Enable: Port 2, Pin 30, Output, External pulldown, Active low, 3.3V (minimum 2.4V))
@@ -1135,7 +1140,7 @@ void SetupGPIO(void)
 	g_Nyquist2_Enable.func = MXC_GPIO_FUNC_OUT;
 	g_Nyquist2_Enable.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&g_Nyquist2_Enable);
-	MXC_GPIO_OutClr(g_Nyquist2_Enable.port, g_Nyquist2_Enable.mask); // Start as disabled
+	MXC_GPIO_OutSet(g_Nyquist2_Enable.port, g_Nyquist2_Enable.mask); // Start as disabled (960Hz select)
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Cellular Enable: Port 3, Pin 0, Output, No external pull, Active high, 3.3V (minimum 0.5)
@@ -1146,7 +1151,7 @@ void SetupGPIO(void)
 	g_CellEnable.func = MXC_GPIO_FUNC_OUT;
 	g_CellEnable.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&g_CellEnable);
-	MXC_GPIO_OutClr(g_CellEnable.port, g_CellEnable.mask);
+	MXC_GPIO_OutClr(g_CellEnable.port, g_CellEnable.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Sensor Enable 1(Geo1): Port 3, Pin 1, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
@@ -1193,7 +1198,7 @@ void SetupGPIO(void)
 	MXC_GPIO_OutClr(g_SensorEnable4_Aop2.port, g_SensorEnable4_Aop2.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// Gain/Path Select 1(Geo1): Port 3, Pin 5, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	// Gain/Path Select 1(Geo1): Port 3, Pin 5, Output, External pulldown, Select, 1.8V (minimum 0.5V)
 	//----------------------------------------------------------------------------------------------------------------------
 	g_GainPathSelect1_Geo1.port = MXC_GPIO3;
 	g_GainPathSelect1_Geo1.mask = MXC_GPIO_PIN_5;
@@ -1201,10 +1206,10 @@ void SetupGPIO(void)
 	g_GainPathSelect1_Geo1.func = MXC_GPIO_FUNC_OUT;
 	g_GainPathSelect1_Geo1.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
     MXC_GPIO_Config(&g_GainPathSelect1_Geo1);
-	MXC_GPIO_OutClr(g_GainPathSelect1_Geo1.port, g_GainPathSelect1_Geo1.mask); // Start as low
+	MXC_GPIO_OutSet(g_GainPathSelect1_Geo1.port, g_GainPathSelect1_Geo1.mask); // Start as high (Normal gain)
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// Gain/Path Select 2(Aop1): Port 3, Pin 6, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	// Gain/Path Select 2(Aop1): Port 3, Pin 6, Output, External pulldown, Select, 1.8V (minimum 0.5V)
 	//----------------------------------------------------------------------------------------------------------------------
 	g_GainPathSelect2_Aop1.port = MXC_GPIO3;
 	g_GainPathSelect2_Aop1.mask = MXC_GPIO_PIN_6;
@@ -1212,10 +1217,10 @@ void SetupGPIO(void)
 	g_GainPathSelect2_Aop1.func = MXC_GPIO_FUNC_OUT;
 	g_GainPathSelect2_Aop1.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
     MXC_GPIO_Config(&g_GainPathSelect2_Aop1);
-	MXC_GPIO_OutClr(g_GainPathSelect2_Aop1.port, g_GainPathSelect2_Aop1.mask); // Start as low
+	MXC_GPIO_OutSet(g_GainPathSelect2_Aop1.port, g_GainPathSelect2_Aop1.mask); // Start as high (AOP path)
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// Gain/Path Select 3(Geo2): Port 3, Pin 7,Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	// Gain/Path Select 3(Geo2): Port 3, Pin 7,Output, External pulldown, Select, 1.8V (minimum 0.5V)
 	//----------------------------------------------------------------------------------------------------------------------
 	g_GainPathSelect3_Geo2.port = MXC_GPIO3;
 	g_GainPathSelect3_Geo2.mask = MXC_GPIO_PIN_7;
@@ -1223,10 +1228,10 @@ void SetupGPIO(void)
 	g_GainPathSelect3_Geo2.func = MXC_GPIO_FUNC_OUT;
 	g_GainPathSelect3_Geo2.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
     MXC_GPIO_Config(&g_GainPathSelect3_Geo2);
-	MXC_GPIO_OutClr(g_GainPathSelect3_Geo2.port, g_GainPathSelect3_Geo2.mask); // Start as low
+	MXC_GPIO_OutSet(g_GainPathSelect3_Geo2.port, g_GainPathSelect3_Geo2.mask); // Start as high (Normal gain)
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// Gain/Path Select 4(Aop2): Port 3, Pin 8, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	// Gain/Path Select 4(Aop2): Port 3, Pin 8, Output, External pulldown, Select, 1.8V (minimum 0.5V)
 	//----------------------------------------------------------------------------------------------------------------------
 	g_GainPathSelect4_Aop2.port = MXC_GPIO3;
 	g_GainPathSelect4_Aop2.mask = MXC_GPIO_PIN_8;
@@ -1234,7 +1239,7 @@ void SetupGPIO(void)
 	g_GainPathSelect4_Aop2.func = MXC_GPIO_FUNC_OUT;
 	g_GainPathSelect4_Aop2.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
     MXC_GPIO_Config(&g_GainPathSelect4_Aop2);
-	MXC_GPIO_OutClr(g_GainPathSelect4_Aop2.port, g_GainPathSelect4_Aop2.mask); // Start as low
+	MXC_GPIO_OutSet(g_GainPathSelect4_Aop2.port, g_GainPathSelect4_Aop2.mask); // Start as high (AOP path)
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// RTC Clock: Port 3, Pin 9, Input, No external pull, Active high, 3.3V (minimum 2.64V)
@@ -2757,11 +2762,14 @@ void ValidatePowerOn(void)
 
 		// Unit startup condition verified, latch power and continue
 		PowerControl(MCU_POWER_LATCH, ON);
+
+		// Todo: Turn on appropriate LED
+		//PowerControl(LED???, ON);
 	}
 	// Check if USB charging is startup source
 	else if (vbusChargingDetect)
 	{
-		// Todo: determine necessary action if USB charging is reason for power up
+		// Todo: Determine necessary action if USB charging is reason for power up, Aux power enable?
 	}
 	else
 	{
@@ -2778,12 +2786,16 @@ void InitSystemHardware_MS9300(void)
 	// Setup Debug Uart (UART2)
 	//-------------------------------------------------------------------------
 	SetupDebugUART();
-	DebugUartInitBanner();
 
 	//-------------------------------------------------------------------------
 	// Check power on source and validate for system startup
 	//-------------------------------------------------------------------------
 	ValidatePowerOn();
+
+	//-------------------------------------------------------------------------
+	// Display Debug Banner (UART2)
+	//-------------------------------------------------------------------------
+	DebugUartInitBanner();
 
 	//-------------------------------------------------------------------------
 	// Setup Watchdog
@@ -2857,6 +2869,7 @@ void InitSystemHardware_MS9300(void)
 	// Set Trigger Out low (Active high control)
 	//-------------------------------------------------------------------------
 	PowerControl(TRIGGER_OUT, OFF); // Technically done with SetupGPIO call
+	MXC_GPIO_ClearFlags(MXC_GPIO1, MXC_GPIO_PIN_31); // Clear External Trigger In interrupt flag (Port 1, Pin 31)
 
 	//---------------------
 	// Device specific init
@@ -2936,9 +2949,10 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Read and cache Smart Sensor data
 	//-------------------------------------------------------------------------
+#if 0 /* Todo: Updated to utilize new 1-Wire driver */
 	SmartSensorReadRomAndMemory(SEISMIC_SENSOR); debug("Smart Sensor check for Seismic sensor\r\n");
 	SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR); debug("Smart Sensor check for Acoustic sensor\r\n");
-
+#endif
 	//-------------------------------------------------------------------------
 	// Hardware initialization complete
 	//-------------------------------------------------------------------------
