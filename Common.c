@@ -742,6 +742,8 @@ void CheckBootloaderAppPresent(void)
 #define DISABLE_OCD_MODULE	0
 void AdjustPowerSavings(void)
 {
+	// Todo: Determine sub systems that can be disabled
+
 #if 0 /* temp remove while unused */
 	uint32 usartRetries = 100; //USART_DEFAULT_TIMEOUT;
 #endif

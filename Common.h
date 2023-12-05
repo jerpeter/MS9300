@@ -707,7 +707,7 @@ void ProcessSensorCalibrationData(void);
 void Fuel_gauge_alert_irq(void);
 void Battery_charger_irq(void);
 void Expansion_irq(void);
-void Usbc_i2c_irq(void);
+void Usbc_port_controller_i2c_irq(void);
 void Accelerometer_irq_1(void);
 void Accelerometer_irq_2(void);
 void Lcd_irq(void);
