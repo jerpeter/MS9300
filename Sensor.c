@@ -1347,7 +1347,7 @@ void ds2484_adjust_port_param(uint8_t param, uint8_t timingValue, uint8_t overdr
  * @bit:	The level to write: 0 or non-zero
  * Return:	The level read: 0 or 1
  */
-uint8_t ds2484_w1_touch_bit(void *data, uint8_t bit)
+uint8_t ds2484_w1_touch_bit(uint8_t bit)
 {
 	ds2484_data* pdev = &s_ds2484_data;
 	int status = -1;
@@ -1372,7 +1372,7 @@ uint8_t ds2484_w1_touch_bit(void *data, uint8_t bit)
  * @dbit:	The direction to choose if both branches are valid
  * Return:	b0=read1 b1=read2 b3=bit written
  */
-uint8_t ds2484_w1_triplet(void *data, uint8_t dbit)
+uint8_t ds2484_w1_triplet(uint8_t dbit)
 {
 	ds2484_data* pdev = &s_ds2484_data;
 	int status = (3 << 5);
@@ -1395,7 +1395,7 @@ uint8_t ds2484_w1_triplet(void *data, uint8_t dbit)
  *
  * @byte:	The value to write
  */
-void ds2484_w1_write_byte(void *data, uint8_t byte)
+void ds2484_w1_write_byte(uint8_t byte)
 {
 	ds2484_data* pdev = &s_ds2484_data;
 
@@ -1411,7 +1411,7 @@ void ds2484_w1_write_byte(void *data, uint8_t byte)
  *
  * Return:	The value read
  */
-uint8_t ds2484_w1_read_byte(void *data)
+uint8_t ds2484_w1_read_byte(void)
 {
 	ds2484_data* pdev = &s_ds2484_data;
 	uint8_t result;
@@ -1440,7 +1440,7 @@ uint8_t ds2484_w1_read_byte(void *data)
  *
  * Return:	0=Device present, 1=No device present or error
  */
-uint8_t ds2484_w1_reset_bus(void *data)
+uint8_t ds2484_w1_reset_bus(void)
 {
 	ds2484_data* pdev = &s_ds2484_data;
 	int err;
@@ -1467,7 +1467,7 @@ uint8_t ds2484_w1_reset_bus(void *data)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8_t ds2484_w1_set_pullup(void *data, int delay)
+uint8_t ds2484_w1_set_pullup(int delay)
 {
 	ds2484_data* pdev = &s_ds2484_data;
 	uint8_t retval = 1;
