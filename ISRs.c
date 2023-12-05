@@ -39,6 +39,7 @@
 #include "math.h"
 
 #include "tmr.h"
+#include "ff.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -171,7 +172,7 @@ void Expansion_irq(void)
 ///	Function Break
 ///----------------------------------------------------------------------------
 __attribute__((__interrupt__))
-void Usbc_i2c_irq(void)
+void Usbc_port_controller_i2c_irq(void)
 {
 	//debugRaw("/");
 	//debugRaw("-USB I2C-");
@@ -314,27 +315,16 @@ void System_power_button_irq(void)
 	static uint8 onKeyCount = 0;
 	static uint8 powerOffAttempted = NO;
 	uint16 onKeyFlag;
-	//uint16 keyScan;
 
 	// Print test for verification of operation
 	//debugRaw("&");
 
-#if 1
-#if 0 /* old hw */
-	keyFlag = ReadMcp23018(IO_ADDRESS_KPD, INTFA);
-	keyScan = ReadMcp23018(IO_ADDRESS_KPD, GPIOA);
-#else
 	onKeyFlag = (((MXC_GPIO1->in) >> 15) & 0x001); // Power button interrupt on GPIO port 1, pin 15
-	//keyScan = (((MXC_GPIO1->in) >> 16) & 0x1FF);
-#endif
+	//keyScan = (((MXC_GPIO1->in) >> 16) & 0x1FF); // If needed to check for Combo keys
 
 	//-----------------------------------------------------------------------------------
 	// Check if the On key was pressed
-#if 0 /* old hw */
-	if ((keyFlag & keyScan) == ON_KEY)
-#else
 	if (onKeyFlag)
-#endif
 	{
 		// Flag system to monitor power on button for turning unit off
 		g_powerOffActivated = YES;
@@ -359,9 +349,10 @@ void System_power_button_irq(void)
 			StopMonitoring(g_triggerRecord.opMode, FINISH_PROCESSING);
 			OverlayMessage(getLangText(WARNING_TEXT), getLangText(FORCED_POWER_OFF_TEXT), 0);
 			AddOnOffLogTimestamp(FORCED_OFF);
-#if 0 /* old hw */
-			nav_exit();
-#endif
+
+			// Unmount the file system, graceful shutdown
+			f_mount(NULL, "", 0);
+
 			SoftUsecWait(1 * SOFT_SECS);
 			PowerControl(MCU_POWER_LATCH, OFF);
 		}
@@ -373,22 +364,14 @@ void System_power_button_irq(void)
 			PowerControl(MCU_POWER_LATCH, OFF);
 		}
 
+		// Todo: Clean up reset logic, currently flawed
 		powerOffAttempted = YES;
 		onKeyCount = 0;
 	}
 
-#else
-	ReadMcp23018(IO_ADDRESS_KPD, INTFA);
-	ReadMcp23018(IO_ADDRESS_KPD, GPIOA);
-#endif
-
 	// Clear the interrupt flag in the processor
-#if 0 /* old hw */
-	AVR32_EIC.ICR.int4 = 1;
-#else
 	// Clear Power Button interrupt flag (Port 1, Pin 15)
 	MXC_GPIO1->int_clr = MXC_GPIO_PIN_15;
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -2289,6 +2272,7 @@ static inline void HandleChannelSyncError_ISR_Inline(void)
 	debugErr("AD Channel Sync Error\r\n");
 
 	// Disable A/D due to error
+	DisableSensorBlocks();
 	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
 
