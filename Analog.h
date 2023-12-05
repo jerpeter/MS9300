@@ -134,6 +134,7 @@ void AdSetCalSignalLow(void);
 void AdSetCalSignalHigh(void);
 void AdSetCalSignalOff(void);
 void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification);
+void DisableSensorBlocks(void);
 void WaitAnalogPower5vGood(void);
 void PowerUpAnalog5VandExternalADC(void);
 

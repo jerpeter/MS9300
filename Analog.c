@@ -48,6 +48,10 @@ typedef struct {
 ///	Externs
 ///----------------------------------------------------------------------------
 #include "Globals.h"
+extern mxc_gpio_cfg_t g_SensorEnable1_Geo1;
+extern mxc_gpio_cfg_t g_SensorEnable2_Aop1;
+extern mxc_gpio_cfg_t g_SensorEnable3_Geo2;
+extern mxc_gpio_cfg_t g_SensorEnable4_Aop2;
 
 ///----------------------------------------------------------------------------
 ///	Local Scope Globals
@@ -203,6 +207,10 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 {
 	// Todo: make channel config dynamic
 	
+	// Enabled the specific sensor blocks (defaulting to Geo1+AOP1)
+	MXC_GPIO_OutSet(g_SensorEnable1_Geo1.port, g_SensorEnable1_Geo1.mask);
+	MXC_GPIO_OutSet(g_SensorEnable2_Aop1.port, g_SensorEnable2_Aop1.mask);
+
 	// Setup the stantard sequence channels to be monitored
 	AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_AOP_1));
 
@@ -228,6 +236,17 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 	AD4695_SetTemperatureSensorEnable(((g_adChannelConfig != FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP) ? YES : NO));
 	// Start conversion mode and enable status if readback is enabled, otherwise disable status
 	AD4695_EnterConversionMode(((g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP) ? YES : NO));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void DisableSensorBlocks(void)
+{
+	MXC_GPIO_OutSet(g_SensorEnable1_Geo1.port, g_SensorEnable1_Geo1.mask);
+	MXC_GPIO_OutSet(g_SensorEnable2_Aop1.port, g_SensorEnable2_Aop1.mask);
+	MXC_GPIO_OutSet(g_SensorEnable3_Geo2.port, g_SensorEnable3_Geo2.mask);
+	MXC_GPIO_OutSet(g_SensorEnable4_Aop2.port, g_SensorEnable4_Aop2.mask);
 }
 
 ///----------------------------------------------------------------------------
@@ -396,6 +415,8 @@ void GetChannelOffsets(uint32 sampleRate)
 		powerAnalogDown = YES;
 	}
 
+	// Todo: Setup ADC
+
 	// Reset offset values
 	memset(&g_channelOffset, 0, sizeof(g_channelOffset));
 
@@ -501,6 +522,7 @@ void GetChannelOffsets(uint32 sampleRate)
 	// If we had to power on the A/D here locally, then power it off
 	if (powerAnalogDown == YES)
 	{
+		DisableSensorBlocks();
 		PowerControl(ADC_RESET, ON);
 		PowerControl(ANALOG_5V_ENABLE, OFF);
 	}		
