@@ -434,6 +434,7 @@ void StopDataCollection(void)
 #endif
 
 	AD4695_ExitConversionMode();
+	DisableSensorBlocks();
 	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
 
@@ -454,6 +455,7 @@ void StopDataClock(void)
 #endif
 
 	AD4695_ExitConversionMode();
+	DisableSensorBlocks();
 	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
 }
@@ -849,6 +851,7 @@ void StopADDataCollectionForCalibration(void)
 #endif
 
 	AD4695_ExitConversionMode();
+	DisableSensorBlocks();
 	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
 }
