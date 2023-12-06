@@ -636,6 +636,7 @@ uint8_t GetPowerGoodBatteryChargerState(void);
 uint8_t GetPowerOnButtonState(void);
 uint8_t GetLteOtaState(void);
 uint8_t GetBleOtaState(void);
+uint8_t GetSmartSensorMuxEnableState(void);
 
 // GPIO Control extensions
 void SetSmartSensorSleepState(uint8_t state);
