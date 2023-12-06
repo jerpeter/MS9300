@@ -37,8 +37,6 @@ extern mxc_gpio_cfg_t g_Enable12V;
 extern mxc_gpio_cfg_t g_Enable5V;
 extern mxc_gpio_cfg_t g_USBSourceEnable;
 extern mxc_gpio_cfg_t g_USBAuxPowerEnable;
-extern mxc_gpio_cfg_t g_SmartSensorSleep;
-extern mxc_gpio_cfg_t g_SmartSensorMuxEnable;
 extern mxc_gpio_cfg_t g_ADCReset;
 extern mxc_gpio_cfg_t g_CalMuxPreADEnable;
 extern mxc_gpio_cfg_t g_CalMuxPreADSelect;
