@@ -39,15 +39,6 @@
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void OneWireInit(void)
-{
-	// Attempt to read the connected Smart Sensors
-	// Todo: fill in reading of sensors
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 uint8 OneWireReset(SMART_SENSOR_TYPE sensor)
 {
 	//    500  30 110 (us)
@@ -485,15 +476,25 @@ uint8 OneWireReadROM(SMART_SENSOR_TYPE sensor, SMART_SENSOR_ROM* romData)
 	uint8 crc;
 
 	// Read ROM
+#if 0 /* old hw */
 	if (OneWireReset(sensor) == YES)
+#else
+	if (ds2484_w1_reset_bus() == 0) // 0 = device present, 1 = no device
+#endif
 	{
 		// Read ROM command
+#if 0 /* old hw */
 		OneWireWriteByte(sensor, DS2431_READ_ROM);
+#else
+		ds2484_w1_write_byte(DS2431_READ_ROM);
+#endif
 
 		for (i = 0; i < 8; i++)
 		{
 #if 0 /* old hw */
 			romDataPtr[i] = OneWireReadByte(sensor);
+#else
+			romDataPtr[i] = ds2484_w1_read_byte();
 #endif
 		}
 
@@ -523,7 +524,11 @@ uint8 OneWireReadROM(SMART_SENSOR_TYPE sensor, SMART_SENSOR_ROM* romData)
 		}
 #endif
 
+#if 0 /* old hw */
 		OneWireReset(sensor);
+#else
+		ds2484_w1_reset_bus();
+#endif
 	}
 
 	return (status);
@@ -540,29 +545,55 @@ uint8 OneWireReadMemory(SMART_SENSOR_TYPE sensor, uint16 address, uint8 length, 
 	if ((data != NULL) && (address <= 0x1F) && (length <= 128))
 	{
 		// Read Memory (0xF0), Address: 0x00 -> 0x1F (wrap)
+#if 0 /* old hw */
 		if (OneWireReset(sensor) == YES)
+#else
+		if (ds2484_w1_reset_bus() == 0) // 0 = device found
+#endif
 		{
 			// Skip ROM
+#if 0 /* old hw */
 			OneWireWriteByte(sensor, DS2431_SKIP_ROM);
+#else
+			ds2484_w1_write_byte(DS2431_SKIP_ROM);
+#endif
 
 			// Read Memory
+#if 0 /* old hw */
 			OneWireWriteByte(sensor, DS2431_READ_MEMORY);
+#else
+			ds2484_w1_write_byte(DS2431_READ_MEMORY);
+#endif
 
 			// Address (Lower)
+#if 0 /* old hw */
 			OneWireWriteByte(sensor, (address & 0xFF));
+#else
+			ds2484_w1_write_byte((address & 0xFF));
+#endif
 
 			// Address (Upper)
+#if 0 /* old hw */
 			OneWireWriteByte(sensor, ((address >> 8) & 0xFF));
+#else
+			ds2484_w1_write_byte(((address >> 8) & 0xFF));
+#endif
 
 			// Data
 			for (i = 0; i < length; i++)
 			{
 #if 0 /* old hw */
 				data[i] = OneWireReadByte(sensor);
+#else
+				data[i] = ds2484_w1_read_byte();
 #endif
 			}
 
+#if 0 /* old hw */
 			OneWireReset(sensor);
+#else
+			ds2484_w1_reset_bus();
+#endif
 
 			status = PASSED;
 		}
@@ -884,11 +915,97 @@ void SmartSensorDebug(SMART_SENSOR_TYPE sensor)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void SmartSensorTest(void)
+{
+	SmartSensorMuxSelectAndDriverEnable(SEISMIC_SENSOR);
+	if (OneWireReset(SEISMIC_SENSOR) == YES) { debug("Seismic Smart Sensor discovered\r\n"); }
+	else { debug("Seismic Smart Sensor not found\r\n"); }
+
+	debugRaw("\r\n----------Seismic Sensor----------\r\n");
+	OneWireTest(SEISMIC_SENSOR);
+	SmartSensorDebug(SEISMIC_SENSOR);
+
+	SmartSensorMuxSelectAndDriverEnable(ACOUSTIC_SENSOR);
+	if (OneWireReset(ACOUSTIC_SENSOR) == YES) { debug("Acoustic Smart Sensor discovered\r\n"); }
+	else { debug("Acoustic Smart Sensor not found\r\n"); }
+
+	debugRaw("\r\n----------Acoustic Sensor----------\r\n");
+	OneWireTest(ACOUSTIC_SENSOR);
+	SmartSensorDebug(ACOUSTIC_SENSOR);
+
+	// Todo: Possibly add in second set of sensors, Geo2, AOP2
+
+	debugRaw("\r\n----------End----------\r\n");
+
+	SmartSensorDisableMuxAndDriver();
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SmartSensorMuxSelectAndDriverEnable(SMART_SENSOR_TYPE sensor)
+{
+	uint8_t MuxA0, MuxA1;
+	uint8_t analog5vPoweredUp = NO;
+
+	if (sensor == SEISMIC_SENSOR_2) { MuxA1 = 0; MuxA0 = 1; }
+	else if (sensor == ACOUSTIC_SENSOR) { MuxA1 = 1; MuxA0 = 0; }
+	else if (sensor == ACOUSTIC_SENSOR_2) { MuxA1 = 1; MuxA0 = 1; }
+	else /* (sensor == SEISMIC_SENSOR) */ { MuxA1 = 0; MuxA0 = 0; }
+
+    if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
+	{
+		debug("Power Control: Analog 5V enable being turned on\r\n");
+		analog5vPoweredUp = YES;
+		PowerUpAnalog5VandExternalADC();
+	}
+
+	// Check if the Smart Sensor Mux Enable is active (swapping channels)
+	if (GetSmartSensorMuxEnableState() == ON)
+	{
+		// Make sure Mux is disabled before changing mux address lines
+		SetSmartSensorMuxEnableState(OFF);
+		// Delay before changing? 250ns max
+		MXC_Delay(1);
+	}
+
+	// Set the 1-Write Mux to the specified sensor
+	SetSmartSensorMuxA0State(MuxA0);
+	SetSmartSensorMuxA1State(MuxA1);
+	SetSmartSensorMuxEnableState(ON);
+
+	// Activate the 1-Wire driver
+	SetSmartSensorSleepState(OFF);
+	MXC_Delay(MXC_DELAY_MSEC(2));
+
+	if(analog5vPoweredUp)
+	{
+		PowerControl(ANALOG_5V_ENABLE, OFF);
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SmartSensorDisableMuxAndDriver(void)
+{
+	// Disable the 1-Wire drvier (sleep)
+	SetSmartSensorSleepState(ON);
+
+	// Disable the 1-Wire mux
+	SetSmartSensorMuxEnableState(OFF);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void SmartSensorReadRomAndMemory(SMART_SENSOR_TYPE sensor)
 {
 	SMART_SENSOR_ROM* smartSensorRom = ((sensor == SEISMIC_SENSOR) ? &g_seismicSmartSensorRom : &g_acousticSmartSensorRom);
 	SMART_SENSOR_STRUCT* smartSensorData = ((sensor == SEISMIC_SENSOR) ? &g_seismicSmartSensorMemory : &g_acousticSmartSensorMemory);
 	uint8 status = FAILED;
+
+	SmartSensorMuxSelectAndDriverEnable(sensor);
 
 	if (OneWireReadROM(sensor, smartSensorRom) == PASSED)
 	{
@@ -921,6 +1038,8 @@ void SmartSensorReadRomAndMemory(SMART_SENSOR_TYPE sensor)
 		memset(smartSensorData, 0x0, sizeof(SMART_SENSOR_STRUCT));
 		memset(smartSensorRom, 0x0, sizeof(SMART_SENSOR_ROM));
 	}
+
+	SmartSensorDisableMuxAndDriver();
 }
 
 ///----------------------------------------------------------------------------
@@ -1296,6 +1415,7 @@ static int ds2484_wait_1wire_idle(ds2484_data *pdev)
 
 	if (retries >= DS2484_WAIT_IDLE_TIMEOUT) { debugErr("1-Wire Master: timed out\n"); }
 
+	// Todo: Fix reference driver return value that is unsigned but claims -1 designates failure
 	return (temp);
 }
 
@@ -1573,4 +1693,51 @@ void Test1Wire(void)
 	ds2484_select_register(data, DS2484_PTR_CODE_STATUS);
 	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &temp1, sizeof(temp1));
 	debug("1-Wire Master: Status after config and delay is 0x%x\r\n", temp1);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void OneWireInit(void)
+{
+	ds2484_data* data = &s_ds2484_data;
+	uint8_t analog5vPoweredUp = NO;
+	uint8_t temp1;
+
+	// Todo: Attempt to read the 1-Wire drvier and set config
+
+    if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
+	{
+		analog5vPoweredUp = YES;
+		PowerUpAnalog5VandExternalADC();
+	}
+
+	SetSmartSensorMuxA0State(0);
+	SetSmartSensorMuxA1State(0);
+	SetSmartSensorMuxEnableState(ON);
+
+	SetSmartSensorSleepState(OFF);
+	MXC_Delay(MXC_DELAY_MSEC(2));
+
+	if (ds2484_send_cmd(data, DS2484_CMD_RESET) < 0) { debugWarn("1-Wire Master: Reset failed\r\n"); }
+
+	/* Sleep at least 525ns to allow the reset to complete */
+	MXC_Delay(1);
+
+	/* Read the status byte - only reset bit and line should be set */
+	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &temp1, sizeof(temp1));
+	if (temp1 != (DS2484_REG_STS_LL | DS2484_REG_STS_RST)) { debugWarn("1-Wire Master: Reset status 0x%02X\r\n", temp1); }
+
+	debug("1-Wire Master: Set device config\r\n");
+	ds2484_send_cmd_data(data, DS2484_CMD_WRITE_CONFIG, ds2484_calculate_config(0x00));
+
+	MXC_Delay(MXC_DELAY_MSEC(500));
+
+	ds2484_select_register(data, DS2484_PTR_CODE_STATUS);
+	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &temp1, sizeof(temp1));
+
+	if (analog5vPoweredUp)
+	{
+		PowerControl(ANALOG_5V_ENABLE, OFF);
+	}
 }

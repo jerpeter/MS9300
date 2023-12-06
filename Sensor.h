@@ -166,6 +166,7 @@ uint8 OneWireReadStatusRegister(SMART_SENSOR_TYPE sensor, uint8* data);
 uint8 OneWireReadAppRegister(SMART_SENSOR_TYPE sensor, uint16 address, uint8 length, uint8* data);
 uint8 OneWireCopyAndLockAppRegister(SMART_SENSOR_TYPE sensor);
 void SmartSensorDebug(SMART_SENSOR_TYPE sensor);
+void SmartSensorTest();
 void SmartSensorReadRomAndMemory(SMART_SENSOR_TYPE sensor);
 void UpdateUnitSensorsWithSmartSensorTypes(void);
 void DisplaySmartSensorInfo(SMART_SENSOR_INFO situation);
@@ -173,5 +174,14 @@ void DisplaySmartSensorSerialNumber(SMART_SENSOR_TYPE sensor);
 uint8 CheckIfBothSmartSensorsPresent(void);
 uint8 CheckIfNoSmartSensorsPresent(void);
 void UpdateWorkingCalibrationDate(void);
+void SmartSensorMuxSelectAndDriverEnable(SMART_SENSOR_TYPE sensor);
+void SmartSensorDisableMuxAndDriver(void);
+
+///----------------------------------------------------------------------------
+///	DS2484 Prototypes
+///----------------------------------------------------------------------------
+uint8_t ds2484_w1_reset_bus(void);
+void ds2484_w1_write_byte(uint8_t byte);
+uint8_t ds2484_w1_read_byte(void);
 
 #endif //_SENSOR_H_
