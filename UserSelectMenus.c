@@ -2410,26 +2410,7 @@ void HelpMenuHandler(uint8 keyPressed, void* data)
 		else // Testing
 		{
 #if 1 /* Smart Sensor testing */
-#include "Sensor.h"
-			if (OneWireReset(SEISMIC_SENSOR) == YES) { debug("Seismic Smart Sensor discovered\r\n"); }
-			else { debug("Seismic Smart Sensor not found\r\n"); }
-
-			if (OneWireReset(ACOUSTIC_SENSOR) == YES) { debug("Acoustic Smart Sensor discovered\r\n"); }
-			else { debug("Acoustic Smart Sensor not found\r\n"); }
-
-			debugRaw("\r\n----------Seismic Sensor----------\r\n");
-			OneWireTest(SEISMIC_SENSOR);
-			debugRaw("\r\n----------Acoustic Sensor----------\r\n");
-			OneWireTest(ACOUSTIC_SENSOR);
-
-			debugRaw("\r\n----------Seismic Sensor----------\r\n");
-			OneWireFunctions(SEISMIC_SENSOR);
-			debugRaw("\r\n----------Acoustic Sensor----------\r\n");
-			OneWireFunctions(ACOUSTIC_SENSOR);
-
-			SmartSensorDebug(SEISMIC_SENSOR);
-			SmartSensorDebug(ACOUSTIC_SENSOR);
-			debugRaw("\r\n----------End----------\r\n");
+			SmartSensorTest();
 #endif
 		}
 	}
