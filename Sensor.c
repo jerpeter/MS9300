@@ -978,6 +978,9 @@ void SmartSensorMuxSelectAndDriverEnable(SMART_SENSOR_TYPE sensor)
 	SetSmartSensorSleepState(OFF);
 	MXC_Delay(MXC_DELAY_MSEC(2));
 
+	// Reconfigure 1-Wire driver since it's possible that the analog 5V was removed since setup
+	OneWireResetAndConfigure();
+
 	if(analog5vPoweredUp)
 	{
 		PowerControl(ANALOG_5V_ENABLE, OFF);
@@ -1427,6 +1430,15 @@ void ds2484_adjust_port(uint8_t timingValue, uint8_t overdriveControl)
 	ds2484_data* pdev = &s_ds2484_data;
 	uint8_t paramData;
 
+	/*
+		Bits 7:5 (top 3) are Parameter Selection of the Control byte
+		000: selects tRSTL
+		001: selects tMSP
+		010: selects tW0L
+		011: selects tREC0; the OD flag does not apply (don’t care)
+		100: selects RWPU; the OD flag does not apply (don’t care)
+	*/
+
 	// RSTL
 	paramData = ((DS2484_PARAM_RSTL < 5) | (overdriveControl << 4) | (timingValue));
 	ds2484_send_cmd_data(pdev, DS2484_CMD_ADJUST_1WIRE_PORT, paramData);
@@ -1698,13 +1710,28 @@ void Test1Wire(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void OneWireResetAndConfigure(void)
+{
+	ds2484_data* data = &s_ds2484_data;
+
+	// Issue device reset (also sets read pointer at the status register)
+	if (ds2484_send_cmd(data, DS2484_CMD_RESET) < 0) { debugErr("1-Wire Master: Reset failed\r\n"); }
+
+	/* Sleep at least 525ns to allow the reset to complete */
+	MXC_Delay(1);
+
+	// Write device config, enabling active pullup (generally recommended for best 1-Wire bus performance)
+	ds2484_send_cmd_data(data, DS2484_CMD_WRITE_CONFIG, ds2484_calculate_config(DS2484_REG_CFG_APU));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void OneWireInit(void)
 {
 	ds2484_data* data = &s_ds2484_data;
 	uint8_t analog5vPoweredUp = NO;
-	uint8_t temp1;
-
-	// Todo: Attempt to read the 1-Wire drvier and set config
+	uint8_t status;
 
     if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
 	{
@@ -1712,29 +1739,29 @@ void OneWireInit(void)
 		PowerUpAnalog5VandExternalADC();
 	}
 
-	SetSmartSensorMuxA0State(0);
-	SetSmartSensorMuxA1State(0);
-	SetSmartSensorMuxEnableState(ON);
+	// No need to set and enable the 1-Wire mux since we're only going to write 1-Wire driver config
+	//SetSmartSensorMuxA0State(0); SetSmartSensorMuxA1State(0); SetSmartSensorMuxEnableState(ON);
 
+	// Enable the 1-Wire driver
 	SetSmartSensorSleepState(OFF);
-	MXC_Delay(MXC_DELAY_MSEC(2));
+	MXC_Delay(MXC_DELAY_MSEC(2)); // Per datasheet delay coming out of sleep
 
-	if (ds2484_send_cmd(data, DS2484_CMD_RESET) < 0) { debugWarn("1-Wire Master: Reset failed\r\n"); }
+	// Issue device reset (also sets read pointer at the status register)
+	if (ds2484_send_cmd(data, DS2484_CMD_RESET) < 0) { debugErr("1-Wire Master: Reset failed\r\n"); }
 
 	/* Sleep at least 525ns to allow the reset to complete */
 	MXC_Delay(1);
 
 	/* Read the status byte - only reset bit and line should be set */
-	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &temp1, sizeof(temp1));
-	if (temp1 != (DS2484_REG_STS_LL | DS2484_REG_STS_RST)) { debugWarn("1-Wire Master: Reset status 0x%02X\r\n", temp1); }
+	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &status, sizeof(status));
+	if (status != (DS2484_REG_STS_LL | DS2484_REG_STS_RST)) { debugWarn("1-Wire Master: Reset status different than expected (0x%02X)\r\n", status); }
 
-	debug("1-Wire Master: Set device config\r\n");
-	ds2484_send_cmd_data(data, DS2484_CMD_WRITE_CONFIG, ds2484_calculate_config(0x00));
-
-	MXC_Delay(MXC_DELAY_MSEC(500));
+	// Write device config, enabling power down for now, enabling active pullup (generally recommended for best 1-Wire bus performance)
+	ds2484_send_cmd_data(data, DS2484_CMD_WRITE_CONFIG, ds2484_calculate_config(DS2484_REG_CFG_PDN | DS2484_REG_CFG_APU));
 
 	ds2484_select_register(data, DS2484_PTR_CODE_STATUS);
-	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &temp1, sizeof(temp1));
+	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &status, sizeof(status));
+	if (status & DS2484_REG_STS_RST) { debugWarn("1-Wire Master: Reset status should have been cleared (0x%02X)\r\n", status); }
 
 	if (analog5vPoweredUp)
 	{

@@ -151,6 +151,7 @@ typedef struct {
 ///	Prototypes
 ///----------------------------------------------------------------------------
 void OneWireInit(void);
+void OneWireResetAndConfigure(void);
 uint8 OneWireReset(SMART_SENSOR_TYPE sensor);
 void OneWireWriteByte(SMART_SENSOR_TYPE sensor, uint8 dataByte);
 uint8 OneWireReadByte(SMART_SENSOR_TYPE sensor);
