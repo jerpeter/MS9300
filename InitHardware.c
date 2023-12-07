@@ -308,20 +308,7 @@ void InitLCD(void)
 ///----------------------------------------------------------------------------
 void InitExternalRTC(void)
 {
-#if 0 /* old hw */
-
 	ExternalRtcInit();
-
-#if (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
-	// Enable internal pullup on RTC PFO (Active low) since external pullups aren't present
-	gpio_enable_pin_pull_up(AVR32_PIN_PA21);
-#endif
-
-#if (EXTERNAL_SAMPLING_SOURCE || NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE)
-	// The internal pull up for this pin needs to be enables to bring the line high, otherwise the clock out will only reach half level
-	gpio_enable_pin_pull_up(AVR32_EIC_EXTINT_1_PIN);
-#endif
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -2883,76 +2870,76 @@ void InitSystemHardware_MS9300(void)
 	// Expansion I2C bridge
 	// External ADC
 	// LCD
+	// Keypad
 	// EEPROM (should be none)
 	// eMMC + FF driver (should be none)
 
 	//-------------------------------------------------------------------------
 	// Initalize the Accelerometer
 	//-------------------------------------------------------------------------
-	AccelerometerInit(); debug("Accelerometer init complete\r\n");
+	AccelerometerInit(); debug("Accelerometer: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Smart Sensor data/control init (Hardware pull up on signal)
 	//-------------------------------------------------------------------------
-	OneWireInit(); debug("One Wire init complete\r\n");
+	OneWireInit(); debug("One Wire Driver: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initalize the Battery Charger
 	//-------------------------------------------------------------------------
-	BatteryChargerInit(); debug("Battery Charger init complete\r\n");
+	BatteryChargerInit(); debug("Battery Charger: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initalize the USB-C Port Controller
 	//-------------------------------------------------------------------------
-	USBCPortControllerInit(); debug("USB-C Port Controller init complete\r\n");
+	USBCPortControllerInit(); debug("USB-C Port Controller: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initialize the external RTC
 	//-------------------------------------------------------------------------
-	InitExternalRTC(); debug("External RTC init complete\r\n");
+	InitExternalRTC(); debug("External RTC: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initalize the Fuel Gauge
 	//-------------------------------------------------------------------------
-	FuelGaugeInit(); debug("Fuel Gauge init complete\r\n");
+	FuelGaugeInit(); debug("Fuel Gauge: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initalize the Expansion I2C UART Bridge
 	//-------------------------------------------------------------------------
-	ExpansionBridgeInit(); debug("Expansion I2C Uart Bridge init complete\r\n");
+	ExpansionBridgeInit(); debug("Expansion I2C Uart Bridge: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initialize the AD Control
 	//-------------------------------------------------------------------------
-	InitAnalogControl(); debug("Analog Control init complete\r\n");
+	InitAnalogControl(); debug("Analog Control: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Init and configure the A/D to prevent the unit from burning current charging internal reference (default config)
 	//-------------------------------------------------------------------------
-	InitExternalAD(); debug("External A/D init complete\r\n");
+	InitExternalAD(); debug("External ADC: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Init the LCD display
 	//-------------------------------------------------------------------------
-	InitLCD(); debug("LCD Display init complete\r\n");
+	InitLCD(); debug("LCD Display: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Init Keypad
 	//-------------------------------------------------------------------------
-	InitExternalKeypad(); debug("Keyboard init complete\r\n");
+	InitExternalKeypad(); debug("Keyboard: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Set the power savings mode based on the saved setting
 	//-------------------------------------------------------------------------
-	AdjustPowerSavings(); debug("Power Savings init complete\r\n");
+	AdjustPowerSavings(); debug("Power Savings: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Read and cache Smart Sensor data
 	//-------------------------------------------------------------------------
-#if 0 /* Todo: Updated to utilize new 1-Wire driver */
 	SmartSensorReadRomAndMemory(SEISMIC_SENSOR); debug("Smart Sensor check for Seismic sensor\r\n");
 	SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR); debug("Smart Sensor check for Acoustic sensor\r\n");
-#endif
+
 	//-------------------------------------------------------------------------
 	// Hardware initialization complete
 	//-------------------------------------------------------------------------
