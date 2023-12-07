@@ -61,9 +61,9 @@ BOOLEAN ExternalRtcInit(void)
 
 	if ((secondsReg & PCF85263_RTC_SECONDS_OS) || (stopEnableReg & PCF85263_CTL_STOP))
 	{
-		debugWarn("Ext RTC: Clock integrity not guaranteed or Clock stopped, setting default time and date\r\n");
+		debugWarn("External RTC: Clock integrity not guaranteed or Clock stopped, setting default time and date\r\n");
 
-		// Set 24HR mode, which is already the default mode for the PCF85263
+		// Desire 24HR mode, which is already the default mode for the PCF85263
 
 		// Setup an initial date and time
 		time.year = 24;
@@ -71,15 +71,15 @@ BOOLEAN ExternalRtcInit(void)
 		time.day = 1;
 		time.weekday = GetDayOfWeek(time.year, time.month, time.day);
 		time.hour = 8;
-		time.min = 1;
-		time.sec = 1;
+		time.min = 0;
+		time.sec = 0;
 
 		SetExternalRtcDate(&time);
 		SetExternalRtcTime(&time);
 	}
 	else
 	{
-		debug("Ext RTC: Clock running and intergrity validated\r\n");
+		debug("External RTC: Clock running and intergrity validated\r\n");
 	}
 
 #if 1 /* Normal */
@@ -99,13 +99,13 @@ BOOLEAN ExternalRtcInit(void)
 	UpdateCurrentTime();
 
 	// Check for RTC reset
-	if ((g_lastReadExternalRtcTime.year == 0) || (g_lastReadExternalRtcTime.month == 0) || (g_lastReadExternalRtcTime.day == 0))
+	if ((g_lastReadExternalRtcTime.year == 0) && (g_lastReadExternalRtcTime.month == 1) && (g_lastReadExternalRtcTime.day == 1))
 	{
-		debugWarn("Ext RTC: Date not set, assuming power loss reset... applying a default date\r\n");
-		// BCD formats
-		g_lastReadExternalRtcTime.year = 0x24;
-		g_lastReadExternalRtcTime.month = 0x01;
-		g_lastReadExternalRtcTime.day = 0x01;
+		debugWarn("External RTC: Date not set, assuming power loss reset... applying a default date\r\n");
+
+		g_lastReadExternalRtcTime.year = 24;
+		g_lastReadExternalRtcTime.month = 1;
+		g_lastReadExternalRtcTime.day = 1;
 
 		SetExternalRtcDate(&g_lastReadExternalRtcTime);
 	}
@@ -217,7 +217,7 @@ uint8 SetExternalRtcDate(DATE_TIME_STRUCT* time)
 			// Flag success since month, day and year settings are valid
 			status = PASSED;
 
-			// Setup time registers (24 Hour settings), BCD format
+			// Setup date registers, BCD format
 			rtcDate.years = UINT8_CONVERT_TO_BCD(time->year, RTC_BCD_YEARS_MASK);
 			rtcDate.months = UINT8_CONVERT_TO_BCD(time->month, RTC_BCD_MONTHS_MASK);
 			rtcDate.days = UINT8_CONVERT_TO_BCD(time->day, RTC_BCD_DAYS_MASK);
