@@ -1886,6 +1886,41 @@ void EnableGlobalException(void)
 #endif
 }
 
+#include "tpu.h"
+#include "mxc_errors.h"
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestHardwareCRC(void)
+{
+	uint16_t i;
+	uint32_t softwareCrc;
+	uint32_t hardwareCrc;
+
+	for (i=0; i<256; i++)
+	{
+		g_eventDataBuffer[i] = rand();
+	}
+
+	softwareCrc = hardwareCrc = SEED_32;
+    if (MXC_TPU_CRC((uint8_t*)g_eventDataBuffer, 256, MXC_TPU_CRC32_ETHERNET, &hardwareCrc) != E_SUCCESS) { debugErr("Test CRC: CRC-32 failed \r\n"); }
+	softwareCrc = CalcCCITT32((uint8_t*)g_eventDataBuffer, 256, softwareCrc);
+	if (softwareCrc == hardwareCrc) { debug("Test CRC: CRC-32/CCITT validation passed, TPU hardware CRC good\r\n"); }
+	else { debugErr("Test CRC: CRC-32/CCITT validation failed, 0x%x != 0x%x\r\n", softwareCrc, hardwareCrc); }
+
+	softwareCrc = hardwareCrc = SEED_32;
+    if (MXC_TPU_CRC((uint8_t*)g_eventDataBuffer, 256, MXC_TPU_CRC_CCITT, &hardwareCrc) != E_SUCCESS) { debugErr("Test CRC: CRC-16-CCITT failed \r\n"); }
+	softwareCrc = CalcCrc16((uint8_t*)g_eventDataBuffer, 256, softwareCrc);
+	if ((uint16_t)softwareCrc == (uint16_t)hardwareCrc) { debug("Test CRC: CRC-16-CCITT validation passed, TPU hardware CRC good\r\n"); }
+	else { debugErr("Test CRC: CRC-16-CCITT validation failed, 0x%x != 0x%x\r\n", (uint16_t)softwareCrc, (uint16_t)hardwareCrc); }
+
+	softwareCrc = hardwareCrc = SEED_32;
+    if (MXC_TPU_CRC((uint8_t*)g_eventDataBuffer, 256, MXC_TPU_CRC16, &hardwareCrc) != E_SUCCESS) { debugErr("Test CRC: CRC-16 failed \r\n"); }
+	softwareCrc = CalcCrc16((uint8_t*)g_eventDataBuffer, 256, softwareCrc);
+	if ((uint16_t)softwareCrc == (uint16_t)hardwareCrc) { debug("Test CRC: CRC-16 validation passed, TPU hardware CRC good\r\n"); }
+	else { debugErr("Test CRC: CRC-16 validation failed, 0x%x != 0x%x\r\n", (uint16_t)softwareCrc, (uint16_t)hardwareCrc); }
+}
+
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -1905,6 +1940,7 @@ void TestExternalDeviceAccessAndComms(void)
 	TestEMMCFatFilesystem();
 	TestExternalADC();
 	TestLCD();
+	TestHardwareCRC();
 }
 
 ///----------------------------------------------------------------------------
