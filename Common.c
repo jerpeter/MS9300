@@ -26,6 +26,7 @@
 
 #include "mxc_delay.h"
 #include "ff.h"
+#include "mxc_sys.h"
 //#include "usart.h"
 //#include "usb_drv.h"
 //#include "usb_task.h"
@@ -739,7 +740,6 @@ void CheckBootloaderAppPresent(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#define DISABLE_OCD_MODULE	0
 void AdjustPowerSavings(void)
 {
 	// Todo: Determine sub systems that can be disabled
@@ -754,161 +754,133 @@ void AdjustPowerSavings(void)
 	powerSavingsLevel = POWER_SAVINGS_MINIMUM;
 #endif
 
+	/*
+		System Peripheral clocks (mxc_sys_periph_clock_t in mxc_sys.h)
+		Used in SYS_ClockDisable and SYS_ClockEnable functions
+
+		MXC_SYS_PERIPH_CLOCK_GPIO0
+		MXC_SYS_PERIPH_CLOCK_GPIO1
+		MXC_SYS_PERIPH_CLOCK_GPIO2
+		MXC_SYS_PERIPH_CLOCK_USB
+		MXC_SYS_PERIPH_CLOCK_TFT
+		MXC_SYS_PERIPH_CLOCK_DMA
+		MXC_SYS_PERIPH_CLOCK_SPI0
+		MXC_SYS_PERIPH_CLOCK_SPI1
+		MXC_SYS_PERIPH_CLOCK_SPI2
+		MXC_SYS_PERIPH_CLOCK_UART0
+		MXC_SYS_PERIPH_CLOCK_UART1
+		MXC_SYS_PERIPH_CLOCK_I2C0
+		MXC_SYS_PERIPH_CLOCK_TPU
+		MXC_SYS_PERIPH_CLOCK_TIMER0
+		MXC_SYS_PERIPH_CLOCK_TIMER1
+		MXC_SYS_PERIPH_CLOCK_TIMER2
+		MXC_SYS_PERIPH_CLOCK_TIMER3
+		MXC_SYS_PERIPH_CLOCK_TIMER4
+		MXC_SYS_PERIPH_CLOCK_TIMER5
+		MXC_SYS_PERIPH_CLOCK_ADC
+		MXC_SYS_PERIPH_CLOCK_I2C1
+		MXC_SYS_PERIPH_CLOCK_PT
+		MXC_SYS_PERIPH_CLOCK_SPIXIPF
+		MXC_SYS_PERIPH_CLOCK_SPIXIPM
+		MXC_SYS_PERIPH_CLOCK_UART2
+		MXC_SYS_PERIPH_CLOCK_TRNG
+		MXC_SYS_PERIPH_CLOCK_FLC
+		MXC_SYS_PERIPH_CLOCK_HBC
+		MXC_SYS_PERIPH_CLOCK_GPIO3
+		MXC_SYS_PERIPH_CLOCK_SCACHE
+		MXC_SYS_PERIPH_CLOCK_SDMA
+		MXC_SYS_PERIPH_CLOCK_SEMA
+		MXC_SYS_PERIPH_CLOCK_SDHC
+		MXC_SYS_PERIPH_CLOCK_ICACHE
+		MXC_SYS_PERIPH_CLOCK_ICACHEXIP
+		MXC_SYS_PERIPH_CLOCK_OWIRE
+		MXC_SYS_PERIPH_CLOCK_SPI3
+		MXC_SYS_PERIPH_CLOCK_I2S
+		MXC_SYS_PERIPH_CLOCK_SPIXIPR
+	*/
+
 	switch (powerSavingsLevel)
 	{
 		//----------------------------------------------------------------------------
 		case POWER_SAVINGS_MINIMUM:
 		//----------------------------------------------------------------------------
-#if DISABLE_OCD_MODULE // Normal
-			// Leave active: SYSTIMER; Disable: OCD
-			AVR32_PM.cpumask = 0x00010000;
-#else /* Exception test */
-			// Do nothing
-#endif
-#if 0 /* old hw */
-			// Leave active: EBI, PBA & PBB BRIDGE, FLASHC, USBB; Disable: PDCA, MACB
-			AVR32_PM.hsbmask = 0x0000004F;
-
-			// Leave active: USART0, USART 1, USART 3, TC, TWI, SPI0, SPI1, ADC, PM/RTC/EIC, GPIO, INTC; Disable: ABDAC, SSC, PWM, USART 2, PDCA
-			AVR32_PM.pbamask = 0x00004BFB;
-
-			// Leave active: SMC, FLASHC, HMATRIX, USBB; Disable: SDRAMC, MACB
-			AVR32_PM.pbbmask = 0x00000017;
-
-			// Check if the USB is disabled
-			if (!Is_usb_enabled())
-			{
-				// Enable the USB
-				Usb_enable();
-			}
-#endif
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TFT);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI0);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI1);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPF);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPM);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_ICACHEXIP);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_OWIRE);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPR);
 		break;
 
 		//----------------------------------------------------------------------------
 		case POWER_SAVINGS_NORMAL:
 		//----------------------------------------------------------------------------
-#if 0 /* old hw */
-			// Wait for serial data to pushed out to prevent the driver from lagging the system
-			while (((AVR32_USART0.csr & AVR32_USART_CSR_TXRDY_MASK) == 0) && usartRetries)
-			{
-				usartRetries--;
-			}
-
-#if DISABLE_OCD_MODULE // Normal
-			// Leave active: SYSTIMER; Disable: OCD
-			AVR32_PM.cpumask = 0x00010000;
-#else /* Exception test */
-			// Do nothing
-#endif
-
-			// Leave active: EBI, PBA & PBB BRIDGE, FLASHC, USBB; Disable: PDCA, MACB
-			AVR32_PM.hsbmask = 0x0000004F;
-
-			// Leave active: USART 1, USART 3, TC, TWI, SPI0, SPI1, ADC, PM/RTC/EIC, GPIO, INTC; Disable: ABDAC, SSC, PWM, USART 0 & 2, PDCA
-			AVR32_PM.pbamask = 0x00004AFB;
-
-			// Leave active: SMC, FLASHC, HMATRIX, USBB; Disable: SDRAMC, MACB
-			AVR32_PM.pbbmask = 0x00000017;
-
-			// Check if the USB is disabled
-			if (!Is_usb_enabled())
-			{
-				// Enable the USB
-				Usb_enable();
-			}
-#endif
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TFT);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI0);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI1);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPF);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPM);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_ICACHEXIP);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_OWIRE);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPR);
 		break;
 
 		//----------------------------------------------------------------------------
 		case POWER_SAVINGS_MOST:
 		//----------------------------------------------------------------------------
-#if 0 /* old hw */
-			// Check if the USB is enabled
-			if (Is_usb_enabled())
-			{
-				// Disable the USB
-				Usb_disable();
-			}
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TFT);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI0);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI1);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPF);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPM);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_ICACHEXIP);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_OWIRE);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPR);
 
-#if DISABLE_OCD_MODULE // Normal
-			// Leave active: SYSTIMER; Disable: OCD
-			AVR32_PM.cpumask = 0x00010000;
-#else /* Exception test */
-			// Do nothing
-#endif
-
-			// Leave active: EBI, PBA & PBB BRIDGE, FLASHC; Disable: PDCA, MACB, USBB
-			AVR32_PM.hsbmask = 0x00000047;
-
-			// Leave active: USART1, TC, TWI, SPI0, SPI1, ADC, PM/RTC/EIC, GPIO, INTC; Disable: ABDAC, SSC, PWM, USART 0 & 2 & 3, PDCA
-			AVR32_PM.pbamask = 0x000042FB;
-
-			// Leave active: SMC, FLASHC, HMATRIX; Disable: SDRAMC, MACB, USBB
-			AVR32_PM.pbbmask = 0x00000015;
-#endif
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_ADC);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_PT);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TRNG);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SCACHE);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SEMA);
 		break;
 
 		//----------------------------------------------------------------------------
 		case POWER_SAVINGS_MAX:
 		//----------------------------------------------------------------------------
-#if 0 /* old hw */
-			// Wait for serial data to pushed out to prevent the driver from lagging the system
-			while (((AVR32_USART1.csr & AVR32_USART_CSR_TXRDY_MASK) == 0) && usartRetries)
-			{
-				usartRetries--;
-			}
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TFT);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI0);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI1);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPF);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPM);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_ICACHEXIP);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_OWIRE);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPR);
 
-			// Check if the USB is enabled
-			if (Is_usb_enabled())
-			{
-				// Disable the USB
-				Usb_disable();
-			}
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_ADC);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_PT);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TRNG);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SCACHE);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SEMA);
 
-#if DISABLE_OCD_MODULE // Normal
-			// Leave active: SYSTIMER; Disable: OCD
-			AVR32_PM.cpumask = 0x00010000;
-#else /* Exception test */
-			// Do nothing
-#endif
-
-			// Leave active: EBI, PBA & PBB BRIDGE, FLASHC; Disable: PDCA, MACB, USBB
-			AVR32_PM.hsbmask = 0x0000004F; //0x00000047;
-
-			// Leave active: TC, TWI, SPI0, SPI1, ADC, PM/RTC/EIC, GPIO, INTC; Disable: ABDAC, SSC, PWM, USART 0 & 1 & 2 & 3, PDCA
-			AVR32_PM.pbamask = 0x000040FB;
-
-			// Leave active: SMC, FLASHC, HMATRIX; Disable: SDRAMC, MACB, USBB
-			AVR32_PM.pbbmask = 0x00000017; //0x00000015;
-#endif
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_DMA);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_UART0);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_UART1);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TPU);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER0);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER1);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER2);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER3);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER4);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER5);
+			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SDMA);
 		break;
 
 		//----------------------------------------------------------------------------
 		default: // POWER_SAVINGS_NONE
 		//----------------------------------------------------------------------------
-#if DISABLE_OCD_MODULE // Normal
-			// Leave active: All; Disable: None
-			AVR32_PM.cpumask = 0x00010002;
-#else /* Exception test */
-			// Do nothing
-#endif
-#if 0 /* old hw */
-			// Leave active: All; Disable: None
-			AVR32_PM.hsbmask = 0x0000007F;
-
-			// Leave active: All; Disable: None
-			AVR32_PM.pbamask = 0x0000FFFF;
-
-			// Leave active: All; Disable: None
-			AVR32_PM.pbbmask = 0x0000003F;
-
-			// Check if the USB is disabled
-			if (!Is_usb_enabled())
-			{
-				// Enable the USB
-				Usb_enable();
-			}
-#endif
+		// Leave all peripheral clocks enabled
 		break;
 	}
 }
