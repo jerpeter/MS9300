@@ -1595,6 +1595,29 @@ void SetupWatchdog(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void SetupICC(void)
+{
+	uint32_t timeout;
+#if 0 /* Skip global enable since it starts both ICC's and we don't want ICC1 */
+	MXC_ICC_Enable();
+#else /* Manual enable of ICC0 */
+    // Invalidate cache and wait until ready
+    MXC_ICC0->cache_ctrl &= ~MXC_F_ICC_CACHE_CTRL_ENABLE;
+    MXC_ICC0->invalidate = 1;
+
+    timeout = 0x8000; // Arbitrary value
+	while (!(MXC_ICC0->cache_ctrl & MXC_F_ICC_CACHE_CTRL_READY)) { if (timeout-- == 0) { debugErr("ICC: timed out invalidating\r\n"); break; } }
+
+    // Enable Cache
+    MXC_ICC0->cache_ctrl |= MXC_F_ICC_CACHE_CTRL_ENABLE;
+    timeout = 0x8000; // Arbitrary value
+    while (!(MXC_ICC0->cache_ctrl & MXC_F_ICC_CACHE_CTRL_READY)) { if (timeout-- == 0) { debugErr("ICC: timed out enabling\r\n"); break; } }
+#endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void SPI3_IRQHandler(void)
 {
     MXC_SPI_AsyncHandler(MXC_SPI3);
@@ -2792,7 +2815,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Enable the instruction cache
 	//-------------------------------------------------------------------------
-    MXC_ICC_Enable();
+    SetupICC();
 
 	//-------------------------------------------------------------------------
 	// Setup UART0 (LTE) and UART1 (BLE)
