@@ -2953,9 +2953,9 @@ void InitSystemHardware_MS9300(void)
 	InitExternalKeypad(); debug("Keyboard: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
-	// Set the power savings mode based on the saved setting
+	// Disable unused subsystems to save power
 	//-------------------------------------------------------------------------
-	AdjustPowerSavings(); debug("Power Savings: Init complete\r\n");
+	AdjustPowerSavings(POWER_SAVINGS_NORMAL); debug("Power Savings: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Read and cache Smart Sensor data
