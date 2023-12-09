@@ -740,149 +740,120 @@ void CheckBootloaderAppPresent(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AdjustPowerSavings(void)
+void AdjustPowerSavings(uint8_t powerSavingsLevel)
 {
-	// Todo: Determine sub systems that can be disabled
+	// Todo: Fine comb sub systems that can be disabled
 
-#if 0 /* temp remove while unused */
-	uint32 usartRetries = 100; //USART_DEFAULT_TIMEOUT;
-#endif
-	uint8 powerSavingsLevel = POWER_SAVINGS_NORMAL;
-
-#if (GLOBAL_DEBUG_PRINT_ENABLED)
-	// With Debug enabled use Minimum setting to enable USART0 for serial output
-	powerSavingsLevel = POWER_SAVINGS_MINIMUM;
+	// Check if there is no debug built in
+#if (GLOBAL_DEBUG_PRINT_ENABLED == NO_DEBUG)
+	// Disable the debug Uart if any power savings mode besides none
+	if (powerSavingsLevel != POWER_SAVINGS_NONE) { MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_UART2); }
 #endif
 
 	/*
 		System Peripheral clocks (mxc_sys_periph_clock_t in mxc_sys.h)
 		Used in SYS_ClockDisable and SYS_ClockEnable functions
 
-		MXC_SYS_PERIPH_CLOCK_GPIO0
-		MXC_SYS_PERIPH_CLOCK_GPIO1
-		MXC_SYS_PERIPH_CLOCK_GPIO2
-		MXC_SYS_PERIPH_CLOCK_USB
+		MXC_SYS_PERIPH_CLOCK_GPIO0 (absolutely needed)
+		MXC_SYS_PERIPH_CLOCK_GPIO1 (absolutely needed)
+		MXC_SYS_PERIPH_CLOCK_GPIO2 (absolutely needed)
+		MXC_SYS_PERIPH_CLOCK_USB (absolutely needed)
 		MXC_SYS_PERIPH_CLOCK_TFT
 		MXC_SYS_PERIPH_CLOCK_DMA
 		MXC_SYS_PERIPH_CLOCK_SPI0
 		MXC_SYS_PERIPH_CLOCK_SPI1
-		MXC_SYS_PERIPH_CLOCK_SPI2
-		MXC_SYS_PERIPH_CLOCK_UART0
-		MXC_SYS_PERIPH_CLOCK_UART1
-		MXC_SYS_PERIPH_CLOCK_I2C0
+		MXC_SYS_PERIPH_CLOCK_SPI2 (absolutely needed)
+		MXC_SYS_PERIPH_CLOCK_UART0 (possibly needed)
+		MXC_SYS_PERIPH_CLOCK_UART1 (possibly needed)
+		MXC_SYS_PERIPH_CLOCK_I2C0 (absolutely needed)
 		MXC_SYS_PERIPH_CLOCK_TPU
-		MXC_SYS_PERIPH_CLOCK_TIMER0
+		MXC_SYS_PERIPH_CLOCK_TIMER0 (absolutely needed)
 		MXC_SYS_PERIPH_CLOCK_TIMER1
 		MXC_SYS_PERIPH_CLOCK_TIMER2
 		MXC_SYS_PERIPH_CLOCK_TIMER3
 		MXC_SYS_PERIPH_CLOCK_TIMER4
 		MXC_SYS_PERIPH_CLOCK_TIMER5
 		MXC_SYS_PERIPH_CLOCK_ADC
-		MXC_SYS_PERIPH_CLOCK_I2C1
+		MXC_SYS_PERIPH_CLOCK_I2C1 (absolutely needed)
 		MXC_SYS_PERIPH_CLOCK_PT
 		MXC_SYS_PERIPH_CLOCK_SPIXIPF
 		MXC_SYS_PERIPH_CLOCK_SPIXIPM
-		MXC_SYS_PERIPH_CLOCK_UART2
+		MXC_SYS_PERIPH_CLOCK_UART2 (debug only)
 		MXC_SYS_PERIPH_CLOCK_TRNG
 		MXC_SYS_PERIPH_CLOCK_FLC
 		MXC_SYS_PERIPH_CLOCK_HBC
-		MXC_SYS_PERIPH_CLOCK_GPIO3
+		MXC_SYS_PERIPH_CLOCK_GPIO3 (absolutely needed)
 		MXC_SYS_PERIPH_CLOCK_SCACHE
 		MXC_SYS_PERIPH_CLOCK_SDMA
 		MXC_SYS_PERIPH_CLOCK_SEMA
-		MXC_SYS_PERIPH_CLOCK_SDHC
+		MXC_SYS_PERIPH_CLOCK_SDHC (absolutely needed)
 		MXC_SYS_PERIPH_CLOCK_ICACHE
 		MXC_SYS_PERIPH_CLOCK_ICACHEXIP
 		MXC_SYS_PERIPH_CLOCK_OWIRE
-		MXC_SYS_PERIPH_CLOCK_SPI3
+		MXC_SYS_PERIPH_CLOCK_SPI3 (absolutely needed)
 		MXC_SYS_PERIPH_CLOCK_I2S
 		MXC_SYS_PERIPH_CLOCK_SPIXIPR
 	*/
 
-	switch (powerSavingsLevel)
+	/*
+		Notes: MXC_SYS_PERIPH_CLOCK_SCACHE not clearly defined. Could be tied to EMCC (unused) or the internal RAM (needed)
+	*/
+
+	//=============================================================================================
+	// Minimum power savings adjustments
+	//=============================================================================================
+	if (powerSavingsLevel >= POWER_SAVINGS_MINIMUM)
 	{
-		//----------------------------------------------------------------------------
-		case POWER_SAVINGS_MINIMUM:
-		//----------------------------------------------------------------------------
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TFT);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI0);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI1);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPF);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPM);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_ICACHEXIP);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_OWIRE);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPR);
-		break;
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TFT); // Can't use (phyiscal signals used for other purposes)
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI0); // Can't use (phyiscal signals used for other purposes)
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI1); // Can't use (phyiscal signals used for other purposes)
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPF); // Not using (no external SPI flash)
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPM); // Not using (no external SPI flash/memory)
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_ICACHEXIP); // Not using (no external SPI flash)
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_OWIRE); // Can't use (phyiscal signals used for other purposes)
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPR); // Not using (no external SPI memory)
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_HBC); // Not using (Hyperbus/Xccela)
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_I2S); // Not using (Inter-IC Sound)
 
-		//----------------------------------------------------------------------------
-		case POWER_SAVINGS_NORMAL:
-		//----------------------------------------------------------------------------
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TFT);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI0);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI1);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPF);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPM);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_ICACHEXIP);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_OWIRE);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPR);
-		break;
-
-		//----------------------------------------------------------------------------
-		case POWER_SAVINGS_MOST:
-		//----------------------------------------------------------------------------
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TFT);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI0);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI1);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPF);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPM);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_ICACHEXIP);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_OWIRE);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPR);
-
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_ADC);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_PT);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TRNG);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SCACHE);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SEMA);
-		break;
-
-		//----------------------------------------------------------------------------
-		case POWER_SAVINGS_MAX:
-		//----------------------------------------------------------------------------
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TFT);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI0);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPI1);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPF);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPM);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_ICACHEXIP);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_OWIRE);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SPIXIPR);
-
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_ADC);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_PT);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TRNG);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SCACHE);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SEMA);
-
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_DMA);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_UART0);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_UART1);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TPU);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER0);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER1);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER2);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER3);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER4);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER5);
-			MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SDMA);
-		break;
-
-		//----------------------------------------------------------------------------
-		default: // POWER_SAVINGS_NONE
-		//----------------------------------------------------------------------------
-		// Leave all peripheral clocks enabled
-		break;
+		// Disable EMCC by stting dcache_dis bit = 1 in GCR_SCON
+		MXC_GCR->scon |= MXC_F_GCR_SCON_DCACHE_DIS; // Not using (EMCC)
 	}
+
+	//=============================================================================================
+	// Normal power savings adjustments
+	//=============================================================================================
+	if (powerSavingsLevel >= POWER_SAVINGS_NORMAL)
+	{
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TRNG); // Unlikely to need true randon number generator
+	}
+
+	//=============================================================================================
+	// High power savings adjustments
+	//=============================================================================================
+	if (powerSavingsLevel >= POWER_SAVINGS_HIGH)
+	{
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_ADC); // Possibly could live without the internal ADC (which can only monitor internal voltages)
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_PT); // Possibly could live without the Pulse Train for generating PWM signals
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SEMA); // Possibly could live without the hardware Semaphore resource
+	}
+
+	//=============================================================================================
+	// Maximum power savings adjustments
+	//=============================================================================================
+	if (powerSavingsLevel >= POWER_SAVINGS_MAX)
+	{
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_DMA); // Could possibly sacrifice
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_UART0); // Could possibly sacrifice
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_UART1); // Could possibly sacrifice
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TPU); // Could possibly sacrifice
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER1); // Could possibly sacrifice
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER2); // Could possibly sacrifice
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER3); // Could possibly sacrifice
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER4); // Could possibly sacrifice
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER5); // Could possibly sacrifice
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SDMA); // Could possibly sacrifice
+	}
+
 }
 
 ///----------------------------------------------------------------------------
