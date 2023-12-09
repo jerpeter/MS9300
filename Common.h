@@ -342,7 +342,7 @@ enum {
 	POWER_SAVINGS_NONE = 0,
 	POWER_SAVINGS_MINIMUM,
 	POWER_SAVINGS_NORMAL,
-	POWER_SAVINGS_MOST,
+	POWER_SAVINGS_HIGH,
 	POWER_SAVINGS_MAX
 };
 
@@ -577,7 +577,7 @@ float GetExternalVoltageLevelAveraged(uint8 type);
 BOOLEAN CheckExternalChargeVoltagePresent(void);
 
 // Power Savings
-void AdjustPowerSavings(void);
+void AdjustPowerSavings(uint8_t powerSavingsLevel);
 
 // Math routines
 uint16 Isqrt (uint32 x);
