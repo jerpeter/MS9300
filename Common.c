@@ -27,6 +27,7 @@
 #include "mxc_delay.h"
 #include "ff.h"
 #include "mxc_sys.h"
+#include "pwrseq_regs.h"
 //#include "usart.h"
 //#include "usb_drv.h"
 //#include "usb_task.h"
@@ -796,7 +797,10 @@ void AdjustPowerSavings(uint8_t powerSavingsLevel)
 	*/
 
 	/*
-		Notes: MXC_SYS_PERIPH_CLOCK_SCACHE not clearly defined. Could be tied to EMCC (unused) or the internal RAM (needed)
+		Notes: MXC_SYS_PERIPH_CLOCK_SCACHE not clearly defined. Could be tied to EMCC (unused) or the internal RAM (needed). Loose references to both.
+		Todo: Determine SCACHE function, either EMMC and enable the following or internal RAM and leave out
+			// Disable EMMC RAM
+			MXC_PWRSEQ->mem_pwr |= MXC_F_PWRSEQ_MEM_PWR_SCACHESD;
 	*/
 
 	//=============================================================================================

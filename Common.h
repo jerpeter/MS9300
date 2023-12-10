@@ -56,7 +56,7 @@ enum {
 };
 
 // Define core clock rate
-#if 1 /* Normal */
+#if 1 /* old hw */
 #define FOSC0	66000000
 #else
 #define FOSC0	12000000
@@ -82,7 +82,13 @@ enum {
 	HARDWARE_ID_REV_8_WITH_USART = 0x18,
 };
 
-#define DISABLED_BUT_FIX_FOR_NS8100	0
+enum {
+	ACTIVE_MODE = 0,
+	SLEEP_MODE,
+	BACKGROUND_MODE,
+	DEEPSLEEP_MODE,
+	BACKUP_MODE
+};
 
 typedef enum
 {
@@ -700,6 +706,7 @@ void System_power_button_irq(void);
 void External_rtc_irq(void);
 void Gps_status_irq(void);
 void Sample_irq(void);
+void Internal_rtc_alarms(void);
 void Soft_timer_tick_irq(void);
 void External_trigger_irq(void);
 void HandleActiveAlarmExtension(void);
