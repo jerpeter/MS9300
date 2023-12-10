@@ -514,6 +514,44 @@ void Usart_0_rs232_irq(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+__attribute__((__interrupt__))
+void Internal_rtc_alarms(void)
+{
+    int flags = MXC_RTC_GetFlags();
+
+    if (flags & MXC_F_RTC_CTRL_SSEC_ALARM_FL)
+	{
+		// Increment the lifetime soft timer tick count
+		g_lifetimeHalfSecondTickCount++;
+
+		// Every tick raise the flag to check soft timers
+		raiseTimerEventFlag(SOFT_TIMER_CHECK_EVENT);
+
+		// Every 8 ticks (4 secs) trigger the cyclic event flag
+		if (++g_cyclicEventDelay == CYCLIC_EVENT_TIME_THRESHOLD)
+		{
+			g_cyclicEventDelay = 0;
+			raiseSystemEventFlag_ISR(CYCLIC_EVENT);
+		}
+
+		// Every so often flag for updating to the External RTC time.
+		if (++g_rtcTickCountSinceLastExternalUpdate >= UPDATE_TIME_EVENT_THRESHOLD)
+		{
+			raiseSystemEventFlag_ISR(UPDATE_TIME_EVENT);
+		}
+
+        MXC_RTC_ClearFlags(MXC_F_RTC_CTRL_SSEC_ALARM_FL);
+    }
+
+    if (flags & MXC_F_RTC_CTRL_TOD_ALARM_FL)
+	{
+        MXC_RTC_ClearFlags(MXC_F_RTC_CTRL_TOD_ALARM_FL);
+    }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 #if 0 /* ET test */
 static uint32 s_testForForeverLoop = 0;
 static uint32 s_lastExecCycles = 0;
@@ -536,11 +574,6 @@ void Soft_timer_tick_irq(void)
 	{
 		g_cyclicEventDelay = 0;
 		raiseSystemEventFlag_ISR(CYCLIC_EVENT);
-
-#if 1 /* Test */
-		g_sampleCountHold = g_sampleCount;
-		g_sampleCount = 0;
-#endif
 	}
 
 	// Every so often flag for updating to the External RTC time.

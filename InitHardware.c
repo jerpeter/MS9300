@@ -2704,6 +2704,7 @@ void GetDriveSize(void)
 ///----------------------------------------------------------------------------
 void SetupHalfSecondTickTimer(void)
 {
+#if 0 /* Internal PIT Timer based, will not generate interrupts in Deepsleep or Backup */
 	MXC_SYS_Reset_Periph(MXC_SYS_RESET_TIMER0);
 	MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TIMER0);
 
@@ -2734,6 +2735,14 @@ void SetupHalfSecondTickTimer(void)
 
 	// Enable the timer
 	MXC_TMR0->cn |= MXC_F_TMR_CN_TEN;
+#else /* Internal RTC based off of Sub-Second Alarm register, will generate interrupts in sleep modes */
+    while (MXC_RTC_Init(0, 0) == E_BUSY) {}
+    while (MXC_RTC_DisableInt(MXC_F_RTC_CTRL_SSEC_ALARM_EN) == E_BUSY) {}
+    while (MXC_RTC_SetSubsecondAlarm(2048) == E_BUSY) {} // 4K clock, 2048 = 1/2 second
+	MXC_NVIC_SetVector(RTC_IRQn, Internal_rtc_alarms);
+    while (MXC_RTC_EnableInt(MXC_F_RTC_CTRL_SSEC_ALARM_EN) == E_BUSY) {}
+    while (MXC_RTC_Start() == E_BUSY) {}
+#endif
 }
 
 ///----------------------------------------------------------------------------
