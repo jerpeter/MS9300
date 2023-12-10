@@ -254,7 +254,6 @@ uint8 g_tcSampleTimerActive = NO;
 uint8 g_tcTypematicTimerActive = NO;
 uint8 g_lowBatteryState = NO;
 uint32 g_sleepModeState = 0; //AVR32_PM_SMODE_STOP;
-uint8 g_sleepModeEngaged = NO;
 char* g_languageLinkTable[TOTAL_TEXT_STRINGS];
 uint32 g_tempTriggerLevelForMenuAdjustment;
 volatile uint16 g_storedTempReading;
