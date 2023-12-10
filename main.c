@@ -58,6 +58,7 @@
 #include "gcr_regs.h"
 #include "mxc_sys.h"
 #include "pwrseq_regs.h"
+#include "lp.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -1396,11 +1397,6 @@ inline void SetupPowerSavingsBeforeSleeping(void)
 		}
 	}
 
-#if 0 /* old hw */
-	// Enable pull ups on the data lines
-	AVR32_GPIO.port[2].puers = 0xFC00; // 1111 1100 0000 0000
-	AVR32_GPIO.port[3].puers = 0x03FF; // 0000 0011 1111 1111
-#endif
 	g_powerSavingsForSleepEnabled = YES;
 }
 
@@ -1409,11 +1405,6 @@ inline void SetupPowerSavingsBeforeSleeping(void)
 ///----------------------------------------------------------------------------
 /* inline */ void RevertPowerSavingsAfterSleeping(void)
 {
-#if 0 /* old hw */
-	// Disable pull ups on the data lines
-	AVR32_GPIO.port[2].puerc = 0xFC00; // 1111 1100 0000 0000
-	AVR32_GPIO.port[3].puerc = 0x03FF; // 0000 0011 1111 1111
-#endif
 	// Check if Rs232 power savings is enabled
 	if (g_unitConfig.rs232PowerSavings)
 	{
@@ -1431,16 +1422,13 @@ inline void SetupPowerSavingsBeforeSleeping(void)
 ///----------------------------------------------------------------------------
 void PowerManager(void)
 {
-#if 0 /* old hw */
 	uint8 sleepStateNeeded;
 
 	// Check if no System Events (or just update offset) and LCD is off and Modem is not transferring and USB is not connected
 	if (((g_systemEventFlags.wrd == NO_SYSTEM_EVENT_ACTIVE) || (g_systemEventFlags.wrd == UPDATE_OFFSET_EVENT)) && (GetPowerControlState(LCD_POWER_ENABLE) == OFF) &&
-		(g_modemStatus.xferState == NOP_CMD) && (ms_usb_prevent_sleep == NO)) //(g_usbMassStorageState != USB_CONNECTED_AND_PROCESSING))
+		(g_modemStatus.xferState == NOP_CMD) && (g_usbMassStorageState != USB_CONNECTED_AND_PROCESSING))
 	{
 		SetupPowerSavingsBeforeSleeping();
-
-		g_sleepModeEngaged = YES;
 
 		// Check if actively monitoring
 		if (g_sampleProcessing == ACTIVE_STATE)
@@ -1448,45 +1436,23 @@ void PowerManager(void)
 			// Check if a higher sample rate that can't use Stop sleep mode (Wave 16K and Bar 8K)
 			if ((g_triggerRecord.trec.sample_rate == SAMPLE_RATE_16K) || (((g_triggerRecord.opMode == BARGRAPH_MODE) || (g_triggerRecord.opMode == COMBO_MODE)) && (g_triggerRecord.trec.sample_rate == SAMPLE_RATE_8K)))
 			{
-				sleepStateNeeded = AVR32_PM_SMODE_IDLE;
-			}
-			// Check if Wave 8K
-			else if (g_triggerRecord.trec.sample_rate == SAMPLE_RATE_8K)
-			{
-				sleepStateNeeded = AVR32_PM_SMODE_FROZEN;
-			}
-			// Check if Wave, Bar and Combo 4K
-			else if (g_triggerRecord.trec.sample_rate == SAMPLE_RATE_4K)
-			{
-				sleepStateNeeded = AVR32_PM_SMODE_STANDBY;
+				sleepStateNeeded = SLEEP_MODE;
 			}
 			else // Lower sample rates can use Stop mode (Wave, Bar and Combo for 0.5K, 1K and 2K)
 			{
-				sleepStateNeeded = AVR32_PM_SMODE_STOP;
+				sleepStateNeeded = BACKGROUND_MODE;
 			}
 		}
 		else // Not monitoring
 		{
-			sleepStateNeeded = AVR32_PM_SMODE_STOP;
-		}
-
-		// Check if not already set for Idle sleep and not max power savings and a remote/craft is connected (DSR and DCD)
-		if ((sleepStateNeeded != AVR32_PM_SMODE_IDLE) && ((READ_DSR == MODEM_CONNECTED) && (READ_DCD == CONNECTION_ESTABLISHED)))
-		{
-			sleepStateNeeded = AVR32_PM_SMODE_FROZEN;
-		}
-
-		// Check if GPS module is selected and the GPS module is enabled (by checking if the GPS power off timer is active)
-		if ((sleepStateNeeded != AVR32_PM_SMODE_IDLE) && (GET_HARDWARE_ID == HARDWARE_ID_REV_8_WITH_GPS_MOD) && (IsSoftTimerActive(GPS_POWER_OFF_TIMER_NUM) == YES))
-		{
-			sleepStateNeeded = AVR32_PM_SMODE_FROZEN;
+			sleepStateNeeded = DEEPSLEEP_MODE;
 		}
 
 		// Check if USB is in OTG Host mode but no active device is connected (requiring sleep level be no deeper than Frozen)
 		if (CheckUSBInOTGHostWaitingForDevice() == YES)
 		{
 			// Set to frozen to allow USB OTG Host processing to recognize a device
-			sleepStateNeeded = AVR32_PM_SMODE_FROZEN;
+			sleepStateNeeded = SLEEP_MODE;
 		}
 
 		// Check if sleep mode changed
@@ -1495,120 +1461,121 @@ void PowerManager(void)
 			// Track the new state
 			g_sleepModeState = sleepStateNeeded;
 
-			if (g_sleepModeState == AVR32_PM_SMODE_IDLE) { debug("Changing Sleep mode to Idle\r\n"); }
-			else if (g_sleepModeState == AVR32_PM_SMODE_FROZEN) { debug("Changing Sleep mode to Frozen\r\n"); }
-			else if (g_sleepModeState == AVR32_PM_SMODE_STANDBY) { debug("Changing Sleep mode to Standby\r\n"); }
-			else if (g_sleepModeState == AVR32_PM_SMODE_STOP) { debug("Changing Sleep mode to Stop\r\n"); }
+			if (g_sleepModeState == SLEEP_MODE) { debug("Changing Sleep mode to Sleep\r\n"); }
+			else if (g_sleepModeState == BACKGROUND_MODE) { debug("Changing Sleep mode to Background\r\n"); }
+			else if (g_sleepModeState == DEEPSLEEP_MODE) { debug("Changing Sleep mode to Deepsleep\r\n"); }
+			else if (g_sleepModeState == BACKUP_MODE) { debug("Changing Sleep mode to Backup\r\n"); }
 		}
 
-#if 0 /* Normal */
-		if (g_sleepModeState == AVR32_PM_SMODE_IDLE) { SLEEP(AVR32_PM_SMODE_IDLE); }
-		else if (g_sleepModeState == AVR32_PM_SMODE_FROZEN) { SLEEP(AVR32_PM_SMODE_FROZEN); }
-		else if (g_sleepModeState == AVR32_PM_SMODE_STANDBY) { SLEEP(AVR32_PM_SMODE_STANDBY); }
-		else if (g_sleepModeState == AVR32_PM_SMODE_STOP) { SLEEP(AVR32_PM_SMODE_STOP); }
-#else /* Fix to prevent STOP mode which causes random exceptions */
-		if (g_sleepModeState == AVR32_PM_SMODE_IDLE) { SLEEP(AVR32_PM_SMODE_IDLE); }
-		else if (g_sleepModeState == AVR32_PM_SMODE_FROZEN) { SLEEP(AVR32_PM_SMODE_FROZEN); }
-		else { SLEEP(AVR32_PM_SMODE_STANDBY); }
+		switch (g_sleepModeState)
+		{
+			//---------------------------------------------------------------------------------------------
+			case ACTIVE_MODE:
+			//---------------------------------------------------------------------------------------------
+				/*
+					This is the highest performance mode. All internal clocks, registers, memory, and peripherals are enabled. The CPU is
+					running and executing application code. The Smart DMA can perform background processing and data transfers. All
+					oscillators are available.
+					Dynamic clocking allows firmware to selectively enable or disable clocks and power to individual peripherals, providing the
+					optimal mix of high-performance and power conservation. Internal RAM that can be enabled, disabled, or placed in low-
+					power RAM Retention Mode include data SRAM memory blocks, on-chip caches, and on-chip FIFOs.
+				*/
+				MXC_GCR->pmr = ((MXC_GCR->pmr & ~(MXC_F_GCR_PMR_MODE)) | MXC_S_GCR_PMR_MODE_ACTIVE); // Not necessary since this is done automatically by the MPU coming out of sleep
+				break;
+
+			//---------------------------------------------------------------------------------------------
+			case SLEEP_MODE:
+			//---------------------------------------------------------------------------------------------
+				/*
+					This is a low-power mode that suspends the CPU with a fast wakeup time to ACTIVE mode. It is like ACTIVE mode except the
+					CPU clock is disabled, which temporarily prevents the CPU from executing code. The Smart DMA can operate in the
+					background to perform background processing and data transfers. All oscillators remain active if enabled and the Always On
+					Domain (AOD) and RAM retention is retain state.
+					The device returns to ACTIVE mode from any internal or external interrupt.
+				*/
+#if 0 /* Raw from datasheet */
+				SCB->SCR &= ~(SCB_SCR_SLEEPDEEP_Msk);
+				__ASM volatile("wfi");
+#else /* Turns out there is a framework driver for Sleep mode */
+				MXC_LP_EnterSleepMode();
 #endif
+				break;
+
+			//---------------------------------------------------------------------------------------------
+			case BACKGROUND_MODE:
+			//---------------------------------------------------------------------------------------------
+				/*
+					This mode is suitable for the Smart DMA to operate in the background and perform background processing data transfers
+					on peripheral and SRAM data.
+					This is the same as SLEEP mode except both the CPU clock and CPU power (VCORE) are temporarily gated off. State retention
+					of the CPU is enabled, allowing all CPU registers to maintain their contents and the oscillators remain active if enabled.
+					Because both the clock and power to the CPU is disabled, this has the advantage of drawing less power than SLEEP.
+					However, the CPU takes longer to wakeup compared to SLEEP.
+				*/
+#if 0 /* Raw from datasheet */
+				MXC_PWRSEQ->ctrl |= (MXC_F_PWRSEQ_CTRL_BKGRND);
+				SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
+				__ASM volatile("wfi");
+#else /* Turns out there is a framework driver for Background mode */
+				MXC_LP_EnterBackgroundMode();
+#endif
+				break;
+
+			//---------------------------------------------------------------------------------------------
+			case DEEPSLEEP_MODE:
+			//---------------------------------------------------------------------------------------------
+				/*
+					This is like BACKGROUND mode except that all internal clocks are gated off. SYSOSC is gated off, so the two main bus clocks
+					PCLK and HCLK are inactive. The CPU state is retained.
+					Because the main bus clocks are disabled, all peripherals are inactive except for the RTC which has its own independent
+					oscillator. Only the RTC, USB wakeup or external interrupt can return the device to ACTIVE. The Smart DMA and Watchdog
+					Timers are inactive in this mode.
+					All internal register contents and all RAM contents are preserved. The GPIO pins retain their state in this mode. The Always-
+					on Domain (AoD) and RAM Retention are available.
+					Three oscillators can be set to optionally automatically disable themselves when the device enters DEEPSLEEP mode: the
+					7.3728MHz oscillator, the 50MHz oscillator, and the 120MHz oscillator. The 8Khz and 32.768kHz oscillators are available.
+
+					Note: DEEPSLEEP Mode Fast Wakeup Enable, LP_CTRL, Bit 10, fwkm, R/W, 0 (Set to 1 to enable fast wakeup from DEEPSLEEP mode)
+				*/
+#if 0 /* Raw from datasheet */
+				MXC_PWRSEQ->ctrl &= ~(MXC_F_PWRSEQ_CTRL_BKGRND);
+				SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
+				__ASM volatile("wfi");
+#else /* Turns out there is a framework driver for Deep Sleep mode */
+				MXC_LP_EnterDeepSleepMode();
+#endif
+				break;
+
+			//---------------------------------------------------------------------------------------------
+			case BACKUP_MODE:
+			//---------------------------------------------------------------------------------------------
+				/*
+					This is the lowest power operating mode. All oscillators are disabled except for the 8kHz and the 32kHz oscillator. SYSOSC is
+					gated off, so PCLK and HCLK are inactive. The CPU state is not maintained.
+					Only the RTC can operate in BACKUP mode. The AoD and RAM Retention can optionally be set to automatically disable (and
+					clear) themselves when entering this mode. Data retention in this mode is maintained using VCORE and/or VRTC. The type of
+					data retained is dependent upon whether only one, or both, of these voltages are enabled.
+					Optionally, VCORE can be gated off and the internal retention regulator enabled, allowing the device to be powered only by
+					VRTC. Enabling VCORE will wake the device to ACTIVE mode.
+					The amount of RAM memory retained is dependent upon which voltages are enabled.
+					If only VRTC is enabled, up to 96KBytes of SRAM can be retained.
+					If both VRTC and VCORE are enabled, up to 1024KBytes SRAM can be retained.
+					BACKUP mode supports the same wakeup sources as DEEPSLEEP mode.
+				*/
+#if 0 /* Raw from datasheet */
+				MXC_GCR->pmr = ((MXC_GCR->pmr & ~(MXC_F_GCR_PMR_MODE)) | MXC_S_GCR_PMR_MODE_BACKUP);
+#else /* Turns out there is a framework driver for Backup mode */
+				MXC_LP_EnterBackupMode();
+#endif
+				break;
+		} // End of switch
+
 		// Check if needing to revert the power savings (if monitoring then the ISR will handle this operation)
 		if (g_powerSavingsForSleepEnabled == YES)
 		{
 			RevertPowerSavingsAfterSleeping();
 		}
 	}
-	else // To busy to sleep
-	{
-		g_sleepModeEngaged = NO;
-	}
-#else
-	// ACTIVE Mode
-	/*
-		This is the highest performance mode. All internal clocks, registers, memory, and peripherals are enabled. The CPU is
-		running and executing application code. The Smart DMA can perform background processing and data transfers. All
-		oscillators are available.
-		Dynamic clocking allows firmware to selectively enable or disable clocks and power to individual peripherals, providing the
-		optimal mix of high-performance and power conservation. Internal RAM that can be enabled, disabled, or placed in low-
-		power RAM Retention Mode include data SRAM memory blocks, on-chip caches, and on-chip FIFOs.
-	*/
-	MXC_GCR->pmr = ((MXC_GCR->pmr & ~(MXC_F_GCR_PMR_MODE)) | MXC_S_GCR_PMR_MODE_ACTIVE);
-
-	// SLEEP Low-Power Mode
-	/*
-		This is a low-power mode that suspends the CPU with a fast wakeup time to ACTIVE mode. It is like ACTIVE mode except the
-		CPU clock is disabled, which temporarily prevents the CPU from executing code. The Smart DMA can operate in the
-		background to perform background processing and data transfers. All oscillators remain active if enabled and the Always On
-		Domain (AOD) and RAM retention is retain state.
-		The device returns to ACTIVE mode from any internal or external interrupt.
-	*/
-	//SCB->SCR.sleepdeep = 0; // SLEEP mode enabled
-	SCB->SCR &= ~(SCB_SCR_SLEEPDEEP_Msk);
-	//__WFI; // Wait for interrupt, enter the low-power mode enabled by SCR.sleepdeep
-	__ASM volatile("wfi");
-	// -or-
-	//__WFE; // Wait for event, enter the low-power mode enabled by SCR.sleepdeep
-	__ASM volatile("wfe");
-
-	// BACKGROUND Low-Power Mode
-	/*
-		This mode is suitable for the Smart DMA to operate in the background and perform background processing data transfers
-		on peripheral and SRAM data.
-		This is the same as SLEEP mode except both the CPU clock and CPU power (VCORE) are temporarily gated off. State retention
-		of the CPU is enabled, allowing all CPU registers to maintain their contents and the oscillators remain active if enabled.
-		Because both the clock and power to the CPU is disabled, this has the advantage of drawing less power than SLEEP.
-		However, the CPU takes longer to wakeup compared to SLEEP.
-	*/
-	//LP_CTRL.bkgrnd = 1; // BACKGROUND mode enabled when entering DEEPSLEEP
-	MXC_PWRSEQ->ctrl |= (MXC_F_PWRSEQ_CTRL_BKGRND);
-
-	//SCB->SCR.sleepdeep = 1; // DEEPSLEEP mode enabled
-	SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
-
-	//__WFI; // Enter BACKGROUND mode
-	__ASM volatile("wfi");
-	// -or-
-	//__WFE; // Enter BACKGROUND mode
-
-	// DEEPSLEEP Low-Power Mode
-	/*
-		This is like BACKGROUND mode except that all internal clocks are gated off. SYSOSC is gated off, so the two main bus clocks
-		PCLK and HCLK are inactive. The CPU state is retained.
-		Because the main bus clocks are disabled, all peripherals are inactive except for the RTC which has its own independent
-		oscillator. Only the RTC, USB wakeup or external interrupt can return the device to ACTIVE. The Smart DMA and Watchdog
-		Timers are inactive in this mode.
-		All internal register contents and all RAM contents are preserved. The GPIO pins retain their state in this mode. The Always-
-		on Domain (AoD) and RAM Retention are available.
-		Three oscillators can be set to optionally automatically disable themselves when the device enters DEEPSLEEP mode: the
-		7.3728MHz oscillator, the 50MHz oscillator, and the 120MHz oscillator. The 8Khz and 32.768kHz oscillators are available.
-	*/
-	//LP_CTRL.bkgrnd = 0; // BACKGROUND mode disabled when entering DEEPSLEEP
-	MXC_PWRSEQ->ctrl &= ~(MXC_F_PWRSEQ_CTRL_BKGRND);
-
-	//SCB->SCR.sleepdeep = 1; // DEEPSLEEP mode enabled
-	SCB->SCR |= (SCB_SCR_SLEEPDEEP_Msk);
-
-	//__WFI; // Enter DEEPSLEEP mode
-	__ASM volatile("wfi");
-	// -or-
-	//__WFE; // Enter DEEPSLEEP mode
-
-	// BACKUP Low-Power Mode
-	/*
-		This is the lowest power operating mode. All oscillators are disabled except for the 8kHz and the 32kHz oscillator. SYSOSC is
-		gated off, so PCLK and HCLK are inactive. The CPU state is not maintained.
-		Only the RTC can operate in BACKUP mode. The AoD and RAM Retention can optionally be set to automatically disable (and
-		clear) themselves when entering this mode. Data retention in this mode is maintained using VCORE and/or VRTC. The type of
-		data retained is dependent upon whether only one, or both, of these voltages are enabled.
-		Optionally, VCORE can be gated off and the internal retention regulator enabled, allowing the device to be powered only by
-		VRTC. Enabling VCORE will wake the device to ACTIVE mode.
-		The amount of RAM memory retained is dependent upon which voltages are enabled.
-		If only VRTC is enabled, up to 96KBytes of SRAM can be retained.
-		If both VRTC and VCORE are enabled, up to 1024KBytes SRAM can be retained.
-		BACKUP mode supports the same wakeup sources as DEEPSLEEP mode.
-	*/
-	//GCR_PMR.mode = 0x4;
-	MXC_GCR->pmr = ((MXC_GCR->pmr & ~(MXC_F_GCR_PMR_MODE)) | MXC_S_GCR_PMR_MODE_BACKUP);
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -1884,6 +1851,31 @@ void EnableGlobalException(void)
 	// Enable exceptions.
 	Enable_global_exception();
 #endif
+}
+
+#include "mxc_errors.h"
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestInternalADCPowerMonitor(void)
+{
+	uint16_t adcVal;
+	uint8_t overflow;
+
+    /* Initialize ADC */
+    if (MXC_ADC_Init() != E_NO_ERROR) { debugErr("Internal ADC: Init failed\r\n"); }
+    while (MXC_ADC->status & (MXC_F_ADC_STATUS_ACTIVE | MXC_F_ADC_STATUS_PWR_UP_ACTIVE)) {}
+
+    MXC_ADC_SetMonitorChannel(MXC_ADC_MONITOR_0, MXC_ADC_CH_VCORE);
+    MXC_ADC_EnableMonitor(MXC_ADC_MONITOR_0);
+
+	MXC_ADC_StartConversion(MXC_ADC_CH_VCORE);
+
+	overflow = (MXC_ADC_GetData(&adcVal) == E_OVERFLOW ? 1 : 0);
+
+	debug("Internal ADC: Vcore voltage is 0x%04x%s\n\n", adcVal, overflow ? " (overflow)" : "");
+
+	MXC_ADC_Shutdown();
 }
 
 #include "tpu.h"
