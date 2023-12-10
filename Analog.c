@@ -646,7 +646,7 @@ void ZeroSensors(void)
 void UpdateChannelOffsetsForTempChange(void)
 {
 	// Make sure system isn't processing an event, not handling any system events but UPDATE_OFFSET_EVENT and not handling a manual cal pulse
-	if ((g_sleepModeEngaged == YES) && (g_busyProcessingEvent == NO) && (anySystemEventExcept(UPDATE_OFFSET_EVENT) == NO) && (g_triggerRecord.opMode != MANUAL_CAL_MODE))
+	if ((g_busyProcessingEvent == NO) && (anySystemEventExcept(UPDATE_OFFSET_EVENT) == NO) && (g_triggerRecord.opMode != MANUAL_CAL_MODE))
 	{
 		ZeroSensors();
 	}
