@@ -40,6 +40,7 @@
 
 #include "tmr.h"
 #include "ff.h"
+#include "wdt.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -128,6 +129,100 @@ void Tc_typematic_irq(void);
 __attribute__((__interrupt__))
 void Tc_ms_timer_irq(void);
 #endif
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void NMI_Handler(void)
+{
+	debugErr("Exception: Non-Maskable Interrupt\r\n");
+
+	while (1) {}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void HardFault_Handler(void)
+{
+	debugErr("Exception: Hard Fault\r\n");
+
+	while (1) {}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MemManage_Handler(void)
+{
+	debugErr("Exception: Memory Management Fault\r\n");
+
+	while (1) {}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void BusFault_Handler(void)
+{
+	debugErr("Exception: Bus Fault\r\n");
+
+	while (1) {}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void UsageFault_Handler(void)
+{
+	debugErr("Exception: Usage Fault\r\n");
+
+	while (1) {}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SVC_Handler(void)
+{
+	debugErr("Exception: Supervisor Call\r\n");
+
+	while (1) {}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void DebugMon_Handler(void)
+{
+	debugErr("Exception: Debug Monitor\r\n");
+
+	while (1) {}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void PF_IRQHandler(void)
+{
+	debugErr("Power Fail IRQ triggered\r\n");
+
+	while (1) {}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void WDT0_IRQHandler(void)
+{
+    MXC_WDT_ClearIntFlag(MXC_WDT0);
+
+    debugErr("Watchdog IRQ triggered\r\n");
+	//debugErr("Watchdog IRQ triggered, attempting to gracefully close shop before reset...\r\n");
+
+	// Shutdown/data handling before reset
+	while (1) {}
+}
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -291,19 +386,8 @@ void Keypad_irq(void)
 		g_kpadInterruptWhileProcessing = YES;
 	}
 
-#if 0 /* Not necessary to clear the keypad interrupt just the processor interrupt so the ISR isn't called again */
-	ReadMcp23018(IO_ADDRESS_KPD, INTFB);
-	ReadMcp23018(IO_ADDRESS_KPD, GPIOB);
-#endif
-
-	// Clear the interrupt flag in the processor
-#if 0 /* old hw */
-	AVR32_EIC.ICR.int5 = 1;
-#else
-
 	// Clear the interrupt flags for all button (1-9) GPIO lines
 	MXC_GPIO_ClearFlags(MXC_GPIO1, BUTTON_GPIO_MASK);
-#endif
 }
 
 ///----------------------------------------------------------------------------

@@ -1548,18 +1548,6 @@ void SetupI2C(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void WDT0_IRQHandler(void)
-{
-    MXC_WDT_ClearIntFlag(MXC_WDT0);
-
-    debugErr("Watchdog ISR triggered, attempting to gracefully close shop before reset...\r\n");
-
-	// Shutdown/data handling before reset
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 void SetupWatchdog(void)
 {
     // Check if watchdog caused reset
@@ -2881,8 +2869,8 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Set Alarm 1 and Alarm 2 low (Active high control)
 	//-------------------------------------------------------------------------
-	PowerControl(ALARM_1_ENABLE, OFF); // Technically done with SetupGPIO call
-	PowerControl(ALARM_2_ENABLE, OFF); // Technically done with SetupGPIO call
+	PowerControl(ALARM_1_ENABLE, OFF); // Default, technically done with SetupGPIO call
+	PowerControl(ALARM_2_ENABLE, OFF); // Default, technically done with SetupGPIO call
 
 	//-------------------------------------------------------------------------
 	// Set Trigger Out low (Active high control)
