@@ -209,7 +209,14 @@ void AlarmOneOutputTimerCallback(void)
 	// Deactivate alarm 1 signal
 	PowerControl(ALARM_1_ENABLE, OFF);
 
-	debug("Warning Event 1 Alarm finished\r\n");
+	debug("Alert/Alarm 1 Timer callback: warning finished\r\n");
+
+	// Check if the state of the other Alert/Alarm 2 is inactive
+	if (GetPowerControlState(ALARM_2_ENABLE) == OFF)
+	{
+		// Can disable the remote power for the Alert/Alarms for now
+		PowerControl(ENABLE_12V, OFF);
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -220,7 +227,14 @@ void AlarmTwoOutputTimerCallback(void)
 	// Deactivate alarm 2 signal
 	PowerControl(ALARM_2_ENABLE, OFF);
 
-	debug("Warning Event 2 Alarm finished\r\n");
+	debug("Alert/Alarm 2 Timer callback: warning finished\r\n");
+
+	// Check if the state of the other Alert/Alarm 1 is inactive
+	if (GetPowerControlState(ALARM_1_ENABLE) == OFF)
+	{
+		// Can disable the remote power for the Alert/Alarms for now
+		PowerControl(ENABLE_12V, OFF);
+	}
 }
 
 ///----------------------------------------------------------------------------
