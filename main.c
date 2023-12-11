@@ -239,6 +239,8 @@ void SystemEventManager(void)
 
 		if (IsSoftTimerActive(ALARM_ONE_OUTPUT_TIMER_NUM) == NO)
 		{
+			// Enable power to the port before enabling the alert/alarm
+			PowerControl(ENABLE_12V, ON);
 			PowerControl(ALARM_1_ENABLE, ON);
 			debug("Warning Event 1 Alarm started\r\n");
 
@@ -248,6 +250,8 @@ void SystemEventManager(void)
 
 		if (IsSoftTimerActive(ALARM_TWO_OUTPUT_TIMER_NUM) == NO)
 		{
+			// Enable power to the port before enabling the alert/alarm
+			PowerControl(ENABLE_12V, ON);
 			PowerControl(ALARM_2_ENABLE, ON);
 			debug("Warning Event 2 Alarm started\r\n");
 
