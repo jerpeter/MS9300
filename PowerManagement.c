@@ -1253,13 +1253,13 @@ int ltc294x_i2c_probe(void)
 	// r_sense can be negative, when sense+ is connected to the battery instead of the sense-, this results in reversed measurements
 	// Set r_sense value, which should be less than or equal to 50mV / I(max)
 	// r_sense is usually 10..50 mOhm, but probably between 150 mOhm and 500 mOhm
-	r_sense = 50; // Attempting wrong value for now (to compile), must fill in with right value
+	r_sense = 10; // 10 mOhm showing on schematic as Rsense
 
 	ltc2944_device.r_sense = r_sense;
 
 	prescaler_exp = LTC294X_PRESCALER_4096;
 
-	ltc2944_device.Qlsb = ((340 * 50000) / r_sense) * (prescaler_exp / LTC294X_MAX_PRESCALER); // units?
+	ltc2944_device.Qlsb = ((340 * 50) / r_sense) * (4096 / LTC294X_MAX_PRESCALER); // units?
 
 	//info->supply_desc.external_power_changed = NULL;
 
