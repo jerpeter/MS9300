@@ -642,12 +642,15 @@ int tps25750_dr_set(struct tps25750* tps, enum typec_data_role role)
 
 	//mutex_lock(&tps->lock);
 
+	// Attempt to change data role
 	ret = tps25750_exec_normal_cmd(tps, cmd);
 	if (ret) { goto release_lock; }
 
+	// Read status to see if the controller changed
 	ret = tps25750_read32(tps, TPS_REG_STATUS, &status);
 	if (ret) { goto release_lock; }
 
+	// Check if the data role did not change
 	if (role != TPS_REG_STATUS_DATA_ROLE(status))
 	{
 		ret = E_FAIL;
@@ -825,12 +828,15 @@ int tps25750_pr_set(struct tps25750* tps, enum typec_role role)
 
 	//mutex_lock(&tps->lock);
 
+	// Attempt to change power role
 	ret = tps25750_exec_normal_cmd(tps, cmd);
 	if (ret) { goto release_lock; }
 
+	// Read status to see if controller updated
 	ret = tps25750_read32(tps, TPS_REG_STATUS, &status);
 	if (ret) { goto release_lock; }
 
+	// Check if the power role did not change
 	if (role != TPS_REG_STATUS_PORT_ROLE(status))
 	{
 		ret = E_FAIL;
@@ -1201,19 +1207,57 @@ void USBCPortControllerInit(void)
 {
 	// Todo: Initial setup?
 	struct tps25750 tps;
+	uint64_t bootStatus;
+	uint16_t powerStatus;
 
 	// In relation to VBUS charging (supplied externally through VBUS), what purpose does Aux Power Enable have?
 	// In order to set the Aux Power Enable, external VBUS must be present
 
-	// Todo: Determine if in Source mode
-
 	// Check mode
+	if (tps2750_is_mode(&tps, TPS_MODE_BOOT) == 1)
+	{
+		debugWarn("USB Port Controller: In Boot mode, likely Device booting in dead battery\r\n");
+	}
 
 	// Check and clear Dead Battery flag if set
+	tps25750_get_reg_boot_status(&tps, &bootStatus);
 
-	// Set Power role to Sink mode to start
-	tps25750_pr_set(&tps, TYPEC_SINK);
+	if (TPS_REG_BOOT_STATUS_DEAD_BATTERY_FLAG(bootStatus))
+	{
+		debugWarn("USB Port Controller: Dead Battery flag set, must clear to continue\r\n");
+		tps25750_clear_dead_battery(&tps);
+	}
 
-	// Set Data role to Device mode to start
-	tps25750_dr_set(&tps, TYPEC_DEVICE);
+	// Read power status to get connection state
+	tps25750_read16(&tps, TPS_REG_POWER_STATUS, &powerStatus);
+
+	// Check if there is a connection present
+	if (TPS_REG_POWER_STATUS_POWER_CONNECTION(powerStatus))
+	{
+		// Determine if connection provides power (Sink mode)
+		if (TPS_REG_POWER_STATUS_SOURCE_SINK(powerStatus))
+		{
+			debug("USB Port Controller: Connection found, provides power, attempting Sink/Device mode\r\n");
+
+			// Attempt to set Power role to Sink and Data role to Device
+			tps25750_pr_set(&tps, TYPEC_SINK);
+			tps25750_dr_set(&tps, TYPEC_DEVICE);
+		}
+		else // Connection requests power (Source mode)
+		{
+			debug("USB Port Controller: Connection found, requests power, attempting Source/Host mode\r\n");
+
+			// Attempt to set Power role to Source and Data tole to Host
+			tps25750_pr_set(&tps, TYPEC_SOURCE);
+			tps25750_dr_set(&tps, TYPEC_HOST);
+		}
+	}
+	else // No conneciton present
+	{
+		debug("USB Port Controller: No connection present (attempting Sink/Device mode as default)\r\n");
+
+		// Attempt to set Power role to Sink and Data role to Device
+		tps25750_pr_set(&tps, TYPEC_SINK);
+		tps25750_dr_set(&tps, TYPEC_DEVICE);
+	}
 }
