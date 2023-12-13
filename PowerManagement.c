@@ -840,30 +840,30 @@ ADDR NAME REGISTER DESCRIPTION R/W DEFAULT
 #define LTC294X_MID_SUPPLY		0x7FFF
 
 enum ltc294x_reg {
-	LTC294X_REG_STATUS					= 0x00,
-	LTC294X_REG_CONTROL					= 0x01,
-	LTC294X_REG_ACC_CHARGE_MSB			= 0x02,
-	LTC294X_REG_ACC_CHARGE_LSB			= 0x03,
-	LTC294X_REG_CHARGE_THR_HIGH_MSB		= 0x04,
-	LTC294X_REG_CHARGE_THR_HIGH_LSB		= 0x05,
-	LTC294X_REG_CHARGE_THR_LOW_MSB		= 0x06,
-	LTC294X_REG_CHARGE_THR_LOW_LSB		= 0x07,
-	LTC294X_REG_VOLTAGE_MSB				= 0x08,
-	LTC294X_REG_VOLTAGE_LSB				= 0x09,
-	LTC294X_REG_VOLTAGE_THR_HIGH_MSB 	= 0x0A,
-	LTC294X_REG_VOLTAGE_THR_HIGH_LSB 	= 0x0B,
-	LTC294X_REG_VOLTAGE_THR_LOW_MSB 	= 0x0C,
-	LTC294X_REG_VOLTAGE_THR_LOW_LSB 	= 0x0D,
-	LTC2943_REG_CURRENT_MSB				= 0x0E,
-	LTC2943_REG_CURRENT_LSB				= 0x0F,
-	LTC2943_REG_CURRENT_THR_HIGH_MSB	= 0x10,
-	LTC2943_REG_CURRENT_THR_HIGH_LSB	= 0x11,
-	LTC2943_REG_CURRENT_THR_LOW_MSB		= 0x12,
-	LTC2943_REG_CURRENT_THR_LOW_LSB		= 0x13,
-	LTC2943_REG_TEMPERATURE_MSB			= 0x14,
-	LTC2943_REG_TEMPERATURE_LSB			= 0x15,
-	LTC2943_REG_TEMPERATURE_THR_HIGH 	= 0x16,
-	LTC2943_REG_TEMPERATURE_THR_LOW 	= 0x17
+	LTC294X_REG_STATUS					= 0x00, // Reg A, as named in datasheet
+	LTC294X_REG_CONTROL					= 0x01, // Reg B
+	LTC294X_REG_ACC_CHARGE_MSB			= 0x02, // Reg C
+	LTC294X_REG_ACC_CHARGE_LSB			= 0x03, // Reg D
+	LTC294X_REG_CHARGE_THR_HIGH_MSB		= 0x04, // Reg E
+	LTC294X_REG_CHARGE_THR_HIGH_LSB		= 0x05, // Reg F
+	LTC294X_REG_CHARGE_THR_LOW_MSB		= 0x06, // Reg G
+	LTC294X_REG_CHARGE_THR_LOW_LSB		= 0x07, // Reg H
+	LTC294X_REG_VOLTAGE_MSB				= 0x08, // Reg I
+	LTC294X_REG_VOLTAGE_LSB				= 0x09, // Reg J
+	LTC294X_REG_VOLTAGE_THR_HIGH_MSB 	= 0x0A, // Reg K
+	LTC294X_REG_VOLTAGE_THR_HIGH_LSB 	= 0x0B, // Reg L
+	LTC294X_REG_VOLTAGE_THR_LOW_MSB 	= 0x0C, // Reg M
+	LTC294X_REG_VOLTAGE_THR_LOW_LSB 	= 0x0D, // Reg N
+	LTC2943_REG_CURRENT_MSB				= 0x0E, // Reg O
+	LTC2943_REG_CURRENT_LSB				= 0x0F, // Reg P
+	LTC2943_REG_CURRENT_THR_HIGH_MSB	= 0x10, // Reg Q
+	LTC2943_REG_CURRENT_THR_HIGH_LSB	= 0x11, // Reg R
+	LTC2943_REG_CURRENT_THR_LOW_MSB		= 0x12, // Reg S
+	LTC2943_REG_CURRENT_THR_LOW_LSB		= 0x13, // Reg T
+	LTC2943_REG_TEMPERATURE_MSB			= 0x14, // Reg U
+	LTC2943_REG_TEMPERATURE_LSB			= 0x15, // Reg V
+	LTC2943_REG_TEMPERATURE_THR_HIGH 	= 0x16, // Reg W
+	LTC2943_REG_TEMPERATURE_THR_LOW 	= 0x17 	// Reg X
 };
 
 #define LTC2941_REG_STATUS_CHIP_ID	(1 << 7)
@@ -884,12 +884,20 @@ enum ltc294x_reg {
 #define LTC294X_PRESCALER_256	0x4
 #define LTC294X_PRESCALER_1024	0x5
 #define LTC294X_PRESCALER_4096	0x6
-#define LTC294X_MAX_PRESCALER	4096
 
+#define LTC294X_M_1		1
+#define LTC294X_M_4		4
+#define LTC294X_M_16	16
+#define LTC294X_M_64	64
+#define LTC294X_M_256	256
+#define LTC294X_M_1024	1024
+#define LTC294X_M_4096	4096
+#define LTC294X_MAX_PRESCALER	4096
 
 typedef struct {
 	int charge; // Last charge register content
 	int r_sense; // mOhm
+	int prescaler; // M value between 1 and 4096
 	int Qlsb; // nAh
 } ltc294x_info;
 ltc294x_info ltc2944_device;
@@ -958,8 +966,9 @@ int ltc294x_reset(int prescaler_exp)
 	if (ret < 0) { return ret; }
 
 	control = LTC294X_REG_CONTROL_PRESCALER_SET(prescaler_exp) | LTC294X_REG_CONTROL_ALCC_CONFIG_ALERT_MODE;
-	control |= LTC2942_REG_CONTROL_MODE_AUTO; // Continuous conversions
-	//control |= LTC2943_REG_CONTROL_MODE_SCAN; // 2944 measures every 10 sec
+
+	//control |= LTC2942_REG_CONTROL_MODE_AUTO; // Continuous conversions (more power)
+	control |= LTC2943_REG_CONTROL_MODE_SCAN; // Conversions every 10 sec (less power)
 
 	if (value != control)
 	{
@@ -1157,9 +1166,9 @@ int ltc294x_set_current_thr(ltc294x_info* info, int currThr)
 	int32_t currThrHigh;
 	int32_t currThrLow;
 
-	// Todo: Figure out units, use value = convert_uAh_to_bin(info, val)?
-	currThrHigh = (((currThr * info->r_sense / 64) * 0x7FFF) + 0x7FFF);
-	currThrLow = (((-currThr * info->r_sense / 64) * 0x7FFF) + 0x7FFF);
+	// Current in mA converted to A for equation
+	currThrHigh = ((((currThr / 1000) * info->r_sense / 64) * 0x7FFF) + 0x7FFF);
+	currThrLow = ((((-currThr / 1000) * info->r_sense / 64) * 0x7FFF) + 0x7FFF);
 
 	// Set new charge value
 	dataWrite[0] = I16_MSB(currThrHigh);
@@ -1257,9 +1266,9 @@ int ltc294x_i2c_probe(void)
 
 	ltc2944_device.r_sense = r_sense;
 
-	prescaler_exp = LTC294X_PRESCALER_4096;
+	prescaler_exp = LTC294X_PRESCALER_256;
 
-	ltc2944_device.Qlsb = ((340 * 50) / r_sense) * (4096 / LTC294X_MAX_PRESCALER); // units?
+	ltc2944_device.Qlsb = ((340 * 50) / r_sense) * (LTC294X_M_256 / LTC294X_MAX_PRESCALER) * 1000; // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
 
 	//info->supply_desc.external_power_changed = NULL;
 
@@ -1333,7 +1342,77 @@ void TestFuelGauge(void)
 ///----------------------------------------------------------------------------
 void FuelGaugeInit(void)
 {
+	/*
+		----------------------------------------------------------------------
+		Battery
+		----------------------------------------------------------------------
+		Capacity: 6600mAh
+		Nominal voltage: 6.4V
+		Max input voltage: 9V
+		Max charge voltage: 7.3V
+		Standard charge current: 1320mA
+		Max charge current: 3000mA
+		Min discharge voltage: 4.0+/-0.1V
+		Standard discharge current: 1320mA
+		Max continuous discharge: 3000mA
+
+		----------------------------------------------------------------------
+		Fuel Gauge parameters
+		----------------------------------------------------------------------
+		Rsense = 10mOhm
+
+		Rsense <= 50mV / Imax
+		Rsense <= 0.01666
+		0.010 <= 0.01666
+
+		RSENSE <= 0.340mAh * 2^16 / QBAT * 50mOhm
+		RSENSE <= 168.80
+		0.010 <= 168.80
+
+		Minimum Qlsb > Qbat / 2^16
+		Minimum Qlsb > 0.10070
+
+		qLSB = 0.340mAh * 50mOhm / RSENSE
+		qLSB = 0.340mAh * 50mOhm / 10mOhm
+		qLSB = 1.7 with max prescaler (4096)
+
+		Qlsb with prescaler 1024 = 0.425
+		Qlsb with prescaler 256 = 0.10625
+		Qlsb with prescaler 64 = 0.0265
+		Qlsb with prescaler 4 = 0.00166
+		Qlsb with prescaler 1 = 0.000415
+
+		M >= 4096 * QBAT / 2^16 * 0.340mAh * RSENSE / 50mOhm
+		M >= 242.647
+
+		With prescaler 256, max ADC voltage reading = 6963.2V (below our 6600 capacity)
+
+		----------------------------------------------------------------------
+		Current Threshold
+		----------------------------------------------------------------------
+		Current reading max = 6400mA
+		3000mA / 6400mA * 32768 counts = 15,360
+		Current Threshold High = 32767 + 15,360 = 48127 (0xBBFF)
+		Current Threshold Low = 32767 - 15,360 = 17407 (0x43FF)
+
+
+		Note: Before writing to the accumulated charge registers, the analog section should be temporarily shut down by setting B[0] to 1
+	*/
+
+	ltc2944_device.r_sense = 10; // 10 mOhm showing on schematic as Rsense
+	ltc2944_device.prescaler = LTC294X_PRESCALER_256;
+	ltc2944_device.Qlsb = (((340 * 1000) * 50) / ltc2944_device.r_sense) * (LTC294X_M_256 / LTC294X_MAX_PRESCALER); // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
+
+	// Reset the device with desired prescaler, ADC mode will be set to Scan and ALCC config set to Alert mode
+	ltc294x_reset(ltc2944_device.prescaler);
+
+	// Set the Voltage Thresold High and Low based on 7300mV max, 4000mV min
+	ltc294x_set_voltage_thr(&ltc2944_device, 7300, 4000);
+
+	// Set the Current Thresold High and Low based on 3000mA
+	ltc294x_set_current_thr(&ltc2944_device, 3000);
+
 	// Todo: Determine accumulated charge
 
-	// Todo: Set thresholds for charge, voltage, current, temperature?
+	// Todo: Set thresholds for charge and temperature?
 }
