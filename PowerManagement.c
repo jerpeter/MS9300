@@ -1012,7 +1012,8 @@ int ltc294x_get_charge(ltc294x_info* info, enum ltc294x_reg reg, int* val)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_set_charge_now(ltc294x_info* info, int val)
+#if 0 /* reference function */
+int ltc294x_set_charge_now_uAh(ltc294x_info* info, int val)
 {
 	int ret;
 	uint8_t dataw[2];
@@ -1047,11 +1048,47 @@ error_exit:
 
 	return ((ret < 0) ? ret : 0);
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_set_charge_thr(ltc294x_info* info, int thrHigh, int thrLow)
+int ltc294x_set_charge_now(ltc294x_info* info, int val)
+{
+	int ret;
+	uint8_t dataw[2];
+	uint8_t ctrl_reg;
+	int32_t value;
+
+	value = (val / info->Qlsb);
+	if ((value < 0) || (value > 0xFFFF)) { return E_INVALID; } // Input validation
+
+	// Read control register
+	ret = ltc294x_read_regs(LTC294X_REG_CONTROL, &ctrl_reg, 1);
+	if (ret < 0) { return ret; }
+
+	// Disable analog section
+	ctrl_reg |= LTC294X_REG_CONTROL_SHUTDOWN_MASK;
+	ret = ltc294x_write_regs(LTC294X_REG_CONTROL, &ctrl_reg, 1);
+	if (ret < 0) { return ret; }
+
+	// Set new charge value
+	dataw[0] = I16_MSB(value);
+	dataw[1] = I16_LSB(value);
+	ret = ltc294x_write_regs(LTC294X_REG_ACC_CHARGE_MSB, &dataw[0], 2);
+
+	// Enable analog section
+	ctrl_reg &= ~LTC294X_REG_CONTROL_SHUTDOWN_MASK;
+	ret = ltc294x_write_regs(LTC294X_REG_CONTROL, &ctrl_reg, 1);
+
+	return ((ret < 0) ? ret : 0);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+#if 0 /* reference function, write should be 4 */
+int ltc294x_set_charge_thr_uAh(ltc294x_info* info, int thrHigh, int thrLow)
 {
 	uint8_t dataWrite[4];
 	int32_t chargeThrHigh;
@@ -1075,6 +1112,33 @@ int ltc294x_set_charge_thr(ltc294x_info* info, int thrHigh, int thrLow)
 	dataWrite[3] = I16_LSB(chargeThrLow);
 
 	return (ltc294x_write_regs(LTC294X_REG_CHARGE_THR_HIGH_MSB, &dataWrite[0], 2));
+}
+#endif
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ltc294x_set_charge_thr(ltc294x_info* info, int thrHigh, int thrLow)
+{
+	uint8_t dataWrite[4];
+	int32_t chargeThrHigh;
+	int32_t chargeThrLow;
+
+	// Set the charge ADC value by dividing by the value represented by 1 bit
+	chargeThrHigh = (thrHigh / info->Qlsb);
+	if ((chargeThrHigh < 0) || (chargeThrHigh > 0xFFFF)) { return E_INVALID; } // input validation
+
+	// Set the charge ADC value by dividing by the value represented by 1 bit
+	chargeThrLow = (thrLow / info->Qlsb);
+	if ((chargeThrLow < 0) || (chargeThrLow > 0xFFFF)) { return E_INVALID; } // input validation
+
+	// Set new charge value
+	dataWrite[0] = I16_MSB(chargeThrHigh);
+	dataWrite[1] = I16_LSB(chargeThrHigh);
+	dataWrite[2] = I16_MSB(chargeThrLow);
+	dataWrite[3] = I16_LSB(chargeThrLow);
+
+	return (ltc294x_write_regs(LTC294X_REG_CHARGE_THR_HIGH_MSB, &dataWrite[0], 4));
 }
 
 ///----------------------------------------------------------------------------
@@ -1188,18 +1252,11 @@ int ltc294x_get_temperature(ltc294x_info* info, int* val)
 	uint8_t datar[2];
 	uint32_t value;
 
-	value = 510 * 10; // Full-scale is 510 Kelvin, shift up for tenths
-
 	ret = ltc294x_read_regs(LTC2943_REG_TEMPERATURE_MSB, &datar[0], 2);
-	value *= ((datar[0] << 8) | datar[1]);
+	value = ((datar[0] << 8) | datar[1]);
 
-#if 0 /* Results in C */
-	// Convert to tenths of degree Celsius
-	*val = value / 0xFFFF - 2732 // C = K - 273.15, in tenths is 2732 // old reference value was 2722;
-#else /* Results in F */
-	// Convert to F, F = (C * (9/5)) + 32
-	*val = (((value / 0xFFFF - 2732) * (9/5)) + 32);
-#endif
+	// Convert to degree Celsius
+	*val = (((value * 510) / 0xFFFF) - 273.15); // C = K - 273.15
 
 	return (ret);
 }
@@ -1207,16 +1264,55 @@ int ltc294x_get_temperature(ltc294x_info* info, int* val)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_set_temp_thr(ltc294x_info* info, int temp)
+int ltc294x_get_temperature_farenheit(ltc294x_info* info, int* val)
+{
+	int ret;
+	uint8_t datar[2];
+	uint32_t value;
+
+	ret = ltc294x_read_regs(LTC2943_REG_TEMPERATURE_MSB, &datar[0], 2);
+	value = ((datar[0] << 8) | datar[1]);
+
+	// Convert to F, F = (C * (9/5)) + 32
+	*val = (((((value * 510) / 0xFFFF) - 273.15) * (9 / 5)) + 32);
+
+	return (ret);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ltc294x_set_temp_thr(ltc294x_info* info, int tempHigh, int tempLow)
 {
 	uint8_t dataWrite[2];
-	uint32_t tempThr;
+	uint32_t tempHighThr;
+	uint32_t tempLowThr;
 
-	tempThr = (((((temp - 32) * 5) / 9) + 273.2) * 0xFFFF / 510);
+	tempHighThr = ((tempHigh + 273.15) * 0xFFFF / 510);
+	tempLowThr = ((tempHigh + 273.15) * 0xFFFF / 510);
 
-	// Set new charge value
-	dataWrite[0] = I16_MSB(tempThr);
-	dataWrite[1] = I16_LSB((tempThr & 0xE0)); // Last 5 bits is always zero (ADC for temp only 11 bits)
+	// Set new charge value (only 11 bits in temp mode, can only set the top 8 MSB bits)
+	dataWrite[0] = I16_MSB(tempHighThr);
+	dataWrite[1] = I16_MSB(tempLowThr);
+
+	return (ltc294x_write_regs(LTC2943_REG_CURRENT_THR_HIGH_MSB, &dataWrite[0], sizeof(dataWrite)));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ltc294x_set_temp_thr_farenheit(ltc294x_info* info, int tempHigh, int tempLow)
+{
+	uint8_t dataWrite[2];
+	uint32_t tempHighThr;
+	uint32_t tempLowThr;
+
+	tempHighThr = (((((tempHigh - 32) * 5) / 9) + 273.15) * 0xFFFF / 510);
+	tempLowThr = (((((tempLow - 32) * 5) / 9) + 273.15) * 0xFFFF / 510);
+
+	// Set new charge value (only 11 bits in temp mode, can only set the top 8 MSB bits)
+	dataWrite[0] = I16_MSB(tempHighThr);
+	dataWrite[1] = I16_MSB(tempLowThr);
 
 	return (ltc294x_write_regs(LTC2943_REG_CURRENT_THR_HIGH_MSB, &dataWrite[0], sizeof(dataWrite)));
 }
@@ -1344,7 +1440,7 @@ void FuelGaugeInit(void)
 {
 	/*
 		----------------------------------------------------------------------
-		Battery
+		Battery: Single Pack
 		----------------------------------------------------------------------
 		Capacity: 6600mAh
 		Nominal voltage: 6.4V
@@ -1355,6 +1451,21 @@ void FuelGaugeInit(void)
 		Min discharge voltage: 4.0+/-0.1V
 		Standard discharge current: 1320mA
 		Max continuous discharge: 3000mA
+		Operating temp, charging: 0C - 45C
+		Operating temp, discharging: -20C - 60C
+
+		----------------------------------------------------------------------
+		Battery: Double Pack
+		----------------------------------------------------------------------
+		Capacity: 13200mAh
+		Nominal voltage: 6.4V
+		Max input voltage: 9V
+		Max charge voltage: 7.3V
+		Standard charge current: 2640mA
+		Max charge current: 6000mA
+		Min discharge voltage: 4.0+/-0.1V
+		Standard discharge current: 2640mA
+		Max continuous discharge: 6000mA
 
 		----------------------------------------------------------------------
 		Fuel Gauge parameters
@@ -1367,52 +1478,84 @@ void FuelGaugeInit(void)
 
 		RSENSE <= 0.340mAh * 2^16 / QBAT * 50mOhm
 		RSENSE <= 168.80
-		0.010 <= 168.80
+		0.010 <= 168.80 (single pack), 84.40 (double pack)
 
 		Minimum Qlsb > Qbat / 2^16
-		Minimum Qlsb > 0.10070
+		Minimum Qlsb > 0.10070 (single pack), 0.20141 (double pack)
 
 		qLSB = 0.340mAh * 50mOhm / RSENSE
 		qLSB = 0.340mAh * 50mOhm / 10mOhm
 		qLSB = 1.7 with max prescaler (4096)
 
+		Qlsb with prescaler 4096 = 1.7
 		Qlsb with prescaler 1024 = 0.425
 		Qlsb with prescaler 256 = 0.10625
 		Qlsb with prescaler 64 = 0.0265
 		Qlsb with prescaler 4 = 0.00166
 		Qlsb with prescaler 1 = 0.000415
 
-		M >= 4096 * QBAT / 2^16 * 0.340mAh * RSENSE / 50mOhm
-		M >= 242.647
+		M >= 4096 * QBAT / 2^16 / 0.340mAh * RSENSE / 50mOhm
+		M >= 242.647 (single pack), 485.294 (double pack)
 
-		With prescaler 256, max ADC voltage reading = 6963.2V (below our 6600 capacity)
+		With prescaler 256, max ADC capacity reading = 6963.2 (below our 6600 capacity, single pack)
+		With prescaler 1024, max ADC capacity reading = 27852.8 (below our 13200 capacity, double pack)
 
 		----------------------------------------------------------------------
 		Current Threshold
 		----------------------------------------------------------------------
-		Current reading max = 6400mA
-		3000mA / 6400mA * 32768 counts = 15,360
-		Current Threshold High = 32767 + 15,360 = 48127 (0xBBFF)
-		Current Threshold Low = 32767 - 15,360 = 17407 (0x43FF)
+		Current reading max = 6600mA (single pack)
+		3000mA / 6600mA * 32768 counts = 14,894.54
+		Current Threshold High = 32767 + 14,895 = 47662 (0xBA2E)
+		Current Threshold Low = 32767 - 14,895 = 17872 (0x45D0)
 
+		----------------------------------------------------------------------
+		Accumulated Charge Threshold
+		----------------------------------------------------------------------
+		6600 / 0.10625 (Qlsb with M=256) = 62117.64 counts (single pack)
+		13200 / 0.425 (Qlsb with M=1024) = 31058.82 counts (double pack)
 
 		Note: Before writing to the accumulated charge registers, the analog section should be temporarily shut down by setting B[0] to 1
 	*/
 
 	ltc2944_device.r_sense = 10; // 10 mOhm showing on schematic as Rsense
-	ltc2944_device.prescaler = LTC294X_PRESCALER_256;
+
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		ltc2944_device.prescaler = LTC294X_PRESCALER_256; // Single pack
+	}
+	else { ltc2944_device.prescaler = LTC294X_PRESCALER_1024; } // Double pack
+
 	ltc2944_device.Qlsb = (((340 * 1000) * 50) / ltc2944_device.r_sense) * (LTC294X_M_256 / LTC294X_MAX_PRESCALER); // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
 
 	// Reset the device with desired prescaler, ADC mode will be set to Scan and ALCC config set to Alert mode
 	ltc294x_reset(ltc2944_device.prescaler);
 
+#if 0 /* Todo: Verify how Charge operates */
+	// Set the charge based on expected near full charge capacity (95%), function handles disabling the analog section for setting the charge and re-enabling when done
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		ltc294x_set_charge_now(&ltc2944_device, (6600 * 0.95)); // Single pack
+	}
+	else { ltc294x_set_charge_now(&ltc2944_device, (13200 * 0.95)); } // Double pack
+
+	// Set the Charge Thresold High and Low
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		ltc294x_set_charge_thr(&ltc2944_device, 6600, 0); // Single pack
+	}
+	else { ltc294x_set_charge_thr(&ltc2944_device, 13200, 0); } // Double pack
+#endif
+
 	// Set the Voltage Thresold High and Low based on 7300mV max, 4000mV min
 	ltc294x_set_voltage_thr(&ltc2944_device, 7300, 4000);
 
 	// Set the Current Thresold High and Low based on 3000mA
-	ltc294x_set_current_thr(&ltc2944_device, 3000);
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		ltc294x_set_current_thr(&ltc2944_device, 3000); // Single pack
+	}
+	else { ltc294x_set_current_thr(&ltc2944_device, 3000); } // Double pack
 
-	// Todo: Determine accumulated charge
-
-	// Todo: Set thresholds for charge and temperature?
+	// Set thresholds for temperature (discharge range)
+	ltc294x_set_temp_thr(&ltc2944_device, 60, -20);
 }
