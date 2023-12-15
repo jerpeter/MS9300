@@ -306,14 +306,6 @@ void InitLCD(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void InitExternalRTC(void)
-{
-	ExternalRtcInit();
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 void TestExternalRAM(void)
 {
 	uint32 i, j;
@@ -2917,7 +2909,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initialize the external RTC
 	//-------------------------------------------------------------------------
-	InitExternalRTC(); debug("External RTC: Init complete\r\n");
+	ExternalRtcInit(); debug("External RTC: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initalize the Fuel Gauge
@@ -2932,7 +2924,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initialize the AD Control
 	//-------------------------------------------------------------------------
-	InitAnalogControl(); debug("Analog Control: Init complete\r\n");
+	AnalogControlInit(); debug("Analog Control: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Init and configure the A/D to prevent the unit from burning current charging internal reference (default config)

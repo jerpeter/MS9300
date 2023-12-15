@@ -193,7 +193,7 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void InitAnalogControl(void)
+void AnalogControlInit(void)
 {
 	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K);
 	SetSeismicGainSelect(SEISMIC_GAIN_NORMAL);

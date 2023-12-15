@@ -119,7 +119,7 @@ typedef union
 ///----------------------------------------------------------------------------
 uint8_t GetAnalogConfigReadback(void);
 void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr);
-void InitAnalogControl(void);
+void AnalogControlInit(void);
 void SetAnalogCutoffFrequency(uint8 freq);
 void SetSeismicGainSelect(uint8 seismicGain);
 void SetAcousticPathSelect(uint8 acousticGain);
