@@ -823,7 +823,7 @@ int tps25750_pr_set(struct tps25750* tps, enum typec_role role)
 	const char *cmd = (role == TYPEC_SINK) ? TPS_4CC_SWSK : TPS_4CC_SWSR;
 
 	// Determine role for sourcing VBUS from the 5V Buck and set before swapping mode
-	if (role == TYPEC_SOURCE) { PowerControl(USB_SOURCE_ENABLE, ON); }
+	if (role == TYPEC_SOURCE) { PowerControl(USB_SOURCE_ENABLE, ON); } // Delay needed to let power settle?
 	else { PowerControl(USB_SOURCE_ENABLE, OFF); }
 
 	//mutex_lock(&tps->lock);
