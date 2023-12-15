@@ -43,9 +43,7 @@ DATE_TIME_STRUCT s_currentTime = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 ///----------------------------------------------------------------------------
 BOOLEAN ExternalRtcInit(void)
 {
-	// REDO & Update to new RTC
 	DATE_TIME_STRUCT time;
-	//RTC_MEM_MAP_STRUCT rtcMap;
 	uint8_t secondsReg;
 	uint8_t stopEnableReg;
 	uint8_t flagsReg;
