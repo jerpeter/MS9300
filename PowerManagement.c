@@ -467,7 +467,7 @@ void InitBattChargerRegisters(void)
 	// 	Default battery LV procetion is on, pre-charge to CC is 3V/cell, battery low action is INT only, Vbatt low is 3V/cell
 	// 	Default batt discharge current regulation in source disabled, batt discharge current in source is 6.4A
 	//	Change batt discharge current regulation in source mode to ???
-	// Todo: determine current
+	// Todo: Determine current
 #if 0 /* fix/resolve */
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
@@ -479,21 +479,29 @@ void InitBattChargerRegisters(void)
 	// JEITA Action
 	//	Default warm protect is only reduce Vbatt_reg, cool protect is only reduce Icc, decrement value for batt full voltage if NTC cool/warm protect occurs is 320mV/cell
 	// 	Default scaling value of CC charge current is 1/4 times
+	// Todo: Determine JETIA actions/settings
 	//SetBattChargerRegister(BATT_CHARGER_JEITA_ACTION_SETTING, 0x3410);
 
 	// Temp Protection
 	//	Default Ext Temp is enabled, OPT action is deliver INT and take TS action, TS OT threshold is 80C, NTC protect is on
 	//	Default NTC protect action is deliver INT and take JEITA action, NTC hot thr is 60C, NTC warm thr is 45C, NTC cool thr is 10C, NTC cold thr is 0C
+	// Todo: Determine thermistor specs and set percentages for temperature thresholds
 	//SetBattChargerRegister(BATT_CHARGER_TEMPERATURE_PROTECTION_SETTING, 0xB399);
 
 	// Config Reg 0
 	//	Default ADC start is disabled, ADC conv is one shot, switcing freq is 600kHz
+	// Todo: Determine best switching frequency (lower should be slightly more efficient)
 	//SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0010);
 
 	// Config Reg 1
 	//	Default junction temp OT regulation is enabled, juntion temp regulation point is 120C, tricle charge current is 100mA, pre-charge current is 400mA
 	//	Default terminaiton current is 200mA
-	//SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF244);
+	// Desire pre-charge @ C/10 (6600/10=660 or 13200/10=1320), termination around C/10 to C/20 (6600/20=330 or 13200/20=660)
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF277); // Single pack, pre-charge @ 700mA, termination @ 350mA
+	}
+	else { SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF2DD); } // Double pack, pre-charge @ 1300mA, termination @ 650mA
 
 	// Config Reg 2
 	//	Default ACgate not forced, TS/IMON config is TS, auto recharge thr is -200mV/cell, batt cells in series is 2, Iin sense gain is 10mOhm
@@ -504,20 +512,26 @@ void InitBattChargerRegisters(void)
 	// Config Reg 3
 	//	Default OV thr for source Vout is 110%, UV thf for source Vout is 75%, deglitch time for OVP in charge mode is 1us, input UVP thr is 3.2V
 	//	Default input OVP thr is 22.4V, batt OVP is enabled
+	// Todo: Determine input UVP and OVP
 	//SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_3, 0x50E8);
 
 	// Config Reg 4
 	//	Default charge saftey timer is enabled, CC/CV timer is 20hr, saftey timer is doubled, reset WDT is normal, WDT timer is disabled, DC/DC converter is enabled
 	//	Default charge termination is enabled, source mode is disabled, register reset is keep current settings, Iin limit loop is enabled, charge mode enabled
+	// Todo: Determine the CC/CV timer, source mode enable, charge mode
 	//SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, 0x3C53);
 
 	// Charge Current
 	//	Default charge current is 2A
-	//SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x0A00);
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x0680); // Single pack, 1300mA
+	}
+	else { SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x0CC0); } // Double pack, 2650mA
 
 	// Batt Reg V
 	//	Default charge full voltage is 8.4V
-	//SetBattChargerRegister(BATT_CHARGER_BATTERY_REGULATION_VOLTAGE_SETTING, 0x3480);
+	SetBattChargerRegister(BATT_CHARGER_BATTERY_REGULATION_VOLTAGE_SETTING, 0x2DA0); // 7.3V
 
 	// Int Mask setting
 	//	Default all INT masked
@@ -841,6 +855,8 @@ void BatteryChargerInit(void)
 	// No need to set (Pin 7) TS/IMON which can be configured for the temperature sense (TS) or current monitor (IMON), since TS is default
 
 	InitBattChargerRegisters();
+
+	// Set Continuous mode for ADC_CONV
 }
 
 ///============================================================================
