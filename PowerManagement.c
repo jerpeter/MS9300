@@ -431,14 +431,16 @@ void InitBattChargerRegisters(void)
 {
 	// Note: Some registers have OTP fields but assuming since no reference on how to accomplish this, assuming factory option only
 
-	// Device setting
+	// Device Address setting
 	//	Default watchdog set is enabled, highest 4-bit addr is 0xD
 	//	Change watchdog to disable (to prevent defaults from loading back in when triggered)
 	SetBattChargerRegister(BATT_CHARGER_DEVICE_ADDRESS_SETTING, 0x00E9);
 
 	// Input Min V limit
 	// 	Default Vin minimum limit is 4.56V
-	//SetBattChargerRegister(BATT_CHARGER_INPUT_MINIMUM_VOLTAGE_LIMIT_SETTING, 0x0039);
+	// 	Usb spec is 4.4V-5.25V, for 3.0, 4.55V-5.25V
+	//	Change to 4.4V to accomodate older specs
+	SetBattChargerRegister(BATT_CHARGER_INPUT_MINIMUM_VOLTAGE_LIMIT_SETTING, 0x0037);
 
 	// Input Current limit
 	// 	Default Iin current limit is 500mA
@@ -450,9 +452,10 @@ void InitBattChargerRegisters(void)
 	else { SetBattChargerRegister(BATT_CHARGER_INPUT_CURRENT_LIMIT_SETTING, 0x0064); } // Double pack
 
 	// Output V setting in Source mode
-	// 	Default Vin_src add V is 0V, config Vin_src by register select, Vin_src is 4.98V
-	//	Change Vin_src output to 7.3V (max for battery)
-	SetBattChargerRegister(BATT_CHARGER_OUTPUT_VOLTAGE_SETTING_IN_SOURCE_MODE, 0x016D);
+	// 	Default Vin_src additional V is 0V, config Vin_src by register select, Vin_src is 4.98V
+	//	No change from default
+	//	Todo: Determine if we want to use source mode and if so, set to Vout to 5V, 9V, 12V, 15V, or 20
+	SetBattChargerRegister(BATT_CHARGER_OUTPUT_VOLTAGE_SETTING_IN_SOURCE_MODE, 0x00F9);
 
 	// Batt Impedance Comp and Output Current Limit in Source mode
 	// 	Default battery impedance is 0 mOhm, max compensaton voltage is 0mV/cell, Iout limit in source mode is 2A
@@ -466,37 +469,37 @@ void InitBattChargerRegisters(void)
 	// Batt low V setting and Batt Discharge Current Reg in Source mode
 	// 	Default battery LV procetion is on, pre-charge to CC is 3V/cell, battery low action is INT only, Vbatt low is 3V/cell
 	// 	Default batt discharge current regulation in source disabled, batt discharge current in source is 6.4A
-	//	Change batt discharge current regulation in source mode to ???
-	// Todo: Determine current
-#if 0 /* fix/resolve */
+	//	Change batt discharge current regulation in source mode to on and 3000mA for single pack and 6000mA for double pack
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
-		SetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, 0x3080); // Single pack
+		SetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, 0x313C); // Single pack
 	}
-	else { SetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, 0x3080); } // Double pack
-#endif
+	else { SetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, 0x3178); } // Double pack
 
 	// JEITA Action
 	//	Default warm protect is only reduce Vbatt_reg, cool protect is only reduce Icc, decrement value for batt full voltage if NTC cool/warm protect occurs is 320mV/cell
 	// 	Default scaling value of CC charge current is 1/4 times
+	//	No change from default
 	// Todo: Determine JETIA actions/settings
-	//SetBattChargerRegister(BATT_CHARGER_JEITA_ACTION_SETTING, 0x3410);
+	SetBattChargerRegister(BATT_CHARGER_JEITA_ACTION_SETTING, 0x3410);
 
 	// Temp Protection
 	//	Default Ext Temp is enabled, OPT action is deliver INT and take TS action, TS OT threshold is 80C, NTC protect is on
 	//	Default NTC protect action is deliver INT and take JEITA action, NTC hot thr is 60C, NTC warm thr is 45C, NTC cool thr is 10C, NTC cold thr is 0C
+	//	No change from default
 	// Todo: Determine thermistor specs and set percentages for temperature thresholds
-	//SetBattChargerRegister(BATT_CHARGER_TEMPERATURE_PROTECTION_SETTING, 0xB399);
+	SetBattChargerRegister(BATT_CHARGER_TEMPERATURE_PROTECTION_SETTING, 0xB399);
 
 	// Config Reg 0
 	//	Default ADC start is disabled, ADC conv is one shot, switcing freq is 600kHz
+	//	No change from default
 	// Todo: Determine best switching frequency (lower should be slightly more efficient)
-	//SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0010);
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0010);
 
 	// Config Reg 1
 	//	Default junction temp OT regulation is enabled, juntion temp regulation point is 120C, tricle charge current is 100mA, pre-charge current is 400mA
 	//	Default terminaiton current is 200mA
-	// Desire pre-charge @ C/10 (6600/10=660 or 13200/10=1320), termination around C/10 to C/20 (6600/20=330 or 13200/20=660)
+	// Desire pre-charge @ C/10 (6600/10=660 or 13200/10=1320), termination around C/10 to C/20 (going with C/20 yields 6600/20=330 or 13200/20=660)
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
 		SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF277); // Single pack, pre-charge @ 700mA, termination @ 350mA
@@ -504,7 +507,7 @@ void InitBattChargerRegisters(void)
 	else { SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF2DD); } // Double pack, pre-charge @ 1300mA, termination @ 650mA
 
 	// Config Reg 2
-	//	Default ACgate not forced, TS/IMON config is TS, auto recharge thr is -200mV/cell, batt cells in series is 2, Iin sense gain is 10mOhm
+	//	Default ACgate not forced, TS/IMON (Pin 7) config is TS, auto recharge thr is -200mV/cell, batt cells in series is 2, Iin sense gain is 10mOhm
 	//	Default batt current sense gain is 10mOhm, ACgate driver is enabled
 	//	Change batt cells in series to 4
 	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_2, 0x0E40);
@@ -512,17 +515,21 @@ void InitBattChargerRegisters(void)
 	// Config Reg 3
 	//	Default OV thr for source Vout is 110%, UV thf for source Vout is 75%, deglitch time for OVP in charge mode is 1us, input UVP thr is 3.2V
 	//	Default input OVP thr is 22.4V, batt OVP is enabled
+	//	No change from default
 	// Todo: Determine input UVP and OVP
-	//SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_3, 0x50E8);
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_3, 0x60E8);
 
 	// Config Reg 4
 	//	Default charge saftey timer is enabled, CC/CV timer is 20hr, saftey timer is doubled, reset WDT is normal, WDT timer is disabled, DC/DC converter is enabled
 	//	Default charge termination is enabled, source mode is disabled, register reset is keep current settings, Iin limit loop is enabled, charge mode enabled
+	//	No change from default
 	// Todo: Determine the CC/CV timer, source mode enable, charge mode
-	//SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, 0x3C53);
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, 0x3C53);
 
 	// Charge Current
 	//	Default charge current is 2A
+	//	Change to 1300mA for single pack (standard charge current per datasheet) and 2650mA for double pack
+	// Todo: Determine if standard charge current or max
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
 		SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x0680); // Single pack, 1300mA
@@ -531,15 +538,18 @@ void InitBattChargerRegisters(void)
 
 	// Batt Reg V
 	//	Default charge full voltage is 8.4V
+	// 	Change to 7.3V (max charge voltage)
 	SetBattChargerRegister(BATT_CHARGER_BATTERY_REGULATION_VOLTAGE_SETTING, 0x2DA0); // 7.3V
 
 	// Int Mask setting
 	//	Default all INT masked
-	//SetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_0, 0x0000);
+	//	Change all to unmasked
+	SetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_0, 0x3CFF);
 
 	// Int Mask setting
 	//	Default all INT masked
-	//SetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_1, 0x0000);
+	//	Change all to unmasked
+	SetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_1, 0x0003);
 }
 
 ///----------------------------------------------------------------------------
@@ -844,19 +854,31 @@ void TestBatteryCharger(void)
 ///----------------------------------------------------------------------------
 void BatteryChargerInit(void)
 {
-	// Todo: What to set?
-
 	// ACOK (pin 11 of part) indicates when the input power supply (VBUS charging) is in charge mode
-	// ACOK prevents VCC from V_batt from powering the VBUS present line (Power logic latch)
+	// Note: ACOK prevents VCC from V_batt from powering the VBUS present line (Power logic latch)
 
-	// V_adp under voltage lockout threshold is 2.4-2.8V (typically 2.6V), over volatge ~24V
-	// V_batt under voltage lockout threshold is 2.5-2.7V (typically 2.6V)
+	// Note: V_adp under voltage lockout threshold is 2.4-2.8V (typically 2.6V), over volatge ~24V
+	// Note: V_batt under voltage lockout threshold is 2.5-2.7V (typically 2.6V)
 
-	// No need to set (Pin 7) TS/IMON which can be configured for the temperature sense (TS) or current monitor (IMON), since TS is default
-
+	// Setup the following Battery charger registers
+	/*
+		Device Address Setting
+		Input Minimum Voltage Limit Setting
+		Input Current Limit Setting
+		Output Voltage Setting in Source Mode
+		Battery Impedance Compensation and Output Current Limit Setting in Source Mode
+		Battery Low Voltage Threshold and Battery Discharge Current Regulation in Source Mode
+		JEITA Action Setting
+		Temperature Protection Setting
+		Configuration Register 0, 1, 2, 3, 4
+		Charge Current Setting
+		Battery Regulation Voltage Setting
+		INT Mask Setting Register 0, 1
+	*/
 	InitBattChargerRegisters();
 
 	// Set Continuous mode for ADC_CONV
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0090);
 }
 
 ///============================================================================
