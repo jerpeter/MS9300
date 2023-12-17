@@ -445,7 +445,6 @@ void SetupPowerOnDetectGPIO(void)
 	g_MCUPowerLatch.func = MXC_GPIO_FUNC_OUT;
 	g_MCUPowerLatch.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&g_MCUPowerLatch);
-	//MXC_GPIO_OutSet(g_MCUPowerLatch.port, g_MCUPowerLatch.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Power Good Battery Charge: Port 0, Pin 12, Input, External pullup, 1.8V
@@ -513,6 +512,7 @@ void SetupGPIO(void)
 	g_GaugeAlert.pad = MXC_GPIO_PAD_NONE;
 	g_GaugeAlert.func = MXC_GPIO_FUNC_IN;
 	g_GaugeAlert.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_GaugeAlert);
 	MXC_GPIO_RegisterCallback(&g_GaugeAlert, (mxc_gpio_callback_fn)Fuel_gauge_alert_irq, NULL);
     MXC_GPIO_IntConfig(&g_GaugeAlert, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_GaugeAlert.port, g_GaugeAlert.mask);
@@ -525,6 +525,7 @@ void SetupGPIO(void)
 	g_BatteryChargerIRQ.pad = MXC_GPIO_PAD_STRONG_PULL_UP;
 	g_BatteryChargerIRQ.func = MXC_GPIO_FUNC_IN;
 	g_BatteryChargerIRQ.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_BatteryChargerIRQ);
 	MXC_GPIO_RegisterCallback(&g_BatteryChargerIRQ, (mxc_gpio_callback_fn)Battery_charger_irq, NULL);
     MXC_GPIO_IntConfig(&g_BatteryChargerIRQ, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_BatteryChargerIRQ.port, g_BatteryChargerIRQ.mask);
@@ -559,6 +560,7 @@ void SetupGPIO(void)
 	g_ExpansionIRQ.pad = MXC_GPIO_PAD_NONE;
 	g_ExpansionIRQ.func = MXC_GPIO_FUNC_IN;
 	g_ExpansionIRQ.vssel = MXC_GPIO_VSSEL_VDDIOH;
+	MXC_GPIO_Config(&g_ExpansionIRQ);
 	MXC_GPIO_RegisterCallback(&g_ExpansionIRQ, (mxc_gpio_callback_fn)Expansion_irq, NULL);
     MXC_GPIO_IntConfig(&g_ExpansionIRQ, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_ExpansionIRQ.port, g_ExpansionIRQ.mask);
@@ -734,6 +736,7 @@ void SetupGPIO(void)
 	g_USBCPortControllerI2CIRQ.pad = MXC_GPIO_PAD_NONE;
 	g_USBCPortControllerI2CIRQ.func = MXC_GPIO_FUNC_IN;
 	g_USBCPortControllerI2CIRQ.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_USBCPortControllerI2CIRQ);
 	MXC_GPIO_RegisterCallback(&g_USBCPortControllerI2CIRQ, (mxc_gpio_callback_fn)Usbc_port_controller_i2c_irq, NULL);
     MXC_GPIO_IntConfig(&g_USBCPortControllerI2CIRQ, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_USBCPortControllerI2CIRQ.port, g_USBCPortControllerI2CIRQ.mask);
@@ -746,6 +749,7 @@ void SetupGPIO(void)
 	g_AccelInt1.pad = MXC_GPIO_PAD_NONE;
 	g_AccelInt1.func = MXC_GPIO_FUNC_IN;
 	g_AccelInt1.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_AccelInt1);
 	MXC_GPIO_RegisterCallback(&g_AccelInt1, (mxc_gpio_callback_fn)Accelerometer_irq_1, NULL);
     MXC_GPIO_IntConfig(&g_AccelInt1, MXC_GPIO_INT_RISING);
     MXC_GPIO_EnableInt(g_AccelInt1.port, g_AccelInt1.mask);
@@ -758,10 +762,10 @@ void SetupGPIO(void)
 	g_AccelInt2.pad = MXC_GPIO_PAD_NONE;
 	g_AccelInt2.func = MXC_GPIO_FUNC_IN;
 	g_AccelInt2.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_AccelInt2);
 	MXC_GPIO_RegisterCallback(&g_AccelInt2, (mxc_gpio_callback_fn)Accelerometer_irq_2, NULL);
     MXC_GPIO_IntConfig(&g_AccelInt2, MXC_GPIO_INT_RISING);
     MXC_GPIO_EnableInt(g_AccelInt2.port, g_AccelInt2.mask);
-	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Accel Trig: Port 1, Pin 14, Output, No external pull, Active high, 1.8V
@@ -782,6 +786,7 @@ void SetupGPIO(void)
 	g_PowerButtonIRQ.pad = MXC_GPIO_PAD_NONE;
 	g_PowerButtonIRQ.func = MXC_GPIO_FUNC_IN;
 	g_PowerButtonIRQ.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_PowerButtonIRQ);
 	MXC_GPIO_RegisterCallback(&g_PowerButtonIRQ, (mxc_gpio_callback_fn)System_power_button_irq, NULL);
     MXC_GPIO_IntConfig(&g_PowerButtonIRQ, MXC_GPIO_INT_RISING);
     MXC_GPIO_EnableInt(g_PowerButtonIRQ.port, g_PowerButtonIRQ.mask);
@@ -794,6 +799,7 @@ void SetupGPIO(void)
 	g_Button1.pad = MXC_GPIO_PAD_NONE;
 	g_Button1.func = MXC_GPIO_FUNC_IN;
 	g_Button1.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_Button1);
 	MXC_GPIO_RegisterCallback(&g_Button1, (mxc_gpio_callback_fn)Keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button1, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button1.port, g_Button1.mask);
@@ -806,6 +812,7 @@ void SetupGPIO(void)
 	g_Button2.pad = MXC_GPIO_PAD_NONE;
 	g_Button2.func = MXC_GPIO_FUNC_IN;
 	g_Button2.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_Button2);
 	MXC_GPIO_RegisterCallback(&g_Button2, (mxc_gpio_callback_fn)Keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button2, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button2.port, g_Button2.mask);
@@ -818,6 +825,7 @@ void SetupGPIO(void)
 	g_Button3.pad = MXC_GPIO_PAD_NONE;
 	g_Button3.func = MXC_GPIO_FUNC_IN;
 	g_Button3.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_Button3);
 	MXC_GPIO_RegisterCallback(&g_Button3, (mxc_gpio_callback_fn)Keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button3, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button3.port, g_Button3.mask);
@@ -830,6 +838,7 @@ void SetupGPIO(void)
 	g_Button4.pad = MXC_GPIO_PAD_NONE;
 	g_Button4.func = MXC_GPIO_FUNC_IN;
 	g_Button4.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_Button4);
 	MXC_GPIO_RegisterCallback(&g_Button4, (mxc_gpio_callback_fn)Keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button4, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button4.port, g_Button4.mask);
@@ -842,6 +851,7 @@ void SetupGPIO(void)
 	g_Button5.pad = MXC_GPIO_PAD_NONE;
 	g_Button5.func = MXC_GPIO_FUNC_IN;
 	g_Button5.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_Button5);
 	MXC_GPIO_RegisterCallback(&g_Button5, (mxc_gpio_callback_fn)Keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button5, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button5.port, g_Button5.mask);
@@ -854,6 +864,7 @@ void SetupGPIO(void)
 	g_Button6.pad = MXC_GPIO_PAD_NONE;
 	g_Button6.func = MXC_GPIO_FUNC_IN;
 	g_Button6.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_Button6);
 	MXC_GPIO_RegisterCallback(&g_Button6, (mxc_gpio_callback_fn)Keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button6, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button6.port, g_Button6.mask);
@@ -866,6 +877,7 @@ void SetupGPIO(void)
 	g_Button7.pad = MXC_GPIO_PAD_NONE;
 	g_Button7.func = MXC_GPIO_FUNC_IN;
 	g_Button7.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_Button7);
 	MXC_GPIO_RegisterCallback(&g_Button7, (mxc_gpio_callback_fn)Keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button7, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button7.port, g_Button7.mask);
@@ -878,6 +890,7 @@ void SetupGPIO(void)
 	g_Button8.pad = MXC_GPIO_PAD_NONE;
 	g_Button8.func = MXC_GPIO_FUNC_IN;
 	g_Button8.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_Button8);
 	MXC_GPIO_RegisterCallback(&g_Button8, (mxc_gpio_callback_fn)Keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button8, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button8.port, g_Button8.mask);
@@ -890,6 +903,7 @@ void SetupGPIO(void)
 	g_Button9.pad = MXC_GPIO_PAD_NONE;
 	g_Button9.func = MXC_GPIO_FUNC_IN;
 	g_Button9.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_Button9);
 	MXC_GPIO_RegisterCallback(&g_Button9, (mxc_gpio_callback_fn)Keypad_irq, NULL);
     MXC_GPIO_IntConfig(&g_Button9, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_Button9.port, g_Button9.mask);
@@ -935,6 +949,7 @@ void SetupGPIO(void)
 	g_ExtRTCIntA.pad = MXC_GPIO_PAD_NONE;
 	g_ExtRTCIntA.func = MXC_GPIO_FUNC_IN;
 	g_ExtRTCIntA.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_ExtRTCIntA);
 	MXC_GPIO_RegisterCallback(&g_ExtRTCIntA, (mxc_gpio_callback_fn)External_rtc_irq, NULL);
     MXC_GPIO_IntConfig(&g_ExtRTCIntA, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_ExtRTCIntA.port, g_ExtRTCIntA.mask);
@@ -969,6 +984,7 @@ void SetupGPIO(void)
 	g_ExternalTriggerIn.pad = MXC_GPIO_PAD_NONE;
 	g_ExternalTriggerIn.func = MXC_GPIO_FUNC_IN;
 	g_ExternalTriggerIn.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
+	MXC_GPIO_Config(&g_ExternalTriggerIn);
 	MXC_GPIO_RegisterCallback(&g_ExternalTriggerIn, (mxc_gpio_callback_fn)External_trigger_irq, NULL);
     MXC_GPIO_IntConfig(&g_ExternalTriggerIn, MXC_GPIO_INT_RISING);
     MXC_GPIO_EnableInt(g_ExternalTriggerIn.port, g_ExternalTriggerIn.mask);
@@ -1017,6 +1033,7 @@ void SetupGPIO(void)
 	g_LCDInt.pad = MXC_GPIO_PAD_NONE;
 	g_LCDInt.func = MXC_GPIO_FUNC_IN;
 	g_LCDInt.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&g_LCDInt);
 	MXC_GPIO_RegisterCallback(&g_LCDInt, (mxc_gpio_callback_fn)Lcd_irq, NULL);
     MXC_GPIO_IntConfig(&g_LCDInt, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(g_LCDInt.port, g_LCDInt.mask);
@@ -1228,6 +1245,7 @@ void SetupGPIO(void)
 	g_RTCClock.pad = MXC_GPIO_PAD_NONE; // Consider a weak internal pull?
 	g_RTCClock.func = MXC_GPIO_FUNC_IN;
 	g_RTCClock.vssel = MXC_GPIO_VSSEL_VDDIOH;
+	MXC_GPIO_Config(&g_RTCClock);
 #if 0 /* Generic */
 	MXC_GPIO_RegisterCallback(&g_RTCClock, RTCClock_ISR, NULL);
 #else /* Hooked into sample ISR */
@@ -2769,6 +2787,9 @@ void ValidatePowerOn(void)
 	else if (vbusChargingDetect)
 	{
 		// Todo: Determine necessary action if USB charging is reason for power up, Aux power enable?
+
+		// Todo: Turn on appropriate LED
+		//PowerControl(LED???, ON);
 	}
 	else
 	{
