@@ -2763,19 +2763,26 @@ void ValidatePowerOn(void)
 	// Check if Power on button is the startup source
 	if (powerOnButtonDetect)
 	{
+		debugRaw("(2 second press validation) Waiting");
+
 		// Monitor Power on button for 2 secs making sure it remains depressed signaling desire to turn unit on
-		for (i = 0; i < 80; i++)
+		for (i = 0; i < 40; i++)
 		{
-			MXC_Delay(MXC_DELAY_MSEC(25));
+			MXC_Delay(MXC_DELAY_MSEC(50));
+			debugRaw(".");
 
 			// Determine if the Power on button was released early
 			if (GetPowerOnButtonState() == OFF)
 			{
+				debugRaw("\r\nPower On qualificaiton not met, Turning off\r\n");
+
 				// Power on button released therefore startup condition not met, shut down
 				PowerControl(MCU_POWER_LATCH, OFF);
 				while (1) {}
 			}
 		}
+
+		debugRaw(" Power On activated\r\n");
 
 		// Unit startup condition verified, latch power and continue
 		PowerControl(MCU_POWER_LATCH, ON);
