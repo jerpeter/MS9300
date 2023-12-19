@@ -375,29 +375,38 @@ void PowerOffTimerCallback(void)
 {
 	debug("Power Off Timer callback: activated.\r\n");
 
-	// Handle and finish any processing
-	StopMonitoring(g_triggerRecord.opMode, FINISH_PROCESSING);
+	// New method to validate power off by holding the Power On button for some length of time
 
-	if (g_timerModeLastRun == YES)
+	// Check if the Power On button is still pressed
+	if (GetPowerOnButtonState() == ON)
 	{
-		debug("Timer Mode: Ending last session, now disabling...\r\n");
-		g_unitConfig.timerMode = DISABLED;
+		// Begin shutdown
+		g_powerOffActivated = YES;
 
-		// Save Unit Config (also covers LCD contrast change case)
-		SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
+		// Handle and finish any processing
+		StopMonitoring(g_triggerRecord.opMode, FINISH_PROCESSING);
+
+		if (g_timerModeLastRun == YES)
+		{
+			debug("Timer Mode: Ending last session, now disabling...\r\n");
+			g_unitConfig.timerMode = DISABLED;
+
+			// Save Unit Config (also covers LCD contrast change case)
+			SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
+		}
+		else if (g_lcdContrastChanged == YES)
+		{
+			// Save Unit Config here to prevent constant saving on LCD contrast adjustment
+			SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
+		}
+
+		OverlayMessage(getLangText(TIMER_MODE_TEXT), getLangText(POWERING_UNIT_OFF_NOW_TEXT), 3 * SOFT_SECS);
+
+		// Power the unit off
+		debug("Timer mode: Finished for the day, sleep time.\r\n");
+
+		PowerUnitOff(SHUTDOWN_UNIT);
 	}
-	else if (g_lcdContrastChanged == YES)
-	{
-		// Save Unit Config here to prevent constant saving on LCD contrast adjustment
-		SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
-	}
-		
-	OverlayMessage(getLangText(TIMER_MODE_TEXT), getLangText(POWERING_UNIT_OFF_NOW_TEXT), 3 * SOFT_SECS);
-
-	// Power the unit off
-	debug("Timer mode: Finished for the day, sleep time.\r\n");
-
-	PowerUnitOff(SHUTDOWN_UNIT);
 }
 
 ///----------------------------------------------------------------------------

@@ -397,7 +397,7 @@ __attribute__((__interrupt__))
 void System_power_button_irq(void)
 {
 	static uint8 onKeyCount = 0;
-	static uint8 powerOffAttempted = NO;
+	//static uint8 powerOffAttempted = NO;
 	uint16 onKeyFlag;
 
 	// Print test for verification of operation
@@ -410,24 +410,34 @@ void System_power_button_irq(void)
 	// Check if the On key was pressed
 	if (onKeyFlag)
 	{
+#if 0 /* Can't start power off immediately, need validation */
 		// Flag system to monitor power on button for turning unit off
-		g_powerOffActivated = YES;
+		//g_powerOffActivated = YES;
+#endif
 
+		// Flag to potentially start factory setup unlock
 		if (g_factorySetupSequence != PROCESS_FACTORY_SETUP)
 		{
 			//debug("Factory Setup: Stage 1\r\n");
 			g_factorySetupSequence = STAGE_1;
 		}
 
-		if (powerOffAttempted == YES)
-		{ 
+		// Check if the power off timer is disabled
+		if (IsSoftTimerActive(POWER_OFF_TIMER_NUM) == NO)
+		{
+			// Reset count
+			onKeyCount = 0;
+		}
+		else // Power off timer was already enabled
+		{
 			onKeyCount++;
 		}
 
-		if ((powerOffAttempted == YES) && (onKeyCount == 3))
+		// Check if repeated On key press was detected 3 additional times (original press is unlock)
+		if (onKeyCount == 3)
 		{
 			// Gracefully fall off the ledge.. No returning from this
-			//debugRaw("\n--> SAFE FALL <--");
+			debugRaw("\n--> SAFE FALL <--");
 
 			// Handle and finish any processing
 			StopMonitoring(g_triggerRecord.opMode, FINISH_PROCESSING);
@@ -441,19 +451,18 @@ void System_power_button_irq(void)
 			PowerControl(MCU_POWER_LATCH, OFF);
 		}
 
-		if ((powerOffAttempted == YES) && (onKeyCount == 5))
+		// Check if repeated On key press was detected 6 additional times (original press is unlock)
+		if (onKeyCount == 6)
 		{
 			// Jumping off the ledge.. No returning from this
-			//debugRaw("\n--> BOOM <--");
+			debugRaw("\n--> BOOM <--");
 			PowerControl(MCU_POWER_LATCH, OFF);
 		}
 
-		// Todo: Clean up reset logic, currently flawed
-		powerOffAttempted = YES;
-		onKeyCount = 0;
+		// Manage monitoring the On key for powering off
+		AssignSoftTimer(POWER_OFF_TIMER_NUM, (2 * TICKS_PER_SEC), PowerOffTimerCallback);
 	}
 
-	// Clear the interrupt flag in the processor
 	// Clear Power Button interrupt flag (Port 1, Pin 15)
 	MXC_GPIO1->int_clr = MXC_GPIO_PIN_15;
 }
