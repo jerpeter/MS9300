@@ -743,8 +743,6 @@ void CheckBootloaderAppPresent(void)
 ///----------------------------------------------------------------------------
 void AdjustPowerSavings(uint8_t powerSavingsLevel)
 {
-	// Todo: Fine comb sub systems that can be disabled
-
 	// Check if there is no debug built in
 #if (GLOBAL_DEBUG_PRINT_ENABLED == NO_DEBUG)
 	// Disable the debug Uart if any power savings mode besides none
@@ -857,7 +855,6 @@ void AdjustPowerSavings(uint8_t powerSavingsLevel)
 		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_TIMER5); // Could possibly sacrifice
 		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SDMA); // Could possibly sacrifice
 	}
-
 }
 
 ///----------------------------------------------------------------------------
