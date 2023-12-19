@@ -414,8 +414,17 @@ void GetChannelOffsets(uint32 sampleRate)
 		// Set flag to signal powering off the A/D when finished
 		powerAnalogDown = YES;
 	}
+	else // Analog 5V section is already powered
+	{
+		// Check if External ADC is still in reset
+		if (GetPowerControlState(ADC_RESET) == ON)
+		{
+			WaitAnalogPower5vGood();
+		}
 
-	// Todo: Setup ADC
+		// Setup the External ADC (possible path for it already being setup but not guaranteed)
+		AD4695_Init();
+	}
 
 	// Reset offset values
 	memset(&g_channelOffset, 0, sizeof(g_channelOffset));
@@ -1096,7 +1105,17 @@ void TestExternalADC(void)
 		debug("Power Control: Analog 5V enable being turned on\r\n");
 		PowerUpAnalog5VandExternalADC();
 	}
-	else { debug("Power Control: Analog 5V enable already on\r\n"); }
+	else
+	{
+		debug("Power Control: Analog 5V enable already on\r\n");
+
+		// Check if External ADC is still in reset
+		if (GetPowerControlState(ADC_RESET) == ON)
+		{
+			debug("Power Control: Bringing External ADC out of reset\r\n");
+			WaitAnalogPower5vGood();
+		}
+	}
 
 	debug("External ADC: Initializing...\r\n");
 	AD4695_Init();

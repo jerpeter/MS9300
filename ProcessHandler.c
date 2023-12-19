@@ -288,11 +288,18 @@ void StartMonitoring(uint8 operationMode, TRIGGER_EVENT_DATA_STRUCT* opModeParam
 ///----------------------------------------------------------------------------
 void StartDataCollection(uint32 sampleRate)
 {
-	// Enable the A/D
+	// Check if the Analog 5V is powered down
 	if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
 	{
-		debug("Enable the A/D\r\n");
 		PowerUpAnalog5VandExternalADC();
+	}
+	else // Analog 5V already enabled
+	{
+		// Check if External ADC is still in reset and if so take out of reset
+		if (GetPowerControlState(ADC_RESET) == ON) { WaitAnalogPower5vGood(); }
+
+		// Configure External ADC
+		AD4695_Init();
 	}
 
 	// Setup the A/D Channel configuration
@@ -813,8 +820,15 @@ void StartADDataCollectionForCalibration(uint16 sampleRate)
 	// Enable the Analog section
 	if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
 	{
-		debug("Enable the Analog 5V section\r\n");
 		PowerUpAnalog5VandExternalADC();
+	}
+	else // Analog 5V already enabled
+	{
+		// Check if External ADC is still in reset and if so take out of reset
+		if (GetPowerControlState(ADC_RESET) == ON) { WaitAnalogPower5vGood(); }
+
+		// Configure External ADC
+		AD4695_Init();
 	}
 
 	// Delay to allow AD to power up/stabilize

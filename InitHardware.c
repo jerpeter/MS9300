@@ -243,6 +243,14 @@ void InitExternalAD(void)
 	{
 		PowerUpAnalog5VandExternalADC();
 	}
+	else // Analog 5V already enabled
+	{
+		// Check if External ADC is still in reset and if so take out of reset
+		if (GetPowerControlState(ADC_RESET) == ON) { WaitAnalogPower5vGood(); }
+
+		// Configure External ADC
+		AD4695_Init();
+	}
 
 	// Setup the A/D Channel configuration
 	SetupADChannelConfig(SAMPLE_RATE_DEFAULT, UNIT_CONFIG_CHANNEL_VERIFICATION);
@@ -2876,11 +2884,10 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	SetupHalfSecondTickTimer();
 
-	// Todo: Review all init past this point, needs updating
-
 	//-------------------------------------------------------------------------
 	// Disable all interrupts and clear all interrupt vectors 
 	//-------------------------------------------------------------------------
+	// Todo: Determine if this is necessary
 #if 0 /* old hw */
 	Disable_global_interrupt();
 	INTC_init_interrupts();
