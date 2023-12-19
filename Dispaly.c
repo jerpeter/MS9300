@@ -509,7 +509,6 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 	ft81x_stream_stop(); // Finish streaming to command buffer
 
 	ft81x_wait_finish(); // Wait till the GPU is finished? (or delay at start of next display interaction?)
-
 #endif
 }
 

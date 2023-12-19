@@ -394,8 +394,6 @@ void ProcessGpsSerialData(void)
 				s_binaryMessageInProgress = NO;
 				s_binaryPayloadCount = 0;
 			}
-			// Error check for buffer overflow
-			// Todo
 		}
 		else if (g_gpsSerialData.binaryState == GPS_BINARY_MSG_CHECKSUM)
 		{
