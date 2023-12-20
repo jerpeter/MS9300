@@ -284,6 +284,7 @@ volatile uint32 g_sampleCount = 0;
 uint32 g_sampleCountHold = 0;
 uint8 g_channelSyncError = NO;
 uint8 g_powerOffActivated = NO;
+uint8 g_powerOffAttempted = NO;
 uint8 g_usbMassStorageState = USB_INIT_DRIVER;
 uint8 g_usbMode;
 uint8 g_usbThumbDriveWasConnected = NO;

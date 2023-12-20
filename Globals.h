@@ -242,6 +242,7 @@ extern uint8 g_channelSyncError;
 extern volatile uint32 g_sampleCount;
 extern uint32 g_sampleCountHold;
 extern uint8 g_powerOffActivated;
+extern uint8 g_powerOffAttempted;
 extern uint8 g_usbMassStorageState;
 extern uint8 g_usbMode;
 extern uint8 g_usbThumbDriveWasConnected;

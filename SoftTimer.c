@@ -377,36 +377,82 @@ void PowerOffTimerCallback(void)
 
 	// New method to validate power off by holding the Power On button for some length of time
 
-	// Check if the Power On button is still pressed
-	if (GetPowerOnButtonState() == ON)
+	// Check if attempting to power off and Power On button is still pressed
+	if ((g_powerOffAttempted) && (GetPowerOnButtonState() == OFF))
 	{
-		// Begin shutdown
-		g_powerOffActivated = YES;
-
-		// Handle and finish any processing
-		StopMonitoring(g_triggerRecord.opMode, FINISH_PROCESSING);
-
-		if (g_timerModeLastRun == YES)
-		{
-			debug("Timer Mode: Ending last session, now disabling...\r\n");
-			g_unitConfig.timerMode = DISABLED;
-
-			// Save Unit Config (also covers LCD contrast change case)
-			SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
-		}
-		else if (g_lcdContrastChanged == YES)
-		{
-			// Save Unit Config here to prevent constant saving on LCD contrast adjustment
-			SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
-		}
-
-		OverlayMessage(getLangText(TIMER_MODE_TEXT), getLangText(POWERING_UNIT_OFF_NOW_TEXT), 3 * SOFT_SECS);
-
-		// Power the unit off
-		debug("Timer mode: Finished for the day, sleep time.\r\n");
-
-		PowerUnitOff(SHUTDOWN_UNIT);
+		// Reset state and return without any further action
+		g_powerOffAttempted = NO;
+		return;
 	}
+
+	// Prevent power off if monitoring
+	if (g_sampleProcessing != IDLE_STATE)
+	{
+		OverlayMessage(getLangText(WARNING_TEXT), "MONITORING.. UNaABLE TO POWER OFF", 1 * SOFT_SECS);
+		return;
+	}
+
+	if ((g_unitConfig.timerMode == ENABLED) && (g_allowQuickPowerOffForTimerModeSetup == NO))
+	{
+		// Check if the user wants to leave timer mode
+		HandleUserPowerOffDuringTimerMode();
+		// Todo: Fix call leaving this function on the stack
+		return;
+	}
+
+	// Begin shutdown due to power button action or Timer mode
+	g_powerOffActivated = YES;
+
+	// Handle and finish any processing
+	StopMonitoring(g_triggerRecord.opMode, FINISH_PROCESSING);
+
+	if (g_lcdContrastChanged == YES)
+	{
+		// Save Unit Config here to prevent constant saving on LCD contrast adjustment
+		SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
+	}
+
+	OverlayMessage(getLangText(STATUS_TEXT), getLangText(POWERING_UNIT_OFF_NOW_TEXT), 1 * SOFT_SECS);
+
+	// Power the unit off
+	debug("Normal mode: User desires to power off\r\n");
+
+	PowerUnitOff(SHUTDOWN_UNIT);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void PowerOffTimerModeCallback(void)
+{
+	debug("Power Off Timer Mode callback: activated.\r\n");
+
+	// Begin shutdown
+	g_powerOffActivated = YES;
+
+	// Handle and finish any processing
+	StopMonitoring(g_triggerRecord.opMode, FINISH_PROCESSING);
+
+	if (g_timerModeLastRun == YES)
+	{
+		debug("Timer Mode: Ending last session, now disabling...\r\n");
+		g_unitConfig.timerMode = DISABLED;
+
+		// Save Unit Config (also covers LCD contrast change case)
+		SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
+	}
+	else if (g_lcdContrastChanged == YES)
+	{
+		// Save Unit Config here to prevent constant saving on LCD contrast adjustment
+		SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
+	}
+
+	OverlayMessage(getLangText(TIMER_MODE_TEXT), getLangText(POWERING_UNIT_OFF_NOW_TEXT), 3 * SOFT_SECS);
+
+	// Power the unit off
+	debug("Timer mode: Finished for the day, sleep time.\r\n");
+
+	PowerUnitOff(SHUTDOWN_UNIT);
 }
 
 ///----------------------------------------------------------------------------

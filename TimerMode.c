@@ -232,7 +232,7 @@ void ProcessTimerMode(void)
 	raiseTimerEventFlag(TIMER_MODE_TIMER_EVENT);
 
 	// Setup soft timer to turn system off when timer mode is finished for the day (minus the expired secs in the current minute
-	AssignSoftTimer(POWER_OFF_TIMER_NUM, ((g_unitConfig.TimerModeActiveMinutes * 60 * 2) - (currTime.sec * 2)), PowerOffTimerCallback);
+	AssignSoftTimer(POWER_OFF_TIMER_MODE_NUM, ((g_unitConfig.TimerModeActiveMinutes * 60 * 2) - (currTime.sec * 2)), PowerOffTimerModeCallback);
 
 	debug("Timer mode: running...\r\n");
 }
@@ -774,7 +774,7 @@ void ProcessTimerModeSettings(uint8 mode)
 				g_allowQuickPowerOffForTimerModeSetup = YES;
 
 				// Set the Power off soft timer to prevent the unit from staying on past the Timer mode start time
-				AssignSoftTimer(POWER_OFF_TIMER_NUM, (uint32)(minutesLeft * 60 * 2), PowerOffTimerCallback);
+				AssignSoftTimer(POWER_OFF_TIMER_MODE_NUM, (uint32)(minutesLeft * 60 * 2), PowerOffTimerModeCallback);
 			}
 		}
 		else // status == IN_PROGRESS
@@ -820,7 +820,7 @@ void ProcessTimerModeSettings(uint8 mode)
 			debug("Timer Mode: In progress, minutes left before power off: %d (Expired secs this min: %d)\r\n", minutesLeft, currentTime.sec);
 
 			// Setup soft timer to turn system off when timer mode is finished for the day
-			AssignSoftTimer(POWER_OFF_TIMER_NUM, (uint32)((minutesLeft * 60 * 2) - (currentTime.sec	* 2)), PowerOffTimerCallback);
+			AssignSoftTimer(POWER_OFF_TIMER_MODE_NUM, (uint32)((minutesLeft * 60 * 2) - (currentTime.sec	* 2)), PowerOffTimerModeCallback);
 		}
 	}
 }

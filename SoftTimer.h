@@ -29,6 +29,7 @@ enum {
 	ALARM_ONE_OUTPUT_TIMER_NUM,
 	ALARM_TWO_OUTPUT_TIMER_NUM,
 	POWER_OFF_TIMER_NUM,
+	POWER_OFF_TIMER_MODE_NUM,
 	MODEM_DELAY_TIMER_NUM,
 	MODEM_RESET_TIMER_NUM,
 	KEYPAD_LED_TIMER_NUM,
@@ -87,6 +88,7 @@ void KeypadLedUpdateTimerCallBack(void);
 void AlarmOneOutputTimerCallback(void);
 void AlarmTwoOutputTimerCallback(void);
 void PowerOffTimerCallback(void);
+void PowerOffTimerModeCallback(void);
 void ModemDelayTimerCallback(void);
 void ModemResetTimerCallback(void);
 void GpsPowerOffTimerCallBack(void);

@@ -397,7 +397,6 @@ __attribute__((__interrupt__))
 void System_power_button_irq(void)
 {
 	static uint8 onKeyCount = 0;
-	//static uint8 powerOffAttempted = NO;
 	uint16 onKeyFlag;
 
 	// Print test for verification of operation
@@ -410,10 +409,8 @@ void System_power_button_irq(void)
 	// Check if the On key was pressed
 	if (onKeyFlag)
 	{
-#if 0 /* Can't start power off immediately, need validation */
 		// Flag system to monitor power on button for turning unit off
-		//g_powerOffActivated = YES;
-#endif
+		g_powerOffAttempted = YES;
 
 		// Flag to potentially start factory setup unlock
 		if (g_factorySetupSequence != PROCESS_FACTORY_SETUP)
