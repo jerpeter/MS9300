@@ -275,6 +275,7 @@ void SystemEventManager(void)
 	}
 
 	//___________________________________________________________________________________________
+#if 0 /* old logic */
 	if (g_powerOffActivated == YES)
 	{
 		// Check if idle
@@ -304,6 +305,7 @@ void SystemEventManager(void)
 			g_powerOffActivated = NO;
 		}
 	}
+#endif
 }
 
 ///----------------------------------------------------------------------------
