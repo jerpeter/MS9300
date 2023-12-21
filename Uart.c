@@ -673,23 +673,24 @@ void TestUartBridgeScratchpad(void)
 ///----------------------------------------------------------------------------
 void SleepUartBridgeDevice(void)
 {
-	/* The UART may enter sleep mode when all conditions met:
-	- no interrupts pending
-	- modem inputs are not toggled
-	- RX input pin is idling HIGH
-	- TX/RX FIFO are empty
+	/*
+		The UART may enter sleep mode when all conditions met:
+		- no interrupts pending
+		- modem inputs are not toggled
+		- RX input pin is idling HIGH
+		- TX/RX FIFO are empty
 
-	It will exit from sleep mode when any below condition met:
-	- modem inputs are toggling
-	- RX input pin changed to LOW
-	- A data byte is loaded to the TX FIFO
+		It will exit from sleep mode when any below condition met:
+		- modem inputs are toggling
+		- RX input pin changed to LOW
+		- A data byte is loaded to the TX FIFO
 
-	In sleep mode, Crystal is stopped and no UART clock 
-	
-	Sleep mode enabling requires EFR[4] = 1
+		In sleep mode, Crystal is stopped and no UART clock
+
+		Sleep mode enabling requires EFR[4] = 1
 	*/
 
-	// Todo: Need external pull up on RX input pin to allow sleep
+	// Need external pull up on RX input pin to allow sleep, fortunately there are two other ways to sleep the device (Exp enable and Exp reset)
 
 	// Clear Interrupts
 	//Offset 0FH: Interrupt Status and Clear Register (ISCR). Accessible when LCR=0xBF and SFR[2]=1. Default=00

@@ -396,7 +396,6 @@ void PowerOffTimerCallback(void)
 	{
 		// Check if the user wants to leave timer mode
 		HandleUserPowerOffDuringTimerMode();
-		// Todo: Fix call leaving this function on the stack
 		return;
 	}
 

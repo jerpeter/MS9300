@@ -454,7 +454,7 @@ void InitBattChargerRegisters(void)
 	// Output V setting in Source mode
 	// 	Default Vin_src additional V is 0V, config Vin_src by register select, Vin_src is 4.98V
 	//	No change from default
-	//	Todo: Determine if we want to use source mode and if so, set to Vout to 5V, 9V, 12V, 15V, or 20
+	// Todo: Determine if we want to use source mode and if so, set to Vout to 5V, 9V, 12V, 15V, or 20
 	SetBattChargerRegister(BATT_CHARGER_OUTPUT_VOLTAGE_SETTING_IN_SOURCE_MODE, 0x00F9);
 
 	// Batt Impedance Comp and Output Current Limit in Source mode
@@ -1176,7 +1176,7 @@ int ltc294x_set_charge_now(ltc294x_info* info, int val)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* reference function, write should be 4 */
+#if 0 /* reference function, bug discovered; write should be 4 */
 int ltc294x_set_charge_thr_uAh(ltc294x_info* info, int thrHigh, int thrLow)
 {
 	uint8_t dataWrite[4];

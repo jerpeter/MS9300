@@ -315,7 +315,7 @@ void StartDataCollection(uint32 sampleRate)
 	SetupInteralSampleTimer(sampleRate);
 #elif EXTERNAL_SAMPLING_SOURCE
 	debug("Setup External RTC Sample clock...\r\n");
-	// Todo: Setup external sampling source
+	// Setup of external sampling source is done with the start clock driver call
 #endif
 
 	// Init a few key values for data collection
