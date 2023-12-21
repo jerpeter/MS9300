@@ -545,11 +545,16 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 		Text string = The text string itself which should be terminated by a null character
 	*/
 
-	// Draw some text
-	// Todo: update to handle text wrapping and any other special abilities previously handled by this prior function duties
+	// Command the display controller to draw some text
+	// Todo: Update to handle text wrapping and any other special abilities previously handled by this function
 
+#if 0 /* For 480x272 screen size */
 	// Scale old row by 15/4 (30 pixels instead of 8 per row), scale old column by 15/4 (480/128)
 	ft81x_cmd_text((int16_t)(wnd_layout->curr_col * 15 / 4), (int16_t)(wnd_layout->curr_row * 15 / 4), 30, 0, (char*)buff);
+#else /* 800x480 */
+	// Scale old row by 25/4 (50 pixels instead of 8 per row), scale old column by 25/4 (800/128)
+	ft81x_cmd_text((int16_t)(wnd_layout->curr_col * 25 / 4), (int16_t)(wnd_layout->curr_row * 25 / 4), 30, 0, (char*)buff);
+#endif
 
 	if ((ln_type == CURSOR_LN) || (ln_type == CURSOR_CHAR))
 	{

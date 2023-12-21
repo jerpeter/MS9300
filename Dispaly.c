@@ -499,10 +499,17 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 	*/
 	// Option parameter: By default, the button is drawn with a 3D effect (value is zero), OPT_FLAT removes the 3D effect (value of OPT_FLAT is 256)
 	// Todo: Load the dynamic key label
+#if 0 /* 480x272 screen size */
 	ft81x_cmd_button(12, 240, 70, 32, 18, 0, "OK");
 	ft81x_cmd_button(140, 240, 70, 32, 18, 0, "ESCAPE");
 	ft81x_cmd_button(264, 240, 70, 32, 18, 0, "MENU");
 	ft81x_cmd_button(394, 240, 70, 32, 18, 0, "HELP");
+#else /* 800x480 screen size */
+	ft81x_cmd_button(20, 420, 117, 55, 18, 0, "OK");
+	ft81x_cmd_button(233, 420, 117, 55, 18, 0, "ESCAPE");
+	ft81x_cmd_button(440, 420, 117, 55, 18, 0, "MENU");
+	ft81x_cmd_button(657, 420, 117, 55, 18, 0, "HELP");
+#endif
 
 	ft81x_display(); // End the display list started with the ClearLcdMap function
 	ft81x_getfree(0); // Trigger FT81x to read the command buffer
