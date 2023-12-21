@@ -6,19 +6,6 @@
  * Author: Abdel Alkuor <abdelalkuor@geotab.com>
  */
 
-#if 0
-#include <linux/i2c.h>
-#include <linux/module.h>
-#include <linux/regmap.h>
-#include <linux/interrupt.h>
-#include <linux/usb/typec.h>
-#include <linux/usb/role.h>
-#include <linux/firmware.h>
-#include <linux/delay.h>
-#include <linux/power_supply.h>
-#include <linux/minmax.h>
-#endif
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
