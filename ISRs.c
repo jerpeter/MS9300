@@ -1825,16 +1825,12 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 
 				g_testTimeSinceLastCalPulse = g_lifetimeHalfSecondTickCount;
 
-#if 0 /* old hw */
 				// Swap to alternate timer/counter for default 1024 sample rate for Cal
 #if INTERNAL_SAMPLING_SOURCE
-				DUMMY_READ(AVR32_TC.channel[TC_SAMPLE_TIMER_CHANNEL].sr);
-				tc_stop(&AVR32_TC, TC_SAMPLE_TIMER_CHANNEL);
-				tc_start(&AVR32_TC, TC_CALIBRATION_TIMER_CHANNEL);
+				SetupInteralSampleTimer(SAMPLE_RATE_1K);
+				StartInteralSampleTimer();
 #elif EXTERNAL_SAMPLING_SOURCE
 				StartExternalRtcClock(SAMPLE_RATE_1K);
-				AVR32_EIC.ICR.int1 = 1;
-#endif
 #endif
 				s_calSampleCount = MAX_CAL_SAMPLES;
 			}
@@ -1896,16 +1892,12 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 					// Check if on high sensitivity and if so reset to high sensitivity after Cal pulse (done on low)
 					if (g_triggerRecord.srec.sensitivity == HIGH) { SetSeismicGainSelect(SEISMIC_GAIN_HIGH); }
 
-#if 0 /* old hw */
 					// Swap back to original sampling rate
 #if INTERNAL_SAMPLING_SOURCE
-					DUMMY_READ(AVR32_TC.channel[TC_CALIBRATION_TIMER_CHANNEL].sr);
-					tc_stop(&AVR32_TC, TC_CALIBRATION_TIMER_CHANNEL);
-					tc_start(&AVR32_TC, TC_SAMPLE_TIMER_CHANNEL);
+					SetupInteralSampleTimer(g_triggerRecord.trec.sample_rate);
+					StartInteralSampleTimer();
 #elif EXTERNAL_SAMPLING_SOURCE
 					StartExternalRtcClock(g_triggerRecord.trec.sample_rate);
-					AVR32_EIC.ICR.int1 = 1;
-#endif
 #endif
 					// Invalidate the Pretrigger buffer until it's filled again
 					s_pretriggerFull = NO;
@@ -2315,7 +2307,6 @@ static inline void getChannelDataNoReadbackWithTemp_ISR_Inline(void)
 	uint8_t chanDataRaw[2];
 
 	// Todo: need variable channel config for selectable dynamic channels
-	// Todo: verify channel inputs
 
 	// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
 
@@ -2358,7 +2349,6 @@ static inline void getChannelDataNoReadbackNoTemp_ISR_Inline(void)
 	uint8_t chanDataRaw[2];
 
 	// Todo: need variable channel config for selectable dynamic channels
-	// Todo: verify channel inputs
 
 	// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
 
