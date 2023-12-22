@@ -132,4 +132,6 @@ uint16_t GetBattChargerBatteryDischargeCurrent(void);
 uint16_t GetBattChargerInputVoltageInDischargeMode(void);
 uint16_t GetBattChargerOutputCurrentInDischargeMode(void);
 
+int ltc294x_get_voltage(int* val);
+
 #endif //_POWER_MANAGEMENT_H_

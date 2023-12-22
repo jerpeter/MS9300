@@ -994,19 +994,19 @@ ltc294x_info ltc2944_device;
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-inline int convert_bin_to_uAh(ltc294x_info* info, int Q)
+inline int convert_bin_to_uAh(int Qlsb, int Q)
 {
-	return (((Q * (info->Qlsb / 10))) / 100);
+	return (((Q * (Qlsb / 10))) / 100);
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-inline int convert_uAh_to_bin(ltc294x_info* info, int uAh)
+inline int convert_uAh_to_bin(int Qlsb, int uAh)
 {
 	int Q;
 
-	Q = (uAh * 100) / (info->Qlsb/10);
+	Q = (uAh * 100) / (Qlsb/10);
 	return ((Q < LTC294X_MAX_VALUE) ? Q : LTC294X_MAX_VALUE);
 }
 
@@ -1071,7 +1071,7 @@ int ltc294x_reset(int prescaler_exp)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_read_charge_register(ltc294x_info* info, enum ltc294x_reg reg)
+int ltc294x_read_charge_register(enum ltc294x_reg reg)
  {
 	int ret;
 	uint8_t datar[2];
@@ -1085,16 +1085,16 @@ int ltc294x_read_charge_register(ltc294x_info* info, enum ltc294x_reg reg)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_get_charge(ltc294x_info* info, enum ltc294x_reg reg, int* val)
+int ltc294x_get_charge(int Qlsb, enum ltc294x_reg reg, int* val)
 {
-	int value = ltc294x_read_charge_register(info, reg);
+	int value = ltc294x_read_charge_register(reg);
 
 	if (value < 0) { return value; }
 
 	/* When r_sense < 0, this counts up when the battery discharges */
-	if (info->Qlsb < 0) { value -= 0xFFFF; }
+	if (Qlsb < 0) { value -= 0xFFFF; }
 
-	*val = convert_bin_to_uAh(info, value);
+	*val = convert_bin_to_uAh(Qlsb, value);
 	return (0);
 }
 
@@ -1142,14 +1142,14 @@ error_exit:
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_set_charge_now(ltc294x_info* info, int val)
+int ltc294x_set_charge_now(int Qlsb, int val)
 {
 	int ret;
 	uint8_t dataw[2];
 	uint8_t ctrl_reg;
 	int32_t value;
 
-	value = (val / info->Qlsb);
+	value = (val / Qlsb);
 	if ((value < 0) || (value > 0xFFFF)) { return E_INVALID; } // Input validation
 
 	// Read control register
@@ -1207,18 +1207,18 @@ int ltc294x_set_charge_thr_uAh(ltc294x_info* info, int thrHigh, int thrLow)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_set_charge_thr(ltc294x_info* info, int thrHigh, int thrLow)
+int ltc294x_set_charge_thr(int Qlsb, int thrHigh, int thrLow)
 {
 	uint8_t dataWrite[4];
 	int32_t chargeThrHigh;
 	int32_t chargeThrLow;
 
 	// Set the charge ADC value by dividing by the value represented by 1 bit
-	chargeThrHigh = (thrHigh / info->Qlsb);
+	chargeThrHigh = (thrHigh / Qlsb);
 	if ((chargeThrHigh < 0) || (chargeThrHigh > 0xFFFF)) { return E_INVALID; } // input validation
 
 	// Set the charge ADC value by dividing by the value represented by 1 bit
-	chargeThrLow = (thrLow / info->Qlsb);
+	chargeThrLow = (thrLow / Qlsb);
 	if ((chargeThrLow < 0) || (chargeThrLow > 0xFFFF)) { return E_INVALID; } // input validation
 
 	// Set new charge value
@@ -1233,14 +1233,14 @@ int ltc294x_set_charge_thr(ltc294x_info* info, int thrHigh, int thrLow)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_get_charge_counter(ltc294x_info* info, int* val)
+int ltc294x_get_charge_counter(int Qlsb, int* val)
 {
-	int value = ltc294x_read_charge_register(info, LTC294X_REG_ACC_CHARGE_MSB);
+	int value = ltc294x_read_charge_register(LTC294X_REG_ACC_CHARGE_MSB);
 
 	if (value < 0) { return value; }
 
 	value -= LTC294X_MID_SUPPLY;
-	*val = convert_bin_to_uAh(info, value);
+	*val = convert_bin_to_uAh(Qlsb, value);
 
 	return (0);
 }
@@ -1248,31 +1248,25 @@ int ltc294x_get_charge_counter(ltc294x_info* info, int* val)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_get_voltage(ltc294x_info* info, int* val)
+int ltc294x_get_voltage(int* val)
 {
 	int ret;
 	uint8_t datar[2];
-	uint32_t value;
+	uint64_t voltage; // Need storage above uint32 size if calc done in mV
 
 	ret = ltc294x_read_regs(LTC294X_REG_VOLTAGE_MSB, &datar[0], 2);
-	value = ((datar[0] << 8) | datar[1]);
+	voltage = ((datar[0] << 8) | datar[1]);
 
-	value *= 70800 / 5*4; // Max value can be clipped in uint32, scale down
-	value /= 0xFFFF;
-#if 1 /* Results in uV */
-	value *= 1000 * 5/4; // Reverse the scale down
-#else /* Results in mV */
-	value *= 5/4; // Reverse the scale down
-#endif
+	voltage *= (70800 / 0xFFFF); // units in mV
 
-	*val = value;
+	*val = (int)voltage;
 	return (ret);
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_set_voltage_thr(ltc294x_info* info, int vHigh, int vLow)
+int ltc294x_set_voltage_thr(int vHigh, int vLow)
 {
 	uint8_t dataWrite[4];
 	uint32_t vThrHigh;
@@ -1293,7 +1287,7 @@ int ltc294x_set_voltage_thr(ltc294x_info* info, int vHigh, int vLow)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_get_current(ltc294x_info* info, int* val)
+int ltc294x_get_current(int r_sense, int* val)
 {
 	int ret;
 	uint8_t datar[2];
@@ -1305,7 +1299,7 @@ int ltc294x_get_current(ltc294x_info* info, int* val)
 	value *= 64000;
 
 	// Value is in range -32k..+32k, r_sense is usually 10..50 mOhm, the formula below keeps everything in s32 range while preserving enough digits
-	*val = (1000 * (value / (info->r_sense * 0x7FFF))); // Units in uA
+	*val = (1000 * (value / (r_sense * 0x7FFF))); // Units in uA
 
 	return (ret);
 }
@@ -1313,15 +1307,15 @@ int ltc294x_get_current(ltc294x_info* info, int* val)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_set_current_thr(ltc294x_info* info, int currThr)
+int ltc294x_set_current_thr(int r_sense, int currThr)
 {
 	uint8_t dataWrite[4];
 	int32_t currThrHigh;
 	int32_t currThrLow;
 
 	// Current in mA converted to A for equation
-	currThrHigh = ((((currThr / 1000) * info->r_sense / 64) * 0x7FFF) + 0x7FFF);
-	currThrLow = ((((-currThr / 1000) * info->r_sense / 64) * 0x7FFF) + 0x7FFF);
+	currThrHigh = ((((currThr / 1000) * r_sense / 64) * 0x7FFF) + 0x7FFF);
+	currThrLow = ((((-currThr / 1000) * r_sense / 64) * 0x7FFF) + 0x7FFF);
 
 	// Set new charge value
 	dataWrite[0] = I16_MSB(currThrHigh);
@@ -1335,7 +1329,7 @@ int ltc294x_set_current_thr(ltc294x_info* info, int currThr)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_get_temperature(ltc294x_info* info, int* val)
+int ltc294x_get_temperature(int* val)
 {
 	int ret;
 	uint8_t datar[2];
@@ -1353,7 +1347,7 @@ int ltc294x_get_temperature(ltc294x_info* info, int* val)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_get_temperature_farenheit(ltc294x_info* info, int* val)
+int ltc294x_get_temperature_farenheit(int* val)
 {
 	int ret;
 	uint8_t datar[2];
@@ -1371,7 +1365,7 @@ int ltc294x_get_temperature_farenheit(ltc294x_info* info, int* val)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_set_temp_thr(ltc294x_info* info, int tempHigh, int tempLow)
+int ltc294x_set_temp_thr(int tempHigh, int tempLow)
 {
 	uint8_t dataWrite[2];
 	uint32_t tempHighThr;
@@ -1390,7 +1384,7 @@ int ltc294x_set_temp_thr(ltc294x_info* info, int tempHigh, int tempLow)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_set_temp_thr_farenheit(ltc294x_info* info, int tempHigh, int tempLow)
+int ltc294x_set_temp_thr_farenheit(int tempHigh, int tempLow)
 {
 	uint8_t dataWrite[2];
 	uint32_t tempHighThr;
@@ -1411,7 +1405,7 @@ int ltc294x_set_temp_thr_farenheit(ltc294x_info* info, int tempHigh, int tempLow
 ///----------------------------------------------------------------------------
 void ltc294x_update(ltc294x_info* info)
 {
-	int charge = ltc294x_read_charge_register(info, LTC294X_REG_ACC_CHARGE_MSB);
+	int charge = ltc294x_read_charge_register(LTC294X_REG_ACC_CHARGE_MSB);
 
 	if (charge != info->charge)
 	{
@@ -1510,16 +1504,16 @@ void TestFuelGauge(void)
 
 	debug("Fuel Gauge: Status reg is 0x%x\r\n", ltc294x_get_status());
 
-	ltc294x_get_charge(&info, LTC294X_REG_ACC_CHARGE_MSB, &val);
+	ltc294x_get_charge(info.Qlsb, LTC294X_REG_ACC_CHARGE_MSB, &val);
 	debug("Fuel Gauge: Accumulated charge is %d (uA)\r\n", val);
 
-	ltc294x_get_voltage(&info, &val);
+	ltc294x_get_voltage(&val);
 	debug("Fuel Gauge: Voltage is %d (mV)\r\n", val);
 
-	ltc294x_get_current(&info, &val);
+	ltc294x_get_current(info.r_sense, &val);
 	debug("Fuel Gauge: Current is %d (uA)\r\n", val);
 
-	ltc294x_get_temperature_farenheit(&info, &val);
+	ltc294x_get_temperature_farenheit(&val);
 	debug("Fuel Gauge: Temperature is %d (degrees F)\r\n", val);
 }
 
@@ -1637,15 +1631,15 @@ void FuelGaugeInit(void)
 #endif
 
 	// Set the Voltage Thresold High and Low based on 7300mV max, 4000mV min
-	ltc294x_set_voltage_thr(&ltc2944_device, 7300, 4000);
+	ltc294x_set_voltage_thr(7300, 4000);
 
 	// Set the Current Thresold High and Low based on 3000mA
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
-		ltc294x_set_current_thr(&ltc2944_device, 3000); // Single pack
+		ltc294x_set_current_thr(ltc2944_device.r_sense, 3000); // Single pack
 	}
-	else { ltc294x_set_current_thr(&ltc2944_device, 3000); } // Double pack
+	else { ltc294x_set_current_thr(ltc2944_device.r_sense, 3000); } // Double pack
 
 	// Set thresholds for temperature (discharge range)
-	ltc294x_set_temp_thr(&ltc2944_device, 60, -20);
+	ltc294x_set_temp_thr(60, -20);
 }
