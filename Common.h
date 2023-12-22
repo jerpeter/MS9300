@@ -57,8 +57,6 @@ enum {
 
 // Define core clock rate
 #if 1 /* old hw */
-#define FOSC0	66000000
-#else
 #define FOSC0	12000000
 #endif
 
@@ -286,8 +284,8 @@ enum {
 #define VIN_CHANNEL		2
 #define VBAT_CHANNEL	3
 
-#define LOW_VOLTAGE_THRESHOLD		5.4
-#define EXTERNAL_VOLTAGE_PRESENT	5.0
+#define LOW_VOLTAGE_THRESHOLD		4.0 // Showing range 4V-7.3V
+#define EXTERNAL_VOLTAGE_PRESENT	4.4 // USB minimum 3.0 is 4.5V, legacy is 4.4V
 
 #define CYCLIC_EVENT_TIME_THRESHOLD		(4 * 2)
 #define UPDATE_TIME_EVENT_THRESHOLD		(60 * 2)

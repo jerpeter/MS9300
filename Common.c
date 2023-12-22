@@ -56,107 +56,34 @@ static INPUT_MSG_STRUCT* s_inputReadPtr = &(g_input_buffer[0]);
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#define AD_VOLTAGE_READ_LOOP_COUNT	15
+#define AD_VOLTAGE_READ_LOOP_COUNT	1
 float GetExternalVoltageLevelAveraged(uint8 type)
 {
-	uint32 adVoltageReadValue = 0;
 	float adVoltageLevel = (float)0.0;
+	int voltage_mV;
+	uint16 i;
 
-#if NS8100_ORIGINAL_PROTOTYPE
-	uint32 adChannelValueLow = 0xFFFF;
-	uint32 adChannelValueHigh = 0;
-	uint32 adChannelSum = 0;
-	uint32 i = 0;
-
-	// Need to average some amount of reads
-	for (i = 0; i < AD_VOLTAGE_READ_LOOP_COUNT; i++)
-	{
-		switch (type)
-		{
-			case EXT_CHARGE_VOLTAGE:
-				{
-#if 0 /* old hw */
-					adc_start(&AVR32_ADC);
-					adVoltageReadValue = adc_get_value(&AVR32_ADC, VIN_CHANNEL);
-#endif					
-					// Need delay to prevent lockup on spin, EOC check inside adc_get_value appears not working as intended
-					SoftUsecWait(4);
-					//debug("Ext Charge Voltage A/D Reading: 0x%x\r\n", adVoltageReadValue);
-				}				
-				break;
-
-			case BATTERY_VOLTAGE:
-				{
-#if 0 /* old hw */
-					adc_start(&AVR32_ADC);
-					adVoltageReadValue = adc_get_value(&AVR32_ADC, VBAT_CHANNEL);
-#endif
-					// Need delay to prevent lockup on spin, EOC check inside adc_get_value appears not working as intended
-					SoftUsecWait(4);
-					//debug("Battery Voltage A/D Reading: 0x%x\r\n", adVoltageReadValue);
-				}
-				break;
-		}
-		
-		if (adVoltageReadValue < adChannelValueLow)
-			adChannelValueLow = adVoltageReadValue;
-
-		if (adVoltageReadValue > adChannelValueHigh)
-			adChannelValueHigh = adVoltageReadValue;
-			
-		adChannelSum += adVoltageReadValue;
-	}
-
-	// Remove the lowest and highest values read
-	adVoltageLevel = adChannelSum - (adChannelValueLow + adChannelValueHigh);
-	
-	adVoltageLevel /= (AD_VOLTAGE_READ_LOOP_COUNT - 2);
-		
-	// Converted A/D value / 1024 * 3.3 * RATIO
 	switch (type)
 	{
 		case EXT_CHARGE_VOLTAGE:
-			adVoltageLevel *= (REFERENCE_VOLTAGE * VOLTAGE_RATIO_EXT_CHARGE);
+			for (i = 0; i < AD_VOLTAGE_READ_LOOP_COUNT; i++)
+			{
+				adVoltageLevel += GetBattChargerInputVoltage();
+			}
+			adVoltageLevel /= AD_VOLTAGE_READ_LOOP_COUNT;
+			adVoltageLevel /= 1000; // mV to V conversion
 			break;
 
 		case BATTERY_VOLTAGE:
-			adVoltageLevel *= (REFERENCE_VOLTAGE * VOLTAGE_RATIO_BATT);
+			for (i = 0; i < AD_VOLTAGE_READ_LOOP_COUNT; i++)
+			{
+				ltc294x_get_voltage(&voltage_mV);
+				adVoltageLevel += voltage_mV;
+			}
+			adVoltageLevel /= AD_VOLTAGE_READ_LOOP_COUNT;
+			adVoltageLevel /= 1000; // mV to V conversion
 			break;
 	}
-#else /* (NS8100_ALPHA_PROTOTYPE || NS8100_BETA_PROTOTYPE) */
-	switch (type)
-	{
-		case EXT_CHARGE_VOLTAGE:
-		{
-#if 0 /* old hw */
-			adc_start(&AVR32_ADC);
-			adVoltageReadValue = adc_get_value(&AVR32_ADC, VIN_CHANNEL);
-#endif
-			adVoltageLevel = adVoltageReadValue * (REFERENCE_VOLTAGE * VOLTAGE_RATIO_EXT_CHARGE);
-
-			// Need delay to prevent lockup on spin, EOC check inside adc_get_value appears not working as intended
-			//SoftUsecWait(4);
-			//debug("Ext Charge Voltage A/D Reading: 0x%x\r\n", adVoltageReadValue);
-		}
-		break;
-
-		case BATTERY_VOLTAGE:
-		{
-#if 0 /* old hw */
-			adc_start(&AVR32_ADC);
-			adVoltageReadValue = adc_get_value(&AVR32_ADC, VBAT_CHANNEL);
-#endif
-			adVoltageLevel = adVoltageReadValue * (REFERENCE_VOLTAGE * VOLTAGE_RATIO_BATT);
-
-			// Need delay to prevent lockup on spin, EOC check inside adc_get_value appears not working as intended
-			//SoftUsecWait(4);
-			//debug("Battery Voltage A/D Reading: 0x%x\r\n", adVoltageReadValue);
-		}
-		break;
-	}
-#endif
-	
-	adVoltageLevel /= BATT_RESOLUTION;
 
 	return (adVoltageLevel);
 }
@@ -166,25 +93,9 @@ float GetExternalVoltageLevelAveraged(uint8 type)
 ///----------------------------------------------------------------------------
 BOOLEAN CheckExternalChargeVoltagePresent(void)
 {
-	float adVoltageLevel = (float)0.0;
 	BOOLEAN	externalChargePresent = NO;
-	uint32 adVoltageReadValue = 0;
 
-#if 0 /* old hw */
-	adc_start(&AVR32_ADC);
-
-#if 1 /* Normal operation */
-	adVoltageReadValue = adc_get_value(&AVR32_ADC, VIN_CHANNEL);
-#else /* Test with battery */
-	adVoltageReadValue = adc_get_value(&AVR32_ADC, VBAT_CHANNEL);
-#endif
-#endif					
-	adVoltageLevel = adVoltageReadValue * (REFERENCE_VOLTAGE * VOLTAGE_RATIO_EXT_CHARGE);
-	adVoltageLevel /= BATT_RESOLUTION;
-
-	if (adVoltageLevel > EXTERNAL_VOLTAGE_PRESENT)
-		externalChargePresent = YES;
-		
+	if (GetPowerGoodBatteryChargerState() == YES) { externalChargePresent = YES; }
 	return (externalChargePresent);
 }
 
