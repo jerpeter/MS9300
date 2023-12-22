@@ -338,10 +338,7 @@ void Eic_low_battery_irq(void)
 
 	raiseSystemEventFlag_ISR(LOW_BATTERY_WARNING_EVENT);
 
-#if 0 /* old hw */
 	// Clear the interrupt flag in the processor
-	AVR32_EIC.ICR.int0 = 1;
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -350,19 +347,12 @@ void Eic_low_battery_irq(void)
 __attribute__((__interrupt__))
 void Gps_status_irq(void)
 {
-#if 0 /* old hw */
-	s_fractionSecondMarker = Get_system_register(AVR32_COUNT);
-#endif
-
 	if (g_epochTimeGPS)
 	{
 		g_epochTimeGPS++;
 	}
 
-#if 0 /* old hw */
 	// Clear the interrupt flag in the processor
-	gpio_clear_pin_interrupt_flag(AVR32_PIN_PB30);
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -772,10 +762,7 @@ void Tc_typematic_irq(void)
 	// Increment the ms seconds counter
 	g_keypadTimerTicks++;
 
-#if 0 /* old hw */
-	// clear the interrupt flag
-	DUMMY_READ(AVR32_TC.channel[TC_TYPEMATIC_TIMER_CHANNEL].sr);
-#endif
+	// Clear the interrupt flag
 }
 
 ///----------------------------------------------------------------------------
@@ -788,10 +775,7 @@ void Tc_ms_timer_irq(void)
 	// Increment the ms seconds counter
 	g_msTimerTicks++;
 
-#if 0 /* old hw */
-	// clear the interrupt flag
-	DUMMY_READ(AVR32_TC.channel[TC_MILLISECOND_TIMER_CHANNEL].sr);
-#endif
+	// Clear the interrupt flag
 }
 #endif
 
@@ -851,10 +835,8 @@ static inline void checkAlarms_ISR_Inline(void)
 			// Decrement and check if Alarm 1 active time period is complete
 			if (--s_alarmOneCount == 0)
 			{
-#if 0 /* old hw */
 				// Clear Alarm 1
-				gpio_clr_gpio_pin(ALARM_1_GPIO_PIN);
-#endif
+				PowerControl(ALARM_1_ENABLE, OFF);
 			}
 		}
 		// Check for Alarm 1 condition only if not processing a calibration pulse
@@ -866,10 +848,9 @@ static inline void checkAlarms_ISR_Inline(void)
 				if ((s_R_channelReading > g_unitConfig.alarmOneSeismicLevel) || (s_V_channelReading > g_unitConfig.alarmOneSeismicLevel) ||
 					(s_T_channelReading > g_unitConfig.alarmOneSeismicLevel))
 				{
-#if 0 /* old hw */
 					// Start Alarm 1
-					gpio_set_gpio_pin(ALARM_1_GPIO_PIN);
-#endif
+					PowerControl(ALARM_1_ENABLE, ON);
+
 					// Set Alarm 1 count to time in seconds multiplied by sample rate
 					s_alarmOneCount = (uint32)(g_unitConfig.alarmOneTime * s_sampleRate);
 
@@ -882,10 +863,9 @@ static inline void checkAlarms_ISR_Inline(void)
 			{
 				if (s_A_channelReading > g_unitConfig.alarmOneAirLevel)
 				{
-#if 0 /* old hw */
 					// Start Alarm 1
-					gpio_set_gpio_pin(ALARM_1_GPIO_PIN);
-#endif
+					PowerControl(ALARM_1_ENABLE, ON);
+
 					// Set Alarm 1 count to time in seconds multiplied by sample rate
 					s_alarmOneCount = (uint32)(g_unitConfig.alarmOneTime * s_sampleRate);
 
@@ -904,10 +884,8 @@ static inline void checkAlarms_ISR_Inline(void)
 			// Decrement and check if Alarm 1 active time period is complete
 			if (--s_alarmTwoCount == 0)
 			{
-#if 0 /* old hw */
 				// Clear Alarm 2
-				gpio_clr_gpio_pin(ALARM_2_GPIO_PIN);
-#endif
+				PowerControl(ALARM_2_ENABLE, OFF);
 			}
 		}
 		// Check for Alarm 2 condition only if not processing a calibration pulse
@@ -919,10 +897,9 @@ static inline void checkAlarms_ISR_Inline(void)
 				if ((s_R_channelReading > g_unitConfig.alarmTwoSeismicLevel) || (s_V_channelReading > g_unitConfig.alarmTwoSeismicLevel) ||
 					(s_T_channelReading > g_unitConfig.alarmTwoSeismicLevel))
 				{
-#if 0 /* old hw */
 					// Start Alarm 2
-					gpio_set_gpio_pin(ALARM_2_GPIO_PIN);
-#endif
+					PowerControl(ALARM_2_ENABLE, ON);
+
 					// Set Alarm 2 count to time in seconds multiplied by sample rate
 					s_alarmTwoCount = (uint32)(g_unitConfig.alarmTwoTime * s_sampleRate);
 
@@ -935,10 +912,9 @@ static inline void checkAlarms_ISR_Inline(void)
 			{
 				if (s_A_channelReading > g_unitConfig.alarmTwoAirLevel)
 				{
-#if 0 /* old hw */
 					// Start Alarm 2
-					gpio_set_gpio_pin(ALARM_2_GPIO_PIN);
-#endif
+					PowerControl(ALARM_2_ENABLE, ON);
+
 					// Set Alarm 2 count to time in seconds multiplied by sample rate
 					s_alarmTwoCount = (uint32)(g_unitConfig.alarmTwoTime * s_sampleRate);
 
