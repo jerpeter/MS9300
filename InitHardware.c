@@ -114,64 +114,6 @@ void _init_startup(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void InitSerial232(void)
-{
-#if 0 /* old hw */
-	// Setup debug serial port
-	usart_options_t usart_1_rs232_options =
-	{
-		.baudrate = 115200,
-		.charlength = 8,
-		.paritytype = USART_NO_PARITY,
-		.stopbits = USART_1_STOPBIT,
-		.channelmode = USART_NORMAL_CHMODE
-	};
-
-	// Load the Unit Config to get the stored Baud rate. Only dependency should be SPI
-	GetRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
-
-	// Check if the Unit Config is valid
-	if (g_unitConfig.validationKey == 0xA5A5)
-	{
-		// Set the baud rate to the user stored baud rate setting (initialized to 115200)
-		switch (g_unitConfig.baudRate)
-		{
-			case BAUD_RATE_57600: usart_1_rs232_options.baudrate = 57600; break;
-			case BAUD_RATE_38400: usart_1_rs232_options.baudrate = 38400; break;
-			case BAUD_RATE_19200: usart_1_rs232_options.baudrate = 19200; break;
-			case BAUD_RATE_9600: usart_1_rs232_options.baudrate = 9600; break;
-			default: usart_1_rs232_options.baudrate = 115200; break;
-		}
-	}
-
-	// Initialize it in RS232 mode.
-	usart_init_modem(&AVR32_USART1, &usart_1_rs232_options, FOSC0);
-
-	// Enable internal pullups on input lines since external pullups aren't present
-	gpio_enable_pin_pull_up(AVR32_USART1_RXD_0_0_PIN);
-	gpio_enable_pin_pull_up(AVR32_USART1_DCD_0_PIN);
-	gpio_enable_pin_pull_up(AVR32_USART1_DSR_0_PIN);
-	gpio_enable_pin_pull_up(AVR32_USART1_CTS_0_0_PIN);
-	gpio_enable_pin_pull_up(AVR32_USART1_RI_0_PIN);
-
-	/* To prevent the TXD line from falling when the USART is disabled, the use of an internal pull up
-	is mandatory. If the hardware handshaking feature or Modem mode is used, the internal pull up
-	on TXD must also be enabled. */
-	gpio_enable_pin_pull_up(AVR32_USART1_TXD_0_0_PIN);
-
-	sprintf((char*)g_spareBuffer, "-----     NS8100 Fresh boot, App version: %s (Date: %s)     -----\r\n", (char*)g_buildVersion, (char*)g_buildDate);
-	usart_write_line((&AVR32_USART1), "\r\n\n");
-	usart_write_line((&AVR32_USART1), "vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\r\n");
-	usart_write_line((&AVR32_USART1), "---------------------------------------------------------------------------------------\r\n");
-	usart_write_line((&AVR32_USART1), (char*)g_spareBuffer);
-	usart_write_line((&AVR32_USART1), "---------------------------------------------------------------------------------------\r\n");
-	usart_write_line((&AVR32_USART1), "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n");
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 void DebugUartInitBanner(void)
 {
 	debug("\r\n\n");
@@ -180,29 +122,6 @@ void DebugUartInitBanner(void)
 	debug("-----     MS9300 Debug port, App version: %s (Date: %s)     -----\r\n", (char*)g_buildVersion, (char*)g_buildDate);
 	debug("---------------------------------------------------------------------------------------\r\n");
 	debug("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n\r\n");
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void InitGps232(void)
-{
-#if 0 /* old hw */
-	// Setup Gps serial port
-	usart_options_t usart_0_rs232_options =
-	{
-		.baudrate = 9600,
-		.charlength = 8,
-		.paritytype = USART_NO_PARITY,
-		.stopbits = USART_1_STOPBIT,
-		.channelmode = USART_NORMAL_CHMODE
-	};
-
-	// Initialize RS232 mode.
-	usart_init_rs232(&AVR32_USART0, &usart_0_rs232_options, FOSC0);
-
-	gpio_enable_pin_pull_up(AVR32_USART0_RXD_0_0_PIN);
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -261,42 +180,6 @@ void InitExternalAD(void)
 	DisableSensorBlocks();
 	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void TestPowerDownAndStop(void)
-{
-#if 0 /* old hw */
-	// Turn off the keypad LED
-	WriteMcp23018(IO_ADDRESS_KPD, GPIOA, ((ReadMcp23018(IO_ADDRESS_KPD, GPIOA) & 0xCF) | NO_LED_PINS));
-
-	spi_reset(&AVR32_SPI1);
-	gpio_clr_gpio_pin(AVR32_SPI1_MISO_0_0_PIN);
-	gpio_clr_gpio_pin(AVR32_SPI1_MOSI_0_0_PIN);
-	gpio_clr_gpio_pin(AVR32_SPI1_NPCS_3_PIN);
-
-	debug("\nClosing up shop.\n\r\n");
-
-	//DisplayTimerCallBack();
-	SetLcdBacklightState(BACKLIGHT_OFF);
-
-	//LcdPwTimerCallBack();
-	PowerControl(LCD_CONTRAST_ENABLE, OFF);
-	ClearLcdDisplay();
-	ClearControlLinesLcdDisplay();
-	LcdClearPortReg();
-	PowerControl(LCD_POWER_ENABLE, OFF);
-
-	// Drive the unused pin
-	gpio_clr_gpio_pin(AVR32_PIN_PB20);
-
-	//SLEEP(AVR32_PM_SMODE_IDLE);
-	SLEEP(AVR32_PM_SMODE_STOP);
-	//SLEEP(AVR32_PM_SMODE_STANDBY);
-	while (1) {}
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -2885,12 +2768,11 @@ void InitSystemHardware_MS9300(void)
 	SetupHalfSecondTickTimer();
 
 	//-------------------------------------------------------------------------
-	// Disable all interrupts and clear all interrupt vectors 
+	// Disable all interrupts
 	//-------------------------------------------------------------------------
 	// Todo: Determine if this is necessary
-#if 0 /* old hw */
-	Disable_global_interrupt();
-	INTC_init_interrupts();
+#if 0
+	__disable_irq();
 #endif
 
 	//-------------------------------------------------------------------------
