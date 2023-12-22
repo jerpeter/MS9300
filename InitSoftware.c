@@ -70,14 +70,16 @@
 ///----------------------------------------------------------------------------
 void BootloaderEntryCheck(void)
 {
-#if 0 /* old hw */
-	// Check if a Ctrl-B was found in the USART receive holding register or if requested to jump to boot
-	if (AVR32_USART1.rhr == CTRL_B)
+	// Check if a char waiting
+	if (UartCharWaiting(GLOBAL_DEBUG_PRINT_PORT))
 	{
-		g_quickBootEntryJump = QUICK_BOOT_ENTRY_FROM_SERIAL;
-		BootLoadManager();
+		// Check if a Ctrl-B was found in the UART receive holding register requesting to jump to boot
+		if (UartGetc(GLOBAL_DEBUG_PRINT_PORT, UART_BLOCK) == CTRL_B)
+		{
+			g_quickBootEntryJump = QUICK_BOOT_ENTRY_FROM_SERIAL;
+			BootLoadManager();
+		}
 	}
-#endif
 }
 
 ///----------------------------------------------------------------------------
