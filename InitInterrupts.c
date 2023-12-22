@@ -134,37 +134,7 @@ void StopInteralSampleTimer(void)
 ///----------------------------------------------------------------------------
 void InitInterrupts_MS9300(void)
 {
-#if 0 /* old hw */
-	// Disable all interrupts (Actually done at the start of InitHardware but calling here again just in case some local code enables)
-	Disable_global_interrupt();
-
-#if 0 /* Moved to the start of InitHardware to prevent wiping out the TWI interrupt handler */
-	// Assign all interrupt vectors an un-handled
-	INTC_init_interrupts();
-#endif
-
-	// Setup typematic timer for repeat key interrupt
-
-#if EXTERNAL_SAMPLING_SOURCE
-	// Setup millisecond timer
-#endif
-
-#if 0 /* Removed for now because interrupt doesn't provide any benefit over just reading the pin as a GPIO input */
-	// Setup Low Battery interrupt from RTC when PFO triggers
-	Setup_8100_EIC_Low_Battery_ISR();
-#endif
-
-#if 0 /* Moved interrupt setup to the end of the BootloaderManager to allow for searching for Ctrl-B */
-	InitCraftInterruptBuffers();
-#endif
-
-	if (GET_HARDWARE_ID == HARDWARE_ID_REV_8_WITH_GPS_MOD)
-	{
-		Setup_8100_Gps_Status_ISR();
-	}
-	
-	Enable_global_interrupt();
-#endif
+	// Any specific interrupt setup?
 
     __enable_irq();
 }

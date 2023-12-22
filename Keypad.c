@@ -376,14 +376,7 @@ void KeypressEventMgr(void)
 	{
 		g_lcdPowerFlag = ENABLED;
 		raiseSystemEventFlag(UPDATE_MENU_EVENT);
-#if 0 /* old hw */
-		PowerControl(LCD_POWER_ENABLE, ON);
-		SoftUsecWait(LCD_ACCESS_DELAY);
-		SetLcdContrast(g_contrast_value);
-		InitLcdDisplay();					// Setup LCD segments and clear display buffer
-#else
-		ft81x_init();
-#endif
+		ft81x_init(); // Power up and init display
 		AssignSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM, (uint32)(g_unitConfig.lcdTimeout * TICKS_PER_MIN), LcdPwTimerCallBack);
 
 		// Check if the unit is monitoring, if so, reassign the monitor update timer

@@ -1694,28 +1694,21 @@ void PowerDownSDCard(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* old driver method */
 void SetFileDateTimestamp(uint8 option)
 {
 	char dateTimeBuffer[20];
 	DATE_TIME_STRUCT dateTime;
+
+	// Old FAT driver method to set the file timestamp
 
 	// Set the creation date and time
 	dateTime = GetCurrentTime();
 
 	// ASCII string date/time format to write: "YYYYMMDDHHMMSSMS" = year, month, day, hour, min, sec, ms
 	sprintf((char*)&dateTimeBuffer[0], "%04d%02d%02d%02d%02d%02d%02d", (dateTime.year + 2000), dateTime.month, dateTime.day, dateTime.hour, dateTime.min, dateTime.sec, dateTime.hundredths);
-
-#if 0 /* old hw */
-	if (option == FS_DATE_CREATION)
-	{
-		nav_file_dateset((char*)&dateTimeBuffer[0], FS_DATE_CREATION);
-	}
-	else
-	{
-		nav_file_dateset((char*)&dateTimeBuffer[0], FS_DATE_LAST_WRITE);
-	}
-#endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -1879,11 +1872,7 @@ void GetERDataFilename(uint16 newFileEventNumber)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* old hw */
 inline void AdjustSampleForBitAccuracy(void)
-#else
-void AdjustSampleForBitAccuracy(void)
-#endif
 {
 	// Shift the sample data to adjust for the lower accuracy
 	*(g_currentEventSamplePtr) >>= g_bitShiftForAccuracy;
@@ -2115,9 +2104,8 @@ int ReadWithSizeFix(int file, void* bufferPtr, uint32 length)
 	{
 		if (remainingByteLengthToRead > ATMEL_FILESYSTEM_ACCESS_LIMIT)
 		{
-#if 0 /* old hw */
 			readCount = read(file, readLocationPtr, ATMEL_FILESYSTEM_ACCESS_LIMIT);
-#endif
+
 			if (readCount != ATMEL_FILESYSTEM_ACCESS_LIMIT)
 			{
 				if (readCount != -1) { debugErr("Atmel Read Data size incorrect (%d)\r\n", readCount); }
@@ -2129,9 +2117,8 @@ int ReadWithSizeFix(int file, void* bufferPtr, uint32 length)
 		}
 		else // Remaining data size is less than the access limit
 		{
-#if 0 /* old hw */
 			readCount = read(file, readLocationPtr, remainingByteLengthToRead);
-#endif
+
 			if (readCount != (int)remainingByteLengthToRead)
 			{
 				if (readCount != -1) { debugErr("Atmel Read Data size incorrect (%d)\r\n", readCount); }
@@ -2160,9 +2147,8 @@ int WriteWithSizeFix(int file, void* bufferPtr, uint32 length)
 	{
 		if (remainingByteLengthToWrite > ATMEL_FILESYSTEM_ACCESS_LIMIT)
 		{
-#if 0 /* old hw */
 			writeCount = write(file, writeLocationPtr, ATMEL_FILESYSTEM_ACCESS_LIMIT);
-#endif
+
 			if (writeCount != ATMEL_FILESYSTEM_ACCESS_LIMIT)
 			{
 				if (writeCount != -1) { debugErr("Atmel Read Data size incorrect (%d)\r\n", writeCount); }
@@ -2174,9 +2160,8 @@ int WriteWithSizeFix(int file, void* bufferPtr, uint32 length)
 		}
 		else // Remaining data size is less than the access limit
 		{
-#if 0 /* old hw */
 			writeCount = write(file, writeLocationPtr, remainingByteLengthToWrite);
-#endif
+
 			if (writeCount != (int)remainingByteLengthToWrite)
 			{
 				if (writeCount != -1) { debugErr("Atmel Read Data size incorrect (%d)\r\n", writeCount); }

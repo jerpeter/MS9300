@@ -50,19 +50,6 @@ void LcdInit(void)
 ///----------------------------------------------------------------------------
 void LcdResetPulse(void)
 {
-#if 0 /* old hw */
-
-	volatile unsigned short *lcd = ((void *)AVR32_EBI_CS0_ADDRESS);
-
-	// Reset is active low, put LCD in reset
-	*lcd &= ~LCD_RESET_BIT;
-
-	// Preload the register to prevent an issue where the first write command isn't reveiced correctly
-	*lcd = 0x62;
-
-	// Take LCD out of reset
-	*lcd |= LCD_RESET_BIT;
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -70,82 +57,13 @@ void LcdResetPulse(void)
 ///----------------------------------------------------------------------------
 void LcdClearPortReg(void)
 {
-#if 0 /* old hw */
-
-	volatile unsigned short *lcd = ((void *)AVR32_EBI_CS0_ADDRESS);
-
-	*lcd = 0x0000;
-#endif
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-extern uint16 lcd_port_image;
 void LcdWrite(uint8 mode, uint8 data, uint8 segment)
 {
-#if 0 /* old hw */
-
-	volatile unsigned short *lcd = ((void *)AVR32_EBI_CS0_ADDRESS);
-	uint8 lcd_register, display_half;
-
-	if (mode == LCD_INSTRUCTION)
-		lcd_register = COMMAND_REGISTER;
-	else
-		lcd_register = DATA_REGISTER;
-
-	if (segment == LCD_SEGMENT1)
-		display_half = FIRST_HALF_DISPLAY;
-	else
-		display_half = SECOND_HALF_DISPLAY;
-
-	//Write data
-	lcd_port_image = ((lcd_port_image & 0xFF00) | data);
-	*lcd = lcd_port_image;
-
-	if (lcd_register == COMMAND_REGISTER)
-	{
-		//Set RS low
-		lcd_port_image &= ~LCD_RS;
-		*lcd = lcd_port_image;
-	}
-	else
-	{
-		//Set RS high
-		lcd_port_image |= LCD_RS;
-		*lcd = lcd_port_image;
-	}
-
-	if (display_half == FIRST_HALF_DISPLAY)
-	{
-		//Set write low and CS2 low
-		lcd_port_image &= (~LCD_READ_WRITE & ~LCD_CS2);
-		*lcd = lcd_port_image;
-	}
-	else
-	{
-		//Set write low and CS1 low
-		lcd_port_image &= (~LCD_READ_WRITE & ~LCD_CS1);
-		*lcd = lcd_port_image;
-	}
-
-	//Set E high
-	lcd_port_image |= LCD_ENABLE;
-	*lcd = lcd_port_image;
-
-	SoftUsecWait(10);
-
-	//Set E low
-	lcd_port_image &= ~LCD_ENABLE;
-	*lcd = lcd_port_image;
-
-	SoftUsecWait(10);
-
-	//Set write, CS1, CS2 and address high
-	lcd_port_image |= (LCD_READ_WRITE | LCD_CS1 | LCD_CS2 | LCD_RS);
-	*lcd = lcd_port_image;
-#endif
-	SoftUsecWait(10);
 }
 
 ///----------------------------------------------------------------------------
@@ -156,51 +74,6 @@ uint8 LcdRead(uint8 mode, uint8 segment)
 {
 	uint8 data = 0x00;
 
-#if 0 /* old hw */
-	if (segment == LCD_SEGMENT1)
-	{
-		reg_PORTA.reg |= LCD_CS1_BIT;
-		reg_PORTA.reg &= ~LCD_CS2_BIT;
-	}
-	else // segment == LCD_SEGMENT2
-	{
-		reg_PORTA.reg &= ~LCD_CS1_BIT;
-		reg_PORTA.reg |= LCD_CS2_BIT;
-	}
-
-	if (mode == LCD_DATA)
-	{
-		reg_PORTA.reg |= LCD_RS_BIT;
-	}
-	else // mode == LCD_INSTRUCTION
-	{
-		reg_PORTA.reg &= ~LCD_RS_BIT;
-	}
-
-	reg_PORTA.reg |= LCD_READ_WRITE_BIT;
-	reg_PORTA.reg |= LCD_RESET_BIT;
-	
-	// Set Data Pins as input
-	
-	// Clock LCD data in by transitioning Enable from high to low
-	reg_PORTA.reg |= LCD_ENABLE_BIT;
-	SoftUsecWait(1);
-	reg_PORTA.reg &= ~LCD_ENABLE_BIT;
-	SoftUsecWait(1);
-
-	// Read in the data for all but the most significant bit and shift (misalignment with Port D)
-	data = (uint8)(reg_PORTC.reg << 1);
-
-	// Check if the most significant bit is set
-	if (reg_PORTA.reg && 0x80)
-	{
-		data |= 0x01;
-	}
-	else // Most significant bit is a zero
-	{
-		data &= 0xFE;
-	}
-#endif	
 	return (data);
 }
 #endif
@@ -704,9 +577,6 @@ void AdjustLcdContrast(CONTRAST_ADJUSTMENT adjust)
 ///----------------------------------------------------------------------------
 void SetLcdContrast(uint8 cmd)
 {
-	//uint16* powerManagementPort = (uint16*)POWER_CONTROL_ADDRESS;
-	//uint32 i;
-
 	// Check if lcd contrast adjustment is out of visable range
 	if (cmd > DEFAULT_MAX_CONTRAST)
 	{
@@ -714,77 +584,7 @@ void SetLcdContrast(uint8 cmd)
 		return;
 	}
 
-	// ADJ CTRL
-	// 0	0 --> Wiper(counter) stays where is was set, -V is off
-	// 0	1 --> Wiper(counter) stays where is was set, -V is on
-	// 1	0 --> Wiper(counter) is reset to midpoint/mid-level/32 and -V is off
-	//RE	1 --> Wiper(counter) is incremented (wraps on high boundary 64) and -V is on
-
-	// New Board
-	// ---------
-	// ADJ is Power Management bit LCD_CONTRAST_ENABLE
-	// CTRL is Power Management bit LCD_POWER_ENABLE
-	// RE is a rising edge
-
-	// Old Board
-	// ---------
-	// ADJ is reg_PORTE.reg bit 4
-	// CTRL is powerManagement.bit.lcs
-	// RE is a rising edge
-
-	// see if less than half or more
-	if (cmd < 32)
-	{
-		// less than half so run to max and then wrap
-		cmd = (uint8)(cmd + 32);
-	}
-	else
-	{
-		// more than half so just add difference from half to desired position
-		cmd = (uint8)(cmd - 32);
-	}
-
-	// Section to reset the Wiper(counter)
-	//reg_PORTE.reg |= 0x04; // Set adjust high
-	//SoftUsecWait(LCD_ACCESS_DELAY);
-	//powerManagement.bit.lcdContrastEnable = OFF;
-	//*powerManagementPort = powerManagement.reg; // Set ctrl low
-	//SoftUsecWait(1000);
-	// Enables wiper(counter) adjustment
-	//powerManagement.bit.lcdContrastEnable = ON;
-	//*powerManagementPort = powerManagement.reg; // Set ctrl high
-	//SoftUsecWait(LCD_ACCESS_DELAY);
-	//reg_PORTE.reg &= ~0x04; // Set adjust low
-	//SoftUsecWait(LCD_ACCESS_DELAY);
-
-#if 0 /* old hw */
-	// Section to reset the Wiper(counter)
-	PowerControl(LCD_CONTRAST_ENABLE, ON); // Set adjust high
-	PowerControl(LCD_POWER_ENABLE, OFF); // Set control low
-	SoftUsecWait(LCD_ACCESS_DELAY); // Delay
-
-	// Enables wiper(counter) adjustment
-	PowerControl(LCD_POWER_ENABLE, ON); // Set control high
-	SoftUsecWait(LCD_ACCESS_DELAY); // Delay
-
-	PowerControl(LCD_CONTRAST_ENABLE, OFF); // Set adjust low
-	SoftUsecWait(LCD_ACCESS_DELAY); // Delay
-
-	// Section to adjust the wiper(counter)
-	for (i = 0; i < cmd; i++)
-	{
-		//reg_PORTE.reg |= 0x04; // Set adjust high
-		//SoftUsecWait(LCD_ACCESS_DELAY);
-		//reg_PORTE.reg &= ~0x04; // Set adjust low
-		//SoftUsecWait(LCD_ACCESS_DELAY);
-		
-		PowerControl(LCD_CONTRAST_ENABLE, ON); // Set adjust high
-		SoftUsecWait(LCD_ACCESS_DELAY);
-		
-		PowerControl(LCD_CONTRAST_ENABLE, OFF); // Set adjust low
-		SoftUsecWait(LCD_ACCESS_DELAY);
-	}
-#endif
+	// Fill in if contrast can be set
 }
 
 ///----------------------------------------------------------------------------
@@ -815,14 +615,7 @@ void ActivateDisplayShortDuration(uint16 secondsToDisplay)
 	if (g_lcdPowerFlag == DISABLED)
 	{
 		g_lcdPowerFlag = ENABLED;
-#if 0 /* old hw */
-		PowerControl(LCD_POWER_ENABLE, ON);
-		SoftUsecWait(LCD_ACCESS_DELAY);
-		SetLcdContrast(g_contrast_value);
-		InitLcdDisplay();					// Setup LCD segments and clear display buffer
-#else
-		ft81x_init();
-#endif
+		ft81x_init(); // Power up and init display
 		AssignSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM, (secondsToDisplay * TICKS_PER_SEC), LcdPwTimerCallBack);
 
 		// Check if the unit is monitoring, if so, reassign the monitor update timer
