@@ -59,6 +59,7 @@
 #include "mxc_sys.h"
 #include "pwrseq_regs.h"
 #include "lp.h"
+#include "uart.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -68,9 +69,6 @@
 ///	Externs
 ///----------------------------------------------------------------------------
 #include "Globals.h"
-#if 0 /* old hw */
-extern void rtc_disable_interrupt(volatile avr32_rtc_t *rtc);
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Local Scope Globals
@@ -394,10 +392,9 @@ void CraftManager(void)
 			if (g_bargraphLiveMonitoringBISendActive == YES)
 			{
 				// Kill the Bar live data transfer
-#if 0 /* old hw */
-				AVR32_USART1.idr = AVR32_USART_IER_TXRDY_MASK;
-#endif
 				g_bargraphLiveMonitoringBISendActive = NO;
+
+				// Todo: Determine if disabling the UART TX Ready interrupt is needed
 			}
 
 			// Stop sending BLM data unless remote side requests
@@ -563,25 +560,6 @@ void HandleSystemEvents(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void init_hmatrix(void)
-{
-#if 0 /* old hw */
-	union
-	{
-		unsigned long scfg;
-		avr32_hmatrix_scfg_t SCFG;
-	} u_avr32_hmatrix_scfg;
-
-	// For the internal-flash HMATRIX slave, use last master as default.
-	u_avr32_hmatrix_scfg.scfg = AVR32_HMATRIX.scfg[AVR32_HMATRIX_SLAVE_FLASH];
-	u_avr32_hmatrix_scfg.SCFG.defmstr_type = AVR32_HMATRIX_DEFMSTR_TYPE_LAST_DEFAULT;
-	AVR32_HMATRIX.scfg[AVR32_HMATRIX_SLAVE_FLASH] = u_avr32_hmatrix_scfg.scfg;
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 void UsbResetStateMachine(void)
 {
 	g_usbMassStorageState = USB_INIT_DRIVER;
@@ -592,17 +570,10 @@ void UsbResetStateMachine(void)
 ///----------------------------------------------------------------------------
 bool CheckUSBInOTGHostWaitingForDevice(void)
 {
-#if 0 /* old hw */
 	// Check if USB state allows for sleep
-	if (ms_usb_prevent_sleep == NO)
-	{
-		// Check if USB is in OTG Host mode but no active device is connected (otherwise ms_usb_prevent_sleep would be yes)
-		if (!Is_usb_id_device())
-		{
-			return (YES);
-		}
-	}
-#endif
+	// Check if USB is in OTG Host mode but no active device is connected (otherwise ms_usb_prevent_sleep would be yes)
+
+	// Todo: Fill in if necessary
 
 	return (NO);
 }
@@ -658,9 +629,6 @@ void UsbDeviceManager(void)
 		SoftUsecWait(25 * SOFT_MSECS);
 #endif
 		UNUSED(mn_msg);
-
-		// Brought forward from USB OTG MSC Host/Device example
-		//init_hmatrix();
 
 #if 0 /* old hw */
 		// Init the USB and Mass Storage driver			
@@ -1210,11 +1178,7 @@ void UsbDisableIfActive(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* old hw */
-#define APPLICATION		(((void *)AVR32_EBI_CS1_ADDRESS) + 0x00700000)
-#else
-#define APPLICATION		((void *)0x00700000)
-#endif
+#define APPLICATION		((void *)0x10000000) // Internal Flash memory start address
 const char default_boot_name[] = { "Boot.s" };
 
 void BootLoadManager(void)
@@ -1247,14 +1211,7 @@ void BootLoadManager(void)
 
 		if (g_lcdPowerFlag == DISABLED)
 		{
-#if 0 /* old hw */
-			PowerControl(LCD_POWER_ENABLE, ON);
-			SoftUsecWait(LCD_ACCESS_DELAY);
-			SetLcdContrast(g_contrast_value);
-			InitLcdDisplay();
-#else
-			ft81x_init();
-#endif
+			ft81x_init(); // Power up display and init driver
 			SetLcdBacklightState(BACKLIGHT_MID);
 		}
 		else
@@ -1333,9 +1290,6 @@ void BootLoadManager(void)
 		AddOnOffLogTimestamp(JUMP_TO_BOOT);
 
 		// Enable half second tick
-#if 0 /* This prevents bootloader from processing keys */
-		DisableMcp23018Interrupts();
-#endif
 
 #if 0 /* old hw */
 		rtc_disable_interrupt(&AVR32_RTC);
@@ -1603,28 +1557,27 @@ void TestExternalSamplingSource(void)
 			debug("Tick tock (%d, %d)\r\n", sampleRate, g_updateCounter / sampleRate);
 		}
 	
-#if 0 /* old hw */
-		while (!usart_tx_empty(DBG_USART)) {;}
-		SLEEP(AVR32_PM_SMODE_IDLE);
-#endif
+		// Delay while UART transmitting or FIFO not full
+		while ((MXC_UART2->stat & MXC_F_UART_STAT_TX_BUSY) && !(MXC_UART2->stat & MXC_F_UART_STAT_TX_FULL)) {;}
+
+		//Sleep
+		PowerManager();
 	}
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* temp remove while unused */
 static char s_errorReportFilename[] = LOGS_PATH EXCEPTION_REPORT_FILE;
-#endif
 void CheckExceptionReportLogExists(void)
 {
-#if 0 /* old hw */
-	if (nav_setcwd(s_errorReportFilename, TRUE, FALSE))
+	FILINFO fno;
+
+	if (f_stat((const TCHAR*)s_errorReportFilename, &fno) == FR_OK)
 	{
 		sprintf((char*)g_spareBuffer, "%s. %s", getLangText(EXCEPTION_REPORT_EXISTS_DUE_TO_ERROR_TEXT), getLangText(PLEASE_CONTACT_SUPPORT_TEXT));
 		MessageBox(getLangText(WARNING_TEXT), (char*)g_spareBuffer, MB_OK);
 	}
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -1690,14 +1643,7 @@ void exception(uint32_t r12, uint32_t r11, uint32_t r10, uint32_t r9, uint32_t e
 	if (g_lcdPowerFlag == DISABLED)
 	{
 		g_lcdPowerFlag = ENABLED;
-#if 0 /* old hw */
-		PowerControl(LCD_POWER_ENABLE, ON);
-		SoftUsecWait(LCD_ACCESS_DELAY);
-		SetLcdContrast(g_contrast_value);
-		InitLcdDisplay();
-#else
-		ft81x_init();
-#endif
+		ft81x_init(); // Power up display and init driver
 	}
 
 	// Check if the LCD Backlight was turned off
@@ -1780,8 +1726,6 @@ void exception(uint32_t r12, uint32_t r11, uint32_t r10, uint32_t r9, uint32_t e
 	// Make sure all open files are closed and data is flushed
 	nav_exit();
 #endif
-	// Disable power off protection
-	WriteMcp23018(IO_ADDRESS_KPD, OLATA, 0x00);
 
 	while (loops--)
 	{
@@ -1840,7 +1784,7 @@ void exception(uint32_t r12, uint32_t r11, uint32_t r10, uint32_t r9, uint32_t e
 	}
 
 	// Shutdown application
-	WriteMcp23018(IO_ADDRESS_KPD, OLATA, 0x40);
+	PowerControl(MCU_POWER_LATCH, OFF);
 }
 
 ///----------------------------------------------------------------------------
