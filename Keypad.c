@@ -507,7 +507,7 @@ uint16 GetKeypadKey(uint8 mode)
 		if (keyPressed == ESC_KEY)
 		{
 			// Check if the On key is also being pressed
-			if (ReadMcp23018(IO_ADDRESS_KPD, GPIOA) & 0x04)
+			if (GetPowerOnButtonState() == ON)
 			{
 				keyPressed = ON_ESC_KEY;
 			}
@@ -551,7 +551,7 @@ uint16 GetKeypadKey(uint8 mode)
 		if (keyPressed == ESC_KEY)
 		{
 			// Check if the On key is also being pressed
-			if (ReadMcp23018(IO_ADDRESS_KPD, GPIOA) & 0x04)
+			if (GetPowerOnButtonState() == ON)
 			{
 				keyPressed = ON_ESC_KEY;
 			}
