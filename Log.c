@@ -351,9 +351,6 @@ uint16 NumOfNewMonitorLogEntries(uint16 uid)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* old hw */
-#include "fsaccess.h"
-#endif
 static char s_monitorLogFilename[] = LOGS_PATH MONITOR_LOG_BIN_FILE;
 static char s_monitorLogHumanReadableFilename[] = LOGS_PATH MONITOR_LOG_READABLE_FILE;
 
@@ -662,10 +659,11 @@ void SwitchDebugLogFile(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void FillInAdditionalExceptionReportInfo(int exceptionReportFile)
+void FillInAdditionalExceptionReportInfo(FIL file)
 {
 	DATE_TIME_STRUCT exceptionTime = GetCurrentTime();
 	char modeString[10];
+	uint32_t writeSize;
 
 	if (g_triggerRecord.opMode == WAVEFORM_MODE) { strcpy((char*)&modeString, "Waveform"); }
 	else if (g_triggerRecord.opMode == BARGRAPH_MODE) { strcpy((char*)&modeString, "Bargraph"); }
@@ -673,13 +671,9 @@ void FillInAdditionalExceptionReportInfo(int exceptionReportFile)
 
 	sprintf((char*)g_spareBuffer, "Mode: %s, Monitoring: %s, Sample Rate: %lu, Record Time: %lu\r\n", (char*)&modeString, (g_sampleProcessing == ACTIVE_STATE) ? "Yes" : "No",
 			g_triggerRecord.trec.sample_rate, g_triggerRecord.trec.record_time);
-#if 0 /* old hw */
-	write(exceptionReportFile, g_spareBuffer, strlen((char*)g_spareBuffer));
-#endif
+	f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
 
 	sprintf((char*)g_spareBuffer, "Error time: %02d-%02d-%02d %02d:%02d:%02d\r\n", exceptionTime.day, exceptionTime.month, exceptionTime.year,
 			exceptionTime.hour, exceptionTime.min, exceptionTime.sec);
-#if 0 /* old hw */
-	write(exceptionReportFile, g_spareBuffer, strlen((char*)g_spareBuffer));
-#endif
+	f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
 }
