@@ -21,6 +21,7 @@
 
 #include "mxc_errors.h"
 #include "i2c.h"
+#include "ff.h"
 //#include "navigation.h"
 
 ///----------------------------------------------------------------------------
@@ -328,10 +329,8 @@ void PowerUnitOff(uint8 powerOffMode)
 	debug("Adding On/Off Log timestamp\r\n");
 	AddOnOffLogTimestamp(OFF);
 
-#if 0 /* old hw */
-	// Make sure all open files are closed and data is flushed
-	nav_exit();
-#endif
+	// Make sure all open files are closed and data is flushed (unmount)
+	f_mount(NULL, "", 0);
 
 	if (powerOffMode == SHUTDOWN_UNIT)
 	{
@@ -348,6 +347,7 @@ void PowerUnitOff(uint8 powerOffMode)
 		Disable_global_interrupt();
 		AVR32_WDT.ctrl |= 0x00000001;
 #else /* Updated method */
+		// Use the External RTC
 		SetTimeOfDayAlarmNearFuture(2);
 
 		// Shutdown application
