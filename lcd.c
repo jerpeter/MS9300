@@ -1090,41 +1090,11 @@ void Clear_line(uint8 line)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* unused */
 void InitDisplay(void)
 {
-#if 0 /* old hw */
-	volatile unsigned short *lcd = ((void *)AVR32_EBI_CS0_ADDRESS);
-
-	//Set reset low
-	lcd_port_image &= ~LCD_RESET;
-	*lcd = lcd_port_image;
-
-	//Set E low
-	lcd_port_image &= ~LCD_ENABLE;
-	*lcd = lcd_port_image;
-
-	//Set A0, R/W, CS1, CS2 high
-	lcd_port_image |= (LCD_RS | LCD_READ_WRITE | LCD_CS1 | LCD_CS2);
-	*lcd = lcd_port_image;
-
-	//Set reset high
-	lcd_port_image |= LCD_RESET;
-	*lcd = lcd_port_image;
-
-	Write_display(COMMAND_REGISTER, DISPLAY_ON, FIRST_HALF_DISPLAY);
-	Write_display(COMMAND_REGISTER, START_LINE_SET, FIRST_HALF_DISPLAY);
-	Write_display(COMMAND_REGISTER, PAGE_ADDRESS_SET, FIRST_HALF_DISPLAY);
-	Write_display(COMMAND_REGISTER, COLUMN_ADDRESS_SET, FIRST_HALF_DISPLAY);
-
-	Write_display(COMMAND_REGISTER, DISPLAY_ON, SECOND_HALF_DISPLAY);
-	Write_display(COMMAND_REGISTER, START_LINE_SET, SECOND_HALF_DISPLAY);
-	Write_display(COMMAND_REGISTER, PAGE_ADDRESS_SET, SECOND_HALF_DISPLAY);
-	Write_display(COMMAND_REGISTER, COLUMN_ADDRESS_SET, SECOND_HALF_DISPLAY);
-
-	// now clear the display
-	ClearLCDscreen();
-#endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -1132,57 +1102,6 @@ void InitDisplay(void)
 #if 0 /* essentially unused */
 void Write_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 {
-#if 0 /* old hw */
-	volatile unsigned short *lcd = ((void *)AVR32_EBI_CS0_ADDRESS);
-
-	//Write data
-	lcd_port_image = ((lcd_port_image & 0xFF00) | lcd_data);
-	*lcd = lcd_port_image;
-
-	if (lcd_register == COMMAND_REGISTER)
-	{
-		//Set RS low
-		lcd_port_image &= ~LCD_RS;
-		*lcd = lcd_port_image;
-	}
-	else
-	{
-		//Set RS high
-		lcd_port_image |= LCD_RS;
-		*lcd = lcd_port_image;
-	}
-
-	if (display_half == FIRST_HALF_DISPLAY)
-	{
-		//Set write low and CS2 low
-		lcd_port_image &= (~LCD_READ_WRITE & ~LCD_CS2);
-		*lcd = lcd_port_image;
-	}
-	else
-	{
-		//Set write low and CS1 low
-		lcd_port_image &= (~LCD_READ_WRITE & ~LCD_CS1);
-		*lcd = lcd_port_image;
-	}
-
-	//Set E high
-	lcd_port_image |= LCD_ENABLE;
-	*lcd = lcd_port_image;
-
-	SoftUsecWait(100);
-
-	//Set E low
-	lcd_port_image &= ~LCD_ENABLE;
-	*lcd = lcd_port_image;
-
-	SoftUsecWait(100);
-
-	//Set write, CS1, CS2 and address high
-	lcd_port_image |= (LCD_READ_WRITE | LCD_CS1 | LCD_CS2 | LCD_RS);
-	*lcd = lcd_port_image;
-
-	SoftUsecWait(100);
-#endif
 }
 #endif
 
@@ -1204,151 +1123,62 @@ void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 #if 0 /* unused */
 uint8 Read_display(uint8 lcd_register, uint8 display_half)
 {
-	uint16 lcd_data = 0;
-
-#if 0 /* old hw */
-	volatile unsigned short *lcd = ((void *)AVR32_EBI_CS0_ADDRESS);
-
-	if (lcd_register == COMMAND_REGISTER)
-	{
-		//Set RS low
-		lcd_port_image &= ~LCD_RS;
-	}
-	else
-	{
-		//Set RS high
-		lcd_port_image |= LCD_RS;
-	}
-
-	//Set RD/WR high for read
-	lcd_port_image |= LCD_READ_WRITE;
-	*lcd = lcd_port_image;
-
-	if (display_half == FIRST_HALF_DISPLAY)
-	{
-		//Set CS2 low
-		lcd_port_image &= ~LCD_CS2;
-	}
-	else
-	{
-		//Set CS1 low
-		lcd_port_image &= ~LCD_CS1;
-	}
-
-	//Set E high
-	lcd_port_image |= LCD_ENABLE;
-	*lcd = lcd_port_image;
-
-	//Read data
-	lcd_data = *lcd;
-
-	//Set E low
-	lcd_port_image &= ~LCD_ENABLE;
-
-	//Set RD/WR, CS1, CS2 and RS high
-	lcd_port_image |= (LCD_ENABLE | LCD_CS1 | LCD_CS2 | LCD_RS);
-	*lcd = lcd_port_image;
-#endif
-
-	return((uint8)(lcd_data & 0xFF));
-}// End of function
+}
 #endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* unused */
 void Backlight_On(void)
 {
-#if 0 /* old hw */
-	volatile unsigned short *lcd = ((void *)AVR32_EBI_CS0_ADDRESS);
-
-	lcd_port_image |= LCD_BACKLIGHT_ON;
-	*lcd = lcd_port_image;
-#endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* unused */
 void Backlight_Off(void)
 {
-#if 0 /* old hw */
-	volatile unsigned short *lcd = ((void *)AVR32_EBI_CS0_ADDRESS);
-
-	lcd_port_image &= ~LCD_BACKLIGHT_ON;
-	*lcd = lcd_port_image;
-#endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* unused */
 void Backlight_High(void)
 {
-#if 0 /* old hw */
-	volatile unsigned short *lcd = ((void *)AVR32_EBI_CS0_ADDRESS);
-
-	lcd_port_image |= LCD_BACKLIGHT_HIGH;
-	*lcd = lcd_port_image;
-#endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* unused */
 void Backlight_Low(void)
 {
-#if 0 /* old hw */
-	volatile unsigned short *lcd = ((void *)AVR32_EBI_CS0_ADDRESS);
-
-	lcd_port_image &= ~LCD_BACKLIGHT_HIGH;
-	*lcd = lcd_port_image;
-#endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* unused */
 void Reset_Contrast(void)
 {
-#if 0 /* old hw */
-	PowerControl(LCD_POWER_ENABLE, OFF);
-	PowerControl(LCD_CONTRAST_ENABLE, OFF);
-
-	PowerControl(LCD_CONTRAST_ENABLE, ON);
-	PowerControl(LCD_POWER_ENABLE, ON);
-	SoftUsecWait(LCD_ACCESS_DELAY);
-#endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* unused */
 void Set_Contrast(uint8 level)
 {
-	uint8 counts = 0;
-	uint8 i;
-
-	Reset_Contrast();
-
-	if (level < 32)
-	{
-		counts = level + 32;
-	}
-	else
-	{
-		counts = level - 32;
-	}
-
-	for (i = 0; i < counts; i++)
-	{
-#if 0 /* old hw */
-		// Toggle to adjust
-		PowerControl(LCD_CONTRAST_ENABLE, OFF);
-		PowerControl(LCD_CONTRAST_ENABLE, ON);
-#endif
-	}
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -2103,7 +1933,7 @@ void ft81x_set_backlight_level(uint8_t backlightLevel)
 	// Filter max range if set over level
 	if (backlightLevel > 128) { backlightLevel = 128; }
 
-	// Set PWM to 0
+	// Set PWM to desired level
 	ft81x_wr(REG_PWM_DUTY, backlightLevel);
 }
 
