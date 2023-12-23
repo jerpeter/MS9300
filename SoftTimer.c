@@ -35,9 +35,6 @@
 ///	Externs
 ///----------------------------------------------------------------------------
 #include "Globals.h"
-#if 0 /* old hw */
-extern bool ms_usb_prevent_sleep;
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Local Scope Globals
@@ -246,12 +243,8 @@ void LcdPwTimerCallBack(void)
 
 	g_lcdPowerFlag = DISABLED;
 
-#if 0 /* old hw */
-	PowerControl(LCD_CONTRAST_ENABLE, OFF);
-#endif
-	ClearLcdDisplay();
-	ClearControlLinesLcdDisplay();
-	LcdClearPortReg();
+	// Todo: Only power off display first, set timer to power off LCD section
+	PowerControl(LCD_POWER_DISPLAY, OFF);
 	PowerControl(LCD_POWER_ENABLE, OFF);
 
 	if (g_sampleProcessing == ACTIVE_STATE)
@@ -284,7 +277,7 @@ void KeypadLedUpdateTimerCallBack(void)
 {
 	static uint8 ledState = KEYPAD_LED_STATE_UNKNOWN;
 	uint8 lastLedState;
-	uint8 config; // = ReadMcp23018(IO_ADDRESS_KPD, GPIOA);
+	uint8 config;
 	BOOLEAN externalChargePresent = CheckExternalChargeVoltagePresent();
 
 	// States
@@ -338,7 +331,7 @@ void KeypadLedUpdateTimerCallBack(void)
 	// Check if the state changed
 	if (ledState != lastLedState)
 	{
-		config = ReadMcp23018(IO_ADDRESS_KPD, GPIOA);
+		// Todo: Possibly read current LED's into config state?
 		
 		switch (ledState)
 		{
@@ -362,7 +355,7 @@ void KeypadLedUpdateTimerCallBack(void)
 				break;
 		}
 
-		WriteMcp23018(IO_ADDRESS_KPD, GPIOA, config);
+		// Todo: Set the correct LED's
 	}
 
 	AssignSoftTimer(KEYPAD_LED_TIMER_NUM, ONE_SECOND_TIMEOUT, KeypadLedUpdateTimerCallBack);
