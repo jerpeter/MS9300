@@ -65,9 +65,6 @@ void MoveWaveformEventToFile(void)
 	uint16* startOfEventPtr;
 	uint16* endOfEventDataPtr;
 
-#if 0 /* old hw */
-	uint8 keypadLedConfig;
-#endif
 	uint32 remainingDataLength;
 	uint32 compressSize;
 	uint16* tempDataPtr;
@@ -86,11 +83,8 @@ void MoveWaveformEventToFile(void)
 				// Save event start time with buffered timestamp
 				g_pendingEventRecord.summary.captured.eventTime = g_eventDateTimeStampBuffer[g_eventBufferReadIndex].triggerTime;
 
-#if 0 /* old hw */
-				if ((gpio_get_pin_value(AVR32_PIN_PB14) == 0) && (g_epochTimeGPS))
-#else
-				if (0)
-#endif
+				// Check for valid GPS time
+				if ((g_epochTimeGPS) /* && (GPS device active) */)
 				{
 					g_pendingEventRecord.summary.captured.eventTime.valid = YES;
 					g_pendingEventRecord.summary.captured.gpsEpochTriggerTime = g_eventDateTimeStampBuffer[g_eventBufferReadIndex].gpsEpochTriggerTime;
@@ -281,16 +275,6 @@ void MoveWaveformEventToFile(void)
 					}
 
 					remainingDataLength = (g_wordSizeInEvent * 2);
-
-					// Check if there are multiple chunks to write
-					if (remainingDataLength > WAVEFORM_FILE_WRITE_CHUNK_SIZE)
-					{
-#if 0 /* old hw */
-						// Get the current state of the keypad LED
-						keypadLedConfig = ReadMcp23018(IO_ADDRESS_KPD, GPIOA);
-#endif
-					}
-
 					tempDataPtr = g_currentEventStartPtr;
 
 					while (remainingDataLength)
@@ -309,11 +293,7 @@ void MoveWaveformEventToFile(void)
 							tempDataPtr += (WAVEFORM_FILE_WRITE_CHUNK_SIZE / 2);
 
 							// Quickly toggle the green LED to show status of saving a waveform event (while too busy to update LCD)
-#if 0 /* old hw */
-							if (keypadLedConfig & GREEN_LED_PIN) { keypadLedConfig &= ~GREEN_LED_PIN; }
-							else { keypadLedConfig |= GREEN_LED_PIN; }
-							WriteMcp23018(IO_ADDRESS_KPD, GPIOA, keypadLedConfig);
-#endif
+							// Todo: Toggle the green LED
 						}
 						else // Remaining data size is less than the file write chunk size
 						{

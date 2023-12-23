@@ -418,7 +418,7 @@ void StopMonitoring(uint8 mode, uint8 operation)
 	}
 	
 	// Turn on the Green keypad LED
-	WriteMcp23018(IO_ADDRESS_KPD, GPIOA, ((ReadMcp23018(IO_ADDRESS_KPD, GPIOA) & 0xCF) | GREEN_LED_PIN));
+	// Todo: Set the correct LED
 
 	// Check if Auto Monitor is active and not in monitor mode
 	if ((g_unitConfig.autoMonitorMode != AUTO_NO_TIMEOUT) && (operation == EVENT_PROCESSING))

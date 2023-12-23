@@ -12,6 +12,7 @@
 ///	Includes
 ///----------------------------------------------------------------------------
 #include "Common.h"
+#include "ff.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -401,7 +402,7 @@ uint16 NumOfNewMonitorLogEntries(uint16 uid);
 void AppendMonitorLogEntryFile(void);
 void InitMonitorLogTableFromLogFile(void);
 void AddOnOffLogTimestamp(uint8 onOffState);
-void FillInAdditionalExceptionReportInfo(int exceptionReportFile);
+void FillInAdditionalExceptionReportInfo(FIL file);
 void WriteDebugBufferToFile(void);
 void SwitchDebugLogFile(void);
 
