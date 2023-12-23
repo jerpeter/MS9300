@@ -1076,9 +1076,9 @@ uint8_t GetPowerGoodBatteryChargerState(void)
 ///----------------------------------------------------------------------------
 uint8_t GetPowerOnButtonState(void)
 {
-	// Check Power On button state, Active high (Port 0, Pin 12)
-	if (MXC_GPIO1->in & MXC_GPIO_PIN_15) { return (YES); }
-	else return (NO);
+	// Check Power On button state, Active high (Port 1, Pin 15)
+	if (MXC_GPIO1->in & MXC_GPIO_PIN_15) { return (ON); }
+	else return (OFF);
 }
 
 ///----------------------------------------------------------------------------
