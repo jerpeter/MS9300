@@ -63,10 +63,6 @@
 void InitTWI(void);
 void InitMcp23018(void);
 void ResetTWI(void);
-#if 0 /* old hw */
-uint8 TwiMasterReadNoInterrupts(volatile avr32_twi_t *twi, const twi_package_t *package);
-uint8 TwiMasterWriteNoInterrupts(volatile avr32_twi_t *twi, const twi_package_t *package);
-#endif
 void WriteMcp23018(uint8 chip, uint8 address, uint8 data);
 uint8 ReadMcp23018(uint8 chip, uint8 address);
 void EnableMcp23018Interrupts(void);

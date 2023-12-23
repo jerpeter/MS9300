@@ -488,11 +488,6 @@ void InitSoftwareSettings_MS9300(void)
 	}
 
 	//-------------------------------------------------------------------------
-	// Enable keypad key input (delayed to prevent key input from locking unit)
-	//-------------------------------------------------------------------------
-	EnableMcp23018Interrupts(); debug("Mcp23018 interrupts enabled\r\n");
-
-	//-------------------------------------------------------------------------
 	// Display last line of system init
 	//-------------------------------------------------------------------------
 	DisplayVersionToDebug();

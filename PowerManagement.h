@@ -16,13 +16,8 @@
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
-#if 0 /* old hw */
-#define ALARM_1_GPIO_PIN	AVR32_PIN_PB06
-#define ALARM_2_GPIO_PIN	AVR32_PIN_PB07
-#else
 #define ALARM_1_GPIO_PIN	1
 #define ALARM_2_GPIO_PIN	2
-#endif
 
 typedef enum
 {

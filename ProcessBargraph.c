@@ -23,9 +23,6 @@
 #include "Math.h"
 
 #include "ff.h"
-#if 0 /* old hw */
-#include "fsaccess.h"
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -279,10 +276,9 @@ void WaitForBargraphLiveMonitoringDataToFinishSendingWithTimeout(void)
 		if (barLiveDataTransferTimeout == g_lifetimeHalfSecondTickCount)
 		{
 			// Kill the Bar live data transfer if unable to complete in 1 second
-#if 0 /* old hw */
-			AVR32_USART1.idr = AVR32_USART_IER_TXRDY_MASK;
-#endif
 			g_bargraphLiveMonitoringBISendActive = NO;
+
+			// Todo: Determine if disabling the UART TX Ready interrupt is needed
 			break;
 		}
 	}
@@ -424,10 +420,9 @@ void HandleBargraphLiveMonitoringEndMsg(void)
 	else // Something wrong with the transfer
 	{
 		// Kill the Bar live data transfer by disabling the transmit ready interrupt
-#if 0 /* old hw */
-		AVR32_USART1.idr = AVR32_USART_IER_TXRDY_MASK;
-#endif
 		g_bargraphLiveMonitoringBISendActive = NO;
+
+		// Todo: Determine if disabling the UART TX Ready interrupt is needed
 	}
 }
 
