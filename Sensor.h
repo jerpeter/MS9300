@@ -20,23 +20,6 @@
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
-// GPIO lines for Smart Sensor
-#if 0 /* old hw */
-#define SMART_SENSOR_DATA			AVR32_PIN_PB01
-#define SEISMIC_SENSOR_CONTROL		AVR32_PIN_PB02
-#define ACOUSTIC_SENSOR_CONTROL		AVR32_PIN_PB03
-#else
-#define SMART_SENSOR_DATA			1
-#define SEISMIC_SENSOR_CONTROL		2
-#define ACOUSTIC_SENSOR_CONTROL		3
-#endif
-
-#if 0 /* old hw */
-#define READ_SMART_SENSOR_ONE_WIRE_STATE()	(gpio_get_pin_value(SMART_SENSOR_DATA))
-#else
-#define READ_SMART_SENSOR_ONE_WIRE_STATE()	(1)
-#endif
-
 typedef enum {
 	SEISMIC_SENSOR = 1,
 	ACOUSTIC_SENSOR,
@@ -152,22 +135,22 @@ typedef struct {
 ///----------------------------------------------------------------------------
 void OneWireInit(void);
 void OneWireResetAndConfigure(void);
-uint8 OneWireReset(SMART_SENSOR_TYPE sensor);
-void OneWireWriteByte(SMART_SENSOR_TYPE sensor, uint8 dataByte);
-uint8 OneWireReadByte(SMART_SENSOR_TYPE sensor);
-void OneWireTest(SMART_SENSOR_TYPE sensor);
-void OneWireFunctions(SMART_SENSOR_TYPE sensor);
-uint8 OneWireReadROM(SMART_SENSOR_TYPE sensor, SMART_SENSOR_ROM* romData);
-uint8 OneWireReadMemory(SMART_SENSOR_TYPE sensor, uint16 address, uint8 length, uint8* data);
-uint8 OneWireWriteScratchpad(SMART_SENSOR_TYPE sensor, uint16 address, uint8 length, uint8* data);
-uint8 OneWireReadScratchpad(SMART_SENSOR_TYPE sensor, uint16 address, uint8 length, uint8* data);
-uint8 OneWireCopyScratchpad(SMART_SENSOR_TYPE sensor);
-uint8 OneWireWriteAppRegister(SMART_SENSOR_TYPE sensor, uint16 address, uint8 length, uint8* data);
-uint8 OneWireReadStatusRegister(SMART_SENSOR_TYPE sensor, uint8* data);
-uint8 OneWireReadAppRegister(SMART_SENSOR_TYPE sensor, uint16 address, uint8 length, uint8* data);
-uint8 OneWireCopyAndLockAppRegister(SMART_SENSOR_TYPE sensor);
-void SmartSensorDebug(SMART_SENSOR_TYPE sensor);
-void SmartSensorTest();
+uint8 OneWireReset(void);
+void OneWireWriteByte(uint8 dataByte);
+uint8 OneWireReadByte(void);
+void OneWireTest(void);
+void OneWireFunctions(void);
+uint8 OneWireReadROM(SMART_SENSOR_ROM* romData);
+uint8 OneWireReadMemory(uint16 address, uint8 length, uint8* data);
+uint8 OneWireWriteScratchpad(uint16 address, uint8 length, uint8* data);
+uint8 OneWireReadScratchpad(uint16 address, uint8 length, uint8* data);
+uint8 OneWireCopyScratchpad(void);
+uint8 OneWireWriteAppRegister(uint16 address, uint8 length, uint8* data);
+uint8 OneWireReadStatusRegister(uint8* data);
+uint8 OneWireReadAppRegister(uint16 address, uint8 length, uint8* data);
+uint8 OneWireCopyAndLockAppRegister(void);
+void SmartSensorDebug(void);
+void SmartSensorTest(void);
 void SmartSensorReadRomAndMemory(SMART_SENSOR_TYPE sensor);
 void UpdateUnitSensorsWithSmartSensorTypes(void);
 void DisplaySmartSensorInfo(SMART_SENSOR_INFO situation);

@@ -39,7 +39,7 @@
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 OneWireReset(SMART_SENSOR_TYPE sensor)
+uint8 OneWireReset(void)
 {
 	//    500  30 110 (us)
 	// __       _     ________
@@ -49,37 +49,7 @@ uint8 OneWireReset(SMART_SENSOR_TYPE sensor)
 
 	uint8 presenceDetect = NO;
 
-	// Set data direction to output to drive a 0
-#if 0 /* old hw */
-	if (sensor == SEISMIC_SENSOR) { PowerControl(SEISMIC_SENSOR_DATA_CONTROL, ON); }
-	else /* ACOUSTIC_SENSOR */ { PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, ON); }
-#endif
-
-	// Hold low for 500us
-	//SoftUsecWait(500); // Looks like 540
-	//SoftUsecWait(460); // Looks like 480
-	SoftUsecWait(480);
-
-	// Release line (allow pullup to take affect)
-#if 0 /* old hw */
-	if (sensor == SEISMIC_SENSOR) { PowerControl(SEISMIC_SENSOR_DATA_CONTROL, OFF); }
-	else /* ACOUSTIC_SENSOR */ { PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, OFF); }
-#endif
-
-	// Wait 30us + 50us (80us total)
-	//SoftUsecWait(80);
-	//SoftUsecWait(74);
-	SoftUsecWait(77);
-
-	if (READ_SMART_SENSOR_ONE_WIRE_STATE() == LOW)
-	{
-		presenceDetect = YES;
-	}
-
-	// Wait 100us make sure device is not driving the line
-	//SoftUsecWait(100);
-	//SoftUsecWait(93);
-	SoftUsecWait(97);
+	if (ds2484_w1_reset_bus() == 0) { presenceDetect = YES; }
 
 	return (presenceDetect);
 }
@@ -87,102 +57,17 @@ uint8 OneWireReset(SMART_SENSOR_TYPE sensor)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void OneWireWriteByte(SMART_SENSOR_TYPE sensor, uint8 data)
+void OneWireWriteByte(uint8 data)
 {
-	uint8 i;
-
-	// Loop through all the bits starting with LSB
-	for (i = 0; i <= 7; i++)
-	{
-		// Set data direction to output to drive a 0
-#if 0 /* old hw */
-		if (sensor == SEISMIC_SENSOR) { PowerControl(SEISMIC_SENSOR_DATA_CONTROL, ON); }
-		else /* ACOUSTIC_SENSOR */ { PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, ON); }
-#endif
-		// Check if the bit is a 1
-		if (data & 0x01)
-		{
-			// Hold low for 5us
-			SoftUsecWait(5);
-
-			// Release the line
-#if 0 /* old hw */
-			if (sensor == SEISMIC_SENSOR) { PowerControl(SEISMIC_SENSOR_DATA_CONTROL, OFF); }
-			else /* ACOUSTIC_SENSOR */ { PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, OFF); }
-#endif
-			// Wait for 65us, recovery time
-			//SoftUsecWait(65);
-			//SoftUsecWait(60);
-			SoftUsecWait(63);
-		}
-		else
-		{
-			// Hold low for 65us
-			//SoftUsecWait(65);
-			//SoftUsecWait(60);
-			SoftUsecWait(63);
-
-			// Release the line
-#if 0 /* old hw */
-			if (sensor == SEISMIC_SENSOR) { PowerControl(SEISMIC_SENSOR_DATA_CONTROL, OFF); }
-			else /* ACOUSTIC_SENSOR */ { PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, OFF); }
-#endif
-			// Wait for 5us, recovery time
-			SoftUsecWait(5);
-		}
-
-		// Shift the data over 1 bit
-		data >>= 1;
-	}
+	ds2484_w1_write_byte(data);
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 OneWireReadByte(SMART_SENSOR_TYPE sensor)
+uint8 OneWireReadByte(void)
 {
-	uint8 data = 0;
-	uint8 i;
-
-	// Loop through all the bits starting with LSB
-	for (i = 0; i <= 7; i++)
-	{
-		// Set data direction to output to drive a 0
-#if 0 /* old hw */
-		if (sensor == SEISMIC_SENSOR) { PowerControl(SEISMIC_SENSOR_DATA_CONTROL, ON); }
-		else /* ACOUSTIC_SENSOR */ { PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, ON); }
-#endif
-		// Hold low for 5us
-		SoftUsecWait(5);
-
-		// Release the line
-#if 0 /* old hw */
-		if (sensor == SEISMIC_SENSOR) { PowerControl(SEISMIC_SENSOR_DATA_CONTROL, OFF); }
-		else /* ACOUSTIC_SENSOR */ { PowerControl(ACOUSTIC_SENSOR_DATA_CONTROL, OFF); }
-#endif
-		// Wait for 5us
-		SoftUsecWait(5);
-
-		// Shift the data over 1 bit
-		data >>= 1;
-
-		// Check if the data bit is a 1
-		if (READ_SMART_SENSOR_ONE_WIRE_STATE())
-		{
-			// Or in a 1
-			data |= 0x80;
-		}
-		else
-		{
-			// And in a zero
-			data &= 0x7f;
-		}
-
-		// Hold for 60us, recovery time
-		//SoftUsecWait(60);
-		//SoftUsecWait(56);
-		SoftUsecWait(58);
-	}
+	uint8 data = ds2484_w1_read_byte();
 
 	return (data);
 }
@@ -190,21 +75,19 @@ uint8 OneWireReadByte(SMART_SENSOR_TYPE sensor)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void OneWireTest(SMART_SENSOR_TYPE sensor)
+void OneWireTest(void)
 {
 	uint8 romData[8];
 	uint8 i = 0;
 	uint8 crc = 0;
 
-	if (OneWireReset(sensor) == YES)
+	if (OneWireReset() == YES)
 	{
-		OneWireWriteByte(sensor, DS2431_READ_ROM);
+		OneWireWriteByte(DS2431_READ_ROM);
 
 		for (i = 0; i < 8; i++)
 		{
-#if 0 /* old hw */
-			romData[i] = OneWireReadByte(sensor);
-#endif
+			romData[i] = OneWireReadByte();
 		}
 
 		crc = CalcCrc8(&romData[0], 7, 0x00);
@@ -219,7 +102,7 @@ void OneWireTest(SMART_SENSOR_TYPE sensor)
 		if (crc == romData[7])
 		{
 			debugRaw("(CRC: %x, success)\r\n", crc);
-			OneWireFunctions(sensor);
+			OneWireFunctions();
 		}
 		else
 		{
@@ -235,7 +118,7 @@ void OneWireTest(SMART_SENSOR_TYPE sensor)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void OneWireFunctions(SMART_SENSOR_TYPE sensor)
+void OneWireFunctions(void)
 {
 	uint8 i = 0;
 	uint16 crc16 = 0;
@@ -246,30 +129,29 @@ void OneWireFunctions(SMART_SENSOR_TYPE sensor)
 	uint8 dataAdjust = 2;
 
 	// Read Memory (0xF0), Address: 0x00 -> 0x1F (wrap)
-	if (OneWireReset(sensor) == YES)
+	if (OneWireReset() == YES)
 	{
 		debugRaw("Read Memory\r\n");
 
 		// Skip ROM
-		OneWireWriteByte(sensor, DS2431_SKIP_ROM);
+		OneWireWriteByte(DS2431_SKIP_ROM);
 
 		// Read Memory
-		OneWireWriteByte(sensor, DS2431_READ_MEMORY);
+		OneWireWriteByte(DS2431_READ_MEMORY);
 
 		// Address (Lower)
-		OneWireWriteByte(sensor, 0x00);
+		OneWireWriteByte(0x00);
 
 		// Address (Upper)
-		OneWireWriteByte(sensor, 0x00);
+		OneWireWriteByte(0x00);
 
 		debugRaw("  Data: ");
 
 		// Data
 		for (i = 0; i < 128; i++)
 		{
-#if 0 /* old hw */
-			debugRaw("%02x ", OneWireReadByte(sensor));
-#endif
+			debugRaw("%02x ", OneWireReadByte());
+
 			if (((i + 1) % 32) == 0)
 			{
 				debugRaw("\r\n\t");
@@ -278,28 +160,28 @@ void OneWireFunctions(SMART_SENSOR_TYPE sensor)
 
 		debugRaw("\r\n");
 
-		OneWireReset(sensor);
+		OneWireReset();
 	}
 	else return;
 
 	// Write Scratchpad (0x0F), Address: 0x00 -> 0x07
-	if (OneWireReset(sensor) == YES)
+	if (OneWireReset() == YES)
 	{
 		debugRaw("Write Scratchpad\r\n");
 
 		// Skip ROM
-		OneWireWriteByte(sensor, DS2431_SKIP_ROM);
+		OneWireWriteByte(DS2431_SKIP_ROM);
 
 		// Write Scratchpad
-		OneWireWriteByte(sensor, DS2431_WRITE_SCRATCHPAD);
+		OneWireWriteByte(DS2431_WRITE_SCRATCHPAD);
 		data = DS2431_WRITE_SCRATCHPAD; crc16 = CalcCrc16(&data, 1, 0xFFFF); crc16seed0 = CalcCrc16(&data, 1, 0); crc16invert = ~CalcCrc16(&data, 1, ~0);
 
 		// Address (Lower)
-		OneWireWriteByte(sensor, 0x00);
+		OneWireWriteByte(0x00);
 		data = 0x00; crc16 = CalcCrc16(&data, 1, crc16); crc16seed0 = CalcCrc16(&data, 1, crc16seed0); crc16invert = ~CalcCrc16(&data, 1, ~crc16invert);
 
 		// Address (Upper)
-		OneWireWriteByte(sensor, 0x00);
+		OneWireWriteByte(0x00);
 		data = 0x00; crc16 = CalcCrc16(&data, 1, crc16); crc16seed0 = CalcCrc16(&data, 1, crc16seed0); crc16invert = ~CalcCrc16(&data, 1, ~crc16invert);
 
 		debugRaw("  Data: ");
@@ -307,16 +189,15 @@ void OneWireFunctions(SMART_SENSOR_TYPE sensor)
 		// Data
 		for (i = 0; i < 8; i++)
 		{
-			OneWireWriteByte(sensor, (uint8)((i + 1) * dataAdjust));
+			OneWireWriteByte((uint8)((i + 1) * dataAdjust));
 			data = (uint8)((i + 1) * dataAdjust); crc16 = CalcCrc16(&data, 1, crc16); crc16seed0 = CalcCrc16(&data, 1, crc16seed0); crc16invert = ~CalcCrc16(&data, 1, ~crc16invert);
 			debugRaw("%02x ", (uint8)((i + 1) * dataAdjust));
 		}
 
 		// Read CRC16 (only for full Scratchpad write)
-#if 0 /* old hw */
-		returnCrc16 = OneWireReadByte(sensor);
-		returnCrc16 |= (OneWireReadByte(sensor) << 8);
-#endif
+		returnCrc16 = OneWireReadByte();
+		returnCrc16 |= (OneWireReadByte() << 8);
+
 		if (crc16 == returnCrc16) { debugRaw("(CRC16 match seed 0xFFFF)"); }
 		else if (crc16seed0 == returnCrc16) { debugRaw("(CRC16 match seed 0)"); }
 		else if (crc16invert == returnCrc16) { debugRaw("(CRC16 match invert)"); }
@@ -324,141 +205,136 @@ void OneWireFunctions(SMART_SENSOR_TYPE sensor)
 
 		debugRaw("\r\n");
 
-		OneWireReset(sensor);
+		OneWireReset();
 	}
 	else return;
 
 	// Read Scratchpad (0xAA), Address: 0x00 -> 0x1F (wrap)
-	if (OneWireReset(sensor) == YES)
+	if (OneWireReset() == YES)
 	{
 		debugRaw("Read Scratchpad\r\n");
 
 		// Skip ROM
-		OneWireWriteByte(sensor, DS2431_SKIP_ROM);
+		OneWireWriteByte(DS2431_SKIP_ROM);
 
 		// Read Scratchpad
-		OneWireWriteByte(sensor, DS2431_READ_SCRATCHPAD);
+		OneWireWriteByte(DS2431_READ_SCRATCHPAD);
 
 		// Address (Lower)
-		OneWireWriteByte(sensor, 0x00);
+		OneWireWriteByte(0x00);
 
 		// Address (Upper)
-		OneWireWriteByte(sensor, 0x00);
+		OneWireWriteByte(0x00);
 
 		// ES
-		OneWireWriteByte(sensor, 0x00);
+		OneWireWriteByte(0x00);
 
 		debugRaw("  Data: ");
 
 		// Data
 		for (i = 0; i < 8; i++)
 		{
-#if 0 /* old hw */
-			debugRaw("%02x ", OneWireReadByte(sensor));
-#endif
+			debugRaw("%02x ", OneWireReadByte());
 		}
 
 		debugRaw("\r\n");
 
-		OneWireReset(sensor);
+		OneWireReset();
 	}
 	else return;
 
 	// Copy Scratchpad (0x55), Validation key: 0xA5, Data line held for 10ms
-	if (OneWireReset(sensor) == YES)
+	if (OneWireReset() == YES)
 	{
 		debugRaw("Copy Scratchpad\r\n");
 
 		// Skip ROM
-		OneWireWriteByte(sensor, DS2431_SKIP_ROM);
+		OneWireWriteByte(DS2431_SKIP_ROM);
 
 		// Copy Scratchpad
-		OneWireWriteByte(sensor, DS2431_COPY_SCRATCHPAD);
+		OneWireWriteByte(DS2431_COPY_SCRATCHPAD);
 
 		// Validation Key
-		OneWireWriteByte(sensor, 0xA5);
+		OneWireWriteByte(0xA5);
 
 		SoftUsecWait(10 * SOFT_MSECS);
 
-		OneWireReset(sensor);
+		OneWireReset();
 	}
 	else return;
 
 	// Write Application Register (0x99), Address: 0x00 -> 0x07 (wrap)
-	if (OneWireReset(sensor) == YES)
+	if (OneWireReset() == YES)
 	{
 		debugRaw("Write App Register\r\n");
 
 		// Skip ROM
-		OneWireWriteByte(sensor, DS2431_SKIP_ROM);
+		OneWireWriteByte(DS2431_SKIP_ROM);
 
 		// Write App Register
-		OneWireWriteByte(sensor, 0x99);
+		OneWireWriteByte(0x99);
 
 		// Address
-		OneWireWriteByte(sensor, 0x00);
+		OneWireWriteByte(0x00);
 
 		// Data
 		for (i = 0; i < 8; i++)
 		{
-			OneWireWriteByte(sensor, (uint8)((i + 1) * 4));
+			OneWireWriteByte((uint8)((i + 1) * 4));
 		}
 
-		OneWireReset(sensor);
+		OneWireReset();
 	}
 	else return;
 
 	// Read Status Register (0x66), Validation key: 0x00
-	if (OneWireReset(sensor) == YES)
+	if (OneWireReset() == YES)
 	{
 		debugRaw("Read Status Register\r\n");
 
 		// Skip ROM
-		OneWireWriteByte(sensor, DS2431_SKIP_ROM);
+		OneWireWriteByte(DS2431_SKIP_ROM);
 
 		// Read Status Register
-		OneWireWriteByte(sensor, 0x66);
+		OneWireWriteByte(0x66);
 
 		// Validation key
-		OneWireWriteByte(sensor, 0x00);
+		OneWireWriteByte(0x00);
 
 		debugRaw("  Data: ");
 
 		// Data
-#if 0 /* old hw */
-		debugRaw("%02x\r\n", OneWireReadByte(sensor));
-#endif
-		OneWireReset(sensor);
+		debugRaw("%02x\r\n", OneWireReadByte());
+
+		OneWireReset();
 	}
 	else return;
 
 	// Read Application Register (0xC3), Address: 0x00 -> 0x07 (wrap)
-	if (OneWireReset(sensor) == YES)
+	if (OneWireReset() == YES)
 	{
 		debugRaw("Read App Register\r\n");
 
 		// Skip ROM
-		OneWireWriteByte(sensor, DS2431_SKIP_ROM);
+		OneWireWriteByte(DS2431_SKIP_ROM);
 
 		// Read App Register
-		OneWireWriteByte(sensor, 0xC3);
+		OneWireWriteByte(0xC3);
 
 		// Address
-		OneWireWriteByte(sensor, 0x00);
+		OneWireWriteByte(0x00);
 
 		debugRaw("  Data: ");
 
 		// Data
 		for (i = 0; i < 8; i++)
 		{
-#if 0 /* old hw */
-			debugRaw("%02x ", OneWireReadByte(sensor));
-#endif
+			debugRaw("%02x ", OneWireReadByte());
 		}
 
 		debugRaw("\r\n");
 
-		OneWireReset(sensor);
+		OneWireReset();
 	}
 	else return;
 
@@ -468,7 +344,7 @@ void OneWireFunctions(SMART_SENSOR_TYPE sensor)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 OneWireReadROM(SMART_SENSOR_TYPE sensor, SMART_SENSOR_ROM* romData)
+uint8 OneWireReadROM(SMART_SENSOR_ROM* romData)
 {
 	uint8 status = FAILED;
 	uint8 i = 0;
@@ -476,26 +352,14 @@ uint8 OneWireReadROM(SMART_SENSOR_TYPE sensor, SMART_SENSOR_ROM* romData)
 	uint8 crc;
 
 	// Read ROM
-#if 0 /* old hw */
-	if (OneWireReset(sensor) == YES)
-#else
-	if (ds2484_w1_reset_bus() == 0) // 0 = device present, 1 = no device
-#endif
+	if (OneWireReset() == YES)
 	{
 		// Read ROM command
-#if 0 /* old hw */
-		OneWireWriteByte(sensor, DS2431_READ_ROM);
-#else
-		ds2484_w1_write_byte(DS2431_READ_ROM);
-#endif
+		OneWireWriteByte(DS2431_READ_ROM);
 
 		for (i = 0; i < 8; i++)
 		{
-#if 0 /* old hw */
-			romDataPtr[i] = OneWireReadByte(sensor);
-#else
-			romDataPtr[i] = ds2484_w1_read_byte();
-#endif
+			romDataPtr[i] = OneWireReadByte();
 		}
 
 		crc = CalcCrc8(romDataPtr, 7, 0x00);
@@ -524,11 +388,7 @@ uint8 OneWireReadROM(SMART_SENSOR_TYPE sensor, SMART_SENSOR_ROM* romData)
 		}
 #endif
 
-#if 0 /* old hw */
-		OneWireReset(sensor);
-#else
-		ds2484_w1_reset_bus();
-#endif
+		OneWireReset();
 	}
 
 	return (status);
@@ -537,7 +397,7 @@ uint8 OneWireReadROM(SMART_SENSOR_TYPE sensor, SMART_SENSOR_ROM* romData)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 OneWireReadMemory(SMART_SENSOR_TYPE sensor, uint16 address, uint8 length, uint8* data)
+uint8 OneWireReadMemory(uint16 address, uint8 length, uint8* data)
 {
 	uint8 status = FAILED;
 	uint8 i = 0;
@@ -545,55 +405,27 @@ uint8 OneWireReadMemory(SMART_SENSOR_TYPE sensor, uint16 address, uint8 length, 
 	if ((data != NULL) && (address <= 0x1F) && (length <= 128))
 	{
 		// Read Memory (0xF0), Address: 0x00 -> 0x1F (wrap)
-#if 0 /* old hw */
-		if (OneWireReset(sensor) == YES)
-#else
-		if (ds2484_w1_reset_bus() == 0) // 0 = device found
-#endif
+		if (OneWireReset() == YES)
 		{
 			// Skip ROM
-#if 0 /* old hw */
-			OneWireWriteByte(sensor, DS2431_SKIP_ROM);
-#else
-			ds2484_w1_write_byte(DS2431_SKIP_ROM);
-#endif
+			OneWireWriteByte(DS2431_SKIP_ROM);
 
 			// Read Memory
-#if 0 /* old hw */
-			OneWireWriteByte(sensor, DS2431_READ_MEMORY);
-#else
-			ds2484_w1_write_byte(DS2431_READ_MEMORY);
-#endif
+			OneWireWriteByte(DS2431_READ_MEMORY);
 
 			// Address (Lower)
-#if 0 /* old hw */
-			OneWireWriteByte(sensor, (address & 0xFF));
-#else
-			ds2484_w1_write_byte((address & 0xFF));
-#endif
+			OneWireWriteByte((address & 0xFF));
 
 			// Address (Upper)
-#if 0 /* old hw */
-			OneWireWriteByte(sensor, ((address >> 8) & 0xFF));
-#else
-			ds2484_w1_write_byte(((address >> 8) & 0xFF));
-#endif
+			OneWireWriteByte(((address >> 8) & 0xFF));
 
 			// Data
 			for (i = 0; i < length; i++)
 			{
-#if 0 /* old hw */
-				data[i] = OneWireReadByte(sensor);
-#else
-				data[i] = ds2484_w1_read_byte();
-#endif
+				data[i] = OneWireReadByte();
 			}
 
-#if 0 /* old hw */
-			OneWireReset(sensor);
-#else
-			ds2484_w1_reset_bus();
-#endif
+			OneWireReset();
 
 			status = PASSED;
 		}
@@ -605,7 +437,7 @@ uint8 OneWireReadMemory(SMART_SENSOR_TYPE sensor, uint16 address, uint8 length, 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 OneWireWriteScratchpad(SMART_SENSOR_TYPE sensor, uint16 address, uint8 length, uint8* data)
+uint8 OneWireWriteScratchpad(uint16 address, uint8 length, uint8* data)
 {
 	uint8 status = FAILED;
 	uint8 i = 0;
@@ -613,27 +445,27 @@ uint8 OneWireWriteScratchpad(SMART_SENSOR_TYPE sensor, uint16 address, uint8 len
 	if ((data != NULL) && (address <= 0x1F) && (length <= 8))
 	{
 		// Write Scratchpad (0x0F), Address: 0x00 -> 0x1F (wrap)
-		if (OneWireReset(sensor) == YES)
+		if (OneWireReset() == YES)
 		{
 			// Skip ROM
-			OneWireWriteByte(sensor, DS2431_SKIP_ROM);
+			OneWireWriteByte(DS2431_SKIP_ROM);
 
 			// Write Scratchpad
-			OneWireWriteByte(sensor, DS2431_WRITE_SCRATCHPAD);
+			OneWireWriteByte(DS2431_WRITE_SCRATCHPAD);
 
 			// Address (Lower)
-			OneWireWriteByte(sensor, (address & 0xFF));
+			OneWireWriteByte((address & 0xFF));
 
 			// Address (Upper)
-			OneWireWriteByte(sensor, ((address >> 8) & 0xFF));
+			OneWireWriteByte(((address >> 8) & 0xFF));
 
 			// Data
 			for (i = 0; i < length; i++)
 			{
-				OneWireWriteByte(sensor, data[i]);
+				OneWireWriteByte(data[i]);
 			}
 
-			OneWireReset(sensor);
+			OneWireReset();
 
 			status = PASSED;
 		}
@@ -645,7 +477,7 @@ uint8 OneWireWriteScratchpad(SMART_SENSOR_TYPE sensor, uint16 address, uint8 len
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 OneWireReadScratchpad(SMART_SENSOR_TYPE sensor, uint16 address, uint8 length, uint8* data)
+uint8 OneWireReadScratchpad(uint16 address, uint8 length, uint8* data)
 {
 	uint8 status = FAILED;
 	uint8 i = 0;
@@ -653,32 +485,30 @@ uint8 OneWireReadScratchpad(SMART_SENSOR_TYPE sensor, uint16 address, uint8 leng
 	if ((data != NULL) && (address <= 0x1F) && (length <= 8))
 	{
 		// Read Scratchpad (0xAA), Address: 0x00 -> 0x1F (wrap)
-		if (OneWireReset(sensor) == YES)
+		if (OneWireReset() == YES)
 		{
 			// Skip ROM
-			OneWireWriteByte(sensor, DS2431_SKIP_ROM);
+			OneWireWriteByte(DS2431_SKIP_ROM);
 
 			// Read Scratchpad
-			OneWireWriteByte(sensor, DS2431_READ_SCRATCHPAD);
+			OneWireWriteByte(DS2431_READ_SCRATCHPAD);
 
 			// Address (Lower)
-			OneWireWriteByte(sensor, (address & 0xFF));
+			OneWireWriteByte((address & 0xFF));
 
 			// Address (Upper)
-			OneWireWriteByte(sensor, ((address >> 8) & 0xFF));
+			OneWireWriteByte(((address >> 8) & 0xFF));
 
 			// ES
-			OneWireWriteByte(sensor, 0x00);
+			OneWireWriteByte(0x00);
 
 			// Data
 			for (i = 0; i < length; i++)
 			{
-#if 0 /* old hw */
-				data[i] = OneWireReadByte(sensor);
-#endif
+				data[i] = OneWireReadByte();
 			}
 
-			OneWireReset(sensor);
+			OneWireReset();
 
 			status = PASSED;
 		}
@@ -690,26 +520,26 @@ uint8 OneWireReadScratchpad(SMART_SENSOR_TYPE sensor, uint16 address, uint8 leng
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 OneWireCopyScratchpad(SMART_SENSOR_TYPE sensor)
+uint8 OneWireCopyScratchpad(void)
 {
 	uint8 status = FAILED;
 	//uint8 i = 0;
 
 	// Copy Scratchpad (0x55), Validation key: 0xA5, Data line held for 10ms
-	if (OneWireReset(sensor) == YES)
+	if (OneWireReset() == YES)
 	{
 		// Skip ROM
-		OneWireWriteByte(sensor, DS2431_SKIP_ROM);
+		OneWireWriteByte(DS2431_SKIP_ROM);
 
 		// Copy Scratchpad
-		OneWireWriteByte(sensor, DS2431_COPY_SCRATCHPAD);
+		OneWireWriteByte(DS2431_COPY_SCRATCHPAD);
 
 		// Validation Key
-		OneWireWriteByte(sensor, 0xA5);
+		OneWireWriteByte(0xA5);
 
 		SoftUsecWait(10 * SOFT_MSECS);
 
-		OneWireReset(sensor);
+		OneWireReset();
 
 		status = PASSED;
 	}
@@ -720,7 +550,7 @@ uint8 OneWireCopyScratchpad(SMART_SENSOR_TYPE sensor)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 OneWireWriteAppRegister(SMART_SENSOR_TYPE sensor, uint16 address, uint8 length, uint8* data)
+uint8 OneWireWriteAppRegister(uint16 address, uint8 length, uint8* data)
 {
 	uint8 status = FAILED;
 	uint8 i = 0;
@@ -728,24 +558,24 @@ uint8 OneWireWriteAppRegister(SMART_SENSOR_TYPE sensor, uint16 address, uint8 le
 	if ((data != NULL) && (address <= 0x07) && (length <= 8))
 	{
 		// Write Application Register (0x99), Address: 0x00 -> 0x07 (wrap)
-		if (OneWireReset(sensor) == YES)
+		if (OneWireReset() == YES)
 		{
 			// Skip ROM
-			OneWireWriteByte(sensor, DS2431_SKIP_ROM);
+			OneWireWriteByte(DS2431_SKIP_ROM);
 
 			// Write App Register
-			OneWireWriteByte(sensor, 0x99);
+			OneWireWriteByte(0x99);
 
 			// Address
-			OneWireWriteByte(sensor, address);
+			OneWireWriteByte(address);
 
 			// Data
 			for (i = 0; i < 8; i++)
 			{
-				OneWireWriteByte(sensor, data[i]);
+				OneWireWriteByte(data[i]);
 			}
 
-			OneWireReset(sensor);
+			OneWireReset();
 
 			status = PASSED;
 		}
@@ -757,7 +587,7 @@ uint8 OneWireWriteAppRegister(SMART_SENSOR_TYPE sensor, uint16 address, uint8 le
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 OneWireReadStatusRegister(SMART_SENSOR_TYPE sensor, uint8* data)
+uint8 OneWireReadStatusRegister(uint8* data)
 {
 	uint8 status = FAILED;
 	//uint8 i = 0;
@@ -765,21 +595,20 @@ uint8 OneWireReadStatusRegister(SMART_SENSOR_TYPE sensor, uint8* data)
 	if (data != NULL)
 	{
 		// Read Status Register (0x66), Validation key: 0x00
-		if (OneWireReset(sensor) == YES)
+		if (OneWireReset() == YES)
 		{
 			// Skip ROM
-			OneWireWriteByte(sensor, DS2431_SKIP_ROM);
+			OneWireWriteByte(DS2431_SKIP_ROM);
 
 			// Read Status Register
-			OneWireWriteByte(sensor, 0x66);
+			OneWireWriteByte(0x66);
 
 			// Validation key
-			OneWireWriteByte(sensor, 0x00);
+			OneWireWriteByte(0x00);
 
-#if 0 /* old hw */
-			data[0] = OneWireReadByte(sensor);
-#endif
-			OneWireReset(sensor);
+			data[0] = OneWireReadByte();
+
+			OneWireReset();
 
 			status = PASSED;
 		}
@@ -791,7 +620,7 @@ uint8 OneWireReadStatusRegister(SMART_SENSOR_TYPE sensor, uint8* data)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 OneWireReadAppRegister(SMART_SENSOR_TYPE sensor, uint16 address, uint8 length, uint8* data)
+uint8 OneWireReadAppRegister(uint16 address, uint8 length, uint8* data)
 {
 	uint8 status = FAILED;
 	uint8 i = 0;
@@ -799,26 +628,24 @@ uint8 OneWireReadAppRegister(SMART_SENSOR_TYPE sensor, uint16 address, uint8 len
 	if ((data != NULL) && (address <= 0x07) && (length <= 8))
 	{
 		// Read Application Register (0xC3), Address: 0x00 -> 0x07 (wrap)
-		if (OneWireReset(sensor) == YES)
+		if (OneWireReset() == YES)
 		{
 			// Skip ROM
-			OneWireWriteByte(sensor, DS2431_SKIP_ROM);
+			OneWireWriteByte(DS2431_SKIP_ROM);
 
 			// Read App Register
-			OneWireWriteByte(sensor, 0xC3);
+			OneWireWriteByte(0xC3);
 
 			// Address
-			OneWireWriteByte(sensor, address);
+			OneWireWriteByte(address);
 
 			// Data
 			for (i = 0; i < length; i++)
 			{
-#if 0 /* old hw */
-				data[i] = OneWireReadByte(sensor);
-#endif
+				data[i] = OneWireReadByte();
 			}
 
-			OneWireReset(sensor);
+			OneWireReset();
 
 			status = PASSED;
 		}
@@ -830,32 +657,32 @@ uint8 OneWireReadAppRegister(SMART_SENSOR_TYPE sensor, uint16 address, uint8 len
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 OneWireCopyAndLockAppRegister(SMART_SENSOR_TYPE sensor)
+uint8 OneWireCopyAndLockAppRegister(void)
 {
 	uint8 status = FAILED;
 	//uint8 i = 0;
 	uint8 lockStatus = 0;
 
-	if (OneWireReadStatusRegister(sensor, &lockStatus) == PASSED)
+	if (OneWireReadStatusRegister(&lockStatus) == PASSED)
 	{
 		// Check if the App register is unlocked
 		if (lockStatus == 0xFF)
 		{
 			// Copy and Lock Application Register (0x5A), Validation key: 0xA5, Only executed once
-			if (OneWireReset(sensor) == YES)
+			if (OneWireReset() == YES)
 			{
 				// Skip ROM
-				OneWireWriteByte(sensor, DS2431_SKIP_ROM);
+				OneWireWriteByte(DS2431_SKIP_ROM);
 
 				// Copy and Lock App Register
-				OneWireWriteByte(sensor, 0x5A);
+				OneWireWriteByte(0x5A);
 
 				// Validation Key
-				OneWireWriteByte(sensor, 0xA5);
+				OneWireWriteByte(0xA5);
 
 				SoftUsecWait(10 * SOFT_MSECS);
 
-				OneWireReset(sensor);
+				OneWireReset();
 
 				status = PASSED;
 			}
@@ -868,7 +695,7 @@ uint8 OneWireCopyAndLockAppRegister(SMART_SENSOR_TYPE sensor)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SmartSensorDebug(SMART_SENSOR_TYPE sensor)
+void SmartSensorDebug(void)
 {
 	SMART_SENSOR_STRUCT smartSensorData;
 	uint16 zeroed = 0;
@@ -882,9 +709,9 @@ void SmartSensorDebug(SMART_SENSOR_TYPE sensor)
 	UNUSED(crc16seed0);
 #endif
 
-	debugRaw("\r\n--------%s Sensor Data-------\r\n\n", (sensor == SEISMIC_SENSOR) ? "Seismic" : "Acoustic");
+	debugRaw("\r\n--------Sensor Data-------\r\n\n");
 
-	OneWireReadMemory(sensor, 0x0, sizeof(SMART_SENSOR_STRUCT), (uint8*)&smartSensorData);
+	OneWireReadMemory(0x0, sizeof(SMART_SENSOR_STRUCT), (uint8*)&smartSensorData);
 
 	crc32 = CalcCCITT32((uint8*)&smartSensorData.serialNumber[0], smartSensorData.dataLength, 0xFFFFFFFF);
 	crc16 = CalcCrc16((uint8*)&smartSensorData.currentCal, (sizeof(CALIBRATION_DATA_SET_STRUCT) - 2), 0xFFFF);
@@ -918,20 +745,20 @@ void SmartSensorDebug(SMART_SENSOR_TYPE sensor)
 void SmartSensorTest(void)
 {
 	SmartSensorMuxSelectAndDriverEnable(SEISMIC_SENSOR);
-	if (OneWireReset(SEISMIC_SENSOR) == YES) { debug("Seismic Smart Sensor discovered\r\n"); }
+	if (OneWireReset() == YES) { debug("Seismic Smart Sensor discovered\r\n"); }
 	else { debug("Seismic Smart Sensor not found\r\n"); }
 
 	debugRaw("\r\n----------Seismic Sensor----------\r\n");
-	OneWireTest(SEISMIC_SENSOR);
-	SmartSensorDebug(SEISMIC_SENSOR);
+	OneWireTest();
+	SmartSensorDebug();
 
 	SmartSensorMuxSelectAndDriverEnable(ACOUSTIC_SENSOR);
-	if (OneWireReset(ACOUSTIC_SENSOR) == YES) { debug("Acoustic Smart Sensor discovered\r\n"); }
+	if (OneWireReset() == YES) { debug("Acoustic Smart Sensor discovered\r\n"); }
 	else { debug("Acoustic Smart Sensor not found\r\n"); }
 
 	debugRaw("\r\n----------Acoustic Sensor----------\r\n");
-	OneWireTest(ACOUSTIC_SENSOR);
-	SmartSensorDebug(ACOUSTIC_SENSOR);
+	OneWireTest();
+	SmartSensorDebug();
 
 	// Todo: Possibly add in second set of sensors, Geo2, AOP2
 
@@ -1010,9 +837,9 @@ void SmartSensorReadRomAndMemory(SMART_SENSOR_TYPE sensor)
 
 	SmartSensorMuxSelectAndDriverEnable(sensor);
 
-	if (OneWireReadROM(sensor, smartSensorRom) == PASSED)
+	if (OneWireReadROM(smartSensorRom) == PASSED)
 	{
-		if (OneWireReadMemory(sensor, 0x0, sizeof(SMART_SENSOR_STRUCT), (uint8*)smartSensorData) == PASSED)
+		if (OneWireReadMemory(0x0, sizeof(SMART_SENSOR_STRUCT), (uint8*)smartSensorData) == PASSED)
 		{
 			if (smartSensorData->crc == CalcCCITT32((uint8*)&smartSensorData->serialNumber[0], smartSensorData->dataLength, 0xFFFFFFFF))
 			{
