@@ -27,6 +27,7 @@
 #include "OldUart.h"
 #include "Sensor.h"
 #include "TextTypes.h"
+#include "ff.h"
 
 // Global Externs ---------------------------------------------------------------------
 
@@ -262,7 +263,7 @@ extern SMART_SENSOR_ROM g_acousticSmartSensorRom;
 extern SMART_SENSOR_STRUCT g_seismicSmartSensorMemory;
 extern SMART_SENSOR_STRUCT g_acousticSmartSensorMemory;
 extern WORKING_CAL_DATE_STRUCT g_currentCalibration;
-extern int g_globalFileHandle;
+extern FIL* g_globalFileHandle;
 extern uint8 g_quickBootEntryJump;
 extern uint8 g_breakpointCause;
 extern GPS_SERIAL_DATA g_gpsSerialData;

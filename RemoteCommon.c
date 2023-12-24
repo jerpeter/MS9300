@@ -20,8 +20,8 @@
 #include "EventProcessing.h"
 #include "SysEvents.h"
 #include "SoftTimer.h"
-//#include "file.h"
-//#include "fsaccess.h"
+
+#include "ff.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -357,6 +357,8 @@ uint32 DataLengthStrToUint32(uint8* dataLengthStr)
 ///----------------------------------------------------------------------------
 void WriteCompressedData(uint8 compressedData, uint8 outMode)
 {
+	uint32_t bytesWritten;
+
 	if (outMode == OUT_SERIAL)
 	{
 		g_demXferStructPtr->xmitBuffer[g_demXferStructPtr->xmitSize] = compressedData;
@@ -382,9 +384,7 @@ void WriteCompressedData(uint8 compressedData, uint8 outMode)
 
 		if (g_spareBufferIndex == SPARE_BUFFER_SIZE)
 		{
-#if 0 /* old hw */
-			write(g_globalFileHandle, g_spareBuffer, SPARE_BUFFER_SIZE);
-#endif
+			f_write(g_globalFileHandle, g_spareBuffer, SPARE_BUFFER_SIZE, (UINT*)&bytesWritten);
 			g_spareBufferIndex = 0;
 		}
 	}

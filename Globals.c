@@ -25,6 +25,7 @@
 #include "OldUart.h"
 #include "Sensor.h"
 #include "TextTypes.h"
+#include "ff.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -304,7 +305,7 @@ SMART_SENSOR_ROM g_acousticSmartSensorRom;
 SMART_SENSOR_STRUCT g_seismicSmartSensorMemory;
 SMART_SENSOR_STRUCT g_acousticSmartSensorMemory;
 WORKING_CAL_DATE_STRUCT g_currentCalibration;
-int g_globalFileHandle;
+FIL* g_globalFileHandle;
 uint8 g_quickBootEntryJump = NO;
 uint8 g_breakpointCause = 0;
 GPS_SERIAL_DATA g_gpsSerialData;

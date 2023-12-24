@@ -23,9 +23,9 @@
 #include "Crc.h"
 #include "Minilzo.h"
 #include "TextTypes.h"
-//#include "navigation.h"
-//#include "fsaccess.h"
+
 #include "fastmath.h"
+#include "ff.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -1255,6 +1255,9 @@ void HandleDER(CMD_BUFFER_STRUCT* inCmd)
 	char msgTypeStr[8];
 	uint8 derError = NO;
 
+	FIL file;
+	uint32_t bytesMoved;
+
 	debug("HandleDER: Entry\r\n");
 
 	// Check if the modem processing is busy
@@ -1366,28 +1369,35 @@ void HandleDER(CMD_BUFFER_STRUCT* inCmd)
 		}
 		else // No memory space to work, must save compressed data as a file
 		{
-#if 0 /* old hw */
-			// Get new event file handle
+			// Get new compressed event filename and path
 			GetERDataFilename(g_derXferStruct.dloadEventRec.eventRecord.summary.eventNumber);
 
-			g_spareBufferIndex = 0;
-			g_derXferStruct.compressedEventDataSize = lzo1x_1_compress((void*)&g_eventDataBuffer[0], g_derXferStruct.dloadEventRec.eventRecord.header.dataLength, OUT_FILE);
-
-			// Check if any remaining compressed data is queued
-			if (g_spareBufferIndex)
+			if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
 			{
-				// Finish writing the remaining compressed data
-				write(g_globalFileHandle, g_spareBuffer, g_spareBufferIndex);
-				g_spareBufferIndex = 0;
+				debugErr("Unable to create ERdata event file: %s\r\n", g_spareFileName);
 			}
+			else // File created, write out the event
+			{
+				g_globalFileHandle = &file;
+				g_spareBufferIndex = 0;
+				g_derXferStruct.compressedEventDataSize = lzo1x_1_compress((void*)&g_eventDataBuffer[0], g_derXferStruct.dloadEventRec.eventRecord.header.dataLength, OUT_FILE);
 
-			SetFileDateTimestamp(FS_DATE_LAST_WRITE);
+				// Check if any remaining compressed data is queued
+				if (g_spareBufferIndex)
+				{
+					// Finish writing the remaining compressed data
+					f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesMoved);
+					g_spareBufferIndex = 0;
+				}
 
-			// Done writing the event file, close the file handle
-			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-			close(g_globalFileHandle);
-#endif
-			g_derXferStruct.compressedEventDataFilePresent = YES;
+				// Done writing the event file, close the file handle
+				g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+
+				f_close(&file);
+				SetFileTimestamp(g_spareFileName);
+
+				g_derXferStruct.compressedEventDataFilePresent = YES;
+			}
 		}
 	}
 	else // Actively monitoring, no compressed event data file and can't use event data buffer to cache the event

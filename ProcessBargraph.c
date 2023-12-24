@@ -1157,6 +1157,7 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 				}
 				else // File created, write out the event
 				{
+					g_globalFileHandle = &file;
 					g_spareBufferIndex = 0;
 					compressSize = lzo1x_1_compress((void*)&g_eventDataBuffer[0], dataLength, OUT_FILE);
 

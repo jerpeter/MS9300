@@ -330,6 +330,7 @@ void MoveWaveformEventToFile(void)
 						}
 						else // File created, write out the event
 						{
+							g_globalFileHandle = &file;
 							g_spareBufferIndex = 0;
 							compressSize = lzo1x_1_compress((void*)g_currentEventStartPtr, (g_wordSizeInEvent * 2), OUT_FILE);
 
