@@ -353,12 +353,10 @@ void AlarmTestingMenuHandler(uint8 keyPressed, void* data)
 	{
 		if ((uint8)alarmTestingMenu[newItemIndex].data == ALARM_TESTING_DONE)
 		{
-#if 0 /* old hw */
-			// Clear Alarm 1
-			gpio_clr_gpio_pin(ALARM_1_GPIO_PIN);
-			// Clear Alarm 2
-			gpio_clr_gpio_pin(ALARM_2_GPIO_PIN);
-#endif
+			// Clear Alarm 1 and Alarm 2
+			PowerControl(ALARM_1_ENABLE, OFF);
+			PowerControl(ALARM_2_ENABLE, OFF);
+
 			SETUP_MENU_MSG(CAL_SETUP_MENU);
 
 			// Special call before Calibration setup to disable USB processing
@@ -369,30 +367,22 @@ void AlarmTestingMenuHandler(uint8 keyPressed, void* data)
 			if ((uint8)alarmTestingMenu[newItemIndex].data == ALARM_1_TESTING_ENABLED)
 			{
 				// Start Alarm 1
-#if 0 /* old hw */
-				gpio_set_gpio_pin(ALARM_1_GPIO_PIN);
-#endif
+				PowerControl(ALARM_1_ENABLE, ON);
 			}
 			else if ((uint8)alarmTestingMenu[newItemIndex].data == ALARM_1_TESTING_DISABLED)
 			{
 				// Clear Alarm 1
-#if 0 /* old hw */
-				gpio_clr_gpio_pin(ALARM_1_GPIO_PIN);
-#endif
+				PowerControl(ALARM_1_ENABLE, OFF);
 			}
 			else if ((uint8)alarmTestingMenu[newItemIndex].data == ALARM_2_TESTING_ENABLED)
 			{
 				// Start Alarm 2
-#if 0 /* old hw */
-				gpio_set_gpio_pin(ALARM_2_GPIO_PIN);
-#endif
+				PowerControl(ALARM_2_ENABLE, ON);
 			}
 			else if ((uint8)alarmTestingMenu[newItemIndex].data == ALARM_2_TESTING_DISABLED)
 			{
 				// Clear Alarm 2
-#if 0 /* old hw */
-				gpio_clr_gpio_pin(ALARM_2_GPIO_PIN);
-#endif
+				PowerControl(ALARM_2_ENABLE, OFF);
 			}
 		}
 	}
@@ -1367,9 +1357,6 @@ USER_MENU_STRUCT baudRateMenu[BAUD_RATE_MENU_ENTRIES] = {
 //-----------------------
 // Baud Rate Menu Handler
 //-----------------------
-#if 0 /* old hw */
-#include "usart.h"
-#endif
 #include "RemoteHandler.h"
 void BaudRateMenuHandler(uint8 keyPressed, void* data)
 {
@@ -1378,15 +1365,7 @@ void BaudRateMenuHandler(uint8 keyPressed, void* data)
 #endif
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	uint16 newItemIndex = *((uint16*)data);
-#if 0 /* old hw */
-	usart_options_t usart_1_rs232_options =
-	{
-		.charlength = 8,
-		.paritytype = USART_NO_PARITY,
-		.stopbits = USART_1_STOPBIT,
-		.channelmode = USART_NORMAL_CHMODE
-	};
-#endif
+
 	if (keyPressed == ENTER_KEY)
 	{
 		if (g_unitConfig.baudRate != baudRateMenu[newItemIndex].data)
@@ -2541,12 +2520,8 @@ void GpsPowerMenuHandler(uint8 keyPressed, void* data)
 		// Always on
 		if (g_unitConfig.gpsPowerMode == GPS_POWER_ALWAYS_ON_ACQUIRING)
 		{
-#if 0 /* old hw */
 			// Check if the GPS is powered off
-			if (gpio_get_pin_value(AVR32_PIN_PB14) == 1)
-#else
-			if (0)
-#endif
+			if (0) // Update if a GPS module becomes available
 			{
 				EnableGps();
 			}
@@ -2557,12 +2532,8 @@ void GpsPowerMenuHandler(uint8 keyPressed, void* data)
 		}
 		else // normal save power
 		{
-#if 0 /* old hw */
 			// Check if the GPS is powered on and the GPS power off timer is not active
-			if ((gpio_get_pin_value(AVR32_PIN_PB14) == 0) && (IsSoftTimerActive(GPS_POWER_OFF_TIMER_NUM) == NO))
-#else
-			if (1)
-#endif
+			if (IsSoftTimerActive(GPS_POWER_OFF_TIMER_NUM) == NO)
 			{
 				// Add soft timer to power off
 				AssignSoftTimer(GPS_POWER_OFF_TIMER_NUM, (GPS_ACTIVE_LOCATION_SEARCH_TIME * TICKS_PER_MIN), GpsPowerOffTimerCallBack);
