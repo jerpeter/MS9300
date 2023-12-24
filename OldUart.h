@@ -38,6 +38,8 @@ enum {
 	NO_CONVERSION
 };
 
+#define CTRL_B  02
+
 #define EOT_CHAR		0x04
 #define ACK_CHAR		0x06
 #define XON_CHAR		0x11
