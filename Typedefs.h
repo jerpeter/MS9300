@@ -96,12 +96,6 @@ enum {VSS = 0, VDD};
 enum {FAILED = 0, PASSED};
 enum {OUT_SERIAL = 0, OUT_FILE, OUT_BUFFER};
 
-#if 0 /* old hw */
-#define PASS      0
-#define FAIL      1
-// End of old references
-#endif
-
 #ifndef FALSE
 #define FALSE 0
 #endif
