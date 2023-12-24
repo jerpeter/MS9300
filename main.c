@@ -45,7 +45,6 @@
 //#include "device_mass_storage_task.h"
 //#include "host_mass_storage_task.h"
 //#include "usb_drv.h"
-#include "srec.h"
 //#include "flashc.h"
 #include "ushell_task.h"
 #include "rtc.h"

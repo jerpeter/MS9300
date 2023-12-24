@@ -43,7 +43,6 @@
 //#include "usb_task.h"
 //#include "device_mass_storage_task.h"
 //#include "usb_drv.h"
-#include "srec.h"
 //#include "flashc.h"
 
 ///----------------------------------------------------------------------------
