@@ -4,6 +4,9 @@
 //  Created on: Apr 26, 2010
 //      Author: SW1
 //
+
+#if 0 /* test removal */
+
 #include "srec.h"           // func defs and misc defs for this file
 //#include "usart.h"
 #include "typedefs.h"
@@ -26,11 +29,7 @@ uint16  records;
 RECORD_DATA srecdata;
 uint32  bytes_loaded;
 
-#if 0 /* old hw */
 #define SRAM_CODE           (((void *)AVR32_EBI_CS1_ADDRESS) + 0x00700000)
-#else
-#define SRAM_CODE           ((void *)0x00700000)
-#endif
 
 #define SRAM_CODE_SIZE      0x00100000
 
@@ -46,9 +45,8 @@ uint32  bytes_loaded;
 
     do
     {
-#if 0 /* old hw */
         data = usart_getchar((volatile avr32_usart_t *)channel);
-#endif
+
         switch(data)
         {
             case '\b':
@@ -57,12 +55,11 @@ uint32  bytes_loaded;
                 {
                     count--;
                     b--;
-#if 0 /* old hw */
+
                     if (channel != (int)DBG_USART)
                     {
                         print((volatile avr32_usart_t *)channel, "\b \b");
                     }
-#endif
                 }
                 break;
 //            case '\r':
@@ -71,12 +68,12 @@ uint32  bytes_loaded;
                 {
                     *b++ = (char)data;
                     *b = 0;
-#if 0 /* old hw */
+
                     if (channel != (int)DBG_USART)
                     {
                         print((volatile avr32_usart_t *)channel, "\r\n");
                     }
-#endif
+
                     end = TRUE;
                 }
                 break;
@@ -90,12 +87,11 @@ uint32  bytes_loaded;
                 {
                     count++;
                     *b++ = (char)data;
-#if 0 /* old hw */
+
                     if (channel != (int)DBG_USART)
                     {
                         print_char((volatile avr32_usart_t *)channel, data);
                     }
-#endif
                 }
                 break;
         }
@@ -136,11 +132,10 @@ int Get_and_save_srec(int file)
        else
        {
            records++;
-#if 0 /* old hw */
+
            write(file, (char*)&asciidata, sizeof(asciidata));
            file_putc(0x0D);
            file_putc(0x0A);
-#endif
 
            linedata = Srec_convert_line(asciidata);
 
@@ -151,9 +146,8 @@ int Get_and_save_srec(int file)
            }
            else if (linedata.RecordType == SREC_END)
            {
-#if 0 /* old hw */
                file_putc(0x00);
-#endif
+
                lastrecord = TRUE;
                Srec_ack();
            }
@@ -230,9 +224,8 @@ int Unpack_srec(int file)
         lineDone = FALSE;
         while(lineDone == FALSE)
         {
-#if 0 /* old hw */
             *fileData = file_getc();
-#endif
+
             if (*fileData == 0x0A)
             {
                 lineDone = TRUE;
@@ -334,9 +327,7 @@ void Srec_get_line(ASCII_SREC_DATA * asciidata)
 
     memset(&charbuffer[0], 0x00, sizeof(charbuffer));
 
-#if 0 /* old hw */
     Srec_UartGets((char*)&charbuffer[0], (int)DBG_USART);
-#endif
 
     if (charbuffer[0] == CAN_CHAR)
     {
@@ -459,9 +450,7 @@ void Srec_get_data(RECORD_DATA Linedata, uint8 *data)
 ///----------------------------------------------------------------------------
 void Srec_ack(void)
 {
-#if 0 /* old hw */
     usart_putchar(DBG_USART, ACK_CHAR);
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -469,9 +458,7 @@ void Srec_ack(void)
 ///----------------------------------------------------------------------------
 void Srec_nack(void)
 {
-#if 0 /* old hw */
     usart_putchar(DBG_USART, NACK_CHAR);
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -640,9 +627,7 @@ uint8 Atoh_1(uint8 * ch)
 ///----------------------------------------------------------------------------
 void Srec_xOff(void)
 {
-#if 0 /* old hw */
     usart_putchar(DBG_USART, XOFF_CHAR);
-#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -650,7 +635,7 @@ void Srec_xOff(void)
 ///----------------------------------------------------------------------------
 void Srec_xOn(void)
 {
-#if 0 /* old hw */
     usart_putchar(DBG_USART, XON_CHAR);
-#endif
 }
+
+#endif /* test removal */

@@ -11,8 +11,6 @@
 #include "Typedefs.h"
 //#include "define.h"
 
-#define    CTRL_B  02
-
 // srec lengths
 #define SREC_LEN_LENGTH       1  /* Srecord length length   */
 #define SREC_ADDR_LENGTH      4  /* Srecord address length  */
