@@ -169,7 +169,7 @@ void SystemEventManager(void)
 			if ((g_execCycles / 4) > 10000) { strcpy((char*)g_spareBuffer, ">10K"); }
 			else { sprintf((char*)g_spareBuffer, "%d", (uint16)(g_execCycles / 4)); }
 
-			debug("(Cyclic Event) ISR Ticks/sec: %d (E:%s), Exec/sec: %s, SPT: %dus\r\n", (g_sampleCountHold / 4), ((g_channelSyncError == YES) ? "YES" : "NO"), (char*)g_spareBuffer, cpu_cy_2_us(sampleProcessTiming, FOSC0));
+			debug("(Cyclic Event) ISR Ticks/sec: %d (E:%s), Exec/sec: %s, SPT: %dus\r\n", (g_sampleCountHold / 4), ((g_channelSyncError == YES) ? "YES" : "NO"), (char*)g_spareBuffer, cpu_cy_2_us(sampleProcessTiming, SYS_CLK));
 		}
 		g_sampleCountHold = 0;
 		g_execCycles = 0;
@@ -632,7 +632,7 @@ void UsbDeviceManager(void)
 		usb_task_init();
 		device_mass_storage_task_init();
 		host_mass_storage_task_init();
-		ushell_task_init(FOSC0);
+		ushell_task_init(SYS_CLK);
 
 		// Set state to ready to process
 		//g_usbMassStorageState = USB_NOT_CONNECTED;
@@ -697,7 +697,7 @@ void UsbDeviceManager(void)
 			usb_task_init();
 			device_mass_storage_task_init();
 			host_mass_storage_task_init();
-			ushell_task_init(FOSC0);
+			ushell_task_init(SYS_CLK);
 #endif
 #endif
 		}
@@ -801,7 +801,7 @@ void UsbDeviceManager(void)
 					usb_task_init();
 					device_mass_storage_task_init();
 					host_mass_storage_task_init();
-					ushell_task_init(FOSC0);
+					ushell_task_init(SYS_CLK);
 
 					g_usbMassStorageState = USB_INIT_DRIVER;
 					ms_usb_prevent_sleep = NO;
@@ -951,7 +951,7 @@ void UsbDeviceManager(void)
 			usb_task_init();
 			device_mass_storage_task_init();
 			host_mass_storage_task_init();
-			ushell_task_init(FOSC0);
+			ushell_task_init(SYS_CLK);
 
 			g_usbMassStorageState = USB_READY;
 			ms_usb_prevent_sleep = NO;
@@ -1010,7 +1010,7 @@ void UsbDeviceManager(void)
 			g_usbMassStorageState = USB_HOST_MODE_SELECTED;
 			usb_task_init();
 			host_mass_storage_task_init();
-			ushell_task_init(FOSC0);
+			ushell_task_init(SYS_CLK);
 		}
 	}
 #endif
@@ -1056,7 +1056,7 @@ void UsbDeviceManager(void)
 					debug("USB OTG Host Mass Storage Driver Re-Init\r\n");
 					usb_task_init();
 					host_mass_storage_task_init();
-					ushell_task_init(FOSC0);
+					ushell_task_init(SYS_CLK);
 
 					// Set state to host mode looking for a device
 					g_usbMassStorageState = USB_CONNECTED_AND_PROCESSING;
@@ -1074,7 +1074,7 @@ void UsbDeviceManager(void)
 					debug("USB OTG Host Mass Storage Driver Re-Init\r\n");
 					usb_task_init();
 					host_mass_storage_task_init();
-					ushell_task_init(FOSC0);
+					ushell_task_init(SYS_CLK);
 
 					// Set state to host mode looking for a device
 					g_usbMassStorageState = USB_HOST_MODE_WAITING_FOR_DEVICE;
