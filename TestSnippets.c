@@ -37,7 +37,6 @@
 #include "TextTypes.h"
 #include "RemoteCommon.h"
 //#include "twi.h"
-#include "M23018.h"
 //#include "sd_mmc_spi.h"
 #include "adc.h"
 //#include "usb_task.h"
@@ -368,51 +367,6 @@ void TestSnippetsAfterInit(void)
 	SLEEP(AVR32_PM_SMODE_DEEP_STOP);
 
 	while (1) {;}
-	#endif
-
-	#if 0 /* Test (Keypad logic test) */
-	uint8 keypadState;
-	while (1 == 1)
-	{
-		keypadState = ReadMcp23018(IO_ADDRESS_KPD, GPIOA);
-		if (keypadState & GREEN_LED_PIN)
-		debug("Green LED Active\n");
-		if (keypadState & RED_LED_PIN)
-		debug("Red LED Active\n");
-
-		debug("Turning on the Green LED only\n");
-		keypadState |= GREEN_LED_PIN;
-		keypadState &= ~RED_LED_PIN;
-		WriteMcp23018(IO_ADDRESS_KPD, GPIOA, keypadState);
-
-		SoftUsecWait(3 * SOFT_SECS);
-
-		keypadState = ReadMcp23018(IO_ADDRESS_KPD, GPIOA);
-		if (keypadState & GREEN_LED_PIN)
-		debug("Green LED Active\n");
-		if (keypadState & RED_LED_PIN)
-		debug("Red LED Active\n");
-
-		debug("Turning on the Red LED only\n");
-		keypadState &= ~GREEN_LED_PIN;
-		keypadState |= RED_LED_PIN;
-		WriteMcp23018(IO_ADDRESS_KPD, GPIOA, keypadState);
-
-		SoftUsecWait(3 * SOFT_SECS);
-
-		keypadState = ReadMcp23018(IO_ADDRESS_KPD, GPIOA);
-		if (keypadState & GREEN_LED_PIN)
-		debug("Green LED Active\n");
-		if (keypadState & RED_LED_PIN)
-		debug("Red LED Active\n");
-
-		debug("Turning off both LEDs\n");
-		keypadState &= ~GREEN_LED_PIN;
-		keypadState &= ~RED_LED_PIN;
-		WriteMcp23018(IO_ADDRESS_KPD, GPIOA, keypadState);
-
-		SoftUsecWait(3 * SOFT_SECS);
-	}
 	#endif
 }
 

@@ -16,7 +16,6 @@
 #include "powerManagement.h"
 #include "RealTimeClock.h"
 #include "gpio.h"
-#include "M23018.h"
 #include "lcd.h"
 
 #include "mxc_errors.h"

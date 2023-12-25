@@ -18,7 +18,6 @@
 #include "OldUart.h"
 #include "Record.h"
 #include "lcd.h"
-#include "M23018.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines

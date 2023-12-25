@@ -4,7 +4,6 @@
 //#include "compiler.h"
 #include "Typedefs.h"
 #include "lcd.h"
-#include "M23018.h"
 #include "gpio.h"
 #include "Common.h"
 #include "PowerManagement.h"

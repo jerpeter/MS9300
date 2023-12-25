@@ -27,7 +27,6 @@
 #include "TextTypes.h"
 #include "EventProcessing.h"
 #include "Analog.h"
-#include "M23018.h"
 #include "Globals.h"
 #include "RealTimeClock.h"
 #include "RemoteOperation.h"

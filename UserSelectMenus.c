@@ -1372,52 +1372,26 @@ void BaudRateMenuHandler(uint8 keyPressed, void* data)
 		{
 			g_unitConfig.baudRate = (uint8)baudRateMenu[newItemIndex].data;
 
-			switch (baudRateMenu[newItemIndex].data)
-			{
-#if 0 /* old hw */
-				case BAUD_RATE_115200: usart_1_rs232_options.baudrate = 115200; break;
-				case BAUD_RATE_57600: usart_1_rs232_options.baudrate = 57600; break;
-				case BAUD_RATE_38400: usart_1_rs232_options.baudrate = 38400; break;
-				case BAUD_RATE_19200: usart_1_rs232_options.baudrate = 19200; break;
-				case BAUD_RATE_9600: usart_1_rs232_options.baudrate = 9600; break;
-#endif
-			}
-
-#if 0 /* old hw */
 			// Check that receive is ready/idle
-			while (((AVR32_USART1.csr & AVR32_USART_CSR_RXRDY_MASK) == 0) && usartRetries)
-			{
-				usartRetries--;
-			}
-
 			// Check that transmit is ready/idle
-			usartRetries = 100; //USART_DEFAULT_TIMEOUT;
-			while (((AVR32_USART1.csr & AVR32_USART_CSR_TXRDY_MASK) == 0) && usartRetries)
-			{
-				usartRetries--;
-			}
-#endif
 
-#if 1 /* ns8100 (Added to help Dave's Supergraphics handle Baud change) */
+			// Todo: Re-setup UART
+
 			//-------------------------------------------------------------------------
 			// Signal remote end that RS232 Comm is unavailable
 			//-------------------------------------------------------------------------
+			// ns8100 (Added to help Dave's Supergraphics handle Baud change)
 			CLEAR_RTS; CLEAR_DTR;
-#endif
 
-#if 0 /* old hw */
 			// Re-Initialize the RS232 with the new baud rate
-			usart_init_rs232(&AVR32_USART1, &usart_1_rs232_options, FOSC0);
-#endif
 
 			InitCraftInterruptBuffers();
 
-#if 1 /* ns8100 (Added to help Dave's Supergraphics handle Baud change) */
 			//-------------------------------------------------------------------------
 			// Signal remote end that RS232 Comm is available
 			//-------------------------------------------------------------------------
+			//ns8100 (Added to help Dave's Supergraphics handle Baud change)
 			SET_RTS; SET_DTR;
-#endif
 
 			SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
 		}

@@ -38,7 +38,6 @@
 #include "TextTypes.h"
 #include "RemoteCommon.h"
 //#include "twi.h"
-#include "M23018.h"
 //#include "sd_mmc_spi.h"
 #include "adc.h"
 #include "Sensor.h"
@@ -163,7 +162,6 @@ void LoadUnitConfig(void)
 		if (g_unitConfig.baudRate != BAUD_RATE_115200)
 		{
 			// Re-Initialize the RS232 with the stored baud rate
-			usart_init_rs232(&AVR32_USART1, &rs232Options, FOSC0);
 		}
 #endif
 	}

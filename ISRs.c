@@ -26,7 +26,6 @@
 #include "gpio.h"
 //#include "intc.h"
 #include "SysEvents.h"
-#include "M23018.h"
 #include "rtc.h"
 //#include "tc.h"
 //#include "twi.h"
@@ -601,6 +600,8 @@ void Internal_rtc_alarms(void)
 
     if (flags & MXC_F_RTC_CTRL_SSEC_ALARM_FL)
 	{
+		// Based on Internal RTC sub-second alarm, but generate interrupts in Deepsleep and Backup
+
 		// Increment the lifetime soft timer tick count
 		g_lifetimeHalfSecondTickCount++;
 
@@ -640,6 +641,8 @@ static uint32 s_lastExecCycles = 0;
 __attribute__((__interrupt__))
 void Soft_timer_tick_irq(void)
 {
+	// Based on Internal PIT timer, but will not generate interrupts in Deepsleep or Backup
+
 	// Test print to verify the interrupt is running
 	//debugRaw("`");
 
@@ -1551,11 +1554,11 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 				//___________________________________________________________________________________________
 				//__Save date and timestamp of new trigger
 				g_eventDateTimeStampBuffer[g_eventBufferWriteIndex].triggerTime = GetCurrentTime();
-#if 0 /* old hw */
-				if ((gpio_get_pin_value(AVR32_PIN_PB14) == 0) && (g_epochTimeGPS))
+#if 0 /* Re-enable if GPS time resource becomes available */
+				if ((/* GPS time resource acitve */) && (g_epochTimeGPS))
 				{
 					g_eventDateTimeStampBuffer[g_eventBufferWriteIndex].gpsEpochTriggerTime = g_epochTimeGPS;
-					g_eventDateTimeStampBuffer[g_eventBufferWriteIndex].gpsFractionalSecond = cpu_cy_2_us((Get_system_register(AVR32_COUNT) - s_fractionSecondMarker), FOSC0);
+					g_eventDateTimeStampBuffer[g_eventBufferWriteIndex].gpsFractionalSecond = (/* CPU cycle count */ - s_fractionSecondMarker);
 				}
 #endif
 				//___________________________________________________________________________________________

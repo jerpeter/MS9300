@@ -25,7 +25,6 @@
 #include "ProcessBargraph.h"
 #include "TextTypes.h"
 #include "EventProcessing.h"
-#include "M23018.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -277,10 +276,9 @@ void KeypadLedUpdateTimerCallBack(void)
 {
 	static uint8 ledState = KEYPAD_LED_STATE_UNKNOWN;
 	uint8 lastLedState;
-	uint8 config;
 	BOOLEAN externalChargePresent = CheckExternalChargeVoltagePresent();
 
-	// States
+	// States (on prior 8100 unit)
 	// 1) Init complete, not monitoring, not charging --> Static Green
 	// 2) Init complete, not monitoring, charging --> Static Red
 	// 3) Init complete, monitoring, not charging --> Flashing Green (state transition)
@@ -337,25 +335,20 @@ void KeypadLedUpdateTimerCallBack(void)
 		{
 			case KEYPAD_LED_STATE_BOTH_OFF:
 			case KEYPAD_LED_STATE_ACTIVE_GREEN_OFF:
-				config &= ~RED_LED_PIN;
-				config &= ~GREEN_LED_PIN;
+				// Todo: Set the correct state or LED's
 				break;
 				
 			case KEYPAD_LED_STATE_IDLE_GREEN_ON:
 			case KEYPAD_LED_STATE_ACTIVE_GREEN_ON:
 			case KEYPAD_LED_STATE_ACTIVE_CHARGE_GREEN_ON:
-				config &= ~RED_LED_PIN;
-				config |= GREEN_LED_PIN;
+				// Todo: Set the correct state or LED's
 				break;
 				
 			case KEYPAD_LED_STATE_CHARGE_RED_ON:
 			case KEYPAD_LED_STATE_ACTIVE_CHARGE_RED_ON:
-				config &= ~GREEN_LED_PIN;
-				config |= RED_LED_PIN;
+				// Todo: Set the correct state or LED's
 				break;
 		}
-
-		// Todo: Set the correct LED's
 	}
 
 	AssignSoftTimer(KEYPAD_LED_TIMER_NUM, ONE_SECOND_TIMEOUT, KeypadLedUpdateTimerCallBack);

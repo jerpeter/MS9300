@@ -24,7 +24,6 @@
 #include "ProcessBargraph.h"
 #include "PowerManagement.h"
 #include "RemoteCommon.h"
-#include "M23018.h"
 #include "Minilzo.h"
 
 #include "ff.h"

@@ -37,7 +37,6 @@
 #include "TextTypes.h"
 #include "RemoteCommon.h"
 //#include "twi.h"
-#include "M23018.h"
 //#include "sd_mmc_spi.h"
 #include "adc.h"
 //#include "usb_task.h"
