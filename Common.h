@@ -56,9 +56,8 @@ enum {
 };
 
 // Define core clock rate
-#if 1 /* old hw */
-#define FOSC0	12000000
-#endif
+#define SYS_CLK	120000000 // 120 MHz
+#define P_CLK 	(SYS_CLK / 2) // 60 MHz
 
 #define INTERNAL_SAMPLING_SOURCE	NO
 // Make sure choice is mutually exclusive
