@@ -62,9 +62,9 @@ typedef struct
 #define ANY_MENU_EVENT				0xFFFF
 
 // System Event Macros
-#if 0 /* old hw */
-#define raiseSystemEventFlag(x)		Disable_global_interrupt(); g_systemEventFlags.wrd |= x; Enable_global_interrupt();
-#define clearSystemEventFlag(x)		Disable_global_interrupt(); g_systemEventFlags.wrd &= ~x; Enable_global_interrupt();
+#if 1 /* Interrupt protected flag control */
+#define raiseSystemEventFlag(x)		__disable_irq(); g_systemEventFlags.wrd |= x; __enable_irq();
+#define clearSystemEventFlag(x)		__disable_irq(); g_systemEventFlags.wrd &= ~x; __enable_irq();
 #else
 #define raiseSystemEventFlag(x)		g_systemEventFlags.wrd |= x;
 #define clearSystemEventFlag(x)		g_systemEventFlags.wrd &= ~x;
@@ -75,9 +75,9 @@ typedef struct
 #define anySystemEventExcept(x)		(g_systemEventFlags.wrd & ~x)
 
 // Timer Event Macros
-#if 0 /* old hw */
-#define raiseTimerEventFlag(x)		Disable_global_interrupt(); g_timerEventFlags.wrd |= x; Enable_global_interrupt();
-#define clearTimerEventFlag(x)		Disable_global_interrupt(); g_timerEventFlags.wrd &= ~x; Enable_global_interrupt();
+#if 1 /* Interrupt protected flag control */
+#define raiseTimerEventFlag(x)		__disable_irq(); g_timerEventFlags.wrd |= x; __enable_irq();
+#define clearTimerEventFlag(x)		__disable_irq(); g_timerEventFlags.wrd &= ~x; __enable_irq();
 #else
 #define raiseTimerEventFlag(x)		g_timerEventFlags.wrd |= x;
 #define clearTimerEventFlag(x)		g_timerEventFlags.wrd &= ~x;
@@ -87,9 +87,9 @@ typedef struct
 #define getTimerEventState(x)		(g_timerEventFlags.wrd & x)
 
 // Menu Event Macros
-#if 0 /* old hw */
-#define raiseMenuEventFlag(x)		Disable_global_interrupt(); g_menuEventFlags.wrd |= x; Enable_global_interrupt();
-#define clearMenuEventFlag(x)		Disable_global_interrupt(); g_menuEventFlags.wrd &= ~x; Enable_global_interrupt();
+#if 1 /* Interrupt protected flag control */
+#define raiseMenuEventFlag(x)		__disable_irq(); g_menuEventFlags.wrd |= x; __enable_irq();
+#define clearMenuEventFlag(x)		__disable_irq(); g_menuEventFlags.wrd &= ~x; __enable_irq();
 #else
 #define raiseMenuEventFlag(x)		g_menuEventFlags.wrd |= x;
 #define clearMenuEventFlag(x)		g_menuEventFlags.wrd &= ~x;
