@@ -1032,6 +1032,14 @@ uint8 CheckTriggerSourceExists(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint32_t CycleCountToMicroseconds(uint32_t cycleCount, uint32_t mpuCoreFreq)
+{
+  return ((uint64_t)cycleCount * 1000000 + (mpuCoreFreq - 1) / mpuCoreFreq);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void ProcessUsbCoreHandling(void)
 {
 #if 0 /* old hw */

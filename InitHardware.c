@@ -80,7 +80,6 @@
 #include "NomisLogo.h"
 //#include "navigation.h"
 #include "Analog.h"
-#include "cs8900.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -2589,6 +2588,33 @@ void GetDriveSize(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void EnableMpuCycleCounter(void)
+{
+	// Check if the Cycle Counter Enable is already set in the DWT Control register
+	if (DWT->CTRL & DWT_CTRL_CYCCNTENA_Msk)
+	{
+		debug("DWT: Cycle Counter ready (already enable)\r\n");
+	}
+	else
+	{
+		// Set the Cycle Enable bit in the DWT Control register
+		DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+		debug("DWT: Cycle Counter enabled\r\n");
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void DisableMpuCycleCounter(void)
+{
+	// Clear the Cycle Enable bit in the DWT Control register
+	DWT->CTRL &= ~DWT_CTRL_CYCCNTENA_Msk;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void SetupHalfSecondTickTimer(void)
 {
 #if 0 /* Internal PIT Timer based, will not generate interrupts in Deepsleep or Backup */
@@ -2712,6 +2738,11 @@ void InitSystemHardware_MS9300(void)
 	// Display Debug Banner (UART2)
 	//-------------------------------------------------------------------------
 	DebugUartInitBanner();
+
+	//-------------------------------------------------------------------------
+	// Enable Cycle Counter
+	//-------------------------------------------------------------------------
+	EnableMpuCycleCounter();
 
 	//-------------------------------------------------------------------------
 	// Setup Watchdog

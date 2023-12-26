@@ -665,7 +665,6 @@ void SetPathSelectAop2State(uint8_t state);
 
 // Init Hardware prototype extensions
 void InitSystemHardware_MS9300(void);
-void InitGps232(void);
 
 // Init Interrupts prototype extensions
 void InitInterrupts_MS9300(void);
@@ -742,6 +741,9 @@ void GetDateString(char*, uint8, uint8);
 uint8 GetDaysPerMonth(uint8, uint16);
 void InitTimeMsg(void);
 void CheckForCycleChange(void);
+
+// Cycle Count
+uint32_t CycleCountToMicroseconds(uint32_t cycleCount, uint32_t mpuCoreFreq);
 
 // Error routines
 void ReportFileSystemAccessProblem(char*);

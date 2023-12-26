@@ -57,6 +57,7 @@
 #include "pwrseq_regs.h"
 #include "lp.h"
 #include "uart.h"
+#include "mxc_sys.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -161,16 +162,14 @@ void SystemEventManager(void)
 	{
 		clearSystemEventFlag(CYCLIC_EVENT);
 
-#if 0 /* Test (ISR/Exec Cycles) */
+#if 1 /* Test (ISR/Exec Cycles) */
 		extern uint32 sampleProcessTiming;
-		// Check if USB is in device mode otherwise in Host and conflicts with uShell
-		if (Is_usb_id_device())
-		{
-			if ((g_execCycles / 4) > 10000) { strcpy((char*)g_spareBuffer, ">10K"); }
-			else { sprintf((char*)g_spareBuffer, "%d", (uint16)(g_execCycles / 4)); }
 
-			debug("(Cyclic Event) ISR Ticks/sec: %d (E:%s), Exec/sec: %s, SPT: %dus\r\n", (g_sampleCountHold / 4), ((g_channelSyncError == YES) ? "YES" : "NO"), (char*)g_spareBuffer, cpu_cy_2_us(sampleProcessTiming, SYS_CLK));
-		}
+		if ((g_execCycles / 4) > 10000) { strcpy((char*)g_spareBuffer, ">10K"); }
+		else { sprintf((char*)g_spareBuffer, "%d", (uint16)(g_execCycles / 4)); }
+
+		debug("(Cyclic Event) ISR Ticks/sec: %d (E:%s), Exec/sec: %s, SPT: %dus\r\n", (g_sampleCountHold / 4), ((g_channelSyncError == YES) ? "YES" : "NO"), (char*)g_spareBuffer, CycleCountToMicroseconds(sampleProcessTiming, SYS_CLK));
+
 		g_sampleCountHold = 0;
 		g_execCycles = 0;
 		g_channelSyncError = NO;

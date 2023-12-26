@@ -2390,7 +2390,7 @@ void DataIsrInit(uint16 sampleRate)
 	s_alarmTwoCount = 0;
 	s_channelSyncErrorCount = 0;
 
-#if 0 /* Test */
+#if 1 /* Test */
 	extern uint32 sampleProcessTiming;
 	sampleProcessTiming = 0;
 #endif
@@ -2511,14 +2511,14 @@ static inline void processAdaptiveSamplingStateAndLogic(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* Test */
+#if 1 /* Test */
 uint32 sampleProcessTiming = 0;
 #endif
 __attribute__((__interrupt__))
 void Sample_irq(void)
 {
-#if 0 /* Test */
-	uint32 startTiming = Get_system_register(AVR32_COUNT);
+#if 1 /* Test */
+	uint32 startTiming = DWT->CYCCNT;
 #endif
 
 	//___________________________________________________________________________________________
@@ -2660,9 +2660,9 @@ SKIP_PRIOR_PROCESSING_FOR_ADAPTIVE_MIN_RATE:
 	// Check if the end of the Pretrigger buffer has been reached
 	if (g_tailOfPretriggerBuff >= g_endOfPretriggerBuff) g_tailOfPretriggerBuff = g_startOfPretriggerBuff;
 
-#if 0 /* Test */
-	if (sampleProcessTiming) { sampleProcessTiming += (Get_system_register(AVR32_COUNT) - startTiming); sampleProcessTiming /= 2; }
-	else { sampleProcessTiming = (Get_system_register(AVR32_COUNT) - startTiming); }
+#if 1 /* Test */
+	if (sampleProcessTiming) { sampleProcessTiming += (DWT->CYCCNT - startTiming); sampleProcessTiming /= 2; }
+	else { sampleProcessTiming = (DWT->CYCCNT - startTiming); }
 #endif
 
 	// Clear the interrupt flag
