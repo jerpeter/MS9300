@@ -160,18 +160,12 @@ void EnableGps(void)
 	// Check that the Hardware ID is set for GPS module
 	if (GET_HARDWARE_ID == HARDWARE_ID_REV_8_WITH_GPS_MOD)
 	{
-		// Check if the GPS module is powered off (Active low signal)
-#if 0 /* old hw */
-		if (gpio_get_pin_value(AVR32_PIN_PB14) == 1)
+		// Check if the GPS module is powered off
+		if (1)
 		{
-			// Enable power for Usart0
-			// Enable Usart0 power (Includes: USART0, USART 1, USART 3, TC, TWI, SPI0, SPI1, ADC, PM/RTC/EIC, GPIO, INTC; Disable: ABDAC, SSC, PWM, USART 2, PDCA)
-			AVR32_PM.pbamask = 0x00004BFB;
+			// Setup GPS serial comms
+			// Set Baud rate (115200)
 
-			// Note: Check if needed
-			InitGps232();
-
-			// Reset buffers, flags and re-setup interrupt handler
 			InitGpsBuffers();
 
 			if (g_gpsOutputToCraft)
@@ -180,11 +174,8 @@ void EnableGps(void)
 				ModemPuts(g_spareBuffer, length, NO_CONVERSION);
 			}
 
-			// Set Baud rate (115200)
-			gpio_set_gpio_pin(AVR32_PIN_PB13); // GPIO 45 (Pin 126 / EBI - CAS)
-
 			// Enable power for Gps module
-			gpio_clr_gpio_pin(AVR32_PIN_PB14); // GPIO 46 (Pin 127 / EBI - SDWE)
+
 #if 0 /* Original */
 			// Add soft timer to power off
 			AssignSoftTimer(GPS_POWER_OFF_TIMER_NUM, (GPS_ACTIVE_LOCATION_SEARCH_TIME * TICKS_PER_MIN), GpsPowerOffTimerCallBack);
@@ -215,7 +206,6 @@ void EnableGps(void)
 			ActivateDisplayShortDuration(3);
 			OverlayMessage(getLangText(GPS_LOCATION_TEXT), getLangText(CONTINUING_ACQUISITION_TEXT), (3 * SOFT_SECS));
 		}
-#endif
 	}
 }
 
@@ -232,20 +222,8 @@ void DisableGps(void)
 
 	ClearSoftTimer(GPS_POWER_OFF_TIMER_NUM);
 
-#if 0 /* old hw */
-
-	usart_reset(&AVR32_USART0);
-
-	// Set Baud rate config low to collapse line and prevent back powering the Gps module
-	gpio_clr_gpio_pin(AVR32_PIN_PB13); // GPIO 45 (Pin 126 / EBI - CAS)
-
 	// Disable power for Gps module
-	gpio_set_gpio_pin(AVR32_PIN_PB14); // GPIO 46 (Pin 127 / EBI - SDWE)
-
-	// Disable power for Usart0
-	// Disable Usart0 power (Includes: USART 1, USART 3, TC, TWI, SPI0, SPI1, ADC, PM/RTC/EIC, GPIO, INTC; Disable: ABDAC, SSC, PWM, USART 2, PDCA)
-	AVR32_PM.pbamask = 0x00004AFB;
-#endif
+	// Disable GPS serial comms
 }
 
 ///----------------------------------------------------------------------------
