@@ -1233,17 +1233,14 @@ void GpsSendBinaryMessage(uint8* binaryMessage, uint16 messageLength)
 	checksum = GpsCalcBinaryChecksum(&binaryMessage[4], (messageLength - 4));
 #endif
 
-#if 0 /* old hw */
-
+	// Fill in when GPS comms resource established
 	for (i = 0; i < messageLength; i++)
 	{
-		while (usart_write_char(&AVR32_USART0, binaryMessage[i]) != USART_SUCCESS) {}
+		// Send binaryMessage[i]
 	}
 
-	while (usart_write_char(&AVR32_USART0, checksum) != USART_SUCCESS) {}
-	while (usart_write_char(&AVR32_USART0, 0x0D) != USART_SUCCESS) {}
-	while (usart_write_char(&AVR32_USART0, 0x0A) != USART_SUCCESS) {}
-#endif
+	// Send checksum
+	// Send CR & LF
 }
 
 ///----------------------------------------------------------------------------

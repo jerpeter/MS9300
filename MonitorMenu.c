@@ -97,7 +97,7 @@ void MonitorMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 			ClearLcdMap();
 			
 			// Check if USB device mode is active and connected to a PC (where it's possible to change the contents of the SD card under the covers)
-#if 0 /* old hw */
+#if 0 /* Todo: Update check based on new USB resource */
 			if ((g_usbMassStorageState == USB_CONNECTED_AND_PROCESSING) && (Is_usb_id_device()))
 			{
 				recheckSpaceRemaining = YES;

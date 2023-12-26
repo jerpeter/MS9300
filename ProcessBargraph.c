@@ -303,10 +303,7 @@ void ChecksumAndSetupBargraphLiveMonitorDataForISRTransfer(void)
 	g_bargraphBarIntervalLiveMonitorBIDataPtr = g_blmBuffer;
 	g_bargraphLiveMonitoringBISendActive = YES;
 
-#if 0 /* old hw */
-	// Enable the transmit ready interrupt
-	AVR32_USART1.ier = (AVR32_USART_IER_TXRDY_MASK | AVR32_USART_IER_RXRDY_MASK | AVR32_USART_IER_OVRE_MASK | AVR32_USART_IER_PARE_MASK | AVR32_USART_IER_FRAME_MASK);
-#endif
+	// Todo: Update to enable the comms out resource/transmit ready interrupt
 }
 
 ///----------------------------------------------------------------------------
