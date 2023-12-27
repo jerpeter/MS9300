@@ -633,11 +633,6 @@ void Internal_rtc_alarms(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* ET test */
-static uint32 s_testForForeverLoop = 0;
-static uint32 s_lastExecCycles = 0;
-#endif
-
 __attribute__((__interrupt__))
 void Soft_timer_tick_irq(void)
 {
@@ -665,96 +660,8 @@ void Soft_timer_tick_irq(void)
 		raiseSystemEventFlag_ISR(UPDATE_TIME_EVENT);
 	}
 
-#if 0 /* ET test */
-	// Check if the exec cycles if the same meaning that the main loop isn't running
-	if (g_execCycles == s_lastExecCycles)
-	{
-		s_testForForeverLoop++;
-
-		if (s_testForForeverLoop > (10 * TICKS_PER_MIN))
-		{
-			// Signal error condition
-			if (g_debugBufferCount == 1) { g_breakpointCause = BP_MB_LOOP; }
-			else { g_breakpointCause = BP_SOFT_LOOP; }
-
-			__asm__ __volatile__ ("breakpoint");
-		}
-	}
-	else // Capture current exec cycles and clear loop count
-	{
-		s_lastExecCycles = g_execCycles;
-		s_testForForeverLoop = 0;
-	}
-#endif
-
-	MXC_TMR0->intr = MXC_F_TMR_INTR_IRQ;
+	CYCLIC_HALF_SEC_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
 }
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void Start_Data_Clock(TC_CHANNEL_NUM channel)
-{
-	//volatile avr32_tc_t *tc = &AVR32_TC;
-
-#if 0 /* old hw */
-	// Start the timer/counter.
-	tc_start(&AVR32_TC, channel); // And start the timer/counter.
-#endif
-
-	switch (channel)
-	{
-		case TC_SAMPLE_TIMER_CHANNEL:
-			g_tcSampleTimerActive = YES;
-			break;
-			
-#if INTERNAL_SAMPLING_SOURCE
-		case TC_CALIBRATION_TIMER_CHANNEL:
-			break;
-#else /* EXTERNAL_SAMPLING_SOURCE */
-		case TC_MILLISECOND_TIMER_CHANNEL:
-			g_msTimerTicks = 0;
-			break;
-#endif
-
-		case TC_TYPEMATIC_TIMER_CHANNEL:
-			g_tcTypematicTimerActive = YES;
-			break;
-	}
-}	
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void Stop_Data_Clock(TC_CHANNEL_NUM channel)
-{
-	//volatile avr32_tc_t *tc = &AVR32_TC;
-
-#if 0 /* old hw */
-	// Stop the timer/counter.
-	tc_stop(&AVR32_TC, channel); // And start the timer/counter.
-#endif
-
-	switch (channel)
-	{
-		case TC_SAMPLE_TIMER_CHANNEL:
-			g_tcSampleTimerActive = NO;
-			break;
-			
-#if INTERNAL_SAMPLING_SOURCE
-		case TC_CALIBRATION_TIMER_CHANNEL:
-			break;
-#else /* EXTERNAL_SAMPLING_SOURCE */
-		case TC_MILLISECOND_TIMER_CHANNEL:
-			g_msTimerTicks = 0;
-			break;
-#endif
-
-		case TC_TYPEMATIC_TIMER_CHANNEL:
-			g_tcTypematicTimerActive = NO;
-			break;
-	}
-}	
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -766,6 +673,7 @@ void Tc_typematic_irq(void)
 	g_keypadTimerTicks++;
 
 	// Clear the interrupt flag
+	TYPEMATIC_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
 }
 
 ///----------------------------------------------------------------------------
@@ -779,6 +687,7 @@ void Tc_ms_timer_irq(void)
 	g_msTimerTicks++;
 
 	// Clear the interrupt flag
+	MILLISECOND_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
 }
 #endif
 
@@ -2577,7 +2486,7 @@ void Sample_irq(void)
 
 			// Clear the interrupt flag
 #if INTERNAL_SAMPLING_SOURCE
-			MXC_TMR1->intr = MXC_F_TMR_INTR_IRQ;
+			INTERNAL_SAMPLING_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
 #elif EXTERNAL_SAMPLING_SOURCE
 			MXC_GPIO_ClearFlags(MXC_GPIO3, MXC_GPIO_PIN_9);
 #endif
@@ -2667,7 +2576,7 @@ SKIP_PRIOR_PROCESSING_FOR_ADAPTIVE_MIN_RATE:
 
 	// Clear the interrupt flag
 #if INTERNAL_SAMPLING_SOURCE
-	MXC_TMR1->intr = MXC_F_TMR_INTR_IRQ;
+	INTERNAL_SAMPLING_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
 #elif EXTERNAL_SAMPLING_SOURCE
 	MXC_GPIO_ClearFlags(MXC_GPIO3, MXC_GPIO_PIN_9);
 #endif

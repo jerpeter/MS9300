@@ -251,7 +251,6 @@ void (*g_userMenuHandler)(uint16, void*);
 uint8* g_compressedDataOutletPtr;
 uint16 g_eventBufferWriteIndex;
 uint8 g_timerModeLastRun = NO;
-uint8 g_tcSampleTimerActive = NO;
 uint8 g_tcTypematicTimerActive = NO;
 uint8 g_lowBatteryState = NO;
 uint32 g_sleepModeState = 0; //AVR32_PM_SMODE_STOP;

@@ -2615,6 +2615,107 @@ void DisableMpuCycleCounter(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void SetupInteralPITTimer(uint8_t channel, uint16_t freq)
+{
+	// Either MILLISECOND_TIMER or TYPEMATIC_TIMER
+
+	mxc_tmr_regs_t* mxcTimerPtr;
+	int timerIrqNum;
+	void (*irqHandlerFunc)(void);
+
+	if (channel == MILLISECOND_TIMER)
+	{
+		MXC_SYS_Reset_Periph(MXC_SYS_RESET_TIMER2);
+		MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TIMER2);
+		mxcTimerPtr = MILLISECOND_TIMER_NUM;
+		timerIrqNum = TMR2_IRQn;
+		irqHandlerFunc = Tc_ms_timer_irq;
+	}
+	else // TYPEMATIC_TIMER
+	{
+		MXC_SYS_Reset_Periph(MXC_SYS_RESET_TIMER3);
+		MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TIMER3);
+		mxcTimerPtr = TYPEMATIC_TIMER_NUM;
+		timerIrqNum = TMR2_IRQn;
+		irqHandlerFunc = Tc_typematic_irq;
+	}
+
+    // Clear interrupt flag
+    mxcTimerPtr->intr = MXC_F_TMR_INTR_IRQ;
+
+    // Set the prescaler (TMR_PRES_4096)
+	mxcTimerPtr->cn |= (MXC_S_TMR_CN_PRES_DIV1);
+
+    // Set the mode
+	mxcTimerPtr->cn |= TMR_MODE_CONTINUOUS << MXC_F_TMR_CN_TMODE_POS;
+
+	// Set the polarity
+    mxcTimerPtr->cn |= (0) << MXC_F_TMR_CN_TPOL_POS; // Polarity (0 or 1) doesn't matter
+
+	// Init the compare value
+    mxcTimerPtr->cmp = (60000000 / freq);
+
+	// Init the counter
+    mxcTimerPtr->cnt = 0x1;
+
+	// Setup the Timer 0 interrupt
+	NVIC_ClearPendingIRQ(timerIrqNum);
+    NVIC_DisableIRQ(timerIrqNum);
+    MXC_NVIC_SetVector(timerIrqNum, irqHandlerFunc);
+    NVIC_EnableIRQ(timerIrqNum);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void StartInteralPITTimer(PIT_TIMER_NUM channel)
+{
+	mxc_tmr_regs_t* mxcTimerPtr = NULL;
+
+	switch (channel)
+	{
+		case MILLISECOND_TIMER:
+			mxcTimerPtr = MILLISECOND_TIMER_NUM;
+			g_msTimerTicks = 0;
+			break;
+
+		case TYPEMATIC_TIMER:
+			mxcTimerPtr = TYPEMATIC_TIMER_NUM;
+			g_tcTypematicTimerActive = YES;
+			break;
+	}
+
+	// Enable the timer
+	if (mxcTimerPtr) { mxcTimerPtr->cn |= MXC_F_TMR_CN_TEN; }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void StopInteralPITTimer(PIT_TIMER_NUM channel)
+{
+	mxc_tmr_regs_t* mxcTimerPtr = NULL;
+
+	switch (channel)
+	{
+		case MILLISECOND_TIMER:
+			mxcTimerPtr = MILLISECOND_TIMER_NUM;
+			g_msTimerTicks = 0;
+			break;
+
+		case TYPEMATIC_TIMER:
+			mxcTimerPtr = TYPEMATIC_TIMER_NUM;
+			g_tcTypematicTimerActive = NO;
+			break;
+	}
+
+	// Disable the timer
+	if (mxcTimerPtr) { mxcTimerPtr->cn &= ~MXC_F_TMR_CN_TEN; }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void SetupHalfSecondTickTimer(void)
 {
 #if 0 /* Internal PIT Timer based, will not generate interrupts in Deepsleep or Backup */
@@ -2622,23 +2723,23 @@ void SetupHalfSecondTickTimer(void)
 	MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TIMER0);
 
     // Clear interrupt flag
-    MXC_TMR0->intr = MXC_F_TMR_INTR_IRQ;
+    CYCLIC_HALF_SEC_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
 
     // Set the prescaler (TMR_PRES_4096)
-	MXC_TMR0->cn |= (MXC_F_TMR_CN_PRES3);
-	MXC_TMR0->cn |= (MXC_V_TMR_CN_PRES_DIV4096);
+	CYCLIC_HALF_SEC_TIMER_NUM->cn |= (MXC_F_TMR_CN_PRES3);
+	CYCLIC_HALF_SEC_TIMER_NUM->cn |= (MXC_V_TMR_CN_PRES_DIV4096);
 
     // Set the mode
-	MXC_TMR0->cn |= TMR_MODE_CONTINUOUS << MXC_F_TMR_CN_TMODE_POS;
+	CYCLIC_HALF_SEC_TIMER_NUM->cn |= TMR_MODE_CONTINUOUS << MXC_F_TMR_CN_TMODE_POS;
 
 	// Set the polarity
-    MXC_TMR0->cn |= (0) << MXC_F_TMR_CN_TPOL_POS; // Polarity (0 or 1) doesn't matter
+    CYCLIC_HALF_SEC_TIMER_NUM->cn |= (0) << MXC_F_TMR_CN_TPOL_POS; // Polarity (0 or 1) doesn't matter
 
 	// Init the compare value
-    MXC_TMR0->cmp = 7324; // 60MHz clock / 4096 = 14648 counts/sec, 1/2 second count = 7324
+    CYCLIC_HALF_SEC_TIMER_NUM->cmp = 7324; // 60MHz clock / 4096 = 14648 counts/sec, 1/2 second count = 7324
 
 	// Init the counter
-    MXC_TMR0->cnt = 0x1;
+    CYCLIC_HALF_SEC_TIMER_NUM->cnt = 0x1;
 
 	// Setup the Timer 0 interrupt
 	NVIC_ClearPendingIRQ(TMR0_IRQn);
@@ -2647,7 +2748,7 @@ void SetupHalfSecondTickTimer(void)
     NVIC_EnableIRQ(TMR0_IRQn);
 
 	// Enable the timer
-	MXC_TMR0->cn |= MXC_F_TMR_CN_TEN;
+	CYCLIC_HALF_SEC_TIMER_NUM->cn |= MXC_F_TMR_CN_TEN;
 #else /* Internal RTC based off of Sub-Second Alarm register, will generate interrupts in sleep modes */
     while (MXC_RTC_Init(0, 0) == E_BUSY) {}
     while (MXC_RTC_DisableInt(MXC_F_RTC_CTRL_SSEC_ALARM_EN) == E_BUSY) {}
@@ -2803,6 +2904,12 @@ void InitSystemHardware_MS9300(void)
 #if 0
 	__disable_irq();
 #endif
+
+	//-------------------------------------------------------------------------
+	// Setup Internal PIT Timers
+	//-------------------------------------------------------------------------
+	SetupInteralPITTimer(MILLISECOND_TIMER, 1000);
+	SetupInteralPITTimer(TYPEMATIC_TIMER, 1000);
 
 	//-------------------------------------------------------------------------
 	// Set Alarm 1 and Alarm 2 low (Active high control)

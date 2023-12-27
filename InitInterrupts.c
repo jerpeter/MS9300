@@ -76,16 +76,16 @@ void SetupInteralSampleTimer(uint16_t sampleRate)
 	MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TIMER1);
 
     // Clear interrupt flag
-    MXC_TMR1->intr = MXC_F_TMR_INTR_IRQ;
+    INTERNAL_SAMPLING_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
 
     // Set the prescaler (TMR_PRES_4096)
-	MXC_TMR1->cn |= (MXC_S_TMR_CN_PRES_DIV1);
+	INTERNAL_SAMPLING_TIMER_NUM->cn |= (MXC_S_TMR_CN_PRES_DIV1);
 
     // Set the mode
-	MXC_TMR1->cn |= TMR_MODE_CONTINUOUS << MXC_F_TMR_CN_TMODE_POS;
+	INTERNAL_SAMPLING_TIMER_NUM->cn |= TMR_MODE_CONTINUOUS << MXC_F_TMR_CN_TMODE_POS;
 
 	// Set the polarity
-    MXC_TMR1->cn |= (0) << MXC_F_TMR_CN_TPOL_POS; // Polarity (0 or 1) doesn't matter
+    INTERNAL_SAMPLING_TIMER_NUM->cn |= (0) << MXC_F_TMR_CN_TPOL_POS; // Polarity (0 or 1) doesn't matter
 
 	/*
 		32768 = 1,831 compare, add 1 count every 18.2857 cycles (trim)
@@ -97,10 +97,10 @@ void SetupInteralSampleTimer(uint16_t sampleRate)
 	*/
 
 	// Init the compare value
-    MXC_TMR1->cmp = (60000000 / sampleRate);
+    INTERNAL_SAMPLING_TIMER_NUM->cmp = (60000000 / sampleRate);
 
 	// Init the counter
-    MXC_TMR1->cnt = 0x1;
+    INTERNAL_SAMPLING_TIMER_NUM->cnt = 0x1;
 
 	// Setup the Timer 0 interrupt
 	NVIC_ClearPendingIRQ(TMR1_IRQn);
@@ -115,7 +115,7 @@ void SetupInteralSampleTimer(uint16_t sampleRate)
 void StartInteralSampleTimer(void)
 {
 	// Enable the timer
-	MXC_TMR1->cn |= MXC_F_TMR_CN_TEN;
+	INTERNAL_SAMPLING_TIMER_NUM->cn |= MXC_F_TMR_CN_TEN;
 }
 
 ///----------------------------------------------------------------------------
@@ -124,7 +124,7 @@ void StartInteralSampleTimer(void)
 void StopInteralSampleTimer(void)
 {
 	// Disable the timer
-	MXC_TMR1->cn &= ~MXC_F_TMR_CN_TEN;
+	INTERNAL_SAMPLING_TIMER_NUM->cn &= ~MXC_F_TMR_CN_TEN;
 }
 
 ///----------------------------------------------------------------------------

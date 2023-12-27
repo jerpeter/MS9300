@@ -155,7 +155,7 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 		}
 
 		// Disable the key timer
-		Stop_Data_Clock(TC_TYPEMATIC_TIMER_CHANNEL);
+		StopInteralPITTimer(TYPEMATIC_TIMER);
 
 		// Clear last key pressed
 		g_kpadLastKeyPressed = KEY_NONE;
@@ -169,7 +169,7 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 	if (g_tcTypematicTimerActive == NO)
 	{
 		// Start the key timer
-		Start_Data_Clock(TC_TYPEMATIC_TIMER_CHANNEL);
+		StartInteralPITTimer(TYPEMATIC_TIMER);
 	}
 
 	//---------------------------------------------------------------------------------

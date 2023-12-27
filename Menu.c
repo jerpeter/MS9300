@@ -975,11 +975,6 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 	uint8 activeChoice = MB_FIRST_CHOICE;
 	volatile uint16 key = 0;
 
-#if 0 /* ET test */
-	g_debugBufferCount = 1;
-	strcpy((char*)g_debugBuffer, textString);
-#endif
-
 	// Build MessageBox into g_mmap with the following calls
 	MessageBorder();
 	MessageTitle(titleString);
@@ -1046,10 +1041,6 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 	ClearLcdMap();
 	WriteMapToLcd(g_mmap);
 
-#if 0 /* ET Test */
-	g_debugBufferCount = 0;
-#endif
-
 	if (key == ENTER_KEY) { return (activeChoice); }
 	if (key == ON_ESC_KEY) { return (MB_SPECIAL_ACTION); }
 	else // key == ESC_KEY (escape)
@@ -1096,7 +1087,7 @@ void OverlayMessage(char* titleString, char* textString, uint32 displayTime)
 	else // Use the millisecond timer to handle the display time and call USB Manager to handle USB requests in the meantime
 	{
 		// Start the key timer
-		Start_Data_Clock(TC_MILLISECOND_TIMER_CHANNEL);
+		StartInteralPITTimer(MILLISECOND_TIMER);
 
 		while (g_msTimerTicks < msDisplayTime)
 		{
@@ -1108,7 +1099,7 @@ void OverlayMessage(char* titleString, char* textString, uint32 displayTime)
 		}
 
 		// Disable the key timer
-		Stop_Data_Clock(TC_MILLISECOND_TIMER_CHANNEL);
+		StopInteralPITTimer(MILLISECOND_TIMER);
 	}
 #else /* INTERNAL_SAMPLING_SOURCE */
 	SoftUsecWait(displayTime);

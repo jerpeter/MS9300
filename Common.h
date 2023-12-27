@@ -87,12 +87,6 @@ enum {
 	BACKUP_MODE
 };
 
-typedef enum
-{
-	KEYPAD_TIMER,
-	SAMPLE_TIMER
-} PIT_TIMER;
-
 typedef struct
 {
 	uint8 year;
@@ -212,19 +206,15 @@ enum {
 #define CAL_PULSE_FIXED_SAMPLE_RATE		SAMPLE_RATE_1K
 #define CALIBRATION_FIXED_SAMPLE_RATE	SAMPLE_RATE_1K
 
-#if INTERNAL_SAMPLING_SOURCE
 typedef enum {
-	TC_SAMPLE_TIMER_CHANNEL = 0,
-	TC_CALIBRATION_TIMER_CHANNEL = 1,
-	TC_TYPEMATIC_TIMER_CHANNEL = 2
-} TC_CHANNEL_NUM;
-#else /* EXTERNAL_SAMPLING_SOURCE */
-typedef enum {
-	TC_SAMPLE_TIMER_CHANNEL = 0,
-	TC_MILLISECOND_TIMER_CHANNEL = 1,
-	TC_TYPEMATIC_TIMER_CHANNEL = 2
-} TC_CHANNEL_NUM;
-#endif
+	MILLISECOND_TIMER = 1,
+	TYPEMATIC_TIMER = 2
+} PIT_TIMER_NUM;
+
+#define INTERNAL_SAMPLING_TIMER_NUM		MXC_TMR1
+#define CYCLIC_HALF_SEC_TIMER_NUM		MXC_TMR2
+#define MILLISECOND_TIMER_NUM			MXC_TMR3
+#define TYPEMATIC_TIMER_NUM				MXC_TMR4
 
 enum {
 	SEISMIC_GROUP_1 = 1,
@@ -604,10 +594,9 @@ uint16 MbToHex(uint32, uint8);
 uint16 PsiToHex(uint32, uint8);
 
 // PIT timers
-void startPitTimer(PIT_TIMER timer);
-void stopPitTimer(PIT_TIMER timer);
-BOOLEAN checkPitTimer(PIT_TIMER timer);
-void configPitTimer(PIT_TIMER timer, uint16 clockDivider, uint16 modulus);
+void SetupInteralPITTimer(uint8_t channel, uint16_t freq);
+void StartInteralPITTimer(PIT_TIMER_NUM channel);
+void StopInteralPITTimer(PIT_TIMER_NUM channel);
 
 // Language translation
 void BuildLanguageLinkTable(uint8 languageSelection);
@@ -719,8 +708,8 @@ void Usart_0_rs232_irq(void);
 void Usart_1_rs232_irq(void);
 void Eic_low_battery_irq(void);
 void Tc_typematic_irq(void);
-void Start_Data_Clock(TC_CHANNEL_NUM);
-void Stop_Data_Clock(TC_CHANNEL_NUM);
+void StartInteralPITTimer(PIT_TIMER_NUM);
+void StopInteralPITTimer(PIT_TIMER_NUM);
 
 #if EXTERNAL_SAMPLING_SOURCE
 void Tc_ms_timer_irq(void);

@@ -214,7 +214,6 @@ extern uint32 g_alarmTwoAirMinLevel;
 extern uint8 g_derCache[DER_CACHE_SIZE];
 extern uint16 g_derCacheIndex;
 extern uint8 g_timerModeLastRun;
-extern uint8 g_tcSampleTimerActive;
 extern uint8 g_tcTypematicTimerActive;
 extern char* g_languageLinkTable[TOTAL_TEXT_STRINGS];
 extern char g_languageTable[LANGUAGE_TABLE_MAX_SIZE];

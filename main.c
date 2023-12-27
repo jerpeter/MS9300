@@ -1285,53 +1285,20 @@ void BootLoadManager(void)
 #endif
 		AddOnOffLogTimestamp(JUMP_TO_BOOT);
 
-		// Enable half second tick
+		// -------------------
+		// Shut down resources
+		// -------------------
 
-#if 0 /* old hw */
-		rtc_disable_interrupt(&AVR32_RTC);
-		tc_stop(&AVR32_TC, TC_SAMPLE_TIMER_CHANNEL);
-#if INTERNAL_SAMPLING_SOURCE
-		tc_stop(&AVR32_TC, TC_CALIBRATION_TIMER_CHANNEL);
-#else /* EXTERNAL_SAMPLING_SOURCE */
-		tc_stop(&AVR32_TC, TC_MILLISECOND_TIMER_CHANNEL);
-#endif
-		tc_stop(&AVR32_TC, TC_TYPEMATIC_TIMER_CHANNEL);
-		nav_exit();
-		AVR32_EIC.IER.int0 = 0;
-		AVR32_EIC.IER.int1 = 0;
-		AVR32_EIC.IER.int2 = 0;
-		AVR32_EIC.IER.int3 = 0;
-		AVR32_EIC.IER.int4 = 0;
-		AVR32_EIC.IER.int5 = 0;
-		AVR32_EIC.IER.int6 = 0;
-		AVR32_EIC.IER.int7 = 0;
-		StopExternalRtcClock();
-		Usb_disable();
-		Usb_disable_id_interrupt();
-		Usb_disable_vbus_interrupt();
-		twi_disable_interrupt(&AVR32_TWI);
-		usart_reset(&AVR32_USART0);
-		AVR32_USART1.idr = 0xFFFFFFFF;
-		usart_reset(&AVR32_USART1);
-		usart_reset(&AVR32_USART2);
-		usart_reset(&AVR32_USART3);
+		// Disable drivers, timers
 
-		gpio_disable_pin_interrupt(AVR32_PIN_PB30);
+		// Disable USB
 
-		Disable_global_interrupt();
+		// Close filesystem
+		f_mount(NULL, "", 0);
 
-		switch (g_unitConfig.baudRate)
-		{
-			case BAUD_RATE_115200: baudRate = 115200; break;
-			case BAUD_RATE_57600: baudRate = 57600; break;
-			case BAUD_RATE_38400: baudRate = 38400; break;
-			case BAUD_RATE_19200: baudRate = 19200; break;
-			case BAUD_RATE_9600: baudRate = 9600; break;
-			default: baudRate = 0;
-		}
+		// Disable interrupts
+		__disable_irq();
 
-		AVR32_PM.gplp[0] = baudRate;
-#endif
 		//Jump to boot application code
 		func();
 	}
