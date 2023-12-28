@@ -484,6 +484,10 @@ void External_trigger_irq(void)
 __attribute__((__interrupt__))
 void Usart_1_rs232_irq(void)
 {
+	//-----------------------
+	// Craft serial data port
+	//-----------------------
+
 	// Test print to verify the interrupt is running
 	//debugRaw("`");
 
@@ -556,6 +560,10 @@ void Usart_1_rs232_irq(void)
 __attribute__((__interrupt__))
 void Usart_0_rs232_irq(void)
 {
+	//---------------------
+	// GPS serial data port
+	//---------------------
+
 	// Test print to verify the interrupt is running
 	//debugRaw("`");
 
