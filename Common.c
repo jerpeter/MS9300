@@ -28,11 +28,7 @@
 #include "ff.h"
 #include "mxc_sys.h"
 #include "pwrseq_regs.h"
-//#include "usart.h"
-//#include "usb_drv.h"
-//#include "usb_task.h"
-//#include "device_mass_storage_task.h"
-//#include "host_mass_storage_task.h"
+#include "usb_event.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -1042,11 +1038,8 @@ uint32_t CycleCountToMicroseconds(uint32_t cycleCount, uint32_t mpuCoreFreq)
 ///----------------------------------------------------------------------------
 void ProcessUsbCoreHandling(void)
 {
-#if 0 /* old hw */
-	usb_task();
-	device_mass_storage_task();
-	host_mass_storage_task();
-#endif
+	// Todo: Verify this handles USB core processing tasks
+	MXC_USB_EventHandler();
 }
 
 ///----------------------------------------------------------------------------
