@@ -1669,8 +1669,6 @@ static acm_cfg_t acm_cfg = {
     MXC_USBHS_MAX_PACKET, /* Notify max packet size */
 };
 
-static volatile int usb_read_complete;
-
 // Functions to control "disk" memory. See msc.h for definitions
 static const msc_mem_t mem = { mscmem_Init, mscmem_Start, mscmem_Stop, mscmem_Ready,
                                mscmem_Size, mscmem_Read,  mscmem_Write };
@@ -1742,7 +1740,6 @@ void SetupUSBComposite(void)
     MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, eventCallback, NULL);
     MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, eventCallback, NULL);
     acm_register_callback(ACM_CB_READ_READY, usbReadCallback);
-    usb_read_complete = 0;
 
     // Start with USB in low power mode
     usbAppSleep();
@@ -1815,26 +1812,24 @@ int usbShutdownCallback()
 static int setconfigCallback(MXC_USB_SetupPkt *sud, void *cbdata)
 {
     /* Confirm the configuration value */
-    if (sud->wValue == composite_config_descriptor.config_descriptor.bConfigurationValue) {
+    if (sud->wValue == composite_config_descriptor.config_descriptor.bConfigurationValue)
+	{
         //      on++;
         configured = 1;
         MXC_SETBIT(&event_flags, EVENT_ENUM_COMP);
-        if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) { ///
-            msc_cfg.out_ep = composite_config_descriptor_hs.endpoint_descriptor_1.bEndpointAddress &
-                             0x7;
-            msc_cfg.out_maxpacket =
-                composite_config_descriptor_hs.endpoint_descriptor_1.wMaxPacketSize;
-            msc_cfg.in_ep = composite_config_descriptor_hs.endpoint_descriptor_2.bEndpointAddress &
-                            0x7;
-            msc_cfg.in_maxpacket =
-                composite_config_descriptor_hs.endpoint_descriptor_2.wMaxPacketSize;
-        } else {
-            msc_cfg.out_ep = composite_config_descriptor.endpoint_descriptor_1.bEndpointAddress &
-                             0x7;
-            msc_cfg.out_maxpacket =
-                composite_config_descriptor.endpoint_descriptor_1.wMaxPacketSize;
-            msc_cfg.in_ep = composite_config_descriptor.endpoint_descriptor_2.bEndpointAddress &
-                            0x7;
+
+        if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED)
+		{
+            msc_cfg.out_ep = composite_config_descriptor_hs.endpoint_descriptor_1.bEndpointAddress & 0x7;
+            msc_cfg.out_maxpacket = composite_config_descriptor_hs.endpoint_descriptor_1.wMaxPacketSize;
+            msc_cfg.in_ep = composite_config_descriptor_hs.endpoint_descriptor_2.bEndpointAddress & 0x7;
+            msc_cfg.in_maxpacket = composite_config_descriptor_hs.endpoint_descriptor_2.wMaxPacketSize;
+        }
+		else // Not high speed
+		{
+            msc_cfg.out_ep = composite_config_descriptor.endpoint_descriptor_1.bEndpointAddress & 0x7;
+            msc_cfg.out_maxpacket = composite_config_descriptor.endpoint_descriptor_1.wMaxPacketSize;
+            msc_cfg.in_ep = composite_config_descriptor.endpoint_descriptor_2.bEndpointAddress & 0x7;
             msc_cfg.in_maxpacket = composite_config_descriptor.endpoint_descriptor_2.wMaxPacketSize;
         }
 
@@ -1842,14 +1837,15 @@ static int setconfigCallback(MXC_USB_SetupPkt *sud, void *cbdata)
         acm_cfg.out_maxpacket = composite_config_descriptor.endpoint_descriptor_4.wMaxPacketSize;
         acm_cfg.in_ep = composite_config_descriptor.endpoint_descriptor_5.bEndpointAddress & 0x7;
         acm_cfg.in_maxpacket = composite_config_descriptor.endpoint_descriptor_5.wMaxPacketSize;
-        acm_cfg.notify_ep = composite_config_descriptor.endpoint_descriptor_3.bEndpointAddress &
-                            0x7;
+        acm_cfg.notify_ep = composite_config_descriptor.endpoint_descriptor_3.bEndpointAddress & 0x7;
         acm_cfg.notify_maxpacket = composite_config_descriptor.endpoint_descriptor_3.wMaxPacketSize;
 
         msc_configure(&msc_cfg);
         return acm_configure(&acm_cfg);
         /* Configure the device class */
-    } else if (sud->wValue == 0) {
+    }
+	else if (sud->wValue == 0)
+	{
         configured = 0;
         msc_deconfigure();
         return acm_deconfigure();
@@ -1981,7 +1977,34 @@ void USB_IRQHandler(void)
 ///----------------------------------------------------------------------------
 static int usbReadCallback(void)
 {
-    usb_read_complete = 1;
+	uint16_t numChars = acm_canread();
+	uint8 recieveData;
+
+	// Loop through remaining chars to be read
+	while (numChars--)
+	{
+		// Grab data from the USB CDC/ACM port and check if status is any error
+		if (acm_read(&recieveData, sizeof(recieveData)) != sizeof(recieveData)) { break; /* abort reading loop */ }
+		else // Successful read
+		{
+			// Raise the Craft Data flag
+			g_modemStatus.craftPortRcvFlag = YES;
+		}
+
+		// Write the received data into the buffer
+		*g_isrMessageBufferPtr->writePtr = recieveData;
+
+		// Advance the buffer pointer
+		g_isrMessageBufferPtr->writePtr++;
+
+		// Check if buffer pointer goes beyond the end
+		if (g_isrMessageBufferPtr->writePtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE))
+		{
+			// Reset the buffer pointer to the beginning of the buffer
+			g_isrMessageBufferPtr->writePtr = g_isrMessageBufferPtr->msg;
+		}
+	}
+
     return 0;
 }
 

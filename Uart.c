@@ -22,6 +22,7 @@
 #include "i2c.h"
 #include "uart.h"
 #include "mxc_delay.h"
+#include "cdc_acm.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -152,25 +153,41 @@ void UartPutc(uint8 c, int32 channel)
 {
 	mxc_uart_regs_t* port;
 
-	if (channel == LTE_COM_PORT) { port = MXC_UART0; }
-	else if (channel == BLE_COM_PORT) { port = MXC_UART1; }
-	else /* (channel == GLOBAL_DEBUG_PRINT_PORT) */ { port = MXC_UART2; }
+	// Check if channel is USB CDC/ACM serial
+	if (channel == CRAFT_COM_PORT)
+	{
+        // Verfiy USB serial channel is available
+		if (acm_present())
+		{
+            if (acm_write(&c, sizeof(c)) != sizeof(c))
+			{
+				debugErr("USB CDC/ACM serial transfer failed trying to send <%c>\r\n", c);
+			}
+		}
+		else { debugErr("USB CDC/ACM serial unavailable\r\n"); }
+	}
+	else // channel is UART serial
+	{
+		if (channel == LTE_COM_PORT) { port = MXC_UART0; }
+		else if (channel == BLE_COM_PORT) { port = MXC_UART1; }
+		else /* (channel == GLOBAL_DEBUG_PRINT_PORT) */ { port = MXC_UART2; }
 
 #if 1 /* Framework driver blocks waiting forever for TX FIFO space to be available */
-	MXC_UART_WriteCharacter(port, c);
+		MXC_UART_WriteCharacter(port, c);
 #else /* Manage timeout ourselves */
-	uint32 retries = 100; //USART_DEFAULT_TIMEOUT;
-	int status;
+		uint32 retries = 100; //USART_DEFAULT_TIMEOUT;
+		int status;
 
-	// Dump the character to the serial port
-	status = MXC_UART_RevA_WriteCharacterRaw(port, c);
-
-	while ((status == E_OVERFLOW) && (retries))
-	{
-		retries--;
+		// Dump the character to the serial port
 		status = MXC_UART_RevA_WriteCharacterRaw(port, c);
-	}
+
+		while ((status == E_OVERFLOW) && (retries))
+		{
+			retries--;
+			status = MXC_UART_RevA_WriteCharacterRaw(port, c);
+		}
 #endif
+	}
 }
 
 ///----------------------------------------------------------------------------

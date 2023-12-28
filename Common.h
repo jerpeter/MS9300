@@ -279,24 +279,20 @@ enum {
 #define CYCLIC_EVENT_TIME_THRESHOLD		(4 * 2)
 #define UPDATE_TIME_EVENT_THRESHOLD		(60 * 2)
 
-/* Uart Info */
-#define CRAFT_BAUDRATE	115200 //14400 //38400
-#define CRAFT_COM_PORT	0
-
-#define RS485_BAUDRATE	2000000 //19200
-#define RS485_COM_PORT	1
-
-// LTE
+// LTE serial port - UART 0
 #define LTE_BAUDRATE	115200
 #define LTE_COM_PORT	0
 
-// BLE
+// BLE serial port - UART 1
 #define BLE_BAUDRATE	115200
 #define BLE_COM_PORT	1
 
-// Define Debug port
+// Debug serial port - UART 2
 #define DEBUG_BAUDRATE	115200
 #define DEBUG_COM_PORT	2
+
+// Craft/Remote Comms serial port - USB CDC/ACM
+#define CRAFT_COM_PORT	3 // Actual number insignificant, distinguish from the other UART ports
 
 // Define Project Debug Port
 #define GLOBAL_DEBUG_PRINT_PORT	DEBUG_COM_PORT //CRAFT_COM_PORT

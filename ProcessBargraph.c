@@ -23,6 +23,7 @@
 #include "Math.h"
 
 #include "ff.h"
+#include "cdc_acm.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -300,10 +301,20 @@ void ChecksumAndSetupBargraphLiveMonitorDataForISRTransfer(void)
 	// Apend the checksum to the end of the output string
 	sprintf((char*)checksumDataPtr, "%d\r\n", checksum);
 
+#if 0 /* unused with direct send */
+	// ISR buffer pointer
 	g_bargraphBarIntervalLiveMonitorBIDataPtr = g_blmBuffer;
+#endif
 	g_bargraphLiveMonitoringBISendActive = YES;
 
-	// Todo: Update to enable the comms out resource/transmit ready interrupt
+	// USB CDC/ACM serial comms out direct send (unsure if transmit interrupt resource available)
+	if (acm_present())
+	{
+		acm_write(g_blmBuffer, (unsigned int)strlen((char*)g_blmBuffer));
+	}
+
+	// Done immediately with USB CDC/ACM blocking send so clear flag
+	g_bargraphLiveMonitoringBISendActive = NO;
 }
 
 ///----------------------------------------------------------------------------
