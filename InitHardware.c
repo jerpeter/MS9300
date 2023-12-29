@@ -1637,13 +1637,13 @@ int remote_wake_en;
 static int setconfigCallback(MXC_USB_SetupPkt *sud, void *cbdata);
 static int setfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata);
 static int clrfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata);
-static int eventCallback(maxusb_event_t evt, void *data);
+static int usbEventCallback(maxusb_event_t evt, void *data);
 static void usbAppSleep(void);
 static void usbAppWakeup(void);
 static int usbReadCallback(void);
 int usbStartupCallback();
 int usbShutdownCallback();
-static void echoUSB(void);
+void echoUSB(void);
 
 // This EP assignment must match the Configuration Descriptor
 static msc_cfg_t msc_cfg = {
@@ -1670,8 +1670,7 @@ static acm_cfg_t acm_cfg = {
 };
 
 // Functions to control "disk" memory. See msc.h for definitions
-static const msc_mem_t mem = { mscmem_Init, mscmem_Start, mscmem_Stop, mscmem_Ready,
-                               mscmem_Size, mscmem_Read,  mscmem_Write };
+static const msc_mem_t mem = { mscmem_Init, mscmem_Start, mscmem_Stop, mscmem_Ready, mscmem_Size, mscmem_Read, mscmem_Write };
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -1737,8 +1736,8 @@ void SetupUSBComposite(void)
     if (acm_init(&composite_config_descriptor.comm_interface_descriptor) != 0) { debugErr("CDC/ACM Init failed\r\n"); }
 
     // Register callbacks
-    MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, eventCallback, NULL);
-    MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, eventCallback, NULL);
+    MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback, NULL);
+    MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback, NULL);
     acm_register_callback(ACM_CB_READ_READY, usbReadCallback);
 
     // Start with USB in low power mode
@@ -1749,7 +1748,7 @@ void SetupUSBComposite(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-static void echoUSB(void)
+void echoUSB(void)
 {
     int chars;
     uint8_t buffer[BUFFER_SIZE];
@@ -1814,7 +1813,6 @@ static int setconfigCallback(MXC_USB_SetupPkt *sud, void *cbdata)
     /* Confirm the configuration value */
     if (sud->wValue == composite_config_descriptor.config_descriptor.bConfigurationValue)
 	{
-        //      on++;
         configured = 1;
         MXC_SETBIT(&event_flags, EVENT_ENUM_COMP);
 
@@ -1898,14 +1896,14 @@ static void usbAppSleep(void)
 ///----------------------------------------------------------------------------
 static void usbAppWakeup(void)
 {
-    /* TODO: Place low-power code here */
+    /* TODO: Place power on code here */
     suspended = 0;
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-static int eventCallback(maxusb_event_t evt, void *data)
+static int usbEventCallback(maxusb_event_t evt, void *data)
 {
     /* Set event flag */
     MXC_SETBIT(&event_flags, evt);
@@ -1924,11 +1922,11 @@ static int eventCallback(maxusb_event_t evt, void *data)
         break;
     case MAXUSB_EVENT_VBUS:
         MXC_USB_EventClear(MAXUSB_EVENT_BRST);
-        MXC_USB_EventEnable(MAXUSB_EVENT_BRST, eventCallback, NULL);
-        MXC_USB_EventClear(MAXUSB_EVENT_BRSTDN); ///
-        MXC_USB_EventEnable(MAXUSB_EVENT_BRSTDN, eventCallback, NULL); ///
+        MXC_USB_EventEnable(MAXUSB_EVENT_BRST, usbEventCallback, NULL);
+        MXC_USB_EventClear(MAXUSB_EVENT_BRSTDN);
+        MXC_USB_EventEnable(MAXUSB_EVENT_BRSTDN, usbEventCallback, NULL);
         MXC_USB_EventClear(MAXUSB_EVENT_SUSP);
-        MXC_USB_EventEnable(MAXUSB_EVENT_SUSP, eventCallback, NULL);
+        MXC_USB_EventEnable(MAXUSB_EVENT_SUSP, usbEventCallback, NULL);
         MXC_USB_Connect();
         usbAppSleep();
         break;
@@ -1940,7 +1938,7 @@ static int eventCallback(maxusb_event_t evt, void *data)
         configured = 0;
         suspended = 0;
         break;
-    case MAXUSB_EVENT_BRSTDN: ///
+    case MAXUSB_EVENT_BRSTDN:
         if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
             enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&composite_config_descriptor_hs,
                                      0);
@@ -1984,7 +1982,7 @@ static int usbReadCallback(void)
 	while (numChars--)
 	{
 		// Grab data from the USB CDC/ACM port and check if status is any error
-		if (acm_read(&recieveData, sizeof(recieveData)) != sizeof(recieveData)) { break; /* abort reading loop */ }
+		if (acm_read(&recieveData, sizeof(recieveData)) != sizeof(recieveData)) { debugErr("USB CDC/ACM: Read failure\r\n"); break; /* error, abort reading loop */ }
 		else // Successful read
 		{
 			// Raise the Craft Data flag
@@ -2011,48 +2009,22 @@ static int usbReadCallback(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void UsbWaitForEvents(void)
+void UsbReportEvents(void)
 {
-	/* Wait for events */
-    while (1) {
-        echoUSB();
+	if ((suspended) || (!configured)) { debug("USB: Suspended or not configured\r\n"); }
+	else { debug("USB: Configured\r\n"); }
 
-        if (suspended || !configured) {
-            // Suspended or not configured, alert debug
-        } else {
-            // Configured, alert debug
-        }
-
-        if (event_flags) {
-            /* Display events */
-            if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_NOVBUS)) {
-                MXC_CLRBIT(&event_flags, MAXUSB_EVENT_NOVBUS);
-                debug("VBUS Disconnect\n");
-            } else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_VBUS)) {
-                MXC_CLRBIT(&event_flags, MAXUSB_EVENT_VBUS);
-                debug("VBUS Connect\n");
-            } else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRST)) {
-                MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRST);
-                debug("Bus Reset\n");
-            } else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRSTDN)) { ///
-                MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRSTDN);
-                debug("Bus Reset Done: %s speed\n",
-                       (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) ? "High" : "Full");
-            } else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_SUSP)) {
-                MXC_CLRBIT(&event_flags, MAXUSB_EVENT_SUSP);
-                debug("Suspended\n");
-            } else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_DPACT)) {
-                MXC_CLRBIT(&event_flags, MAXUSB_EVENT_DPACT);
-                debug("Resume\n");
-            } else if (MXC_GETBIT(&event_flags, EVENT_ENUM_COMP)) {
-                MXC_CLRBIT(&event_flags, EVENT_ENUM_COMP);
-                debug("Enumeration complete...\n");
-            } else if (MXC_GETBIT(&event_flags, EVENT_REMOTE_WAKE)) {
-                MXC_CLRBIT(&event_flags, EVENT_REMOTE_WAKE);
-                debug("Remote Wakeup\n");
-            }
-        }
-    }
+	if (event_flags)
+	{
+		if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_NOVBUS)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_NOVBUS); debug("USB: VBUS Disconnect\n"); }
+		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_VBUS)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_VBUS); debug("USB: VBUS Connect\n"); }
+		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRST)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRST); debug("USB: Bus Reset\n"); }
+		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRSTDN)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRSTDN); debug("USB: Bus Reset Done: %s speed\n", (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) ? "High" : "Full"); }
+		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_SUSP)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_SUSP); debug("USB: Suspended\n"); }
+		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_DPACT)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_DPACT); debug("USB: Resume\n"); }
+		else if (MXC_GETBIT(&event_flags, EVENT_ENUM_COMP)) { MXC_CLRBIT(&event_flags, EVENT_ENUM_COMP); debug("USB: Enumeration complete...\n"); }
+		else if (MXC_GETBIT(&event_flags, EVENT_REMOTE_WAKE)) { MXC_CLRBIT(&event_flags, EVENT_REMOTE_WAKE); debug("USB: Remote Wakeup\n"); }
+	}
 }
 
 // Defined with SPI
