@@ -37,15 +37,11 @@
  *          See the msc_mem_t structure in msc.h for function details.
  */
 
-#ifndef EXAMPLES_MAX32650_USB_COMPOSITEDEVICE_MSC_CDC_MSCMEM_H_
-#define EXAMPLES_MAX32650_USB_COMPOSITEDEVICE_MSC_CDC_MSCMEM_H_
+#ifndef MAX32650_USB_COMPOSITEDEVICE_MSC_CDC_MSCMEM_H_
+#define MAX32650_USB_COMPOSITEDEVICE_MSC_CDC_MSCMEM_H_
 
 #include <stdint.h>
 
-/* **** Definitions **** */
-#define ERASE_MEMORY_ON_INIT \
-    1 /* Configuration option to clear the memory (to 0s) on initialization. */
-/* Use 1 to clear or 0 to leave untouched. */
 /**
  * @brief   Perform any initialization necessary to prepare the memory for reading/writing data.
  * @returns 0 if initialization is successful, non-zero if an error occurred.
@@ -94,4 +90,4 @@ int mscmem_Write(uint32_t lba, uint8_t *buffer);
  */
 int mscmem_Ready(void);
 
-#endif // EXAMPLES_MAX32650_USB_COMPOSITEDEVICE_MSC_CDC_MSCMEM_H_
+#endif // MAX32650_USB_COMPOSITEDEVICE_MSC_CDC_MSCMEM_H_

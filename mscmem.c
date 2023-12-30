@@ -35,10 +35,7 @@
  * @file    mscmem.h
  * @brief   Memory routines used by the USB Mass Storage Class example.
  *          See the msc_mem_t structure in msc.h for function details.
- * @details Functions are provided for using the internal RAM of the
- *          device or the external SPI flash memory.  Use the SPIXF_DISK
- *          and RAM_DISK defines to select the desired memory at compile
- *          time.
+ * @details Functions are provided for using the external SPI flash memory.
  */
 
 #include "mscmem.h"
@@ -47,10 +44,11 @@
 #include "Ext_Flash.h"
 #include "spixf.h"
 
+#include "sdhc_lib.h"
+
 /***** Definitions *****/
 
-#define SPIXF_DISK 1
-#define RAM_DISK 0
+#define SPIXF_DISK 0
 
 #define LBA_SIZE 512 /* Size of "logical blocks" in bytes */
 #define LBA_SIZE_SHIFT 9 /* The shift value used to convert between addresses and block numbers */
@@ -59,8 +57,8 @@
 
 /***** File Scope Variables *****/
 
-static int initialized = 0;
-static int running = 0;
+//static int initialized = 0;
+//static int running = 0;
 
 #if SPIXF_DISK
 
@@ -242,84 +240,91 @@ int mscmem_Ready()
     return running;
 }
 
-#elif RAM_DISK
+#else // Native SDHC disk
 
-#define NUM_PAGES 0x100
-static uint8_t mem[NUM_PAGES][LBA_SIZE];
-
-/******************************************************************************/
-int mscmem_Init()
+int mscmem_Init(void)
 {
-    if (!initialized) {
-        initialized = 1;
-#if (ERASE_MEMORY_ON_INIT)
-        memset(mem, 0, sizeof(mem));
-#endif
-    }
-
-    return 0;
+    return (0);
 }
 
-/******************************************************************************/
+int mscmem_Start(void)
+{
+    return (0);
+}
+
+int mscmem_Stop(void)
+{
+    return (0);
+}
+
 uint32_t mscmem_Size(void)
 {
-    return NUM_PAGES;
+    return (0);
 }
 
-/******************************************************************************/
 int mscmem_Read(uint32_t lba, uint8_t *buffer)
 {
-    if (lba >= NUM_PAGES) {
+#if 0 /* reference SPIXF */
+    uint32_t addr;
+
+    /* Convert to external flash sector number. */
+    uint32_t sNum = getSectorNum(lba);
+
+    if (getSector(sNum)) {
+        /* Failed to write/read from external flash */
         return 1;
     }
 
-    memcpy(buffer, mem[lba], LBA_SIZE);
+    /* Get the offset into the current sector */
+    addr = getSectorAddr(lba);
+
+    memcpy(buffer, sector + addr, LBA_SIZE);
+
     return 0;
+#endif
+
+#if 1 /* from diskio.c */
+    //-----------------------------------------------------------------------
+    // Read Sector
+    //-----------------------------------------------------------------------
+    int status = MXC_SDHC_Lib_Read(buffer, lba, LBA_SIZE, MXC_SDHC_LIB_SINGLE_DATA);
+
+    return (status);
+#endif
 }
 
-/******************************************************************************/
 int mscmem_Write(uint32_t lba, uint8_t *buffer)
 {
-    if (lba >= NUM_PAGES) {
+#if 0 /* reference SPIXF */
+    uint32_t addr;
+
+    /* Convert to external flash sector number. */
+    uint32_t sNum = getSectorNum(lba);
+
+    if (getSector(sNum)) {
+        /* Failed to write/read from external flash */
         return 1;
     }
 
-    memcpy(mem[lba], buffer, LBA_SIZE);
+    /* Get the offset into the current sector */
+    addr = getSectorAddr(lba);
+
+    memcpy(sector + addr, buffer, LBA_SIZE);
+    sectorDirty = 1;
+
     return 0;
+#endif
+
+#if 1 /* from diskio.c */
+    int status = MXC_SDHC_Lib_Write(lba, (void *)buffer, LBA_SIZE, MXC_SDHC_LIB_SINGLE_DATA);
+
+    return (status);
+#endif
 }
 
-/******************************************************************************/
-int mscmem_Start()
+int mscmem_Ready(void)
 {
-    /* Not much to do for this implementation.  The RAM is always ready. */
-    if (!initialized) {
-        mscmem_Init();
-    }
-
-    /* Check if the RAM has been initialized. If it has, start running. */
-    if (initialized) {
-        running = 1;
-    }
-
-    /* Start should return fail (non-zero) if the memory cannot be initialized. */
-    return !initialized;
+    return (0);
 }
 
-/******************************************************************************/
-int mscmem_Stop()
-{
-    /* Nothing to do for this implementation.  All data is written as it is */
-    /*   received so there are no pending writes that need to be flushed.   */
-    running = 0;
-    return 0;
-}
-
-/******************************************************************************/
-int mscmem_Ready()
-{
-    return running;
-}
-
-#else
-#error "You must assign either RAM_DISK or SPIXF_DISK to 1."
 #endif
