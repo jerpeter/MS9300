@@ -24,5 +24,7 @@ LIB_MAXUSB=1
 # Enable the SDHC library
 LIB_SDHC=1
 
-# Pick the SDHC FF revision
-FAT32_DRIVER_DIR = $(SDHC_DRIVER_DIR)/ff13
+# Pick the SDHC FF revision, currently selecting the newer version 14 (13 and 14 will build, 15 needs tweaks to compile)
+#FAT32_DRIVER_DIR = $(SDHC_DRIVER_DIR)/ff13
+FAT32_DRIVER_DIR = $(SDHC_DRIVER_DIR)/ff14
+#FAT32_DRIVER_DIR = $(SDHC_DRIVER_DIR)/ff15
