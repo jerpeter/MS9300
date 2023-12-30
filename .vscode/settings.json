@@ -111,7 +111,9 @@
         "tmr.h": "c",
         "ext_flash.h": "c",
         "usb.h": "c",
-        "sdhc_regs.h": "c"
+        "sdhc_regs.h": "c",
+        "ffconf.h": "c",
+        "diskio.h": "c"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "C_Cpp.dimInactiveRegions": false
