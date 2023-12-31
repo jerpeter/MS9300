@@ -61,6 +61,9 @@
 //static int running = 0;
 
 #if SPIXF_DISK
+//==============================================================================
+// SPIXF Disk reference MSC interface functions
+//==============================================================================
 
 #undef EXT_FLASH_BAUD
 #define EXT_FLASH_BAUD 5000000 /* SPI clock rate to communicate with the external flash */
@@ -241,90 +244,162 @@ int mscmem_Ready()
 }
 
 #else // Native SDHC disk
+//==============================================================================
+// Native SDHC/eMMC MSC interface functions
+//==============================================================================
 
-int mscmem_Init(void)
-{
-    return (0);
-}
+#define E_MMC_SECTOR_SIZE   512
+#define E_MMC_SECTOR_COUNT  15269888
+#define E_MMC_INVALID_SECTOR    (E_MMC_SECTOR_COUNT + 1)
 
-int mscmem_Start(void)
-{
-    return (0);
-}
+static uint8_t msc_emmc_initialized = 0;
+static uint8_t msc_emmc_running = 0;
 
-int mscmem_Stop(void)
-{
-    return (0);
-}
+#define USE_CACHED_SECTOR   0
 
-uint32_t mscmem_Size(void)
-{
-    return (0);
-}
-
-int mscmem_Read(uint32_t lba, uint8_t *buffer)
-{
-#if 0 /* reference SPIXF */
-    uint32_t addr;
-
-    /* Convert to external flash sector number. */
-    uint32_t sNum = getSectorNum(lba);
-
-    if (getSector(sNum)) {
-        /* Failed to write/read from external flash */
-        return 1;
-    }
-
-    /* Get the offset into the current sector */
-    addr = getSectorAddr(lba);
-
-    memcpy(buffer, sector + addr, LBA_SIZE);
-
-    return 0;
+#if USE_CACHED_SECTOR
+static uint32_t cachedSectorNum = E_MMC_INVALID_SECTOR;
+static uint8_t cachedSector[E_MMC_SECTOR_SIZE];
+static int cachedSectorDirty = 0;
 #endif
 
-#if 1 /* from diskio.c */
-    //-----------------------------------------------------------------------
-    // Read Sector
-    //-----------------------------------------------------------------------
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+extern void SetupSDHCeMMC(void);
+int mscmem_Init(void)
+{
+    if (MXC_SDHC_Lib_Get_Card_Type() == CARD_MMC)
+    {
+        msc_emmc_initialized = 1;
+    }
+    else // Setup the SDHC eMMC (should have been done in InitHardware)
+    {
+        SetupSDHCeMMC();
+        if (MXC_SDHC_Lib_Get_Card_Type() == CARD_MMC) { msc_emmc_initialized = 1; }
+    }
+
+    return (!msc_emmc_initialized);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int mscmem_Start(void)
+{
+    // Initialize the SDHC if not already, but should always be up
+    if (!msc_emmc_initialized) { mscmem_Init(); }
+
+    if (msc_emmc_initialized) { msc_emmc_running = 1; }
+
+    return (!msc_emmc_running);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int mscmem_Stop(void)
+{
+#if USE_CACHED_SECTOR
+    // Flush the currently cached sector if necessary
+    if (cachedSectorDirty)
+    {
+        MXC_SDHC_Lib_Write(cachedSectorNum, (void *)cachedSector, LBA_SIZE, MXC_SDHC_LIB_SINGLE_DATA);
+        cachedSectorDirty = 0;
+    }
+#endif
+
+    // Reset/clear any active/running flags
+    msc_emmc_running = 0;
+
+    return (0);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int mscmem_Ready(void)
+{
+    // Return active/running flag state
+    return (msc_emmc_running);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint32_t mscmem_Size(void)
+{
+#if 1 /* Use datasheet sector count */
+    // Return the number of 512 byte chunks within the embedded MMC flash
+    return (E_MMC_SECTOR_COUNT);
+#else /* Read device method via SDHC library produces a value larger than the return value would hold */
+    mxc_sdhc_csd_regs_t csd;
+    MXC_SDHC_Lib_GetCSD(&csd);
+    uint32_t size = MXC_SDHC_Lib_GetCapacity(&csd);
+    return (size);
+#endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int mscmem_Read(uint32_t lba, uint8_t *buffer)
+{
+#if USE_CACHED_SECTOR /* Using a cached sector */
+    int status = 0;
+
+    // Check if request is a different sector than the prior request
+    if (lba != cachedSectorNum)
+    {
+        if (cachedSectorDirty)
+        {
+            MXC_SDHC_Lib_Write(cachedSectorNum, (void *)cachedSector, LBA_SIZE, MXC_SDHC_LIB_SINGLE_DATA);
+            cachedSectorDirty = 0;
+        }
+
+        status = MXC_SDHC_Lib_Read(cachedSector, lba, LBA_SIZE, MXC_SDHC_LIB_SINGLE_DATA);
+        cachedSectorNum = lba;
+    }
+
+    memcpy(buffer, cachedSector, LBA_SIZE);
+
+    return (status);
+#else /* Raw access */
+    // Read sector, lba directly translates to sector number, assume that also equals sector address for SDHC lib read (raw addres wouldn't fit in uint32)
     int status = MXC_SDHC_Lib_Read(buffer, lba, LBA_SIZE, MXC_SDHC_LIB_SINGLE_DATA);
 
     return (status);
 #endif
 }
 
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 int mscmem_Write(uint32_t lba, uint8_t *buffer)
 {
-#if 0 /* reference SPIXF */
-    uint32_t addr;
+#if USE_CACHED_SECTOR /* Using a cached sector */
+    // Check if request is a different sector than the prior request
+    if (lba != cachedSectorNum)
+    {
+        if (cachedSectorDirty)
+        {
+            MXC_SDHC_Lib_Write(cachedSectorNum, (void *)cachedSector, LBA_SIZE, MXC_SDHC_LIB_SINGLE_DATA);
+            cachedSectorDirty = 0;
+        }
 
-    /* Convert to external flash sector number. */
-    uint32_t sNum = getSectorNum(lba);
-
-    if (getSector(sNum)) {
-        /* Failed to write/read from external flash */
-        return 1;
+        cachedSectorNum = lba;
     }
 
-    /* Get the offset into the current sector */
-    addr = getSectorAddr(lba);
+    memcpy(cachedSector, buffer, LBA_SIZE);
+    cachedSectorDirty = 1;
 
-    memcpy(sector + addr, buffer, LBA_SIZE);
-    sectorDirty = 1;
-
-    return 0;
-#endif
-
-#if 1 /* from diskio.c */
+    return (0);
+#else /* Raw access */
+    // Write sector, lba directly translates to sector number, assume that also equals sector address for SDHC lib write (raw addres wouldn't fit in uint32)
     int status = MXC_SDHC_Lib_Write(lba, (void *)buffer, LBA_SIZE, MXC_SDHC_LIB_SINGLE_DATA);
 
     return (status);
 #endif
-}
-
-int mscmem_Ready(void)
-{
-    return (0);
 }
 
 #endif
