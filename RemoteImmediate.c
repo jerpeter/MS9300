@@ -2354,7 +2354,12 @@ void HandleDEM(CMD_BUFFER_STRUCT* inCmd)
 		g_demXferStructPtr->errorStatus = MODEM_SEND_SUCCESS;
 
 		// Reset flag to always attempt compression
+#if 0 /* Normal operation */
 		g_demXferStructPtr->downloadMethod = COMPRESS_MINILZO;
+#else /* Temp disable compression */
+		// Todo: Update MiniLZO compression to work directly from stored event before reversing logic
+		g_demXferStructPtr->downloadMethod = COMPRESS_NONE;
+#endif
 		g_demXferStructPtr->compressedEventDataFilePresent = CheckCompressedEventDataFileExists(eventNumToSend);
 
 		// Determine the necessary download method and setup/cache based on that decision
