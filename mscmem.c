@@ -304,7 +304,7 @@ int mscmem_Stop(void)
     // Flush the currently cached sector if necessary
     if (cachedSectorDirty)
     {
-        MXC_SDHC_Lib_Write(cachedSectorNum, (void *)cachedSector, LBA_SIZE, MXC_SDHC_LIB_SINGLE_DATA);
+        MXC_SDHC_Lib_Write(cachedSectorNum, (void *)cachedSector, LBA_SIZE, MXC_SDHC_LIB_QUAD_DATA);
         cachedSectorDirty = 0;
     }
 #endif
@@ -353,11 +353,11 @@ int mscmem_Read(uint32_t lba, uint8_t *buffer)
     {
         if (cachedSectorDirty)
         {
-            MXC_SDHC_Lib_Write(cachedSectorNum, (void *)cachedSector, LBA_SIZE, MXC_SDHC_LIB_SINGLE_DATA);
+            MXC_SDHC_Lib_Write(cachedSectorNum, (void *)cachedSector, LBA_SIZE, MXC_SDHC_LIB_QUAD_DATA);
             cachedSectorDirty = 0;
         }
 
-        status = MXC_SDHC_Lib_Read(cachedSector, lba, LBA_SIZE, MXC_SDHC_LIB_SINGLE_DATA);
+        status = MXC_SDHC_Lib_Read(cachedSector, lba, LBA_SIZE, MXC_SDHC_LIB_QUAD_DATA);
         cachedSectorNum = lba;
     }
 
@@ -366,7 +366,7 @@ int mscmem_Read(uint32_t lba, uint8_t *buffer)
     return (status);
 #else /* Raw access */
     // Read sector, lba directly translates to sector number, assume that also equals sector address for SDHC lib read (raw addres wouldn't fit in uint32)
-    int status = MXC_SDHC_Lib_Read(buffer, lba, LBA_SIZE, MXC_SDHC_LIB_SINGLE_DATA);
+    int status = MXC_SDHC_Lib_Read(buffer, lba, LBA_SIZE, MXC_SDHC_LIB_QUAD_DATA);
 
     return (status);
 #endif
@@ -383,7 +383,7 @@ int mscmem_Write(uint32_t lba, uint8_t *buffer)
     {
         if (cachedSectorDirty)
         {
-            MXC_SDHC_Lib_Write(cachedSectorNum, (void *)cachedSector, LBA_SIZE, MXC_SDHC_LIB_SINGLE_DATA);
+            MXC_SDHC_Lib_Write(cachedSectorNum, (void *)cachedSector, LBA_SIZE, MXC_SDHC_LIB_QUAD_DATA);
             cachedSectorDirty = 0;
         }
 
@@ -396,7 +396,7 @@ int mscmem_Write(uint32_t lba, uint8_t *buffer)
     return (0);
 #else /* Raw access */
     // Write sector, lba directly translates to sector number, assume that also equals sector address for SDHC lib write (raw addres wouldn't fit in uint32)
-    int status = MXC_SDHC_Lib_Write(lba, (void *)buffer, LBA_SIZE, MXC_SDHC_LIB_SINGLE_DATA);
+    int status = MXC_SDHC_Lib_Write(lba, (void *)buffer, LBA_SIZE, MXC_SDHC_LIB_QUAD_DATA);
 
     return (status);
 #endif

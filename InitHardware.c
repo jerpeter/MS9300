@@ -41,6 +41,9 @@
 #include "tmr.h"
 #include "sdhc_lib.h"
 #include "ff.h"
+#include "sdhc_reva.h"
+#include "sdhc_reva_regs.h"
+
 //#include "mxc_delay.h"
 //#include "mxc_errors.h"
 //#include "uart.h"
@@ -250,6 +253,8 @@ mxc_gpio_cfg_t g_CalMuxPreADSelect;
 mxc_gpio_cfg_t g_Alert1;
 mxc_gpio_cfg_t g_Alert2;
 mxc_gpio_cfg_t g_LTEOTA;
+mxc_gpio_cfg_t g_EMMCReset;
+mxc_gpio_cfg_t g_EMMCDataStrobe;
 mxc_gpio_cfg_t g_ExpansionEnable;
 mxc_gpio_cfg_t g_ExpansionReset;
 mxc_gpio_cfg_t g_USBCPortControllerI2CIRQ;
@@ -592,6 +597,28 @@ void SetupGPIO(void)
 	g_LTEOTA.func = MXC_GPIO_FUNC_IN;
 	g_LTEOTA.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&g_LTEOTA);
+	// Todo: Fill in handling when more information known
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// eMMC Reset: Port 0, Pin 31, Output, External pulldown, Active low, 1.8V (device runs 1.8V interface & 3.3V part)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_EMMCReset.port = MXC_GPIO0;
+	g_EMMCReset.mask = MXC_GPIO_PIN_31;
+	g_EMMCReset.pad = MXC_GPIO_PAD_NONE;
+	g_EMMCReset.func = MXC_GPIO_FUNC_OUT;
+	g_EMMCReset.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_EMMCReset);
+	MXC_GPIO_OutSet(g_EMMCReset.port, g_EMMCReset.mask); // Start by removing from reset
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// eMMC Data Strobe: Port 1, Pin 2, Input, External pulldown, Active high, 1.8V (device runs 1.8V interface & 3.3V part)
+	//----------------------------------------------------------------------------------------------------------------------
+	g_EMMCDataStrobe.port = MXC_GPIO1;
+	g_EMMCDataStrobe.mask = MXC_GPIO_PIN_2;
+	g_EMMCDataStrobe.pad = MXC_GPIO_PAD_NONE;
+	g_EMMCDataStrobe.func = MXC_GPIO_FUNC_IN;
+	g_EMMCDataStrobe.vssel = MXC_GPIO_VSSEL_VDDIO;
+    MXC_GPIO_Config(&g_EMMCDataStrobe);
 	// Todo: Fill in handling when more information known
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -2503,7 +2530,19 @@ void SetupSDHCeMMC(void)
     cfg.block_gap = 0;
     cfg.clk_div = 0x0b0; // Maximum divide ratio, frequency must be >= 400 kHz during Card Identification phase
 
+#if 0 /* Interface call assigns incorrect GPIO */
     if (MXC_SDHC_Init(&cfg) != E_NO_ERROR) { debugErr("SDHC/eMMC initialization failed\r\n"); }
+#else /* Manual setup */
+	mxc_gpio_cfg_t gpio_cfg_sdhc_1 = { MXC_GPIO1, (MXC_GPIO_PIN_0 | MXC_GPIO_PIN_1 | MXC_GPIO_PIN_3 | MXC_GPIO_PIN_4 | MXC_GPIO_PIN_5 | MXC_GPIO_PIN_6), MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE };
+
+    MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_SDHC);
+
+    MXC_GPIO_Config(&gpio_cfg_sdhc_1);
+    gpio_cfg_sdhc_1.port->vssel &= ~(gpio_cfg_sdhc_1.mask); // Set voltage select to MXC_GPIO_VSSEL_VDDIO, since it seems digital interface is at 1.8V
+    gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 2x (borrowing from reference example)
+
+    if (MXC_SDHC_RevA_Init((mxc_sdhc_reva_regs_t *)MXC_SDHC, &cfg) != E_NO_ERROR) { debugErr("SDHC/eMMC initialization failed\r\n"); }
+#endif
 
     // Set up card to get it ready for a transaction
     if (MXC_SDHC_Lib_InitCard(10) == E_NO_ERROR) { debug("SDHC: Card/device Initialized\r\n"); }
@@ -2512,17 +2551,29 @@ void SetupSDHCeMMC(void)
     if (MXC_SDHC_Lib_Get_Card_Type() == CARD_MMC) { debug("SDHC: Card type discovered is MMC/eMMC\r\n"); }
 	else /* CARD_SDHC */ { debug("SDHC: Card type discovered is SD/SDHC\r\n"); }
 
+	/*
+		Note: The 0-52 MHz eMMC devices supported the legacy SDR mode as well as a newer transfer mode introduced by JEDEC version 4.4 called Dual Data Rate (DDR)
+		DDR mode allows the transfer of two bits on each data line per clock cycle, one per clock edge; This helps achieve a transfer rate of up to 104 MB/s
+
+		32651 Datasheet: Supports SDR50 with SDHC clock of up to 60MHz (30MB/sec) -or- Supports DDR50 with SDHC clock of up to 30MHz (30MB/sec)
+	*/
+
+	// Todo: Test for 60 MHz clock (max SDHC clock since eMMC is using the newer 5.0 spec), and determine if/how to setup DDR (but drop clock to 30 MHz)
+
     // Configure for fastest possible clock, must not exceed 52 MHz for eMMC
     if (SystemCoreClock > 96000000)
 	{
         debug("SD clock ratio (at card/device) is 4:1 (eMMC not to exceed 52 MHz)\r\n");
         MXC_SDHC_Set_Clock_Config(1);
     }
-	else
+	else // Slower system clock
 	{
         debug("SD clock ratio (at card/device) is 2:1\r\n");
         MXC_SDHC_Set_Clock_Config(0);
     }
+
+	// Swap over to quad data mode, although it looks like every transaction proceeds with setting the bus width again
+	MXC_SDHC_Lib_SetBusWidth(MXC_SDHC_LIB_QUAD_DATA);
 }
 
 ///----------------------------------------------------------------------------
