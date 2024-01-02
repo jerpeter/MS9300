@@ -2518,6 +2518,76 @@ void TestDriveAndFilesystem(void)
     }
 }
 
+typedef enum {
+	MXC_SDHC_LIB_LEGACY_TIMING = 0,
+	MXC_SDHC_LIB_HIGH_SPEED_TIMING, // 1
+	MXC_SDHC_LIB_HS200_TIMING, // 2
+	MXC_SDHC_LIB_HS400_TIMING, // 3
+} mxc_sdhc_hs_timing;
+
+#define MXC_SDHC_LIB_CMD6       0x060A
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int MXC_SDHC_Lib_SetHighSpeedTiming(mxc_sdhc_hs_timing highSpeedTiming)
+{
+	/*
+		This field is 0 after power-on, H/W reset or software reset, thus selecting the backwards compatible interface timing for the Device
+		If the host sets 1 to this field, the Device changes the timing to high speed interface timing (see Section 10.6.1 of JESD84-B50)
+		If the host sets value 2, the Device changes its timing to HS200 interface timing (see Section 10.8.1 of JESD84-B50)
+		If the host sets HS_TIMING [3:0] to 0x3, the device changes it’s timing to HS400 interface timing (see 10.10)
+	*/
+
+	mxc_sdhc_cmd_cfg_t cmd_cfg;
+	uint32_t card_status;
+	int result;
+
+	cmd_cfg.direction = MXC_SDHC_DIRECTION_CFG;
+	cmd_cfg.callback = NULL;
+
+	cmd_cfg.host_control_1 = MXC_SDHC_Get_Host_Cn_1();
+	if (highSpeedTiming == MXC_SDHC_LIB_LEGACY_TIMING)
+	{
+		// Legacy timing
+		cmd_cfg.arg_1 = 0x03B90000;
+		// Todo: Check if host control 1 needs to be set with the high speed enable bit or does this invalidate the legacy timing?
+		//cmd_cfg.host_control_1 |= MXC_F_SDHC_HOST_CN_1_HS_EN; // Needed or a problem?
+	}
+	else if (highSpeedTiming == MXC_SDHC_LIB_HIGH_SPEED_TIMING)
+	{
+		// High speed timing
+		cmd_cfg.arg_1 = 0x03B90100;
+		cmd_cfg.host_control_1 |= MXC_F_SDHC_HOST_CN_1_HS_EN;
+	}
+	else if (highSpeedTiming == MXC_SDHC_LIB_HS200_TIMING)
+	{
+		// High speed timing
+		cmd_cfg.arg_1 = 0x03B90200;
+		cmd_cfg.host_control_1 |= MXC_F_SDHC_HOST_CN_1_HS_EN;
+	}
+	else if (highSpeedTiming == MXC_SDHC_LIB_HS400_TIMING)
+	{
+		// Can't use HS400 mode, data width can't be set to 8
+		result = E_BAD_STATE;
+	}
+	else { result = E_BAD_STATE; }
+
+	cmd_cfg.command = MXC_SDHC_LIB_CMD6;
+	result = MXC_SDHC_SendCommand(&cmd_cfg);
+
+	/* Wait until card busy (D0 low) disappears */
+	while (MXC_SDHC_Card_Busy()) {}
+	card_status = MXC_SDHC_Get_Response32();
+
+	if ((result == E_NO_ERROR) && (card_status & 0x80))
+	{
+		/* SWITCH_ERROR */
+		result = E_BAD_STATE;
+	}
+
+	return result;
+}
+
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -2559,6 +2629,13 @@ void SetupSDHCeMMC(void)
 	*/
 
 	// Todo: Test for 60 MHz clock (max SDHC clock since eMMC is using the newer 5.0 spec), and determine if/how to setup DDR (but drop clock to 30 MHz)
+
+	// Todo: Check options for setting hs_timing
+#if 0 /* Enable high speed timing when sorted out */
+	MXC_SDHC_Lib_SetHighSpeedTiming(MXC_SDHC_LIB_HIGH_SPEED_TIMING);
+	-or-
+	MXC_SDHC_Lib_SetHighSpeedTiming(MXC_SDHC_LIB_HS200_TIMING);
+#endif
 
     // Configure for fastest possible clock, must not exceed 52 MHz for eMMC
     if (SystemCoreClock > 96000000)
