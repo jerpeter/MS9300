@@ -1479,7 +1479,7 @@ uint8 ManageDER(void)
 		if (g_modemStatus.remoteResponse == WAITING_FOR_STATUS)
 		{
 			// Check response timeout status (use half second tick)
-			// TODO
+			// Fill in
 
 			return (DERx_CMD);
 		}
@@ -1739,7 +1739,7 @@ uint8 ManageDER(void)
 		// Check if last packet and sending a partial packet size
 		if (g_derXferStruct.currentPacket == g_derXferStruct.totalPackets)
 		{
-			// TODO: Handle for uncompressed transmission
+			// Fill in handling for uncompressed transmission
 
 			g_transmitCRC = CalcCCITT32((uint8*)&g_derXferStruct.compressedEventRecordSize, sizeof(uint32), g_transmitCRC);
 			g_derXferStruct.packetDataCRC = CalcCCITT32((uint8*)&g_derXferStruct.compressedEventRecordSize, sizeof(uint32), g_derXferStruct.packetDataCRC);
@@ -1794,7 +1794,7 @@ uint8 ManageDER(void)
 			g_modemStatus.remoteResponse = WAITING_FOR_STATUS;
 
 			// Set response timeout (use half second tick)
-			// TODO
+			// Fill in
 		}
 		else
 		{

@@ -619,7 +619,7 @@ void SetupGPIO(void)
 	g_EMMCDataStrobe.func = MXC_GPIO_FUNC_IN;
 	g_EMMCDataStrobe.vssel = MXC_GPIO_VSSEL_VDDIO;
     MXC_GPIO_Config(&g_EMMCDataStrobe);
-	// Todo: Fill in handling when more information known
+	// Note: Doesn't look like we can use this line which is only enabled for HS400 mode and HS400 mode seems to only work with 8-bit data bus width (we're 4-bit max)
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Expansion Enable: Port 1, Pin 7, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
@@ -1914,8 +1914,9 @@ static int clrfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata)
 ///----------------------------------------------------------------------------
 static void usbAppSleep(void)
 {
-    /* TODO: Place low-power code here */
     suspended = 1;
+
+    // Todo: Any low power code to place here?
 }
 
 ///----------------------------------------------------------------------------
@@ -1923,8 +1924,9 @@ static void usbAppSleep(void)
 ///----------------------------------------------------------------------------
 static void usbAppWakeup(void)
 {
-    /* TODO: Place power on code here */
     suspended = 0;
+
+    // Todo: Any power up code to place here?
 }
 
 ///----------------------------------------------------------------------------

@@ -326,7 +326,7 @@ void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 #define CMD_CLKEXT         0x44   // Select PLL input from external osc.
 #define CMD_CLKINT         0x48   // Select PLL input from internal osc.
 #define CMD_PWRDOWN2       0x50   // Switch off 1.2v core voltage. SPI still on.
-#define CMD_CLKSEL         0x61   // Set clock in sleep mode. TODO: why 2?
+#define CMD_CLKSEL         0x61   // Set clock in sleep mode.
 #define CMD_CLKSEL2        0x62   // ""
 #define CMD_RST_PULSE      0x68   // Send reset pulse to FT81x core.
 #define CMD_PINDRIVE       0x70   // Pin driver power levels

@@ -47,7 +47,7 @@ enum {
 #define NACK_CHAR		0x15
 #define CAN_CHAR		0x18
 
-#if 0 /* old hw */
+#if 0 /* old serial flow control */
 #define CLEAR_DTR	(AVR32_USART1.cr = (1 << AVR32_USART_DTRDIS))
 #define SET_DTR		(AVR32_USART1.cr = (1 << AVR32_USART_DTREN))
 
@@ -58,7 +58,7 @@ enum {
 #define READ_DCD 	((AVR32_USART1.csr & (1 << AVR32_USART_CSR_DCD)) ? (uint8)1 : (uint8)0)
 #define READ_RI 	((AVR32_USART1.csr & (1 << AVR32_USART_CSR_RI)) ? (uint8)1 : (uint8)0)
 #define READ_CTS 	((AVR32_USART1.csr & (1 << AVR32_USART_CSR_CTS)) ? (uint8)1 : (uint8)0)
-#else
+#else // Todo: Replace serial flow control if necessary
 #define CLEAR_DTR	{}
 #define SET_DTR		{}
 

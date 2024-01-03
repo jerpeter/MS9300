@@ -226,7 +226,7 @@ int mscmem_Start()
 /******************************************************************************/
 int mscmem_Stop()
 {
-    /* TODO - could shut down XIPF interface here. */
+    /* Could shut down XIPF interface here. */
 
     /* Flush the currently cached sector if necessary. */
     if (getSector(INVALID_SECTOR)) {
