@@ -38,8 +38,6 @@ extern mxc_gpio_cfg_t g_Enable5V;
 extern mxc_gpio_cfg_t g_USBSourceEnable;
 extern mxc_gpio_cfg_t g_USBAuxPowerEnable;
 extern mxc_gpio_cfg_t g_ADCReset;
-extern mxc_gpio_cfg_t g_CalMuxPreADEnable;
-extern mxc_gpio_cfg_t g_CalMuxPreADSelect;
 extern mxc_gpio_cfg_t g_Alert1;
 extern mxc_gpio_cfg_t g_Alert2;
 extern mxc_gpio_cfg_t g_LTEOTA;
