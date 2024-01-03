@@ -482,126 +482,6 @@ void External_trigger_irq(void)
 ///	Function Break
 ///----------------------------------------------------------------------------
 __attribute__((__interrupt__))
-void Usart_1_rs232_irq(void)
-{
-	//-----------------------
-	// Craft serial data port
-	//-----------------------
-
-	// Test print to verify the interrupt is running
-	//debugRaw("`");
-
-	uint32 usart_1_status;
-	uint8 recieveData;
-#if 1 /* temp */
-	UNUSED(usart_1_status);
-	UNUSED(recieveData);
-#endif
-
-#if 0 /* old hw */
-	// Read control/status register to clear flags
-	usart_1_status = AVR32_USART1.csr;
-
-	// Read the data received (in combo with control/status read clears the interrupt)
-	recieveData = AVR32_USART1.rhr;
-
-	// Check if receive operation was successful
-	if (usart_1_status & AVR32_USART_CSR_RXRDY_MASK)
-	{
-		// Write the received data into the buffer
-		*g_isrMessageBufferPtr->writePtr = recieveData;
-
-		// Advance the buffer pointer
-		g_isrMessageBufferPtr->writePtr++;
-
-		// Check if buffer pointer goes beyond the end
-		if (g_isrMessageBufferPtr->writePtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE))
-		{
-			// Reset the buffer pointer to the beginning of the buffer
-			g_isrMessageBufferPtr->writePtr = g_isrMessageBufferPtr->msg;
-		}
-
-		// Raise the Craft Data flag
-		g_modemStatus.craftPortRcvFlag = YES;
-	}
-	else if (usart_1_status & (AVR32_USART_CSR_OVRE_MASK | AVR32_USART_CSR_FRAME_MASK | AVR32_USART_CSR_PARE_MASK))
-	{
-		//g_isrMessageBufferPtr->status = CMD_MSG_OVERFLOW_ERR;
-
-		AVR32_USART1.cr = AVR32_USART_CR_RSTSTA_MASK;
-		usart_1_status = AVR32_USART1.csr;
-	}
-#if 1 /* Bargraph live monitoring */
-	else if (usart_1_status & AVR32_USART_CSR_TXRDY_MASK)
-	{
-		// Make sure BLM is actively trying to send
-		if (g_bargraphLiveMonitoringBISendActive == YES)
-		{
-			// Check if the end of the string was reached or if attempting to overrun the storage buffer
-			if ((*g_bargraphBarIntervalLiveMonitorBIDataPtr == '\0') || (g_bargraphBarIntervalLiveMonitorBIDataPtr == &g_blmBuffer[MAX_TEXT_LINE_CHARS]))
-			{
-				AVR32_USART1.idr = AVR32_USART_IER_TXRDY_MASK;
-				g_bargraphLiveMonitoringBISendActive = NO;
-				g_bargraphBarIntervalLiveMonitorBIDataPtr = g_blmBuffer;
-			}
-			else
-			{
-				AVR32_USART1.thr = *g_bargraphBarIntervalLiveMonitorBIDataPtr++;
-			}
-		}
-	}
-#endif
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-__attribute__((__interrupt__))
-void Usart_0_rs232_irq(void)
-{
-	//---------------------
-	// GPS serial data port
-	//---------------------
-
-	// Test print to verify the interrupt is running
-	//debugRaw("`");
-
-	uint32 usart_0_status;
-	uint8 recieveData;
-#if 1 /* temp */
-	UNUSED(usart_0_status);
-	UNUSED(recieveData);
-#endif
-
-#if 0 /* old hw */
-	// Read control/status register to clear flags
-	usart_0_status = AVR32_USART0.csr;
-
-	// Read the data received (in combo with control/status read clears the interrupt)
-	recieveData = AVR32_USART0.rhr;
-
-	// Check if receive operation was successful
-	if (usart_0_status & AVR32_USART_CSR_RXRDY_MASK)
-	{
-		*g_gpsSerialData.writePtr++ = recieveData;
-
-		g_gpsSerialData.ready = YES;
-
-		if (g_gpsSerialData.writePtr == g_gpsSerialData.endPtr) { g_gpsSerialData.writePtr = &g_gpsSerialData.buffer[0]; }
-	}
-	else if (usart_0_status & (AVR32_USART_CSR_OVRE_MASK | AVR32_USART_CSR_FRAME_MASK | AVR32_USART_CSR_PARE_MASK))
-	{
-		AVR32_USART0.cr = AVR32_USART_CR_RSTSTA_MASK;
-		usart_0_status = AVR32_USART0.csr;
-	}
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-__attribute__((__interrupt__))
 void Internal_rtc_alarms(void)
 {
     int flags = MXC_RTC_GetFlags();
@@ -2155,7 +2035,7 @@ static inline void getChannelDataWithReadbackWithTemp_ISR_Inline(void)
 	uint8_t chanDataRaw[3];
 
 	// Todo: need variable channel config for selectable dynamic channels
-	// Todo: verify channel inputs
+	// Todo: verify channel inputs on which channel data lines
 
 	// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
 
@@ -2180,14 +2060,14 @@ static inline void getChannelDataWithReadbackWithTemp_ISR_Inline(void)
 	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 	if (chanDataRaw[3] != 2) { s_channelSyncError = YES; }
 
-	// Chan 3 - A
+	// Chan 3 - A?
 	SetAdcConversionState(ON);
 	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
 	SetAdcConversionState(OFF);
 	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 	if (chanDataRaw[3] != 3) { s_channelSyncError = YES; }
 
-	// Temp
+	// Temperature
 	SetAdcConversionState(ON);
 	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
 	SetAdcConversionState(OFF);

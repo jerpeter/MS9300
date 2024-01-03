@@ -700,8 +700,6 @@ void Usbc_port_controller_i2c_irq(void);
 void Accelerometer_irq_1(void);
 void Accelerometer_irq_2(void);
 void Lcd_irq(void);
-void Usart_0_rs232_irq(void);
-void Usart_1_rs232_irq(void);
 void Eic_low_battery_irq(void);
 void Tc_typematic_irq(void);
 void StartInteralPITTimer(PIT_TIMER_NUM);

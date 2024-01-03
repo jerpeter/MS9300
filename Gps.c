@@ -1643,3 +1643,14 @@ void GpsChangeSerialBaud(void)
 
 	GpsSendBinaryMessage(querySoftCrcMessage, messageSize);
 }
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void GpsSerialReceiveHandler(uint8_t gpsSerialData)
+{
+	*g_gpsSerialData.writePtr++ = gpsSerialData;
+	g_gpsSerialData.ready = YES;
+
+	if (g_gpsSerialData.writePtr == g_gpsSerialData.endPtr) { g_gpsSerialData.writePtr = &g_gpsSerialData.buffer[0]; }
+}

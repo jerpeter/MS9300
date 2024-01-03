@@ -437,6 +437,30 @@ void HandleBargraphLiveMonitoringEndMsg(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void HandleBargraphLiveMonitoringISRSendData(void)
+{
+	// Make sure BLM is actively trying to send
+	if (g_bargraphLiveMonitoringBISendActive == YES)
+	{
+		// Check if the end of the string was reached or if attempting to overrun the storage buffer
+		if ((*g_bargraphBarIntervalLiveMonitorBIDataPtr == '\0') || (g_bargraphBarIntervalLiveMonitorBIDataPtr == &g_blmBuffer[MAX_TEXT_LINE_CHARS]))
+		{
+			// Disable transmit interrupt
+
+			g_bargraphLiveMonitoringBISendActive = NO;
+			g_bargraphBarIntervalLiveMonitorBIDataPtr = g_blmBuffer;
+		}
+		else
+		{
+			// Send BLM data
+			// /* Serial Transmit holding register */ = *g_bargraphBarIntervalLiveMonitorBIDataPtr++;
+		}
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 uint8 CalculateBargraphData(void)
 {
 	// Temp variables, assigned as static to prevent storing on stack
