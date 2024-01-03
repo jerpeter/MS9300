@@ -313,6 +313,21 @@ BOOLEAN GetShadowPowerControlState(POWER_MGMT_OPTIONS option)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint8_t GetCurrentLedStates(void)
+{
+	uint8_t state;
+
+	state = MXC_GPIO_OutGet(g_LED1.port, g_LED1.mask);
+	state |= (MXC_GPIO_OutGet(g_LED2.port, g_LED2.mask) << 1);
+	state |= (MXC_GPIO_OutGet(g_LED3.port, g_LED3.mask) << 2);
+	state |= (MXC_GPIO_OutGet(g_LED4.port, g_LED4.mask) << 3);
+
+	return (state);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void PowerUnitOff(uint8 powerOffMode)
 {
 	OverlayMessage(getLangText(STATUS_TEXT), getLangText(POWERING_UNIT_OFF_NOW_TEXT), 0);
@@ -1637,7 +1652,7 @@ void FuelGaugeInit(void)
 	{
 		ltc294x_set_current_thr(ltc2944_device.r_sense, 3000); // Single pack
 	}
-	else { ltc294x_set_current_thr(ltc2944_device.r_sense, 3000); } // Double pack
+	else { ltc294x_set_current_thr(ltc2944_device.r_sense, 6000); } // Double pack
 
 	// Set thresholds for temperature (discharge range)
 	ltc294x_set_temp_thr(60, -20);
