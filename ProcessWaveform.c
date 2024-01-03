@@ -276,6 +276,7 @@ void MoveWaveformEventToFile(void)
 					remainingDataLength = (g_wordSizeInEvent * 2);
 					tempDataPtr = g_currentEventStartPtr;
 
+#if 0 /* Bypassing chunk write since new filesystem should not have a 16K size limit */
 					while (remainingDataLength)
 					{
 						if (remainingDataLength > WAVEFORM_FILE_WRITE_CHUNK_SIZE)
@@ -307,7 +308,17 @@ void MoveWaveformEventToFile(void)
 							remainingDataLength = 0;
 						}
 					}
+#else /* One single write */
+					// Write the event data, containing the Pretrigger, event and cal
+					f_write(&file, tempDataPtr, remainingDataLength, (UINT*)&bytesWritten);
 
+					if (bytesWritten != remainingDataLength)
+					{
+						debugErr("Waveform Event Data written size incorrect (%d)\r\n", bytesWritten);
+					}
+
+					remainingDataLength = 0;
+#endif
 					// Update the remaining space left
 					UpdateSDCardUsageStats(f_size(&file));
 
