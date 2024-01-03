@@ -1229,7 +1229,7 @@ static inline int ds2484_send_cmd_data(ds2484_data *pdev, uint8_t cmd, uint8_t b
  * ds2484_wait_1wire_idle - Waits until the 1-wire interface is idle (not busy)
  *
  * @pdev: Pointer to the device structure
- * Return: the last value read from status or -1 (failure)
+ * Return: the last value read from status
  */
 static int ds2484_wait_1wire_idle(ds2484_data *pdev)
 {
@@ -1245,7 +1245,6 @@ static int ds2484_wait_1wire_idle(ds2484_data *pdev)
 
 	if (retries >= DS2484_WAIT_IDLE_TIMEOUT) { debugErr("1-Wire Master: timed out\n"); }
 
-	// Todo: Fix reference driver return value that is unsigned but claims -1 designates failure
 	return (temp);
 }
 
