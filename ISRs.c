@@ -233,7 +233,7 @@ void Fuel_gauge_alert_irq(void)
 	//debugRaw("-FG alert-");
 
 	// Clear Fuel Gauge Alert interrupt flag (Port 0, Pin 4)
-	MXC_GPIO0->int_clr = MXC_GPIO_PIN_4;
+	GPIO_GAUGE_ALERT_PORT->int_clr = GPIO_GAUGE_ALERT_PIN;
 }
 
 ///----------------------------------------------------------------------------
@@ -246,7 +246,7 @@ void Battery_charger_irq(void)
 	//debugRaw("-Batt Charge-");
 
 	// Clear Battery Charger interrupt flag (Port 0, Pin 5)
-	MXC_GPIO0->int_clr = MXC_GPIO_PIN_5;
+	GPIO_BATTERY_CHARGER_IRQ_PORT->int_clr = GPIO_BATTERY_CHARGER_IRQ_PIN;
 }
 
 ///----------------------------------------------------------------------------
@@ -259,7 +259,7 @@ void Expansion_irq(void)
 	//debugRaw("-Expansion-");
 
 	// Clear Expansion interrupt flag (Port 0, Pin 8)
-	MXC_GPIO0->int_clr = MXC_GPIO_PIN_8;
+	GPIO_EXPANSION_IRQ_PORT->int_clr = GPIO_EXPANSION_IRQ_PIN;
 }
 
 ///----------------------------------------------------------------------------
@@ -272,7 +272,7 @@ void Usbc_port_controller_i2c_irq(void)
 	//debugRaw("-USB I2C-");
 
 	// Clear USBC I2C interrupt flag (Port 1, Pin 11)
-	MXC_GPIO1->int_clr = MXC_GPIO_PIN_11;
+	GPIO_USBC_PORT_CONTROLLER_I2C_IRQ_PORT->int_clr = GPIO_USBC_PORT_CONTROLLER_I2C_IRQ_PIN;
 }
 
 ///----------------------------------------------------------------------------
@@ -285,7 +285,7 @@ void Accelerometer_irq_1(void)
 	//debugRaw("-Acc IRQ 1-");
 
 	// Clear Accelerometer interrupt flag 1 (Port 1, Pin 12)
-	MXC_GPIO1->int_clr = MXC_GPIO_PIN_12;
+	GPIO_ACCEL_INT_1_PORT->int_clr = GPIO_ACCEL_INT_1_PIN;
 }
 
 ///----------------------------------------------------------------------------
@@ -298,7 +298,7 @@ void Accelerometer_irq_2(void)
 	//debugRaw("-Acc IRQ 2-");
 
 	// Clear Accelerometer interrupt flag 2 (Port 1, Pin 13)
-	MXC_GPIO1->int_clr = MXC_GPIO_PIN_13;
+	GPIO_ACCEL_INT_2_PORT->int_clr = GPIO_ACCEL_INT_2_PIN;
 }
 
 ///----------------------------------------------------------------------------
@@ -311,7 +311,7 @@ void External_rtc_irq(void)
 	//debugRaw("-Ext RTC-");
 
 	// Clear External RTC interrupt flag (Port 1, Pin 28)
-	MXC_GPIO1->int_clr = MXC_GPIO_PIN_28;
+	GPIO_EXT_RTC_INTA_PORT->int_clr = GPIO_EXT_RTC_INTA_PIN;
 }
 
 ///----------------------------------------------------------------------------
@@ -324,7 +324,7 @@ void Lcd_irq(void)
 	//debugRaw("-LCD IRQ-");
 
 	// Clear LCD interrupt flag (Port 2, Pin 6)
-	MXC_GPIO2->int_clr = MXC_GPIO_PIN_6;
+	GPIO_LCD_INT_PORT->int_clr = GPIO_LCD_INT_PIN;
 }
 
 ///----------------------------------------------------------------------------
@@ -364,7 +364,7 @@ void Keypad_irq(void)
 	//debugRaw("^");
 
 	// Read the keymap
-	g_kpadIsrKeymap = (((MXC_GPIO1->in) >> 16) & 0x1FF);
+	g_kpadIsrKeymap = (((REGULAR_BUTTONS_GPIO_PORT->in) & REGULAR_BUTTONS_GPIO_MASK) >> 16);
 
 	if (g_kpadProcessingFlag == DEACTIVATED)
 	{
@@ -376,7 +376,7 @@ void Keypad_irq(void)
 	}
 
 	// Clear the interrupt flags for all button (1-9) GPIO lines
-	MXC_GPIO_ClearFlags(MXC_GPIO1, BUTTON_GPIO_MASK);
+	MXC_GPIO_ClearFlags(REGULAR_BUTTONS_GPIO_PORT, REGULAR_BUTTONS_GPIO_MASK);
 }
 
 ///----------------------------------------------------------------------------
@@ -391,8 +391,8 @@ void System_power_button_irq(void)
 	// Print test for verification of operation
 	//debugRaw("&");
 
-	onKeyFlag = (((MXC_GPIO1->in) >> 15) & 0x001); // Power button interrupt on GPIO port 1, pin 15
-	//keyScan = (((MXC_GPIO1->in) >> 16) & 0x1FF); // If needed to check for Combo keys
+	onKeyFlag = ((GPIO_POWER_BUTTON_IRQ_PORT->in) & GPIO_POWER_BUTTON_IRQ_PIN); // Power button interrupt on GPIO port 1, pin 15
+	//keyScan = (((REGULAR_BUTTONS_GPIO_PORT->in) & REGULAR_BUTTONS_GPIO_MASK) >> 16); // If needed to check for Combo keys
 
 	//-----------------------------------------------------------------------------------
 	// Check if the On key was pressed
@@ -450,7 +450,7 @@ void System_power_button_irq(void)
 	}
 
 	// Clear Power Button interrupt flag (Port 1, Pin 15)
-	MXC_GPIO1->int_clr = MXC_GPIO_PIN_15;
+	GPIO_POWER_BUTTON_IRQ_PORT->int_clr = GPIO_POWER_BUTTON_IRQ_PIN;
 }
 
 ///----------------------------------------------------------------------------
@@ -475,7 +475,7 @@ void External_trigger_irq(void)
 	}
 
 	// Clear External Trigger In interrupt flag (Port 1, Pin 31)
-	MXC_GPIO1->int_clr = MXC_GPIO_PIN_31;
+	GPIO_EXTERNAL_TRIGGER_IN_PORT->int_clr = GPIO_EXTERNAL_TRIGGER_IN_PIN;
 }
 
 ///----------------------------------------------------------------------------
@@ -2376,7 +2376,7 @@ void Sample_irq(void)
 #if INTERNAL_SAMPLING_SOURCE
 			INTERNAL_SAMPLING_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
 #elif EXTERNAL_SAMPLING_SOURCE
-			MXC_GPIO_ClearFlags(MXC_GPIO3, MXC_GPIO_PIN_9);
+			MXC_GPIO_ClearFlags(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 #endif
 			return;
 		}
@@ -2466,6 +2466,6 @@ SKIP_PRIOR_PROCESSING_FOR_ADAPTIVE_MIN_RATE:
 #if INTERNAL_SAMPLING_SOURCE
 	INTERNAL_SAMPLING_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
 #elif EXTERNAL_SAMPLING_SOURCE
-	MXC_GPIO_ClearFlags(MXC_GPIO3, MXC_GPIO_PIN_9);
+	MXC_GPIO_ClearFlags(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 #endif
 }

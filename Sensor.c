@@ -1043,26 +1043,22 @@ void UpdateWorkingCalibrationDate(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-extern mxc_gpio_cfg_t g_SmartSensorMuxEnable;
-extern mxc_gpio_cfg_t g_SmartSensorMux_A0;
-extern mxc_gpio_cfg_t g_SmartSensorMux_A1;
-
 void EnableAndSelectSmartSensorMux(SMART_SENSOR_TYPE sensor)
 {
 	if (sensor < TOTAL_SENSOR_TYPES)
 	{
-		MXC_GPIO_OutSet(g_SmartSensorMuxEnable.port, g_SmartSensorMuxEnable.mask);
+		MXC_GPIO_OutSet(GPIO_SMART_SENSOR_MUX_ENABLE_PORT, GPIO_SMART_SENSOR_MUX_ENABLE_PIN);
 		
 		// Delay 480ns @ 5V after enabling
 		MXC_Delay(1); // 1us
 
 		// Set the upper address bit, logic 0 for either seismic or logic 1 for either acoustic 
-		if ((sensor == SEISMIC_SENSOR) || (sensor == SEISMIC_SENSOR_2)) { MXC_GPIO_OutClr(g_SmartSensorMux_A1.port, g_SmartSensorMux_A1.mask); }
-		else /* ACOUSTIC_SENSOR or ACOUSTIC_SENSOR_2 */ { MXC_GPIO_OutSet(g_SmartSensorMux_A1.port, g_SmartSensorMux_A1.mask); }
+		if ((sensor == SEISMIC_SENSOR) || (sensor == SEISMIC_SENSOR_2)) { MXC_GPIO_OutClr(GPIO_SMART_SENSOR_MUX_A1_PORT, GPIO_SMART_SENSOR_MUX_A1_PIN); }
+		else /* ACOUSTIC_SENSOR or ACOUSTIC_SENSOR_2 */ { MXC_GPIO_OutSet(GPIO_SMART_SENSOR_MUX_A1_PORT, GPIO_SMART_SENSOR_MUX_A1_PIN); }
 
 		// Set the lower address bit, logic 0 for first sensor group or logic 1 for second sensor group
-		if ((sensor == SEISMIC_SENSOR) || (sensor == ACOUSTIC_SENSOR)) { MXC_GPIO_OutClr(g_SmartSensorMux_A0.port, g_SmartSensorMux_A0.mask); }
-		else /* SEISMIC_SENSOR_2 or ACOUSTIC_SENSOR_2 */ { MXC_GPIO_OutSet(g_SmartSensorMux_A0.port, g_SmartSensorMux_A0.mask); }
+		if ((sensor == SEISMIC_SENSOR) || (sensor == ACOUSTIC_SENSOR)) { MXC_GPIO_OutClr(GPIO_SMART_SENSOR_MUX_A0_PORT, GPIO_SMART_SENSOR_MUX_A0_PIN); }
+		else /* SEISMIC_SENSOR_2 or ACOUSTIC_SENSOR_2 */ { MXC_GPIO_OutSet(GPIO_SMART_SENSOR_MUX_A0_PORT, GPIO_SMART_SENSOR_MUX_A0_PIN); }
 	}
 }
 
@@ -1071,7 +1067,7 @@ void EnableAndSelectSmartSensorMux(SMART_SENSOR_TYPE sensor)
 ///----------------------------------------------------------------------------
 void DisableSmartSensorMux(void)
 {
-	MXC_GPIO_OutClr(g_SmartSensorMuxEnable.port, g_SmartSensorMuxEnable.mask);
+	MXC_GPIO_OutClr(GPIO_SMART_SENSOR_MUX_ENABLE_PORT, GPIO_SMART_SENSOR_MUX_ENABLE_PIN);
 
 	// Delay 400ns @ 5V after disabling
 	MXC_Delay(1); // 1us

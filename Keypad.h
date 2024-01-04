@@ -83,7 +83,8 @@ Button 1 = Soft key 4
 #define CHECK_ONCE_FOR_KEY		1
 
 // New buttons
-#define BUTTON_GPIO_MASK	0x1FF0000
+#define REGULAR_BUTTONS_GPIO_PORT	MXC_GPIO1
+#define REGULAR_BUTTONS_GPIO_MASK	0x1FF0000
 
 enum {
 	SEQ_NOT_STARTED = 0,

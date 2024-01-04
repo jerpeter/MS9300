@@ -36,7 +36,7 @@
 #define REPEAT_DELAY 				100		// 100 ms
 #define KEY_DONE_DEBOUNCE_DELAY		25		// 25 ms
 
-#define READ_KEY_BUTTON_MAP	(((MXC_GPIO1->in) >> 16) & 0x1FF)
+#define READ_KEY_BUTTON_MAP	(((REGULAR_BUTTONS_GPIO_PORT->in) & REGULAR_BUTTONS_GPIO_MASK) >> 16)
 
 ///----------------------------------------------------------------------------
 ///	Externs
@@ -140,7 +140,7 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 		{
 			g_kpadInterruptWhileProcessing = NO;
 			// Clear interrupt flags
-			MXC_GPIO_ClearFlags(MXC_GPIO1, BUTTON_GPIO_MASK);
+			MXC_GPIO_ClearFlags(REGULAR_BUTTONS_GPIO_PORT, REGULAR_BUTTONS_GPIO_MASK);
 		}
 
 		// Done looking for keys
@@ -302,7 +302,7 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 			else
 			{
 				// Check if the On key is being pressed
-				if (!MXC_GPIO_InGet(MXC_GPIO1, MXC_GPIO_PIN_15)) // g_PowerButtonIRQ: Port 1, Pin 15
+				if (!MXC_GPIO_InGet(GPIO_POWER_BUTTON_IRQ_PORT, GPIO_POWER_BUTTON_IRQ_PIN)) // g_PowerButtonIRQ: Port 1, Pin 15
 				{
 					// Reset the factory setup process
 					g_factorySetupSequence = SEQ_NOT_STARTED;
@@ -357,7 +357,7 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 	{
 		g_kpadInterruptWhileProcessing = NO;
 		// Clear interrupt flags
-		MXC_GPIO_ClearFlags(MXC_GPIO1, BUTTON_GPIO_MASK);
+		MXC_GPIO_ClearFlags(REGULAR_BUTTONS_GPIO_PORT, REGULAR_BUTTONS_GPIO_MASK);
 	}
 
 	g_kpadProcessingFlag = DEACTIVATED;
@@ -537,7 +537,7 @@ uint16 GetKeypadKey(uint8 mode)
 			{
 				g_kpadInterruptWhileProcessing = NO;
 				// Clear interrupt flags
-				MXC_GPIO_ClearFlags(MXC_GPIO1, BUTTON_GPIO_MASK);
+				MXC_GPIO_ClearFlags(REGULAR_BUTTONS_GPIO_PORT, REGULAR_BUTTONS_GPIO_MASK);
 			}
 
 			g_kpadProcessingFlag = DEACTIVATED;
@@ -570,7 +570,7 @@ uint16 GetKeypadKey(uint8 mode)
 	{
 		g_kpadInterruptWhileProcessing = NO;
 		// Clear interrupt flags
-		MXC_GPIO_ClearFlags(MXC_GPIO1, BUTTON_GPIO_MASK);
+		MXC_GPIO_ClearFlags(REGULAR_BUTTONS_GPIO_PORT, REGULAR_BUTTONS_GPIO_MASK);
 	}
 
 	g_kpadProcessingFlag = DEACTIVATED;

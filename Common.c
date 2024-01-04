@@ -1048,7 +1048,7 @@ void ProcessUsbCoreHandling(void)
 uint8_t GetExpandedBatteryPresenceState(void)
 {
 	// Check if External Battery Presense is found, Active high (Port 0, Pin 2)
-	if (MXC_GPIO0->in & MXC_GPIO_PIN_2) { return (YES); }
+	if (GPIO_EXPANDED_BATTERY_PORT->in & GPIO_EXPANDED_BATTERY_PIN) { return (YES); }
 	else return (NO);
 }
 
@@ -1058,7 +1058,7 @@ uint8_t GetExpandedBatteryPresenceState(void)
 uint8_t GetPowerGood5vState(void)
 {
 	// Check Power good 5v state, Active high (Port 0, Pin 11)
-	if (MXC_GPIO0->in & MXC_GPIO_PIN_11) { return (YES); }
+	if (GPIO_POWER_GOOD_5V_PORT->in & GPIO_POWER_GOOD_5V_PIN) { return (YES); }
 	else return (NO);
 }
 
@@ -1068,7 +1068,7 @@ uint8_t GetPowerGood5vState(void)
 uint8_t GetPowerGoodBatteryChargerState(void)
 {
 	// Check Power good from the Battery Charger state, Active high (Port 0, Pin 12)
-	if (MXC_GPIO0->in & MXC_GPIO_PIN_12) { return (YES); }
+	if (GPIO_POWER_GOOD_BATTERY_CHARGE_PORT->in & GPIO_POWER_GOOD_BATTERY_CHARGE_PIN) { return (YES); }
 	else return (NO);
 }
 
@@ -1078,7 +1078,7 @@ uint8_t GetPowerGoodBatteryChargerState(void)
 uint8_t GetPowerOnButtonState(void)
 {
 	// Check Power On button state, Active high (Port 1, Pin 15)
-	if (MXC_GPIO1->in & MXC_GPIO_PIN_15) { return (ON); }
+	if (GPIO_POWER_BUTTON_IRQ_PORT->in & GPIO_POWER_BUTTON_IRQ_PIN) { return (ON); }
 	else return (OFF);
 }
 
@@ -1088,7 +1088,7 @@ uint8_t GetPowerOnButtonState(void)
 uint8_t GetLteOtaState(void)
 {
 	// Check LTE OTA state, Active high (Port 0, Pin 30)
-	if (MXC_GPIO0->in & MXC_GPIO_PIN_30) { return (ON); }
+	if (GPIO_LTE_OTA_PORT->in & GPIO_LTE_OTA_PIN) { return (ON); }
 	else return (OFF);
 }
 
@@ -1098,7 +1098,7 @@ uint8_t GetLteOtaState(void)
 uint8_t GetBleOtaState(void)
 {
 	// Check BLE OTA state, Active high (Port 1, Pin 29)
-	if (MXC_GPIO0->in & MXC_GPIO_PIN_30) { return (ON); }
+	if (GPIO_BLE_OTA_PORT->in & GPIO_BLE_OTA_PIN) { return (ON); }
 	else return (OFF);
 }
 
@@ -1108,7 +1108,7 @@ uint8_t GetBleOtaState(void)
 uint8_t GetSmartSensorMuxEnableState(void)
 {
 	// Get Smart Sensor Mux Enable state, Active high (Port 0, Pin 14)
-	if (MXC_GPIO_OutGet(MXC_GPIO0, MXC_GPIO_PIN_14)) { return (ON); }
+	if (MXC_GPIO_OutGet(GPIO_SMART_SENSOR_MUX_ENABLE_PORT, GPIO_SMART_SENSOR_MUX_ENABLE_PIN)) { return (ON); }
 	else return (OFF);
 }
 
@@ -1118,8 +1118,8 @@ uint8_t GetSmartSensorMuxEnableState(void)
 void SetSmartSensorSleepState(uint8_t state)
 {
 	// Set Smart Sensor Sleep state, Active low (Port 0, Pin 13)
-	if (state == ON) { MXC_GPIO0->out_clr = MXC_GPIO_PIN_13; }
-	else /* (state == OFF) */ { MXC_GPIO0->out_set = MXC_GPIO_PIN_13; }
+	if (state == ON) { GPIO_SMART_SENSOR_SLEEP_PORT->out_clr = GPIO_SMART_SENSOR_SLEEP_PIN; }
+	else /* (state == OFF) */ { GPIO_SMART_SENSOR_SLEEP_PORT->out_set = GPIO_SMART_SENSOR_SLEEP_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1128,8 +1128,8 @@ void SetSmartSensorSleepState(uint8_t state)
 void SetSmartSensorMuxEnableState(uint8_t state)
 {
 	// Set Smart Sensor Mux Enable state, Active high (Port 0, Pin 14)
-	if (state == ON) { MXC_GPIO0->out_set = MXC_GPIO_PIN_14; }
-	else /* (state == OFF) */ { MXC_GPIO0->out_clr = MXC_GPIO_PIN_14; }
+	if (state == ON) { GPIO_SMART_SENSOR_MUX_ENABLE_PORT->out_set = GPIO_SMART_SENSOR_MUX_ENABLE_PIN; }
+	else /* (state == OFF) */ { GPIO_SMART_SENSOR_MUX_ENABLE_PORT->out_clr = GPIO_SMART_SENSOR_MUX_ENABLE_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1138,8 +1138,8 @@ void SetSmartSensorMuxEnableState(uint8_t state)
 void SetAdcConversionState(uint8_t state)
 {
 	// Set External ADC Conversion state, Active high (Port 0, Pin 18)
-	if (state == ON) { MXC_GPIO0->out_set = MXC_GPIO_PIN_18; }
-	else /* (state == OFF) */ { MXC_GPIO0->out_clr = MXC_GPIO_PIN_18; }
+	if (state == ON) { GPIO_ADC_CONVERSION_PORT->out_set = GPIO_ADC_CONVERSION_PIN; }
+	else /* (state == OFF) */ { GPIO_ADC_CONVERSION_PORT->out_clr = GPIO_ADC_CONVERSION_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1148,8 +1148,8 @@ void SetAdcConversionState(uint8_t state)
 void SetCalMuxPreADEnableState(uint8_t state)
 {
 	// Set Cal Mux Pre A/D Enable state, Active low (Port 0, Pin 22)
-	if (state == ON) { MXC_GPIO0->out_clr = MXC_GPIO_PIN_22; }
-	else /* (state == OFF) */ { MXC_GPIO0->out_set = MXC_GPIO_PIN_22; }
+	if (state == ON) { GPIO_CAL_MUX_PRE_AD_ENABLE_PORT->out_clr = GPIO_CAL_MUX_PRE_AD_ENABLE_PIN; }
+	else /* (state == OFF) */ { GPIO_CAL_MUX_PRE_AD_ENABLE_PORT->out_set = GPIO_CAL_MUX_PRE_AD_ENABLE_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1158,8 +1158,8 @@ void SetCalMuxPreADEnableState(uint8_t state)
 void SetCalMuxPreADSelectState(uint8_t state)
 {
 	// Set Cal Mux Pre A/D Select state, Select (Port 0, Pin 23)
-	if (state == ON) { MXC_GPIO0->out_set = MXC_GPIO_PIN_23; }
-	else /* (state == OFF) */ { MXC_GPIO0->out_clr = MXC_GPIO_PIN_23; }
+	if (state == ON) { GPIO_CAL_MUX_PRE_AD_SELECT_PORT->out_set = GPIO_CAL_MUX_PRE_AD_SELECT_PIN; }
+	else /* (state == OFF) */ { GPIO_CAL_MUX_PRE_AD_SELECT_PORT->out_clr = GPIO_CAL_MUX_PRE_AD_SELECT_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1168,8 +1168,8 @@ void SetCalMuxPreADSelectState(uint8_t state)
 void SetAccelerometerTriggerState(uint8_t state)
 {
 	// Set Accelerometer Trigger state, Active high (Port 1, Pin 14)
-	if (state == ON) { MXC_GPIO1->out_set = MXC_GPIO_PIN_14; }
-	else /* (state == OFF) */ { MXC_GPIO1->out_clr = MXC_GPIO_PIN_14; }
+	if (state == ON) { GPIO_ACCEL_TRIG_PORT->out_set = GPIO_ACCEL_TRIG_PIN; }
+	else /* (state == OFF) */ { GPIO_ACCEL_TRIG_PORT->out_clr = GPIO_ACCEL_TRIG_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1178,8 +1178,8 @@ void SetAccelerometerTriggerState(uint8_t state)
 void SetSensorCheckState(uint8_t state)
 {
 	// Set Sensor Check state, Active high (Port 2, Pin 10)
-	if (state == ON) { MXC_GPIO2->out_set = MXC_GPIO_PIN_10; }
-	else /* (state == OFF) */ { MXC_GPIO2->out_clr = MXC_GPIO_PIN_10; }
+	if (state == ON) { GPIO_SENSOR_CHECK_PORT->out_set = GPIO_SENSOR_CHECK_PIN; }
+	else /* (state == OFF) */ { GPIO_SENSOR_CHECK_PORT->out_clr = GPIO_SENSOR_CHECK_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1188,8 +1188,8 @@ void SetSensorCheckState(uint8_t state)
 void SetSmartSensorMuxA0State(uint8_t state)
 {
 	// Set Smart Sensor Mux A0 state, Select (Port 2, Pin 23)
-	if (state == ON) { MXC_GPIO2->out_set = MXC_GPIO_PIN_23; }
-	else /* (state == OFF) */ { MXC_GPIO2->out_clr = MXC_GPIO_PIN_23; }
+	if (state == ON) { GPIO_SMART_SENSOR_MUX_A0_PORT->out_set = GPIO_SMART_SENSOR_MUX_A0_PIN; }
+	else /* (state == OFF) */ { GPIO_SMART_SENSOR_MUX_A0_PORT->out_clr = GPIO_SMART_SENSOR_MUX_A0_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1197,9 +1197,9 @@ void SetSmartSensorMuxA0State(uint8_t state)
 ///----------------------------------------------------------------------------
 void SetSmartSensorMuxA1State(uint8_t state)
 {
-	// Set Smart Sensor Mux A0 state, Select (Port 2, Pin 25)
-	if (state == ON) { MXC_GPIO2->out_set = MXC_GPIO_PIN_25; }
-	else /* (state == OFF) */ { MXC_GPIO2->out_clr = MXC_GPIO_PIN_25; }
+	// Set Smart Sensor Mux A1 state, Select (Port 2, Pin 25)
+	if (state == ON) { GPIO_SMART_SENSOR_MUX_A1_PORT->out_set = GPIO_SMART_SENSOR_MUX_A1_PIN; }
+	else /* (state == OFF) */ { GPIO_SMART_SENSOR_MUX_A1_PORT->out_clr = GPIO_SMART_SENSOR_MUX_A1_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1208,8 +1208,8 @@ void SetSmartSensorMuxA1State(uint8_t state)
 void SetNyquist0State(uint8_t state)
 {
 	// Set Nyquist 0 (Addr 0) state, Select (Port 2, Pin 26)
-	if (state == ON) { MXC_GPIO2->out_set = MXC_GPIO_PIN_26; }
-	else /* (state == OFF) */ { MXC_GPIO2->out_clr = MXC_GPIO_PIN_26; }
+	if (state == ON) { GPIO_NYQUIST_0_A0_PORT->out_set = GPIO_NYQUIST_0_A0_PIN; }
+	else /* (state == OFF) */ { GPIO_NYQUIST_0_A0_PORT->out_clr = GPIO_NYQUIST_0_A0_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1218,8 +1218,8 @@ void SetNyquist0State(uint8_t state)
 void SetNyquist1State(uint8_t state)
 {
 	// Set Nyquist 1 (Addr 1) state, Select (Port 2, Pin 28)
-	if (state == ON) { MXC_GPIO2->out_set = MXC_GPIO_PIN_28; }
-	else /* (state == OFF) */ { MXC_GPIO2->out_clr = MXC_GPIO_PIN_28; }
+	if (state == ON) { GPIO_NYQUIST_1_A1_PORT->out_set = GPIO_NYQUIST_1_A1_PIN; }
+	else /* (state == OFF) */ { GPIO_NYQUIST_1_A1_PORT->out_clr = GPIO_NYQUIST_1_A1_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1228,8 +1228,8 @@ void SetNyquist1State(uint8_t state)
 void SetNyquist2EnableState(uint8_t state)
 {
 	// Set Nyquist 2 (Enable) state, Active low (Port 2, Pin 30)
-	if (state == ON) { MXC_GPIO2->out_clr = MXC_GPIO_PIN_30; }
-	else /* (state == OFF) */ { MXC_GPIO2->out_set = MXC_GPIO_PIN_30; }
+	if (state == ON) { GPIO_NYQUIST_2_ENABLE_PORT->out_clr = GPIO_NYQUIST_2_ENABLE_PIN; }
+	else /* (state == OFF) */ { GPIO_NYQUIST_2_ENABLE_PORT->out_set = GPIO_NYQUIST_2_ENABLE_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1238,8 +1238,8 @@ void SetNyquist2EnableState(uint8_t state)
 void SetSensorGeo1EnableState(uint8_t state)
 {
 	// Set Sensor GEO 1 enable state, Active high (Port 3, Pin 1)
-	if (state == ON) { MXC_GPIO3->out_set = MXC_GPIO_PIN_1; }
-	else /* (state == OFF) */ { MXC_GPIO3->out_clr = MXC_GPIO_PIN_1; }
+	if (state == ON) { GPIO_SENSOR_ENABLE_1_GEO1_PORT->out_set = GPIO_SENSOR_ENABLE_1_GEO1_PIN; }
+	else /* (state == OFF) */ { GPIO_SENSOR_ENABLE_1_GEO1_PORT->out_clr = GPIO_SENSOR_ENABLE_1_GEO1_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1248,8 +1248,8 @@ void SetSensorGeo1EnableState(uint8_t state)
 void SetSensorAop1EnableState(uint8_t state)
 {
 	// Set Sensor AOP 1 enable state, Active high (Port 3, Pin 2)
-	if (state == ON) { MXC_GPIO3->out_set = MXC_GPIO_PIN_2; }
-	else /* (state == OFF) */ { MXC_GPIO3->out_clr = MXC_GPIO_PIN_2; }
+	if (state == ON) { GPIO_SENSOR_ENABLE_2_AOP1_PORT->out_set = GPIO_SENSOR_ENABLE_2_AOP1_PIN; }
+	else /* (state == OFF) */ { GPIO_SENSOR_ENABLE_2_AOP1_PORT->out_clr = GPIO_SENSOR_ENABLE_2_AOP1_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1258,8 +1258,8 @@ void SetSensorAop1EnableState(uint8_t state)
 void SetSensorGeo2EnableState(uint8_t state)
 {
 	// Set Sensor GEO 2 enable state, Active high (Port 3, Pin 3)
-	if (state == ON) { MXC_GPIO3->out_set = MXC_GPIO_PIN_3; }
-	else /* (state == OFF) */ { MXC_GPIO3->out_clr = MXC_GPIO_PIN_3; }
+	if (state == ON) { GPIO_SENSOR_ENABLE_3_GEO2_PORT->out_set = GPIO_SENSOR_ENABLE_3_GEO2_PIN; }
+	else /* (state == OFF) */ { GPIO_SENSOR_ENABLE_3_GEO2_PORT->out_clr = GPIO_SENSOR_ENABLE_3_GEO2_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1268,8 +1268,8 @@ void SetSensorGeo2EnableState(uint8_t state)
 void SetSensorAop2EnableState(uint8_t state)
 {
 	// Set Sensor AOP 2 enable state, Active high (Port 3, Pin 4)
-	if (state == ON) { MXC_GPIO3->out_set = MXC_GPIO_PIN_4; }
-	else /* (state == OFF) */ { MXC_GPIO3->out_clr = MXC_GPIO_PIN_4; }
+	if (state == ON) { GPIO_SENSOR_ENABLE_4_AOP2_PORT->out_set = GPIO_SENSOR_ENABLE_4_AOP2_PIN; }
+	else /* (state == OFF) */ { GPIO_SENSOR_ENABLE_4_AOP2_PORT->out_clr = GPIO_SENSOR_ENABLE_4_AOP2_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1278,8 +1278,8 @@ void SetSensorAop2EnableState(uint8_t state)
 void SetGainGeo1State(uint8_t state)
 {
 	// Set Gain GEO 1 state, Active high (Port 3, Pin 5)
-	if (state == ON) { MXC_GPIO3->out_set = MXC_GPIO_PIN_5; }
-	else /* (state == OFF) */ { MXC_GPIO3->out_clr = MXC_GPIO_PIN_5; }
+	if (state == ON) { GPIO_GAIN_PATH_SELECT_1_GEO1_PORT->out_set = GPIO_GAIN_PATH_SELECT_1_GEO1_PIN; }
+	else /* (state == OFF) */ { GPIO_GAIN_PATH_SELECT_1_GEO1_PORT->out_clr = GPIO_GAIN_PATH_SELECT_1_GEO1_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1288,8 +1288,8 @@ void SetGainGeo1State(uint8_t state)
 void SetPathSelectAop1State(uint8_t state)
 {
 	// Set Path Select AOP 1 state, Active high (Port 3, Pin 6)
-	if (state == ON) { MXC_GPIO3->out_set = MXC_GPIO_PIN_6; }
-	else /* (state == OFF) */ { MXC_GPIO3->out_clr = MXC_GPIO_PIN_6; }
+	if (state == ON) { GPIO_GAIN_PATH_SELECT_2_AOP1_PORT->out_set = GPIO_GAIN_PATH_SELECT_2_AOP1_PIN; }
+	else /* (state == OFF) */ { GPIO_GAIN_PATH_SELECT_2_AOP1_PORT->out_clr = GPIO_GAIN_PATH_SELECT_2_AOP1_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1298,8 +1298,8 @@ void SetPathSelectAop1State(uint8_t state)
 void SetGainGeo2State(uint8_t state)
 {
 	// Set Gain GEO 2 state, Active high (Port 3, Pin 7)
-	if (state == ON) { MXC_GPIO3->out_set = MXC_GPIO_PIN_7; }
-	else /* (state == OFF) */ { MXC_GPIO3->out_clr = MXC_GPIO_PIN_7; }
+	if (state == ON) { GPIO_GAIN_PATH_SELECT_3_GEO2_PORT->out_set = GPIO_GAIN_PATH_SELECT_3_GEO2_PIN; }
+	else /* (state == OFF) */ { GPIO_GAIN_PATH_SELECT_3_GEO2_PORT->out_clr = GPIO_GAIN_PATH_SELECT_3_GEO2_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1308,6 +1308,6 @@ void SetGainGeo2State(uint8_t state)
 void SetPathSelectAop2State(uint8_t state)
 {
 	// Set Path Select AOP 2 state, Active high (Port 3, Pin 8)
-	if (state == ON) { MXC_GPIO3->out_set = MXC_GPIO_PIN_8; }
-	else /* (state == OFF) */ { MXC_GPIO3->out_clr = MXC_GPIO_PIN_8; }
+	if (state == ON) { GPIO_GAIN_PATH_SELECT_4_AOP2_PORT->out_set = GPIO_GAIN_PATH_SELECT_4_AOP2_PIN; }
+	else /* (state == OFF) */ { GPIO_GAIN_PATH_SELECT_4_AOP2_PORT->out_clr = GPIO_GAIN_PATH_SELECT_4_AOP2_PIN; }
 }

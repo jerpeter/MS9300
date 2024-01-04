@@ -129,7 +129,7 @@ void DebugUartInitBanner(void)
 ///----------------------------------------------------------------------------
 void InitExternalKeypad(void)
 {
-	uint8 keyScan = MXC_GPIO_InGet(MXC_GPIO1, BUTTON_GPIO_MASK);
+	uint8 keyScan = MXC_GPIO_InGet(REGULAR_BUTTONS_GPIO_PORT, REGULAR_BUTTONS_GPIO_MASK);
 	if (keyScan)
 	{
 		debugWarn("Keypad button being pressed (likely a bug), Key: %x\r\n", keyScan);

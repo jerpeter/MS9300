@@ -599,7 +599,7 @@ void TurnDisplayOff(void)
 		g_kpadInterruptWhileProcessing = NO;
 
 		// Clear key/button interrupt flags
-		MXC_GPIO_ClearFlags(MXC_GPIO1, BUTTON_GPIO_MASK);
+		MXC_GPIO_ClearFlags(REGULAR_BUTTONS_GPIO_PORT, REGULAR_BUTTONS_GPIO_MASK);
 	}
 
 	g_kpadProcessingFlag = DEACTIVATED;

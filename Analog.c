@@ -48,10 +48,6 @@ typedef struct {
 ///	Externs
 ///----------------------------------------------------------------------------
 #include "Globals.h"
-extern mxc_gpio_cfg_t g_SensorEnable1_Geo1;
-extern mxc_gpio_cfg_t g_SensorEnable2_Aop1;
-extern mxc_gpio_cfg_t g_SensorEnable3_Geo2;
-extern mxc_gpio_cfg_t g_SensorEnable4_Aop2;
 
 ///----------------------------------------------------------------------------
 ///	Local Scope Globals
@@ -208,8 +204,8 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 	// Todo: make channel config dynamic
 	
 	// Enabled the specific sensor blocks (defaulting to Geo1+AOP1)
-	MXC_GPIO_OutSet(g_SensorEnable1_Geo1.port, g_SensorEnable1_Geo1.mask);
-	MXC_GPIO_OutSet(g_SensorEnable2_Aop1.port, g_SensorEnable2_Aop1.mask);
+	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_1_GEO1_PORT, GPIO_SENSOR_ENABLE_1_GEO1_PIN);
+	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_2_AOP1_PORT, GPIO_SENSOR_ENABLE_2_AOP1_PIN);
 
 	// Setup the stantard sequence channels to be monitored
 	AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_AOP_1));
@@ -243,10 +239,10 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 ///----------------------------------------------------------------------------
 void DisableSensorBlocks(void)
 {
-	MXC_GPIO_OutSet(g_SensorEnable1_Geo1.port, g_SensorEnable1_Geo1.mask);
-	MXC_GPIO_OutSet(g_SensorEnable2_Aop1.port, g_SensorEnable2_Aop1.mask);
-	MXC_GPIO_OutSet(g_SensorEnable3_Geo2.port, g_SensorEnable3_Geo2.mask);
-	MXC_GPIO_OutSet(g_SensorEnable4_Aop2.port, g_SensorEnable4_Aop2.mask);
+	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_1_GEO1_PORT, GPIO_SENSOR_ENABLE_1_GEO1_PIN);
+	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_2_AOP1_PORT, GPIO_SENSOR_ENABLE_2_AOP1_PIN);
+	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_3_GEO2_PORT, GPIO_SENSOR_ENABLE_3_GEO2_PIN);
+	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_4_AOP2_PORT, GPIO_SENSOR_ENABLE_4_AOP2_PIN);
 }
 
 ///----------------------------------------------------------------------------
@@ -872,9 +868,9 @@ void AD4695_SetBusyState(void)
 	if(test != verify) { debugErr("Ext ADC: Busy state error (1)\r\n"); }
 
 	// Once the BSY_ALT_GP0 is configured as an output from the External ADC, disable the weak pull down
-	MXC_GPIO0->pdpu_sel0 &= ~MXC_GPIO_PIN_17;
-	MXC_GPIO0->pdpu_sel1 &= ~MXC_GPIO_PIN_17;
-	MXC_GPIO0->pssel &= ~MXC_GPIO_PIN_17;
+	GPIO_ADC_BUSY_ALT_GP0_PORT->pdpu_sel0 &= ~GPIO_ADC_BUSY_ALT_GP0_PIN;
+	GPIO_ADC_BUSY_ALT_GP0_PORT->pdpu_sel1 &= ~GPIO_ADC_BUSY_ALT_GP0_PIN;
+	GPIO_ADC_BUSY_ALT_GP0_PORT->pssel &= ~GPIO_ADC_BUSY_ALT_GP0_PIN;
 }
 
 ///----------------------------------------------------------------------------
