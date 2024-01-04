@@ -448,8 +448,8 @@ void SetupGPIO(void)
 	//----------------------------------------------------------------------------------------------------------------------
 	// Expansion IRQ: Port 0, Pin 8, Input, External pullup, Active low, 3.3V (minimum 2V)
 	//----------------------------------------------------------------------------------------------------------------------
-	g_ExpansionIRQ.port = MXC_GPIO1;
-	g_ExpansionIRQ.mask = MXC_GPIO_PIN_9;
+	g_ExpansionIRQ.port = MXC_GPIO0;
+	g_ExpansionIRQ.mask = MXC_GPIO_PIN_8;
 	g_ExpansionIRQ.pad = MXC_GPIO_PAD_NONE;
 	g_ExpansionIRQ.func = MXC_GPIO_FUNC_IN;
 	g_ExpansionIRQ.vssel = MXC_GPIO_VSSEL_VDDIOH;
@@ -1056,8 +1056,8 @@ void SetupGPIO(void)
 	//----------------------------------------------------------------------------------------------------------------------
 	// Cellular Enable: Port 3, Pin 0, Output, No external pull, Active high, 3.3V (minimum 0.5)
 	//----------------------------------------------------------------------------------------------------------------------
-	g_CellEnable.port = MXC_GPIO0;
-	g_CellEnable.mask = MXC_GPIO_PIN_8;
+	g_CellEnable.port = MXC_GPIO3;
+	g_CellEnable.mask = MXC_GPIO_PIN_0;
 	g_CellEnable.pad = MXC_GPIO_PAD_NONE;
 	g_CellEnable.func = MXC_GPIO_FUNC_OUT;
 	g_CellEnable.vssel = MXC_GPIO_VSSEL_VDDIOH;
