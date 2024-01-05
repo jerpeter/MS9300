@@ -204,8 +204,8 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 	// Todo: make channel config dynamic
 	
 	// Enabled the specific sensor blocks (defaulting to Geo1+AOP1)
-	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_1_GEO1_PORT, GPIO_SENSOR_ENABLE_1_GEO1_PIN);
-	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_2_AOP1_PORT, GPIO_SENSOR_ENABLE_2_AOP1_PIN);
+	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
+	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
 
 	// Setup the stantard sequence channels to be monitored
 	AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_AOP_1));
@@ -239,10 +239,10 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 ///----------------------------------------------------------------------------
 void DisableSensorBlocks(void)
 {
-	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_1_GEO1_PORT, GPIO_SENSOR_ENABLE_1_GEO1_PIN);
-	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_2_AOP1_PORT, GPIO_SENSOR_ENABLE_2_AOP1_PIN);
-	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_3_GEO2_PORT, GPIO_SENSOR_ENABLE_3_GEO2_PIN);
-	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_4_AOP2_PORT, GPIO_SENSOR_ENABLE_4_AOP2_PIN);
+	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
+	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
+	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
+	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
 }
 
 ///----------------------------------------------------------------------------

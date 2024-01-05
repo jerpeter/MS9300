@@ -554,6 +554,7 @@ typedef struct
 #define GPIO_ADC_RESET_PORT						MXC_GPIO0
 #define GPIO_ADC_BUSY_ALT_GP0_PORT				MXC_GPIO0
 #define GPIO_ADC_CONVERSION_PORT				MXC_GPIO0
+#define GPIO_ADC_SPI_3_SS_0_PORT				MXC_GPIO0
 #define GPIO_CAL_MUX_PRE_AD_ENABLE_PORT			MXC_GPIO0
 #define GPIO_CAL_MUX_PRE_AD_SELECT_PORT			MXC_GPIO0
 #define GPIO_ALERT_1_PORT						MXC_GPIO0
@@ -564,6 +565,7 @@ typedef struct
 //--------------------------------------------------------------------------------
 // GPIO1 Port defines
 //--------------------------------------------------------------------------------
+#define GPIO_SDHC_PORT							MXC_GPIO1
 #define GPIO_EMMC_DATA_STROBE_PORT				MXC_GPIO1
 #define GPIO_EXPANSION_ENABLE_PORT				MXC_GPIO1
 #define GPIO_EXPANSION_RESET_PORT				MXC_GPIO1
@@ -594,7 +596,7 @@ typedef struct
 //--------------------------------------------------------------------------------
 #define GPIO_LCD_POWER_ENABLE_PORT				MXC_GPIO2
 #define GPIO_LCD_POWER_DISPLAY_PORT				MXC_GPIO2
-#define GPIO_SPI2_SLAVE_SELECT_0_LCD_PORT		MXC_GPIO2
+#define GPIO_SPI_2_SS_0_LCD_PORT				MXC_GPIO2
 #define GPIO_LCD_INT_PORT						MXC_GPIO2
 #define GPIO_SENSOR_CHECK_ENABLE_PORT			MXC_GPIO2
 #define GPIO_SENSOR_CHECK_PORT					MXC_GPIO2
@@ -610,14 +612,14 @@ typedef struct
 // GPIO3 Port defines
 //--------------------------------------------------------------------------------
 #define GPIO_CELL_ENABLE_PORT					MXC_GPIO3
-#define GPIO_SENSOR_ENABLE_1_GEO1_PORT			MXC_GPIO3
-#define GPIO_SENSOR_ENABLE_2_AOP1_PORT			MXC_GPIO3
-#define GPIO_SENSOR_ENABLE_3_GEO2_PORT			MXC_GPIO3
-#define GPIO_SENSOR_ENABLE_4_AOP2_PORT			MXC_GPIO3
-#define GPIO_GAIN_PATH_SELECT_1_GEO1_PORT		MXC_GPIO3
-#define GPIO_GAIN_PATH_SELECT_2_AOP1_PORT		MXC_GPIO3
-#define GPIO_GAIN_PATH_SELECT_3_GEO2_PORT		MXC_GPIO3
-#define GPIO_GAIN_PATH_SELECT_4_AOP2_PORT		MXC_GPIO3
+#define GPIO_SENSOR_ENABLE_GEO1_PORT			MXC_GPIO3
+#define GPIO_SENSOR_ENABLE_AOP1_PORT			MXC_GPIO3
+#define GPIO_SENSOR_ENABLE_GEO2_PORT			MXC_GPIO3
+#define GPIO_SENSOR_ENABLE_AOP2_PORT			MXC_GPIO3
+#define GPIO_GAIN_SELECT_GEO1_PORT				MXC_GPIO3
+#define GPIO_PATH_SELECT_AOP1_PORT				MXC_GPIO3
+#define GPIO_GAIN_SELECT_GEO2_PORT				MXC_GPIO3
+#define GPIO_PATH_SELECT_AOP2_PORT				MXC_GPIO3
 #define GPIO_RTC_CLOCK_PORT						MXC_GPIO3
 
 //--------------------------------------------------------------------------------
@@ -641,9 +643,9 @@ typedef struct
 // GPIO_ADC_SPI_SCK								MXC_GPIO_PIN_16
 #define GPIO_ADC_BUSY_ALT_GP0_PIN				MXC_GPIO_PIN_17
 #define GPIO_ADC_CONVERSION_PIN					MXC_GPIO_PIN_18
-// GPIO_ADC_SPI_CS								MXC_GPIO_PIN_19
-// GPIO_ADC_SPI_SDO1							MXC_GPIO_PIN_20
-// GPIO_ADC_SPI_SDI								MXC_GPIO_PIN_21
+#define GPIO_ADC_SPI_3_SS_0_PIN					MXC_GPIO_PIN_19
+// GPIO_ADC_SPI_3_SDO1							MXC_GPIO_PIN_20
+// GPIO_ADC_SPI_3_SDI							MXC_GPIO_PIN_21
 #define GPIO_CAL_MUX_PRE_AD_ENABLE_PIN			MXC_GPIO_PIN_22
 #define GPIO_CAL_MUX_PRE_AD_SELECT_PIN			MXC_GPIO_PIN_23
 #define GPIO_ALERT_1_PIN						MXC_GPIO_PIN_24
@@ -658,13 +660,13 @@ typedef struct
 //--------------------------------------------------------------------------------
 // GPIO1 Port, Pin defines
 //--------------------------------------------------------------------------------
-// GPIO_CMD										MXC_GPIO_PIN_0
-// GPIO_DAT2									MXC_GPIO_PIN_1
+#define GPIO_SDHC_CMD_PIN						MXC_GPIO_PIN_0
+#define GPIO_SDHC_DAT2_PIN						MXC_GPIO_PIN_1
 #define GPIO_EMMC_DATA_STROBE_PIN				MXC_GPIO_PIN_2
-// GPIO_DAT3									MXC_GPIO_PIN_3
-// GPIO_DAT0									MXC_GPIO_PIN_4
-// GPIO_CLK										MXC_GPIO_PIN_5
-// GPIO_DAT1									MXC_GPIO_PIN_6
+#define GPIO_SDHC_DAT3_PIN						MXC_GPIO_PIN_3
+#define GPIO_SDHC_DAT0_PIN						MXC_GPIO_PIN_4
+#define GPIO_SDHC_CLK_PIN						MXC_GPIO_PIN_5
+#define GPIO_SDHC_DAT1_PIN						MXC_GPIO_PIN_6
 #define GPIO_EXPANSION_ENABLE_PIN				MXC_GPIO_PIN_7
 #define GPIO_EXPANSION_RESET_PIN				MXC_GPIO_PIN_8
 // GPIO_MCU_UART2_RX							MXC_GPIO_PIN_9
@@ -699,7 +701,7 @@ typedef struct
 // GPIO_SPI2_SCK_LCD							MXC_GPIO_PIN_2
 // GPIO_SPI2_MISO_LCD							MXC_GPIO_PIN_3
 // GPIO_SPI2_MOSI_LCD							MXC_GPIO_PIN_4
-#define GPIO_SPI2_SLAVE_SELECT_0_LCD_PIN		MXC_GPIO_PIN_5
+#define GPIO_SPI_2_SS_0_LCD_PIN					MXC_GPIO_PIN_5
 #define GPIO_LCD_INT_PIN						MXC_GPIO_PIN_6
 // GPIO_I2C0_SDA								MXC_GPIO_PIN_7
 // GPIO_I2C0_SCL								MXC_GPIO_PIN_8
@@ -730,15 +732,21 @@ typedef struct
 // GPIO3 Port, Pin defines
 //--------------------------------------------------------------------------------
 #define GPIO_CELL_ENABLE_PIN					MXC_GPIO_PIN_0
-#define GPIO_SENSOR_ENABLE_1_GEO1_PIN			MXC_GPIO_PIN_1
-#define GPIO_SENSOR_ENABLE_2_AOP1_PIN			MXC_GPIO_PIN_2
-#define GPIO_SENSOR_ENABLE_3_GEO2_PIN			MXC_GPIO_PIN_3
-#define GPIO_SENSOR_ENABLE_4_AOP2_PIN			MXC_GPIO_PIN_4
-#define GPIO_GAIN_PATH_SELECT_1_GEO1_PIN		MXC_GPIO_PIN_5
-#define GPIO_GAIN_PATH_SELECT_2_AOP1_PIN		MXC_GPIO_PIN_6
-#define GPIO_GAIN_PATH_SELECT_3_GEO2_PIN		MXC_GPIO_PIN_7
-#define GPIO_GAIN_PATH_SELECT_4_AOP2_PIN		MXC_GPIO_PIN_8
+#define GPIO_SENSOR_ENABLE_GEO1_PIN				MXC_GPIO_PIN_1
+#define GPIO_SENSOR_ENABLE_AOP1_PIN				MXC_GPIO_PIN_2
+#define GPIO_SENSOR_ENABLE_GEO2_PIN				MXC_GPIO_PIN_3
+#define GPIO_SENSOR_ENABLE_AOP2_PIN				MXC_GPIO_PIN_4
+#define GPIO_GAIN_SELECT_GEO1_PIN				MXC_GPIO_PIN_5
+#define GPIO_PATH_SELECT_AOP1_PIN				MXC_GPIO_PIN_6
+#define GPIO_GAIN_SELECT_GEO2_PIN				MXC_GPIO_PIN_7
+#define GPIO_PATH_SELECT_AOP2_PIN				MXC_GPIO_PIN_8
 #define GPIO_RTC_CLOCK_PIN						MXC_GPIO_PIN_9
+
+//--------------------------------------------------------------------------------
+// GPIO Buttons group defines
+//--------------------------------------------------------------------------------
+#define REGULAR_BUTTONS_GPIO_PORT	MXC_GPIO1
+#define REGULAR_BUTTONS_GPIO_MASK	0x1FF0000
 
 ///----------------------------------------------------------------------------
 ///	Prototypes

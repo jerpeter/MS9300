@@ -1348,8 +1348,8 @@ void ft81x_assert_cs(bool assert)
 {
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL)
 	{
-		if (assert) { MXC_GPIO_OutClr(GPIO_SPI2_SLAVE_SELECT_0_LCD_PORT, GPIO_SPI2_SLAVE_SELECT_0_LCD_PIN); }
-		else { MXC_GPIO_OutSet(GPIO_SPI2_SLAVE_SELECT_0_LCD_PORT, GPIO_SPI2_SLAVE_SELECT_0_LCD_PIN); }
+		if (assert) { MXC_GPIO_OutClr(GPIO_SPI_2_SS_0_LCD_PORT, GPIO_SPI_2_SS_0_LCD_PIN); }
+		else { MXC_GPIO_OutSet(GPIO_SPI_2_SS_0_LCD_PORT, GPIO_SPI_2_SS_0_LCD_PIN); }
 	}
 	else // SPI2 Slave select controlled by the SPI driver
 	{

@@ -1238,8 +1238,8 @@ void SetNyquist2EnableState(uint8_t state)
 void SetSensorGeo1EnableState(uint8_t state)
 {
 	// Set Sensor GEO 1 enable state, Active high (Port 3, Pin 1)
-	if (state == ON) { GPIO_SENSOR_ENABLE_1_GEO1_PORT->out_set = GPIO_SENSOR_ENABLE_1_GEO1_PIN; }
-	else /* (state == OFF) */ { GPIO_SENSOR_ENABLE_1_GEO1_PORT->out_clr = GPIO_SENSOR_ENABLE_1_GEO1_PIN; }
+	if (state == ON) { GPIO_SENSOR_ENABLE_GEO1_PORT->out_set = GPIO_SENSOR_ENABLE_GEO1_PIN; }
+	else /* (state == OFF) */ { GPIO_SENSOR_ENABLE_GEO1_PORT->out_clr = GPIO_SENSOR_ENABLE_GEO1_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1248,8 +1248,8 @@ void SetSensorGeo1EnableState(uint8_t state)
 void SetSensorAop1EnableState(uint8_t state)
 {
 	// Set Sensor AOP 1 enable state, Active high (Port 3, Pin 2)
-	if (state == ON) { GPIO_SENSOR_ENABLE_2_AOP1_PORT->out_set = GPIO_SENSOR_ENABLE_2_AOP1_PIN; }
-	else /* (state == OFF) */ { GPIO_SENSOR_ENABLE_2_AOP1_PORT->out_clr = GPIO_SENSOR_ENABLE_2_AOP1_PIN; }
+	if (state == ON) { GPIO_SENSOR_ENABLE_AOP1_PORT->out_set = GPIO_SENSOR_ENABLE_AOP1_PIN; }
+	else /* (state == OFF) */ { GPIO_SENSOR_ENABLE_AOP1_PORT->out_clr = GPIO_SENSOR_ENABLE_AOP1_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1258,8 +1258,8 @@ void SetSensorAop1EnableState(uint8_t state)
 void SetSensorGeo2EnableState(uint8_t state)
 {
 	// Set Sensor GEO 2 enable state, Active high (Port 3, Pin 3)
-	if (state == ON) { GPIO_SENSOR_ENABLE_3_GEO2_PORT->out_set = GPIO_SENSOR_ENABLE_3_GEO2_PIN; }
-	else /* (state == OFF) */ { GPIO_SENSOR_ENABLE_3_GEO2_PORT->out_clr = GPIO_SENSOR_ENABLE_3_GEO2_PIN; }
+	if (state == ON) { GPIO_SENSOR_ENABLE_GEO2_PORT->out_set = GPIO_SENSOR_ENABLE_GEO2_PIN; }
+	else /* (state == OFF) */ { GPIO_SENSOR_ENABLE_GEO2_PORT->out_clr = GPIO_SENSOR_ENABLE_GEO2_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1268,8 +1268,8 @@ void SetSensorGeo2EnableState(uint8_t state)
 void SetSensorAop2EnableState(uint8_t state)
 {
 	// Set Sensor AOP 2 enable state, Active high (Port 3, Pin 4)
-	if (state == ON) { GPIO_SENSOR_ENABLE_4_AOP2_PORT->out_set = GPIO_SENSOR_ENABLE_4_AOP2_PIN; }
-	else /* (state == OFF) */ { GPIO_SENSOR_ENABLE_4_AOP2_PORT->out_clr = GPIO_SENSOR_ENABLE_4_AOP2_PIN; }
+	if (state == ON) { GPIO_SENSOR_ENABLE_AOP2_PORT->out_set = GPIO_SENSOR_ENABLE_AOP2_PIN; }
+	else /* (state == OFF) */ { GPIO_SENSOR_ENABLE_AOP2_PORT->out_clr = GPIO_SENSOR_ENABLE_AOP2_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1278,8 +1278,8 @@ void SetSensorAop2EnableState(uint8_t state)
 void SetGainGeo1State(uint8_t state)
 {
 	// Set Gain GEO 1 state, Active high (Port 3, Pin 5)
-	if (state == ON) { GPIO_GAIN_PATH_SELECT_1_GEO1_PORT->out_set = GPIO_GAIN_PATH_SELECT_1_GEO1_PIN; }
-	else /* (state == OFF) */ { GPIO_GAIN_PATH_SELECT_1_GEO1_PORT->out_clr = GPIO_GAIN_PATH_SELECT_1_GEO1_PIN; }
+	if (state == ON) { GPIO_GAIN_SELECT_GEO1_PORT->out_set = GPIO_GAIN_SELECT_GEO1_PIN; }
+	else /* (state == OFF) */ { GPIO_GAIN_SELECT_GEO1_PORT->out_clr = GPIO_GAIN_SELECT_GEO1_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1288,8 +1288,8 @@ void SetGainGeo1State(uint8_t state)
 void SetPathSelectAop1State(uint8_t state)
 {
 	// Set Path Select AOP 1 state, Active high (Port 3, Pin 6)
-	if (state == ON) { GPIO_GAIN_PATH_SELECT_2_AOP1_PORT->out_set = GPIO_GAIN_PATH_SELECT_2_AOP1_PIN; }
-	else /* (state == OFF) */ { GPIO_GAIN_PATH_SELECT_2_AOP1_PORT->out_clr = GPIO_GAIN_PATH_SELECT_2_AOP1_PIN; }
+	if (state == ON) { GPIO_PATH_SELECT_AOP1_PORT->out_set = GPIO_PATH_SELECT_AOP1_PIN; }
+	else /* (state == OFF) */ { GPIO_PATH_SELECT_AOP1_PORT->out_clr = GPIO_PATH_SELECT_AOP1_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1298,8 +1298,8 @@ void SetPathSelectAop1State(uint8_t state)
 void SetGainGeo2State(uint8_t state)
 {
 	// Set Gain GEO 2 state, Active high (Port 3, Pin 7)
-	if (state == ON) { GPIO_GAIN_PATH_SELECT_3_GEO2_PORT->out_set = GPIO_GAIN_PATH_SELECT_3_GEO2_PIN; }
-	else /* (state == OFF) */ { GPIO_GAIN_PATH_SELECT_3_GEO2_PORT->out_clr = GPIO_GAIN_PATH_SELECT_3_GEO2_PIN; }
+	if (state == ON) { GPIO_GAIN_SELECT_GEO2_PORT->out_set = GPIO_GAIN_SELECT_GEO2_PIN; }
+	else /* (state == OFF) */ { GPIO_GAIN_SELECT_GEO2_PORT->out_clr = GPIO_GAIN_SELECT_GEO2_PIN; }
 }
 
 ///----------------------------------------------------------------------------
@@ -1308,6 +1308,6 @@ void SetGainGeo2State(uint8_t state)
 void SetPathSelectAop2State(uint8_t state)
 {
 	// Set Path Select AOP 2 state, Active high (Port 3, Pin 8)
-	if (state == ON) { GPIO_GAIN_PATH_SELECT_4_AOP2_PORT->out_set = GPIO_GAIN_PATH_SELECT_4_AOP2_PIN; }
-	else /* (state == OFF) */ { GPIO_GAIN_PATH_SELECT_4_AOP2_PORT->out_clr = GPIO_GAIN_PATH_SELECT_4_AOP2_PIN; }
+	if (state == ON) { GPIO_PATH_SELECT_AOP2_PORT->out_set = GPIO_PATH_SELECT_AOP2_PIN; }
+	else /* (state == OFF) */ { GPIO_PATH_SELECT_AOP2_PORT->out_clr = GPIO_PATH_SELECT_AOP2_PIN; }
 }
