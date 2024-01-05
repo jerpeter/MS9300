@@ -302,7 +302,7 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 			else
 			{
 				// Check if the On key is being pressed
-				if (!MXC_GPIO_InGet(GPIO_POWER_BUTTON_IRQ_PORT, GPIO_POWER_BUTTON_IRQ_PIN)) // g_PowerButtonIRQ: Port 1, Pin 15
+				if (!MXC_GPIO_InGet(GPIO_POWER_BUTTON_IRQ_PORT, GPIO_POWER_BUTTON_IRQ_PIN))
 				{
 					// Reset the factory setup process
 					g_factorySetupSequence = SEQ_NOT_STARTED;
