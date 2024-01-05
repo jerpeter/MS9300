@@ -1115,6 +1115,16 @@ uint8_t GetSmartSensorMuxEnableState(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint8_t GetCalMuxPreADSelectState(void)
+{
+	// Get Cal Mux Pre A/D Select state, Select (Port 0, Pin 23)
+	if (MXC_GPIO_OutGet(GPIO_CAL_MUX_PRE_AD_SELECT_PORT, GPIO_CAL_MUX_PRE_AD_SELECT_PIN)) { return (CAL_MUX_SELECT_SENSOR_GROUP_B); }
+	else return (CAL_MUX_SELECT_SENSOR_GROUP_A);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void SetSmartSensorSleepState(uint8_t state)
 {
 	// Set Smart Sensor Sleep state, Active low (Port 0, Pin 13)
