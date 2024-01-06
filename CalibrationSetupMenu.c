@@ -232,16 +232,16 @@ void CalSetupMn(INPUT_MSG_STRUCT msg)
 						else { s_pauseDisplay = NO; }
 						break;
 
-#if 0 /* Fill in with correct control */
+#if 0 /* Fill in with correct control, maybe a soft key named swap */
 					case DELETE_KEY:
-						if (GetSmartSensorMuxEnableState() == CAL_MUX_SELECT_SENSOR_GROUP_A)
+						if (GetCalMuxPreADSelectState() == CAL_MUX_SELECT_SENSOR_GROUP_A)
 						{
-							SetSmartSensorMuxEnableState(CAL_MUX_SELECT_SENSOR_GROUP_B);
+							SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B);
 							OverlayMessage(getLangText(STATUS_TEXT), "SWAPPED TO SENSOR GROUP B (GEO2 + AOP2)", (1 * SOFT_SECS));
 						}
-						else
+						else // Currently sensor group B
 						{
-							SetSmartSensorMuxEnableState(CAL_MUX_SELECT_SENSOR_GROUP_A);
+							SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A);
 							OverlayMessage(getLangText(STATUS_TEXT), "SWAPPED TO SENSOR GROUP A (GEO1 + AOP1)", (1 * SOFT_SECS));
 						}
 						break;
@@ -363,11 +363,17 @@ void CalSetupMnProc(INPUT_MSG_STRUCT msg,
 			mn_layout_ptr->curr_ln = CAL_SETUP_MN_TBL_START_LINE;
 			mn_layout_ptr->top_ln = CAL_SETUP_MN_TBL_START_LINE;
 
-			OverlayMessage(getLangText(STATUS_TEXT), getLangText(PLEASE_BE_PATIENT_TEXT), 0);
-
 			// Enable the Cal Mux for Sensor group A (Geo1 + AOP1)
+#if 0 /* Prompt for Cal Mux choice */
+			if (MessageBox(getLangText(SELECT_TEXT), "CONTINUE WITH CAL MUX SET TO GROUP A? NO WILL SWAP TO GROUP B", MB_YESNO) == MB_FIRST_CHOICE)
+			{ SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); }
+			else { SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B); }
+#else /* Always start with Sensor Group A */
 			SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A);
+#endif
 			SetCalMuxPreADEnableState(ON);
+
+			OverlayMessage(getLangText(STATUS_TEXT), getLangText(PLEASE_BE_PATIENT_TEXT), 0);
 
 			// Save the currently stored sample rate to later be reverted
 			s_calSavedSampleRate = g_triggerRecord.trec.sample_rate;

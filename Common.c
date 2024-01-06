@@ -1117,7 +1117,7 @@ uint8_t GetSmartSensorMuxEnableState(void)
 ///----------------------------------------------------------------------------
 uint8_t GetCalMuxPreADSelectState(void)
 {
-	// Get Cal Mux Pre A/D Select state, Select (Port 0, Pin 23)
+	// Get Cal Mux Pre A/D Select state, Select (Port 0, Pin 23), Group B is logic 1, Group A is logic 0
 	if (MXC_GPIO_OutGet(GPIO_CAL_MUX_PRE_AD_SELECT_PORT, GPIO_CAL_MUX_PRE_AD_SELECT_PIN)) { return (CAL_MUX_SELECT_SENSOR_GROUP_B); }
 	else return (CAL_MUX_SELECT_SENSOR_GROUP_A);
 }
@@ -1167,9 +1167,9 @@ void SetCalMuxPreADEnableState(uint8_t state)
 ///----------------------------------------------------------------------------
 void SetCalMuxPreADSelectState(uint8_t state)
 {
-	// Set Cal Mux Pre A/D Select state, Select (Port 0, Pin 23)
-	if (state == ON) { GPIO_CAL_MUX_PRE_AD_SELECT_PORT->out_set = GPIO_CAL_MUX_PRE_AD_SELECT_PIN; }
-	else /* (state == OFF) */ { GPIO_CAL_MUX_PRE_AD_SELECT_PORT->out_clr = GPIO_CAL_MUX_PRE_AD_SELECT_PIN; }
+	// Set Cal Mux Pre A/D Select state, Select (Port 0, Pin 23), Group A is logic 0, Group B is logic 1
+	if (state == CAL_MUX_SELECT_SENSOR_GROUP_A) { GPIO_CAL_MUX_PRE_AD_SELECT_PORT->out_clr = GPIO_CAL_MUX_PRE_AD_SELECT_PIN; }
+	else /* (state == CAL_MUX_SELECT_SENSOR_GROUP_B) */ { GPIO_CAL_MUX_PRE_AD_SELECT_PORT->out_set = GPIO_CAL_MUX_PRE_AD_SELECT_PIN; }
 }
 
 ///----------------------------------------------------------------------------
