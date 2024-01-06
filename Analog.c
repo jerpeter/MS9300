@@ -253,6 +253,7 @@ void AdSetCalSignalLow(void)
 	// Enable driving of the sensor check signal if not enabled
 	if (GetPowerControlState(SENSOR_CHECK_ENABLE) == OFF) {	PowerControl(SENSOR_CHECK_ENABLE, ON); }
 
+	// Set the sensor check drive signal low
 	SetSensorCheckState(LOW);
 }
 
@@ -264,6 +265,7 @@ void AdSetCalSignalHigh(void)
 	// Enable driving of the sensor check signal if not enabled
 	if (GetPowerControlState(SENSOR_CHECK_ENABLE) == OFF) {	PowerControl(SENSOR_CHECK_ENABLE, ON); }
 
+	// Set the sensor check drive signal high
 	SetSensorCheckState(HIGH);
 }
 
@@ -316,6 +318,26 @@ void SetSeismicGainSelect(uint8 seismicGain)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void SetSeismicGainSelectSensor(uint8 sensorSelection, uint8 seismicGain)
+{
+	if (sensorSelection & ANALOG_SENSOR_GEO_1)
+	{
+		// Logic 1 on Geo gain select line achieves normal gain
+		if (seismicGain == SEISMIC_GAIN_NORMAL) { SetGainGeo1State(HIGH); }
+		else /* SEISMIC_GAIN_HIGH */ SetGainGeo1State(LOW);
+	}
+
+	if (sensorSelection & ANALOG_SENSOR_GEO_2)
+	{
+		// Logic 1 on Geo gain select line achieves normal gain
+		if (seismicGain == SEISMIC_GAIN_NORMAL) { SetGainGeo2State(HIGH); }
+		else /* SEISMIC_GAIN_HIGH */ SetGainGeo2State(LOW);
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void SetAcousticPathSelect(uint8 acousticGain)
 {
 	if (acousticGain == ACOUSTIC_PATH_AOP)
@@ -335,6 +357,26 @@ void SetAcousticPathSelect(uint8 acousticGain)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void SetAcousticPathSelectSensor(uint8 sensorSelection, uint8 acousticGain)
+{
+	if (sensorSelection & ANALOG_SENSOR_AOP_1)
+	{
+		// Logic 1 on AOP path select line achieves AOP
+		if (acousticGain == ACOUSTIC_PATH_AOP) { SetPathSelectAop1State(HIGH); }
+		else /* ACOUSTIC_PATH_A_WEIGHTED */ SetPathSelectAop1State(LOW);
+	}
+
+	if (sensorSelection & ANALOG_SENSOR_AOP_2)
+	{
+		// Logic 1 on AOP path select line achieves AOP
+		if (acousticGain == ACOUSTIC_PATH_AOP) { SetPathSelectAop2State(HIGH); }
+		else /* ACOUSTIC_PATH_A_WEIGHTED */ SetPathSelectAop2State(LOW);
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void SetCalSignalEnable(uint8 enable)
 {
 	if (enable == ON) { PowerControl(SENSOR_CHECK_ENABLE, ON); }
@@ -347,7 +389,7 @@ void SetCalSignalEnable(uint8 enable)
 void SetCalSignal(uint8 state)
 {
 	if (state) { SetSensorCheckState(ON); }
-	else /* (state == NULL) */ { SetSensorCheckState(OFF); }
+	else /* (state == OFF) */ { SetSensorCheckState(OFF); }
 }
 
 ///----------------------------------------------------------------------------

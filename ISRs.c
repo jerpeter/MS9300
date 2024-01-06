@@ -1190,10 +1190,10 @@ static inline void processVariableTriggerDataFullWave_ISR_Inline(void)
 static inline void processAndMoveManualCalData_ISR_Inline(void)
 {
 	// Wait 5 samples to start cal signaling (~5 ms)
-	if (g_manualCalSampleCount == CAL_SAMPLE_COUNT_FIRST_TRANSITION_HIGH) { AdSetCalSignalHigh(); }	// (~10 ms)
-	if (g_manualCalSampleCount == CAL_SAMPLE_COUNT_SECOND_TRANSITION_LOW) { AdSetCalSignalLow(); }	// (~20 ms)
-	if (g_manualCalSampleCount == CAL_SAMPLE_COUNT_THIRD_TRANSITION_HIGH) { AdSetCalSignalHigh(); }	// (~10 ms)
-	if (g_manualCalSampleCount == CAL_SAMPLE_COUNT_FOURTH_TRANSITION_OFF) { AdSetCalSignalOff(); }	// (~55 ms)
+	if (g_manualCalSampleCount == CAL_SAMPLE_COUNT_FIRST_TRANSITION_HIGH) { AdSetCalSignalHigh(); }	// (5 ms after start, run for 10 ms)
+	if (g_manualCalSampleCount == CAL_SAMPLE_COUNT_SECOND_TRANSITION_LOW) { AdSetCalSignalLow(); }	// (15 ms after start, run for 20 ms)
+	if (g_manualCalSampleCount == CAL_SAMPLE_COUNT_THIRD_TRANSITION_HIGH) { AdSetCalSignalHigh(); }	// (35 ms after start, run for 10 ms)
+	if (g_manualCalSampleCount == CAL_SAMPLE_COUNT_FOURTH_TRANSITION_OFF) { AdSetCalSignalOff(); }	// (45 ms after start, run for 55 ms)
 
 	// Check if the first time through
 	if (g_manualCalSampleCount == MAX_CAL_SAMPLES)
@@ -1613,10 +1613,10 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 			else // Cal pulse started
 			{
 				// Wait 5 samples to start cal signaling (~5 ms)
-				if (s_calSampleCount == CAL_SAMPLE_COUNT_FIRST_TRANSITION_HIGH) { AdSetCalSignalHigh();	}	// (~10 ms)
-				if (s_calSampleCount == CAL_SAMPLE_COUNT_SECOND_TRANSITION_LOW) { AdSetCalSignalLow(); }	// (~20 ms)
-				if (s_calSampleCount == CAL_SAMPLE_COUNT_THIRD_TRANSITION_HIGH) { AdSetCalSignalHigh(); }	// (~10 ms)
-				if (s_calSampleCount == CAL_SAMPLE_COUNT_FOURTH_TRANSITION_OFF) { AdSetCalSignalOff(); }	// (~55 ms)
+				if (s_calSampleCount == CAL_SAMPLE_COUNT_FIRST_TRANSITION_HIGH) { AdSetCalSignalHigh();	}	// (5 ms after start, run for 10 ms)
+				if (s_calSampleCount == CAL_SAMPLE_COUNT_SECOND_TRANSITION_LOW) { AdSetCalSignalLow(); }	// (15 ms after start, run for 20 ms)
+				if (s_calSampleCount == CAL_SAMPLE_COUNT_THIRD_TRANSITION_HIGH) { AdSetCalSignalHigh(); }	// (35 ms after start, run for 10 ms)
+				if (s_calSampleCount == CAL_SAMPLE_COUNT_FOURTH_TRANSITION_OFF) { AdSetCalSignalOff(); }	// (45 ms after start, run for 55 ms)
 
 				// Copy cal data to the event buffer cal section
 				*(SAMPLE_DATA_STRUCT*)(s_calPtr[DEFAULT_CAL_BUFFER_INDEX]) = *(SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff;
@@ -1918,10 +1918,10 @@ void ProcessSensorCalibrationData(void)
 	if (g_calibrationGeneratePulse == YES)
 	{
 		// Process the cal in about the middle of the second
-		if ((s_sensorCalSampleCount - (CALIBRATION_FIXED_SAMPLE_RATE / 2)) == CAL_SAMPLE_COUNT_FIRST_TRANSITION_HIGH) { AdSetCalSignalHigh(); }	// (~10 ms)
-		if ((s_sensorCalSampleCount - (CALIBRATION_FIXED_SAMPLE_RATE / 2)) == CAL_SAMPLE_COUNT_SECOND_TRANSITION_LOW) { AdSetCalSignalLow(); }	// (~20 ms)
-		if ((s_sensorCalSampleCount - (CALIBRATION_FIXED_SAMPLE_RATE / 2)) == CAL_SAMPLE_COUNT_THIRD_TRANSITION_HIGH) { AdSetCalSignalHigh(); }	// (~10 ms)
-		if ((s_sensorCalSampleCount - (CALIBRATION_FIXED_SAMPLE_RATE / 2)) == CAL_SAMPLE_COUNT_FOURTH_TRANSITION_OFF) { AdSetCalSignalOff(); }	// (~55 ms)
+		if ((s_sensorCalSampleCount - (CALIBRATION_FIXED_SAMPLE_RATE / 2)) == CAL_SAMPLE_COUNT_FIRST_TRANSITION_HIGH) { AdSetCalSignalHigh(); }	// (5 ms after start, run for 10 ms)
+		if ((s_sensorCalSampleCount - (CALIBRATION_FIXED_SAMPLE_RATE / 2)) == CAL_SAMPLE_COUNT_SECOND_TRANSITION_LOW) { AdSetCalSignalLow(); }	// (15 ms after start, run for 20 ms)
+		if ((s_sensorCalSampleCount - (CALIBRATION_FIXED_SAMPLE_RATE / 2)) == CAL_SAMPLE_COUNT_THIRD_TRANSITION_HIGH) { AdSetCalSignalHigh(); }	// (35 ms after start, run for 10 ms)
+		if ((s_sensorCalSampleCount - (CALIBRATION_FIXED_SAMPLE_RATE / 2)) == CAL_SAMPLE_COUNT_FOURTH_TRANSITION_OFF) { AdSetCalSignalOff(); }	// (45 ms after start, run for 55 ms)
 	}
 
 	//=============================================================================================

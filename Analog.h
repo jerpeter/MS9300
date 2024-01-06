@@ -17,22 +17,10 @@
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
-#define ANALOG_R_CHANNEL_SELECT		0x02
-#define ANALOG_V_CHANNEL_SELECT		0x00
-#define ANALOG_T_CHANNEL_SELECT		0x06
-#define ANALOG_A_CHANNEL_SELECT		0x04
-#define ANALOG_CONTROL_DATA			0x01
-#define ANALOG_CONTROL_SHIFT		0x02
-#define ANALOG_CONTROL_STORAGE		0x04
-
-#define SAMPLE_RATE_1K_PIT_DIVIDER		2
-#define SAMPLE_RATE_2K_PIT_DIVIDER		4
-#define SAMPLE_RATE_4K_PIT_DIVIDER		8
-#define SAMPLE_RATE_8K_PIT_DIVIDER		16
-#define SAMPLE_RATE_16K_PIT_DIVIDER		32
-#define SAMPLE_RATE_32K_PIT_DIVIDER		64
-#define SAMPLE_RATE_64K_PIT_DIVIDER		128
-#define SAMPLE_RATE_PIT_MODULUS			62500
+#define ANALOG_SENSOR_GEO_1		0x01
+#define ANALOG_SENSOR_GEO_2		0x02
+#define ANALOG_SENSOR_AOP_1		0x04
+#define ANALOG_SENSOR_AOP_2		0x08
 
 #define CAL_SAMPLE_COUNT_FIRST_TRANSITION_HIGH	95
 #define CAL_SAMPLE_COUNT_SECOND_TRANSITION_LOW	85
@@ -122,7 +110,9 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr);
 void AnalogControlInit(void);
 void SetAnalogCutoffFrequency(uint8 freq);
 void SetSeismicGainSelect(uint8 seismicGain);
+void SetSeismicGainSelectSensor(uint8 sensorSelection, uint8 seismicGain);
 void SetAcousticPathSelect(uint8 acousticGain);
+void SetAcousticPathSelectSensor(uint8 sensorSelection, uint8 acousticGain);
 void SetCalSignalEnable(uint8 enable);
 void SetCalSignal(uint8 state);
 void GenerateCalSignal(void);
