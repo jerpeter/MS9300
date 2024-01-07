@@ -95,7 +95,6 @@
 #define START_DLOAD_FLAG	0xAABBBBAA		// Do not change - flags are used in the supergraphics app
 #define END_DLOAD_FLAG		0xCCDDDDCC		// Do not change - flags are used in the supergraphics app
 
-
 #define MESSAGE_HEADER_SIMPLE_LENGTH	HDR_CMD_LEN + HDR_TYPE_LEN + HDR_DATALENGTH_LEN + HDR_SPARE_LEN
 #define MESSAGE_SIMPLE_TOTAL_LENGTH		MESSAGE_HEADER_SIMPLE_LENGTH + MESSAGE_FOOTER_LENGTH
 
@@ -544,7 +543,7 @@ typedef struct
 	uint16				batteryLevel;
 	uint8				variableTriggerPercentageLevel;
 	uint8				unused[3];
-} SYSTEM_CFG;
+} SYSTEM_CFG; // Remote DCM/UCM only
 #pragma pack()
 
 
