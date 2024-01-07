@@ -2364,6 +2364,97 @@ void ValidateSummaryListFileWithEventCache(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void EndianSwapDataX16(uint16_t* data, uint32_t dataLength)
+{
+	while(dataLength)
+	{
+		*data = __builtin_bswap16(*data);
+		data++;
+		dataLength--;
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void EndianSwapEventRecord(EVT_RECORD* evtRec)
+{
+	evtRec->header.startFlag = __builtin_bswap16(evtRec->header.startFlag);
+	evtRec->header.recordVersion = __builtin_bswap16(evtRec->header.recordVersion);
+	evtRec->header.headerLength = __builtin_bswap16(evtRec->header.headerLength);
+	evtRec->header.summaryLength = __builtin_bswap16(evtRec->header.summaryLength);
+	evtRec->header.dataLength = __builtin_bswap32(evtRec->header.dataLength);
+	evtRec->header.dataCompression = __builtin_bswap16(evtRec->header.dataCompression);
+	evtRec->header.summaryChecksum = __builtin_bswap16(evtRec->header.summaryChecksum);
+	evtRec->header.dataChecksum = __builtin_bswap16(evtRec->header.dataChecksum);
+	evtRec->header.unused1 = __builtin_bswap16(evtRec->header.unused1);
+	evtRec->header.unused2 = __builtin_bswap16(evtRec->header.unused2);
+	evtRec->header.unused3 = __builtin_bswap16(evtRec->header.unused3);
+/*
+	uint16 startFlag; // 0x0 (from 0xA55A)
+	uint16 recordVersion; // 0x2 (from 0xA55A)
+	uint16 headerLength; // 0x4 (from 0xA55A)
+	uint16 summaryLength; // 0x6 (from 0xA55A)
+	uint32 dataLength; // 0x8 (from 0xA55A)
+	uint16 dataCompression; // 0xC (from 0xA55A)
+	uint16 summaryChecksum; // 0xE (from 0xA55A)
+	uint16 dataChecksum; // 0x10 (from 0xA55A)
+	uint16 unused1; // 0x12 (from 0xA55A)
+	uint16 unused2; // 0x14 (from 0xA55A)
+	uint16 unused3; // 0x16 (from 0xA55A)
+	uint32	distToSource; // 0x5C (from 0xA55A)
+	uint32	weightPerDelay; // 0x60 (from 0xA55A)
+	uint16	sampleRate; // 0x64 (from 0xA55A)
+	uint16	seismicSensorType; // 0x66 (from 0xA55A)
+	uint16	airSensorType; // 0x68 (from 0xA55A)
+	uint32	seismicTriggerLevel; // 0x90 (from 0xA55A)
+	uint32	airTriggerLevel; // 0x94 (from 0xA55A)
+	uint32	recordTime; // 0x98 (from 0xA55A)
+	uint16	numOfSamples; // 0x9C (from 0xA55A)
+	uint16	preBuffNumOfSamples; // 0x9E (from 0xA55A)
+	uint16	calDataNumOfSamples; // 0xA0 (from 0xA55A)
+	uint16	barInterval; // 0xA2 (from 0xA55A)
+	uint16	summaryInterval; // 0xA4 (from 0xA55A)
+	uint32	seismicTriggerInUnits; // 0x170 (from 0xA55A)
+	uint32	airTriggerInUnits; // 0x174 (from 0xA55A)
+	CALIBRATION_DATE_STRUCT seismicSensorCurrentCalDate; // 0x17E (from 0xA55A)
+	CALIBRATION_DATE_STRUCT acousticSensorCurrentCalDate; // 0x18A (from 0xA55A)
+	uint32				batteryLevel; // 0x1A0 (from 0xA55A) // Battery Level
+	uint16				comboEventsRecordedDuringSession; // 0x1A6 (from 0xA55A) // C-Wave events during C-Bar session
+	uint16				comboEventsRecordedStartNumber; // 0x1C0 (from 0xA55A)
+	uint16				comboEventsRecordedEndNumber; // 0x1C2 (from 0xA55A)
+	uint16				comboBargraphEventNumberLink; // 0x1C4 (from 0xA55A)
+	time_t				gpsEpochTriggerTime; // 0x1C8 (from 0xA55A)
+	uint32				gpsFractionalSecond; // 0x1CC (from 0xA55A)
+	CHANNEL_CALCULATED_DATA_STRUCT a; // 0x1D4 (from 0xA55A), 0x0 (from struct start)
+	CHANNEL_CALCULATED_DATA_STRUCT r; // 0x1E0 (from 0xA55A), 0xC (from struct start)
+	CHANNEL_CALCULATED_DATA_STRUCT v; // 0x1EC (from 0xA55A), 0x18 (from struct start)
+	CHANNEL_CALCULATED_DATA_STRUCT t; // 0x1F8 (from 0xA55A), 0x24 (from struct start)
+		uint16 peak; // Max peak, kept in raw A/D value (not in units of measurement)
+		uint16 frequency; // The count for a period (frequency will later be calculated from this)
+		uint32 displacement; // Peak Displacement = Peak / (2 * PI * Freq)
+		uint32 acceleration; // Peak Acceleration = 2 * PI * Peak * Freq / 386.4 in/sec^2 (9814.6 mm/sec^2)
+	uint16 bargraphEffectiveSampleRate;
+	uint16 unused1;
+	uint32 unused2;
+	uint32 unused3;
+	uint32 vectorSumPeak; // 0x210 (from 0xA55A), 0x3C (from struct start)
+	uint32 batteryLevel; // 0x25C (from 0xA55A), 0x88 (from struct start)
+	uint32 barIntervalsCaptured; // 0x260 (from 0xA55A), 0x8C (from struct start)
+	uint16 summariesCaptured; // 0x264 (from 0xA55A), 0x90 (from struct start)
+	GPS_POSITION		gpsPosition; // 0x266 (from 0xA55A) // 0x92 (from struct start)
+		uint16 latSeconds;
+		uint16 longSeconds;
+		int16 altitude;
+		uint16 utcYear;
+	uint32 calcStructEndFlag; // 0x29C (from 0xA55A), 0xC8 (from struct start)
+	uint16 					eventNumber; // 0x2A0 (from 0xA55A)
+*/
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 extern int getSize(void);
 static char testLogFilename[] = LOGS_PATH "Test.zzz";
 void TestEMMCFatFilesystem(void)

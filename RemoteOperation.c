@@ -101,7 +101,12 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 	cfg.eventCfg.distToSource = (uint32)(g_triggerRecord.trec.dist_to_source * 100.0);
 	cfg.eventCfg.weightPerDelay = (uint32)(g_triggerRecord.trec.weight_per_delay * 100.0);
 	cfg.eventCfg.sampleRate = (uint16)g_triggerRecord.trec.sample_rate;
-	
+#if ENDIAN_CONVERSION
+	cfg.eventCfg.distToSource = __builtin_bswap32(cfg.eventCfg.distToSource);
+	cfg.eventCfg.weightPerDelay = __builtin_bswap32(cfg.eventCfg.weightPerDelay);
+	cfg.eventCfg.sampleRate = __builtin_bswap16(cfg.eventCfg.sampleRate);
+#endif
+
 	// Scan for major and minor version from the app version string and store in the config
 	sscanf(&g_buildVersion[0], "%d.%d.%c", &majorVer, &minorVer, &buildVer);
 	
@@ -133,6 +138,9 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 		cfg.eventCfg.seismicTriggerLevel = (g_triggerRecord.trec.seismicTriggerLevel / (ACCURACY_16_BIT_MIDPOINT / g_bitAccuracyMidpoint));
 	}
 #endif
+#if ENDIAN_CONVERSION
+	cfg.eventCfg.seismicTriggerLevel = __builtin_bswap32(cfg.eventCfg.seismicTriggerLevel);
+#endif
 
 #if 1 /* Original - Fixed method (Dave prefers trigger level as 16-bit regardless of bit accuracy setting) */
 	cfg.eventCfg.airTriggerLevel = g_triggerRecord.trec.airTriggerLevel;
@@ -146,8 +154,15 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 		cfg.eventCfg.airTriggerLevel = (g_triggerRecord.trec.airTriggerLevel / (ACCURACY_16_BIT_MIDPOINT / g_bitAccuracyMidpoint));
 	}
 #endif
+#if ENDIAN_CONVERSION
+	cfg.eventCfg.airTriggerLevel = __builtin_bswap32(cfg.eventCfg.airTriggerLevel);
+#endif
+
 	cfg.variableTriggerPercentageLevel = g_triggerRecord.trec.variableTriggerPercentageLevel;
 	cfg.eventCfg.recordTime = g_triggerRecord.trec.record_time;
+#if ENDIAN_CONVERSION
+	cfg.eventCfg.recordTime = __builtin_bswap32(cfg.eventCfg.recordTime);
+#endif
 
 	// static non changing.
 	cfg.eventCfg.seismicSensorType = (uint16)(g_factorySetupRecord.seismicSensorType);
@@ -158,6 +173,11 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 	cfg.eventCfg.adjustForTempDrift = g_triggerRecord.trec.adjustForTempDrift;
 	cfg.eventCfg.pretrigBufferDivider = g_unitConfig.pretrigBufferDivider;
 	cfg.eventCfg.numOfSamples = 0;				// Not used for configuration settings
+#if ENDIAN_CONVERSION
+	cfg.eventCfg.seismicSensorType = __builtin_bswap16(cfg.eventCfg.seismicSensorType);
+	cfg.eventCfg.airSensorType = __builtin_bswap16(cfg.eventCfg.airSensorType);
+	cfg.eventCfg.numOfSamples = __builtin_bswap16(cfg.eventCfg.numOfSamples);
+#endif
 
 	if ((g_factorySetupRecord.aWeightOption == ENABLED) && (g_unitConfig.airScale == AIR_SCALE_LINEAR))
 	{
@@ -169,6 +189,10 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 	cfg.eventCfg.preBuffNumOfSamples = (g_triggerRecord.trec.sample_rate / g_unitConfig.pretrigBufferDivider);
 	cfg.eventCfg.calDataNumOfSamples = CALIBRATION_NUMBER_OF_SAMPLES;
 	cfg.eventCfg.activeChannels = NUMBER_OF_CHANNELS_DEFAULT;
+#if ENDIAN_CONVERSION
+	cfg.eventCfg.preBuffNumOfSamples = __builtin_bswap16(cfg.eventCfg.preBuffNumOfSamples);
+	cfg.eventCfg.calDataNumOfSamples = __builtin_bswap16(cfg.eventCfg.calDataNumOfSamples);
+#endif
 
 	// Overloaded elements rightfully in their own place
 	cfg.extraUnitCfg.sensitivity = (uint8)g_triggerRecord.srec.sensitivity;
@@ -180,11 +204,19 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 	cfg.eventCfg.airUnitsOfMeasure = g_unitConfig.unitsOfAir;
 	cfg.eventCfg.airTriggerInUnits = 0x0; // Not needed
 	cfg.eventCfg.seismicTriggerInUnits = 0x0; // Not needed
+#if ENDIAN_CONVERSION
+	cfg.eventCfg.airTriggerInUnits = __builtin_bswap32(cfg.eventCfg.airTriggerInUnits);
+	cfg.eventCfg.seismicTriggerInUnits = __builtin_bswap32(cfg.eventCfg.seismicTriggerInUnits);
+#endif
 
 	// Bargraph specific - Initial conditions.
 	cfg.eventCfg.barInterval = (uint16)g_triggerRecord.bgrec.barInterval;
 	cfg.eventCfg.summaryInterval = (uint16)g_triggerRecord.bgrec.summaryInterval;
 	cfg.eventCfg.barIntervalDataType = g_triggerRecord.berec.barIntervalDataType;
+#if ENDIAN_CONVERSION
+	cfg.eventCfg.barInterval = __builtin_bswap16(cfg.eventCfg.barInterval);
+	cfg.eventCfg.summaryInterval = __builtin_bswap16(cfg.eventCfg.summaryInterval);
+#endif
 
 	memcpy((uint8*)cfg.eventCfg.companyName, g_triggerRecord.trec.client, COMPANY_NAME_STRING_SIZE - 2);
 	memcpy((uint8*)cfg.eventCfg.seismicOperator, g_triggerRecord.trec.oper, SEISMIC_OPERATOR_STRING_SIZE - 2);
@@ -202,6 +234,10 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 	cfg.eventCfg.acousticSensorCurrentCalDate = g_acousticSmartSensorMemory.currentCal.calDate;
 	cfg.eventCfg.acousticSensorFacility = g_acousticSmartSensorMemory.currentCal.calFacility;
 	cfg.eventCfg.acousticSensorInstrument = g_acousticSmartSensorMemory.currentCal.calInstrument;
+#if ENDIAN_CONVERSION
+	cfg.eventCfg.seismicSensorCurrentCalDate.year = __builtin_bswap16(cfg.eventCfg.seismicSensorCurrentCalDate.year);
+	cfg.eventCfg.acousticSensorCurrentCalDate.year = __builtin_bswap16(cfg.eventCfg.acousticSensorCurrentCalDate.year);
+#endif
 
 	cfg.autoCfg.autoMonitorMode = g_unitConfig.autoMonitorMode;
 	cfg.autoCfg.autoCalMode = g_unitConfig.autoCalMode;
@@ -222,6 +258,13 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 	cfg.alarmCfg.alarmOneAirLevel = g_unitConfig.alarmOneAirLevel;
 	cfg.alarmCfg.alarmOneAirMinLevel = g_unitConfig.alarmOneAirLevel;
 	cfg.alarmCfg.alarmOneTime = (uint32)(g_unitConfig.alarmOneTime * (float)100.0);
+#if ENDIAN_CONVERSION
+	cfg.alarmCfg.alarmOneSeismicLevel = __builtin_bswap32(cfg.alarmCfg.alarmOneSeismicLevel);
+	cfg.alarmCfg.alarmOneSeismicMinLevel = __builtin_bswap32(cfg.alarmCfg.alarmOneSeismicMinLevel);
+	cfg.alarmCfg.alarmOneAirLevel = __builtin_bswap32(cfg.alarmCfg.alarmOneAirLevel);
+	cfg.alarmCfg.alarmOneAirMinLevel = __builtin_bswap32(cfg.alarmCfg.alarmOneAirMinLevel);
+	cfg.alarmCfg.alarmOneTime = __builtin_bswap32(cfg.alarmCfg.alarmOneTime);
+#endif
 
 	cfg.alarmCfg.alarmTwoMode = g_unitConfig.alarmTwoMode;
 	cfg.alarmCfg.alarmTwoSeismicLevel = g_unitConfig.alarmTwoSeismicLevel;
@@ -229,10 +272,20 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 	cfg.alarmCfg.alarmTwoAirLevel = g_unitConfig.alarmTwoAirLevel;
 	cfg.alarmCfg.alarmTwoAirMinLevel = g_unitConfig.alarmTwoAirLevel;
 	cfg.alarmCfg.alarmTwoTime = (uint32)(g_unitConfig.alarmTwoTime * (float)100.0);
+#if ENDIAN_CONVERSION
+	cfg.alarmCfg.alarmTwoSeismicLevel = __builtin_bswap32(cfg.alarmCfg.alarmTwoSeismicLevel);
+	cfg.alarmCfg.alarmTwoSeismicMinLevel = __builtin_bswap32(cfg.alarmCfg.alarmTwoSeismicMinLevel);
+	cfg.alarmCfg.alarmTwoAirLevel = __builtin_bswap32(cfg.alarmCfg.alarmTwoAirLevel);
+	cfg.alarmCfg.alarmTwoAirMinLevel = __builtin_bswap32(cfg.alarmCfg.alarmTwoAirMinLevel);
+	cfg.alarmCfg.alarmTwoTime = __builtin_bswap32(cfg.alarmCfg.alarmTwoTime);
+#endif
 
 	cfg.alarmCfg.legacyDqmLimit = g_unitConfig.legacyDqmLimit;
 	cfg.alarmCfg.storedEventsCapMode = g_unitConfig.storedEventsCapMode;
 	cfg.alarmCfg.storedEventLimit = g_unitConfig.storedEventLimit;
+#if ENDIAN_CONVERSION
+	cfg.alarmCfg.storedEventLimit = __builtin_bswap16(cfg.alarmCfg.storedEventLimit);
+#endif
 
 	cfg.timerCfg.timerMode = g_unitConfig.timerMode;
 	cfg.timerCfg.timerModeFrequency = g_unitConfig.timerModeFrequency;
@@ -267,16 +320,30 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 #endif
 
 	cfg.batteryLevel = (uint16)(100.0 * GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
+#if ENDIAN_CONVERSION
+	cfg.batteryLevel = __builtin_bswap16(cfg.batteryLevel);
+#endif
 
 	// Add in Factory Setup Calibration Date, GPS location and UTC time overriding the A/D channel info section which is unused for DCM
 	channelOverridePtr = (uint8*)&cfg.eventCfg.channel[0];
 	memcpy(channelOverridePtr, &g_factorySetupRecord.calDate, sizeof(g_factorySetupRecord.calDate));
+#if ENDIAN_CONVERSION
+	CALIBRATION_DATE_STRUCT* tempDatePtr = (CALIBRATION_DATE_STRUCT*) channelOverridePtr;
+	tempDatePtr->year = __builtin_bswap16(tempDatePtr->year);
+#endif
 	channelOverridePtr += sizeof(g_factorySetupRecord.calDate);
 
 	if (GET_HARDWARE_ID == HARDWARE_ID_REV_8_WITH_GPS_MOD)
 	{
 		memcpy(channelOverridePtr, &g_gpsPosition, sizeof(g_gpsPosition));
 	}
+#if ENDIAN_CONVERSION
+	GPS_POSITION* tempGpsPtr = (GPS_POSITION*)channelOverridePtr;
+	tempGpsPtr->latSeconds = __builtin_bswap16(tempGpsPtr->latSeconds);
+	tempGpsPtr->longSeconds = __builtin_bswap16(tempGpsPtr->longSeconds);
+	tempGpsPtr->altitude = __builtin_bswap16(tempGpsPtr->altitude);
+	tempGpsPtr->utcYear = __builtin_bswap16(tempGpsPtr->utcYear);
+#endif
 
 	// Spare fields, just use as a data marker
 	cfg.unused[0] = 0x0A;
@@ -306,6 +373,9 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 	ModemPuts((uint8*)&cfg, sizeof(SYSTEM_CFG), g_binaryXferFlag);
 
 	// Ending Footer
+#if ENDIAN_CONVERSION
+	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
 	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 }
@@ -355,6 +425,9 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		}		
 
 		// Check if the SuperGraphics version is non-zero suggesting that it's a version that supports sending back CRC
+#if ENDIAN_CONVERSION
+		cfg.sgVersion = __builtin_bswap16(cfg.sgVersion);
+#endif
 		if (cfg.sgVersion)
 		{
 			// Get the CRC value from the data stream
@@ -463,6 +536,9 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		//---------------------------------------------------------------------------
 		// Distance to source check, cfg is in uint32 format not float.
 		//---------------------------------------------------------------------------
+#if ENDIAN_CONVERSION
+		cfg.eventCfg.distToSource = __builtin_bswap32(cfg.eventCfg.distToSource);
+#endif
 		if (cfg.eventCfg.distToSource > (uint32)(DISTANCE_TO_SOURCE_MAX_VALUE * 100))
 		{
 			returnCode = CFG_ERR_DIST_TO_SRC;
@@ -476,6 +552,9 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		//---------------------------------------------------------------------------
 		// Weight per delay check, cfg is in uint32 format not float
 		//---------------------------------------------------------------------------
+#if ENDIAN_CONVERSION
+		cfg.eventCfg.weightPerDelay = __builtin_bswap32(cfg.eventCfg.weightPerDelay);
+#endif
 		if (cfg.eventCfg.weightPerDelay > (uint32)(WEIGHT_PER_DELAY_MAX_VALUE * 100))
 		{
 			returnCode = CFG_ERR_WEIGHT_DELAY;
@@ -524,6 +603,9 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		//---------------------------------------------------------------------------
 		// Seismic Trigger Level check
 		//---------------------------------------------------------------------------
+#if ENDIAN_CONVERSION
+		cfg.eventCfg.seismicTriggerLevel = __builtin_bswap32(cfg.eventCfg.seismicTriggerLevel);
+#endif
 		if ((MANUAL_TRIGGER_CHAR == cfg.eventCfg.seismicTriggerLevel) || (NO_TRIGGER_CHAR == cfg.eventCfg.seismicTriggerLevel) ||
 			((cfg.eventCfg.seismicTriggerLevel >= SEISMIC_TRIGGER_MIN_VALUE) && (cfg.eventCfg.seismicTriggerLevel <= SEISMIC_TRIGGER_MAX_VALUE)))
 		{
@@ -575,6 +657,9 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		//---------------------------------------------------------------------------
 		// Sample Rate check
 		//---------------------------------------------------------------------------
+#if ENDIAN_CONVERSION
+		cfg.eventCfg.sampleRate = __builtin_bswap16(cfg.eventCfg.sampleRate);
+#endif
 		if ((SAMPLE_RATE_1K == cfg.eventCfg.sampleRate) || (SAMPLE_RATE_2K == cfg.eventCfg.sampleRate) || (SAMPLE_RATE_4K == cfg.eventCfg.sampleRate) ||
 			(SAMPLE_RATE_8K == cfg.eventCfg.sampleRate) || (SAMPLE_RATE_16K == cfg.eventCfg.sampleRate))
 		{
@@ -625,6 +710,9 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		// Air Trigger Level check (Changed Air trigger min check to allow 92 and 93 dB settings which are below normal minimum)
 		//---------------------------------------------------------------------------
 		// Check if the Air trigger level is within bounds, which is slighly different if the standard 148 dB mic is selected which uses a lower threshold
+#if ENDIAN_CONVERSION
+		cfg.eventCfg.airTriggerLevel = __builtin_bswap32(cfg.eventCfg.airTriggerLevel);
+#endif
 		if ((MANUAL_TRIGGER_CHAR == cfg.eventCfg.airTriggerLevel) || (NO_TRIGGER_CHAR == cfg.eventCfg.airTriggerLevel) ||
 			((cfg.eventCfg.airTriggerLevel >= ((g_factorySetupRecord.acousticSensorType != SENSOR_MIC_148_DB) ? AIR_TRIGGER_MIN_COUNT_REMOTE_CONFIG : AIR_TRIGGER_MIN_COUNT_REMOTE_CONFIG_SPECIAL_92_DB)) &&
 			(cfg.eventCfg.airTriggerLevel <= (uint32)AIR_TRIGGER_MAX_COUNT)))
@@ -650,6 +738,9 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 				((g_triggerRecord.trec.sample_rate / MIN_SAMPLE_RATE) * MAX_CAL_SAMPLES * NUMBER_OF_CHANNELS_DEFAULT)) / 
 				(g_triggerRecord.trec.sample_rate * NUMBER_OF_CHANNELS_DEFAULT))));
 
+#if ENDIAN_CONVERSION
+		cfg.eventCfg.recordTime = __builtin_bswap32(cfg.eventCfg.recordTime);
+#endif
 		if ((cfg.eventCfg.recordTime >= 1) && (cfg.eventCfg.recordTime <= maxRecordTime))
 		{
 			g_triggerRecord.trec.record_time = cfg.eventCfg.recordTime;
@@ -663,6 +754,9 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		//---------------------------------------------------------------------------
 		// Bar Interval Level check
 		//---------------------------------------------------------------------------
+#if ENDIAN_CONVERSION
+		cfg.eventCfg.barInterval = __builtin_bswap16(cfg.eventCfg.barInterval);
+#endif
 		switch (cfg.eventCfg.barInterval)
 		{
 			case ONE_SEC_PRD: 
@@ -684,6 +778,9 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		//---------------------------------------------------------------------------
 		// Bar Interval Level check
 		//---------------------------------------------------------------------------
+#if ENDIAN_CONVERSION
+		cfg.eventCfg.summaryInterval = __builtin_bswap16(cfg.eventCfg.summaryInterval);
+#endif
 		switch (cfg.eventCfg.summaryInterval)
 		{
 			case FIVE_MINUTE_INTVL:
@@ -976,6 +1073,13 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		}
 		else
 		{
+#if ENDIAN_CONVERSION
+			cfg.alarmCfg.alarmOneSeismicLevel = __builtin_bswap32(cfg.alarmCfg.alarmOneSeismicLevel);
+			cfg.alarmCfg.alarmOneSeismicMinLevel = __builtin_bswap32(cfg.alarmCfg.alarmOneSeismicMinLevel);
+			cfg.alarmCfg.alarmOneAirLevel = __builtin_bswap32(cfg.alarmCfg.alarmOneAirLevel);
+			cfg.alarmCfg.alarmOneAirMinLevel = __builtin_bswap32(cfg.alarmCfg.alarmOneAirMinLevel);
+			cfg.alarmCfg.alarmOneTime = __builtin_bswap32(cfg.alarmCfg.alarmOneTime);
+#endif
 			// Alarm One mode
 			switch (cfg.alarmCfg.alarmOneMode)
 			{
@@ -1071,6 +1175,13 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		}
 		else
 		{
+#if ENDIAN_CONVERSION
+			cfg.alarmCfg.alarmTwoSeismicLevel = __builtin_bswap32(cfg.alarmCfg.alarmTwoSeismicLevel);
+			cfg.alarmCfg.alarmTwoSeismicMinLevel = __builtin_bswap32(cfg.alarmCfg.alarmTwoSeismicMinLevel);
+			cfg.alarmCfg.alarmTwoAirLevel = __builtin_bswap32(cfg.alarmCfg.alarmTwoAirLevel);
+			cfg.alarmCfg.alarmTwoAirMinLevel = __builtin_bswap32(cfg.alarmCfg.alarmTwoAirMinLevel);
+			cfg.alarmCfg.alarmTwoTime = __builtin_bswap32(cfg.alarmCfg.alarmTwoTime);
+#endif
 			// Alarm Two mode
 			switch (cfg.alarmCfg.alarmTwoMode)
 			{
@@ -1170,6 +1281,9 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		//---------------------------------------------------------------------------
 		if (cfg.alarmCfg.storedEventsCapMode == ENABLED)
 		{
+#if ENDIAN_CONVERSION
+			cfg.alarmCfg.storedEventLimit = __builtin_bswap16(cfg.alarmCfg.storedEventLimit);
+#endif
 			if ((cfg.alarmCfg.storedEventLimit >= STORED_EVENT_LIMIT_MIN_VALUE) && (cfg.alarmCfg.storedEventLimit <= STORED_EVENT_LIMIT_MAX_VALUE))
 			{
 				g_unitConfig.storedEventsCapMode = ENABLED;
@@ -1293,6 +1407,7 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		//---------------------------------------------------------------------------
 		// Check if the Supergraphics
 		//---------------------------------------------------------------------------
+		// Endian conversion happens in first reference above (if enabled)
 		if (cfg.sgVersion)
 		{
 			if ((cfg.flashWrapping == NO) || (cfg.flashWrapping == YES))
@@ -1340,6 +1455,9 @@ SEND_UCM_ERROR_CODE:
 
 	// -------------------------------------
 	// Return codes
+#if ENDIAN_CONVERSION
+	returnCode = __builtin_bswap32(returnCode);
+#endif
 	sprintf((char*)msgTypeStr, "%02lu", returnCode);
 	BuildOutgoingSimpleHeaderBuffer((uint8*)ucmHdr, (uint8*)"UCMx",
 		(uint8*)msgTypeStr, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);	
@@ -1354,6 +1472,9 @@ SEND_UCM_ERROR_CODE:
 	ModemPuts((uint8*)&ucmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
 
 	// Send Ending Footer
+#if ENDIAN_CONVERSION
+	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
 	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 

@@ -265,6 +265,9 @@ void MoveWaveformEventToFile(void)
 						OverlayMessage(getLangText(EVENT_COMPLETE_TEXT), (char*)g_spareBuffer, 0);
 					}
 
+#if ENDIAN_CONVERSION
+					EndianSwapEventRecord(&g_pendingEventRecord);
+#endif
 					// Write the event record header and summary
 					f_write(&file, &g_pendingEventRecord, sizeof(EVT_RECORD), (UINT*)&bytesWritten);
 
@@ -275,6 +278,10 @@ void MoveWaveformEventToFile(void)
 
 					remainingDataLength = (g_wordSizeInEvent * 2);
 					tempDataPtr = g_currentEventStartPtr;
+
+#if ENDIAN_CONVERSION
+					EndianSwapDataX16(tempDataPtr, remainingDataLength);
+#endif
 
 #if 0 /* Bypassing chunk write since new filesystem should not have a 16K size limit */
 					while (remainingDataLength)

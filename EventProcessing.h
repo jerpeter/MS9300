@@ -154,4 +154,8 @@ void ClearEventListCache(void);
 // Custom function to set the file timestamp
 uint32_t SetFileTimestamp(char* filename);
 
+// Endian swap conversions
+void EndianSwapDataX16(uint16_t* data, uint32_t dataLength);
+void EndianSwapEventRecord(EVT_RECORD* evtRec);
+
 #endif // _FLASHEVTS_H_

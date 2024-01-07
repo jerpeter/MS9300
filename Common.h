@@ -88,6 +88,8 @@ enum {
 	BACKUP_MODE
 };
 
+#define ENDIAN_CONVERSION	1
+
 typedef struct
 {
 	uint8 year;
