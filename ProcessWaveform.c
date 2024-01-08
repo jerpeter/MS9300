@@ -266,11 +266,16 @@ void MoveWaveformEventToFile(void)
 					}
 
 #if ENDIAN_CONVERSION
+					// Swap event record to Big Endian for event file
 					EndianSwapEventRecord(&g_pendingEventRecord);
 #endif
 					// Write the event record header and summary
 					f_write(&file, &g_pendingEventRecord, sizeof(EVT_RECORD), (UINT*)&bytesWritten);
 
+#if ENDIAN_CONVERSION
+					// Swap event record back to Litte Endian, since cached event record is referenced again below
+					EndianSwapEventRecord(&g_pendingEventRecord);
+#endif
 					if (bytesWritten != sizeof(EVT_RECORD))
 					{
 						debugErr("Waveform Event Record written size incorrect (%d)\r\n", bytesWritten);
@@ -280,6 +285,7 @@ void MoveWaveformEventToFile(void)
 					tempDataPtr = g_currentEventStartPtr;
 
 #if ENDIAN_CONVERSION
+					// Swap data to Big Endian for event file
 					EndianSwapDataX16(tempDataPtr, remainingDataLength);
 #endif
 

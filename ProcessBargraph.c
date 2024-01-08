@@ -109,6 +109,9 @@ void MoveBarIntervalDataToFile(void)
 		{
 			while (g_bargraphBarIntervalsCached)
 			{
+#if ENDIAN_CONVERSION
+				EndianSwapBarInterval(g_bargraphBarIntervalReadPtr, g_pendingBargraphRecord.summary.parameters.barIntervalDataType);
+#endif
 				// New BI with options
 				if (g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE)
 				{
@@ -201,6 +204,9 @@ void MoveSummaryIntervalDataToFile(void)
 		// Write any cached bar intervals before storing the summary interval (may not match with bar interval write threshold)
 		while (g_bargraphBarIntervalsCached)
 		{
+#if ENDIAN_CONVERSION
+			EndianSwapBarInterval(g_bargraphBarIntervalReadPtr, g_pendingBargraphRecord.summary.parameters.barIntervalDataType);
+#endif
 			// New BI with options
 			if (g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE)
 			{
@@ -222,7 +228,15 @@ void MoveSummaryIntervalDataToFile(void)
 			g_bargraphBarIntervalsCached--;
 		}
 
+#if ENDIAN_CONVERSION
+		// Swap Summary Interval to Big Endian for event file
+		EndianSwapCalculatedDataStruct(&g_bargraphSummaryInterval);
+#endif
 		f_write(&file, &g_bargraphSummaryInterval, sizeof(CALCULATED_DATA_STRUCT), (UINT*)&bytesWritten);
+#if ENDIAN_CONVERSION
+		// Swap Summary Interval back to Litte Endian, since cached SI is referenced again
+		EndianSwapCalculatedDataStruct(&g_bargraphSummaryInterval);
+#endif
 
 		g_pendingBargraphRecord.header.dataLength += sizeof(CALCULATED_DATA_STRUCT);
 
@@ -1076,8 +1090,16 @@ void MoveStartOfBargraphEventRecordToFile(void)
 	}
 	else // File created, write out the event
 	{
+#if ENDIAN_CONVERSION
+		// Swap event record to Big Endian for event file
+		EndianSwapEventRecord(&g_pendingBargraphRecord);
+#endif
 		// Write in the current but unfinished event record to provide an offset to start writing in the data
 		f_write(&file, &g_pendingBargraphRecord, sizeof(EVT_RECORD), (UINT*)&bytesWritten);
+#if ENDIAN_CONVERSION
+		// Swap event record back to Litte Endian, since cached event record is referenced again
+		EndianSwapEventRecord(&g_pendingBargraphRecord);
+#endif
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 		f_close(&file);
 		SetFileTimestamp(g_spareFileName);
@@ -1151,9 +1173,16 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 		// Make sure at the beginning of the file
 		f_lseek(&file, 0);
 
+#if ENDIAN_CONVERSION
+		// Swap event record to Big Endian for event file
+		EndianSwapEventRecord(&g_pendingBargraphRecord);
+#endif
 		// Rewrite the event record
 		f_write(&file, &g_pendingBargraphRecord, sizeof(EVT_RECORD), (UINT*)&bytesMoved);
-
+#if ENDIAN_CONVERSION
+		// Swap event record back to Litte Endian, since cached event record is referenced again
+		EndianSwapEventRecord(&g_pendingBargraphRecord);
+#endif
 		// Setup for saving data compressed (if Bargraph session is complete)
 		if (status == BARPGRAPH_SESSION_COMPLETE)
 		{

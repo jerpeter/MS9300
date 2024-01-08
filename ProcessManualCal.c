@@ -172,9 +172,20 @@ void MoveManualCalToFile(void)
 					g_pendingEventRecord.summary.eventNumber, getLangText(BEING_SAVED_TEXT));
 			OverlayMessage(getLangText(EVENT_COMPLETE_TEXT), (char*)g_spareBuffer, 0);
 
+#if ENDIAN_CONVERSION
+			// Swap event record to Big Endian for event file
+			EndianSwapEventRecord(&g_pendingEventRecord);
+#endif
 			// Write the event record header and summary
 			f_write(&file, &g_pendingEventRecord, sizeof(EVT_RECORD), (UINT*)&bytesWritten);
-
+#if ENDIAN_CONVERSION
+			// Swap event record back to Litte Endian, since cached event record is referenced again below
+			EndianSwapEventRecord(&g_pendingEventRecord);
+#endif
+#if ENDIAN_CONVERSION
+			// Swap data to Big Endian for event file
+			EndianSwapDataX16(g_currentEventStartPtr, (g_wordSizeInCal * 2));
+#endif
 			// Write the event data, containing the Pretrigger, event and cal
 			f_write(&file, g_currentEventStartPtr, (g_wordSizeInCal * 2), (UINT*)&bytesWritten);
 

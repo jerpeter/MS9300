@@ -482,8 +482,16 @@ void AddEventToSummaryList(EVT_RECORD* event)
 	}
 	else // File successfully created or opened
 	{
+#if ENDIAN_CONVERSION
+		// Swap summary list entry to Big Endian for summary list file
+		EndianSwapSummaryListStruct(&g_summaryList.cachedEntry);
+#endif
 		// FA_OPEN_APPEND should set write pointer to the end
 		f_write(&file, &g_summaryList.cachedEntry, sizeof(SUMMARY_LIST_ENTRY_STRUCT), (UINT*)&writeSize);
+#if ENDIAN_CONVERSION
+		// Swap summary list entry to Litte Endian, since cached entry can be referenced again
+		EndianSwapSummaryListStruct(&g_summaryList.cachedEntry);
+#endif
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 		f_close(&file);
 
@@ -705,6 +713,15 @@ void ParseAndCountSummaryListEntriesWithRewrite(void)
 		// Reset to the marked rewrite location of the summary list file
 		f_lseek(&file, startRewriteFileLocation);
 
+#if ENDIAN_CONVERSION
+		rewriteSummaryListEntryCachePtr = (SUMMARY_LIST_ENTRY_STRUCT*)&g_eventDataBuffer[0];
+		for (uint16 i = 0; i < displacedEntries; i++)
+		{
+			// Swap summary list entry to Big Endian for summary list file
+			EndianSwapSummaryListStruct(rewriteSummaryListEntryCachePtr);
+			rewriteSummaryListEntryCachePtr++;
+		}
+#endif
 		// Re-write the summary list minus the deleted entries
 		f_write(&file, &g_eventDataBuffer[0], (displacedEntries * sizeof(SUMMARY_LIST_ENTRY_STRUCT)), (UINT*)&rwSize);
 
@@ -2379,6 +2396,28 @@ void EndianSwapDataX16(uint16_t* data, uint32_t dataLength)
 ///----------------------------------------------------------------------------
 void EndianSwapEventRecord(EVT_RECORD* evtRec)
 {
+	/*
+		// Swap all word and longs in event record
+
+		(Header) uint16 startFlag, uint16 recordVersion, uint16 headerLength, uint16 summaryLength, uint32 dataLength, uint16 dataCompression, uint16 summaryChecksum,
+		uint16 dataChecksum, uint16 unused1, uint16 unused2, uint16 unused3 (11 elements)
+
+		(Summary, Parameters) uint32 distToSource, uint32 weightPerDelay, uint16 sampleRate, uint16 seismicSensorType, uint16 airSensorType, uint32 seismicTriggerLevel,
+		uint32 airTriggerLevel,	uint32 recordTime, uint16 numOfSamples, uint16 preBuffNumOfSamples, uint16 calDataNumOfSamples, uint16 barInterval, uint16 summaryInterval,
+		uint32 seismicTriggerInUnits, uint32 airTriggerInUnits, uint16 seismicSensorCurrentCalDate.year, uint16 acousticSensorCurrentCalDate.year (17 elements)
+
+		(Summary, Captured) uint32 batteryLevel, uint16 comboEventsRecordedDuringSession, uint16 comboEventsRecordedStartNumber, uint16 comboEventsRecordedEndNumber,
+		uint16 comboBargraphEventNumberLink, uint32 gpsEpochTriggerTime, uint32 gpsFractionalSecond (7 elements)
+
+		(Summary, Calculated) uint16 a.peak, uint16 a.frequency, uint32 a.displacement, uint32 a.acceleration, uint16 r.peak, uint16 r.frequency, uint32 r.displacement,
+		uint32 r.acceleration, uint16 v.peak, uint16 v.frequency, uint32 v.displacement, uint32 v.acceleration, uint16 t.peak, uint16 t.frequency, uint32 t.displacement,
+		uint32 t.acceleration,  uint16 bargraphEffectiveSampleRate, uint16 unused1, uint32 unused2, uint32 unused3, uint32 vectorSumPeak, uint32 batteryLevel,
+		uint32 barIntervalsCaptured, uint16 summariesCaptured, uint16 gpsPosition.latSeconds, uint16 gpsPosition.longSeconds, uint16 gpsPosition.altitude,
+		uint16 gpsPosition.utcYear, uint32 calcStructEndFlag (29 elements)
+
+		(Summary) uint16 eventNumber (1 element)
+	*/
+
 	evtRec->header.startFlag = __builtin_bswap16(evtRec->header.startFlag);
 	evtRec->header.recordVersion = __builtin_bswap16(evtRec->header.recordVersion);
 	evtRec->header.headerLength = __builtin_bswap16(evtRec->header.headerLength);
@@ -2390,66 +2429,173 @@ void EndianSwapEventRecord(EVT_RECORD* evtRec)
 	evtRec->header.unused1 = __builtin_bswap16(evtRec->header.unused1);
 	evtRec->header.unused2 = __builtin_bswap16(evtRec->header.unused2);
 	evtRec->header.unused3 = __builtin_bswap16(evtRec->header.unused3);
-/*
-	uint16 startFlag; // 0x0 (from 0xA55A)
-	uint16 recordVersion; // 0x2 (from 0xA55A)
-	uint16 headerLength; // 0x4 (from 0xA55A)
-	uint16 summaryLength; // 0x6 (from 0xA55A)
-	uint32 dataLength; // 0x8 (from 0xA55A)
-	uint16 dataCompression; // 0xC (from 0xA55A)
-	uint16 summaryChecksum; // 0xE (from 0xA55A)
-	uint16 dataChecksum; // 0x10 (from 0xA55A)
-	uint16 unused1; // 0x12 (from 0xA55A)
-	uint16 unused2; // 0x14 (from 0xA55A)
-	uint16 unused3; // 0x16 (from 0xA55A)
-	uint32	distToSource; // 0x5C (from 0xA55A)
-	uint32	weightPerDelay; // 0x60 (from 0xA55A)
-	uint16	sampleRate; // 0x64 (from 0xA55A)
-	uint16	seismicSensorType; // 0x66 (from 0xA55A)
-	uint16	airSensorType; // 0x68 (from 0xA55A)
-	uint32	seismicTriggerLevel; // 0x90 (from 0xA55A)
-	uint32	airTriggerLevel; // 0x94 (from 0xA55A)
-	uint32	recordTime; // 0x98 (from 0xA55A)
-	uint16	numOfSamples; // 0x9C (from 0xA55A)
-	uint16	preBuffNumOfSamples; // 0x9E (from 0xA55A)
-	uint16	calDataNumOfSamples; // 0xA0 (from 0xA55A)
-	uint16	barInterval; // 0xA2 (from 0xA55A)
-	uint16	summaryInterval; // 0xA4 (from 0xA55A)
-	uint32	seismicTriggerInUnits; // 0x170 (from 0xA55A)
-	uint32	airTriggerInUnits; // 0x174 (from 0xA55A)
-	CALIBRATION_DATE_STRUCT seismicSensorCurrentCalDate; // 0x17E (from 0xA55A)
-	CALIBRATION_DATE_STRUCT acousticSensorCurrentCalDate; // 0x18A (from 0xA55A)
-	uint32				batteryLevel; // 0x1A0 (from 0xA55A) // Battery Level
-	uint16				comboEventsRecordedDuringSession; // 0x1A6 (from 0xA55A) // C-Wave events during C-Bar session
-	uint16				comboEventsRecordedStartNumber; // 0x1C0 (from 0xA55A)
-	uint16				comboEventsRecordedEndNumber; // 0x1C2 (from 0xA55A)
-	uint16				comboBargraphEventNumberLink; // 0x1C4 (from 0xA55A)
-	time_t				gpsEpochTriggerTime; // 0x1C8 (from 0xA55A)
-	uint32				gpsFractionalSecond; // 0x1CC (from 0xA55A)
-	CHANNEL_CALCULATED_DATA_STRUCT a; // 0x1D4 (from 0xA55A), 0x0 (from struct start)
-	CHANNEL_CALCULATED_DATA_STRUCT r; // 0x1E0 (from 0xA55A), 0xC (from struct start)
-	CHANNEL_CALCULATED_DATA_STRUCT v; // 0x1EC (from 0xA55A), 0x18 (from struct start)
-	CHANNEL_CALCULATED_DATA_STRUCT t; // 0x1F8 (from 0xA55A), 0x24 (from struct start)
-		uint16 peak; // Max peak, kept in raw A/D value (not in units of measurement)
-		uint16 frequency; // The count for a period (frequency will later be calculated from this)
-		uint32 displacement; // Peak Displacement = Peak / (2 * PI * Freq)
-		uint32 acceleration; // Peak Acceleration = 2 * PI * Peak * Freq / 386.4 in/sec^2 (9814.6 mm/sec^2)
-	uint16 bargraphEffectiveSampleRate;
-	uint16 unused1;
-	uint32 unused2;
-	uint32 unused3;
-	uint32 vectorSumPeak; // 0x210 (from 0xA55A), 0x3C (from struct start)
-	uint32 batteryLevel; // 0x25C (from 0xA55A), 0x88 (from struct start)
-	uint32 barIntervalsCaptured; // 0x260 (from 0xA55A), 0x8C (from struct start)
-	uint16 summariesCaptured; // 0x264 (from 0xA55A), 0x90 (from struct start)
-	GPS_POSITION		gpsPosition; // 0x266 (from 0xA55A) // 0x92 (from struct start)
-		uint16 latSeconds;
-		uint16 longSeconds;
-		int16 altitude;
-		uint16 utcYear;
-	uint32 calcStructEndFlag; // 0x29C (from 0xA55A), 0xC8 (from struct start)
-	uint16 					eventNumber; // 0x2A0 (from 0xA55A)
-*/
+
+	evtRec->summary.parameters.distToSource = __builtin_bswap32(evtRec->summary.parameters.distToSource);
+	evtRec->summary.parameters.weightPerDelay = __builtin_bswap32(evtRec->summary.parameters.weightPerDelay);
+	evtRec->summary.parameters.sampleRate = __builtin_bswap16(evtRec->summary.parameters.sampleRate);
+	evtRec->summary.parameters.seismicSensorType = __builtin_bswap16(evtRec->summary.parameters.seismicSensorType);
+	evtRec->summary.parameters.airSensorType = __builtin_bswap16(evtRec->summary.parameters.airSensorType);
+	evtRec->summary.parameters.seismicTriggerLevel = __builtin_bswap32(evtRec->summary.parameters.seismicTriggerLevel);
+	evtRec->summary.parameters.airTriggerLevel = __builtin_bswap32(evtRec->summary.parameters.airTriggerLevel);
+	evtRec->summary.parameters.recordTime = __builtin_bswap32(evtRec->summary.parameters.recordTime);
+	evtRec->summary.parameters.numOfSamples = __builtin_bswap16(evtRec->summary.parameters.numOfSamples);
+	evtRec->summary.parameters.preBuffNumOfSamples = __builtin_bswap16(evtRec->summary.parameters.preBuffNumOfSamples);
+	evtRec->summary.parameters.calDataNumOfSamples = __builtin_bswap16(evtRec->summary.parameters.calDataNumOfSamples);
+	evtRec->summary.parameters.barInterval = __builtin_bswap16(evtRec->summary.parameters.barInterval);
+	evtRec->summary.parameters.summaryInterval = __builtin_bswap16(evtRec->summary.parameters.summaryInterval);
+	evtRec->summary.parameters.seismicTriggerInUnits = __builtin_bswap32(evtRec->summary.parameters.seismicTriggerInUnits);
+	evtRec->summary.parameters.airTriggerInUnits = __builtin_bswap32(evtRec->summary.parameters.airTriggerInUnits);
+	evtRec->summary.parameters.seismicSensorCurrentCalDate.year = __builtin_bswap16(evtRec->summary.parameters.seismicSensorCurrentCalDate.year);
+	evtRec->summary.parameters.acousticSensorCurrentCalDate.year = __builtin_bswap16(evtRec->summary.parameters.acousticSensorCurrentCalDate.year);
+
+	evtRec->summary.captured.batteryLevel = __builtin_bswap32(evtRec->summary.captured.batteryLevel);
+	evtRec->summary.captured.comboEventsRecordedDuringSession = __builtin_bswap16(evtRec->summary.captured.comboEventsRecordedDuringSession);
+	evtRec->summary.captured.comboEventsRecordedStartNumber = __builtin_bswap16(evtRec->summary.captured.comboEventsRecordedStartNumber);
+	evtRec->summary.captured.comboEventsRecordedEndNumber = __builtin_bswap16(evtRec->summary.captured.comboEventsRecordedEndNumber);
+	evtRec->summary.captured.comboBargraphEventNumberLink = __builtin_bswap16(evtRec->summary.captured.comboBargraphEventNumberLink);
+	evtRec->summary.captured.gpsEpochTriggerTime = __builtin_bswap32(evtRec->summary.captured.gpsEpochTriggerTime);
+	evtRec->summary.captured.gpsFractionalSecond = __builtin_bswap32(evtRec->summary.captured.gpsFractionalSecond);
+
+#if 0 /* Direct reference */
+	evtRec->summary.calculated.a.peak = __builtin_bswap16(evtRec->summary.calculated.a.peak);
+	evtRec->summary.calculated.a.frequency = __builtin_bswap16(evtRec->summary.calculated.a.frequency);
+	evtRec->summary.calculated.a.displacement = __builtin_bswap32(evtRec->summary.calculated.a.displacement);
+	evtRec->summary.calculated.a.acceleration = __builtin_bswap32(evtRec->summary.calculated.a.acceleration);
+	evtRec->summary.calculated.r.peak = __builtin_bswap16(evtRec->summary.calculated.r.peak);
+	evtRec->summary.calculated.r.frequency = __builtin_bswap16(evtRec->summary.calculated.r.frequency);
+	evtRec->summary.calculated.r.displacement = __builtin_bswap32(evtRec->summary.calculated.r.displacement);
+	evtRec->summary.calculated.r.acceleration = __builtin_bswap32(evtRec->summary.calculated.r.acceleration);
+	evtRec->summary.calculated.v.peak = __builtin_bswap16(evtRec->summary.calculated.v.peak);
+	evtRec->summary.calculated.v.frequency = __builtin_bswap16(evtRec->summary.calculated.v.frequency);
+	evtRec->summary.calculated.v.displacement = __builtin_bswap32(evtRec->summary.calculated.v.displacement);
+	evtRec->summary.calculated.v.acceleration = __builtin_bswap32(evtRec->summary.calculated.v.acceleration);
+	evtRec->summary.calculated.t.peak = __builtin_bswap16(evtRec->summary.calculated.t.peak);
+	evtRec->summary.calculated.t.frequency = __builtin_bswap16(evtRec->summary.calculated.t.frequency);
+	evtRec->summary.calculated.t.displacement = __builtin_bswap32(evtRec->summary.calculated.t.displacement);
+	evtRec->summary.calculated.t.acceleration = __builtin_bswap32(evtRec->summary.calculated.t.acceleration);
+	evtRec->summary.calculated.bargraphEffectiveSampleRate = __builtin_bswap16(evtRec->summary.calculated.bargraphEffectiveSampleRate);
+	evtRec->summary.calculated.unused1 = __builtin_bswap16(evtRec->summary.calculated.unused1);
+	evtRec->summary.calculated.unused2 = __builtin_bswap32(evtRec->summary.calculated.unused2);
+	evtRec->summary.calculated.unused3 = __builtin_bswap32(evtRec->summary.calculated.unused3);
+	evtRec->summary.calculated.vectorSumPeak = __builtin_bswap32(evtRec->summary.calculated.vectorSumPeak);
+	evtRec->summary.calculated.batteryLevel = __builtin_bswap32(evtRec->summary.calculated.batteryLevel);
+	evtRec->summary.calculated.barIntervalsCaptured = __builtin_bswap32(evtRec->summary.calculated.barIntervalsCaptured);
+	evtRec->summary.calculated.summariesCaptured = __builtin_bswap16(evtRec->summary.calculated.summariesCaptured);
+	evtRec->summary.calculated.gpsPosition.latSeconds = __builtin_bswap16(evtRec->summary.calculated.gpsPosition.latSeconds);
+	evtRec->summary.calculated.gpsPosition.longSeconds = __builtin_bswap16(evtRec->summary.calculated.gpsPosition.longSeconds);
+	evtRec->summary.calculated.gpsPosition.altitude = __builtin_bswap16(evtRec->summary.calculated.gpsPosition.altitude);
+	evtRec->summary.calculated.gpsPosition.utcYear = __builtin_bswap16(evtRec->summary.calculated.gpsPosition.utcYear);
+	evtRec->summary.calculated.calcStructEndFlag = __builtin_bswap32(evtRec->summary.calculated.calcStructEndFlag);
+#else /* Leverage Calculated Data swap funciton used for Sumamry Intervals */
+	EndianSwapCalculatedDataStruct(&(evtRec->summary.calculated));
+#endif
+
+	evtRec->summary.eventNumber = __builtin_bswap16(evtRec->summary.eventNumber);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void EndianSwapBarInterval(BARGRAPH_BAR_INTERVAL_DATA* biData, uint8_t biType)
+{
+	// Swap data to Big Endian
+	if (biType == BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE)
+	{
+		biData->aMax = __builtin_bswap16(biData->aMax);
+		biData->rvtMax = __builtin_bswap16(biData->rvtMax);
+		biData->vsMax = __builtin_bswap32(biData->vsMax);
+	}
+	else // New Bar Interval data type option, store A max, then R, V, T max, then A, R, V, T freq (if selected), and finally VS max
+	{
+		biData->rMax = __builtin_bswap16(biData->rMax);
+		biData->vMax = __builtin_bswap16(biData->vMax);
+		biData->tMax = __builtin_bswap16(biData->tMax);
+
+		if(biType == BAR_INTERVAL_A_R_V_T_WITH_FREQ_DATA_TYPE_SIZE)
+		{
+			biData->aFreq = __builtin_bswap16(biData->aFreq);
+			biData->rFreq = __builtin_bswap16(biData->rFreq);
+			biData->vFreq = __builtin_bswap16(biData->vFreq);
+			biData->tFreq = __builtin_bswap16(biData->tFreq);
+		}
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void EndianSwapCalculatedDataStruct(CALCULATED_DATA_STRUCT* calcData)
+{
+	calcData->a.peak = __builtin_bswap16(calcData->a.peak);
+	calcData->a.frequency = __builtin_bswap16(calcData->a.frequency);
+	calcData->a.displacement = __builtin_bswap32(calcData->a.displacement);
+	calcData->a.acceleration = __builtin_bswap32(calcData->a.acceleration);
+	calcData->r.peak = __builtin_bswap16(calcData->r.peak);
+	calcData->r.frequency = __builtin_bswap16(calcData->r.frequency);
+	calcData->r.displacement = __builtin_bswap32(calcData->r.displacement);
+	calcData->r.acceleration = __builtin_bswap32(calcData->r.acceleration);
+	calcData->v.peak = __builtin_bswap16(calcData->v.peak);
+	calcData->v.frequency = __builtin_bswap16(calcData->v.frequency);
+	calcData->v.displacement = __builtin_bswap32(calcData->v.displacement);
+	calcData->v.acceleration = __builtin_bswap32(calcData->v.acceleration);
+	calcData->t.peak = __builtin_bswap16(calcData->t.peak);
+	calcData->t.frequency = __builtin_bswap16(calcData->t.frequency);
+	calcData->t.displacement = __builtin_bswap32(calcData->t.displacement);
+	calcData->t.acceleration = __builtin_bswap32(calcData->t.acceleration);
+	calcData->bargraphEffectiveSampleRate = __builtin_bswap16(calcData->bargraphEffectiveSampleRate);
+	calcData->unused1 = __builtin_bswap16(calcData->unused1);
+	calcData->unused2 = __builtin_bswap32(calcData->unused2);
+	calcData->unused3 = __builtin_bswap32(calcData->unused3);
+	calcData->vectorSumPeak = __builtin_bswap32(calcData->vectorSumPeak);
+	calcData->batteryLevel = __builtin_bswap32(calcData->batteryLevel);
+	calcData->barIntervalsCaptured = __builtin_bswap32(calcData->barIntervalsCaptured);
+	calcData->summariesCaptured = __builtin_bswap16(calcData->summariesCaptured);
+	calcData->gpsPosition.latSeconds = __builtin_bswap16(calcData->gpsPosition.latSeconds);
+	calcData->gpsPosition.longSeconds = __builtin_bswap16(calcData->gpsPosition.longSeconds);
+	calcData->gpsPosition.altitude = __builtin_bswap16(calcData->gpsPosition.altitude);
+	calcData->gpsPosition.utcYear = __builtin_bswap16(calcData->gpsPosition.utcYear);
+	calcData->calcStructEndFlag = __builtin_bswap32(calcData->calcStructEndFlag);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void EndianSwapMonitorLogStruct(MONITOR_LOG_ENTRY_STRUCT* mlData)
+{
+	mlData->uniqueEntryId = __builtin_bswap16(mlData->uniqueEntryId);
+	mlData->eventsRecorded = __builtin_bswap16(mlData->eventsRecorded);
+	mlData->startEventNumber = __builtin_bswap16(mlData->startEventNumber);
+	mlData->seismicTriggerLevel = __builtin_bswap32(mlData->seismicTriggerLevel);
+	mlData->airTriggerLevel = __builtin_bswap32(mlData->airTriggerLevel);
+	mlData->seismicSensorType = __builtin_bswap16(mlData->seismicSensorType);
+	mlData->spare1 = __builtin_bswap16(mlData->spare1);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void EndianSwapSummaryListStruct(SUMMARY_LIST_ENTRY_STRUCT* slData)
+{
+	slData->eventNumber = __builtin_bswap16(slData->eventNumber);
+	slData->channelSummary.a.peak = __builtin_bswap16(slData->channelSummary.a.peak);
+	slData->channelSummary.a.frequency = __builtin_bswap16(slData->channelSummary.a.frequency);
+	slData->channelSummary.a.displacement = __builtin_bswap32(slData->channelSummary.a.displacement);
+	slData->channelSummary.a.acceleration = __builtin_bswap32(slData->channelSummary.a.acceleration);
+	slData->channelSummary.r.peak = __builtin_bswap16(slData->channelSummary.r.peak);
+	slData->channelSummary.r.frequency = __builtin_bswap16(slData->channelSummary.r.frequency);
+	slData->channelSummary.r.displacement = __builtin_bswap32(slData->channelSummary.r.displacement);
+	slData->channelSummary.r.acceleration = __builtin_bswap32(slData->channelSummary.r.acceleration);
+	slData->channelSummary.v.peak = __builtin_bswap16(slData->channelSummary.v.peak);
+	slData->channelSummary.v.frequency = __builtin_bswap16(slData->channelSummary.v.frequency);
+	slData->channelSummary.v.displacement = __builtin_bswap32(slData->channelSummary.v.displacement);
+	slData->channelSummary.v.acceleration = __builtin_bswap32(slData->channelSummary.v.acceleration);
+	slData->channelSummary.t.peak = __builtin_bswap16(slData->channelSummary.t.peak);
+	slData->channelSummary.t.frequency = __builtin_bswap16(slData->channelSummary.t.frequency);
+	slData->channelSummary.t.displacement = __builtin_bswap32(slData->channelSummary.t.displacement);
+	slData->channelSummary.t.acceleration = __builtin_bswap32(slData->channelSummary.t.acceleration);
+	slData->seismicSensorType = __builtin_bswap16(slData->seismicSensorType);
+	slData->sampleRate = __builtin_bswap16(slData->sampleRate);
+	slData->vectorSumPeak = __builtin_bswap32(slData->vectorSumPeak);
 }
 
 ///----------------------------------------------------------------------------

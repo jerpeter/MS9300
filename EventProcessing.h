@@ -12,6 +12,7 @@
 ///	Includes
 ///----------------------------------------------------------------------------
 #include "Summary.h"
+#include "Record.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -157,5 +158,9 @@ uint32_t SetFileTimestamp(char* filename);
 // Endian swap conversions
 void EndianSwapDataX16(uint16_t* data, uint32_t dataLength);
 void EndianSwapEventRecord(EVT_RECORD* evtRec);
+void EndianSwapBarInterval(BARGRAPH_BAR_INTERVAL_DATA* biData, uint8_t biType);
+void EndianSwapCalculatedDataStruct(CALCULATED_DATA_STRUCT* calcData);
+void EndianSwapMonitorLogStruct(MONITOR_LOG_ENTRY_STRUCT* mlData);
+void EndianSwapSummaryListStruct(SUMMARY_LIST_ENTRY_STRUCT* slData);
 
 #endif // _FLASHEVTS_H_

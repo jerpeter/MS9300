@@ -388,8 +388,15 @@ void AppendMonitorLogEntryFile(void)
 
 		debug("Writing Monitor log entry to log file...\r\n");
 
+#if ENDIAN_CONVERSION
+		// Swap Monitor Log entry to Big Endian for monitor log file
+		EndianSwapMonitorLogStruct(&(__monitorLogTbl[__monitorLogTblIndex]));
+#endif
 		f_write(&file, (uint8*)&(__monitorLogTbl[__monitorLogTblIndex]), sizeof(MONITOR_LOG_ENTRY_STRUCT), (UINT*)&writeSize);
-
+#if ENDIAN_CONVERSION
+		// Swap Monitor Log entry back to Litte Endian, since it's referenced again below
+		EndianSwapMonitorLogStruct(&(__monitorLogTbl[__monitorLogTblIndex]));
+#endif
 		// Done writing, close the monitor log file
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 		f_close(&file);
