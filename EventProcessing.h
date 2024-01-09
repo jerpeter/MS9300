@@ -157,6 +157,8 @@ uint32_t SetFileTimestamp(char* filename);
 
 // Endian swap conversions
 void EndianSwapDataX16(uint16_t* data, uint32_t dataLength);
+void EndianSwapEventRecordHeader(EVENT_HEADER_STRUCT* evtHdr);
+void EndianSwapEventRecordSummary(EVENT_SUMMARY_STRUCT* evtSum);
 void EndianSwapEventRecord(EVT_RECORD* evtRec);
 void EndianSwapBarInterval(BARGRAPH_BAR_INTERVAL_DATA* biData, uint8_t biType);
 void EndianSwapCalculatedDataStruct(CALCULATED_DATA_STRUCT* calcData);

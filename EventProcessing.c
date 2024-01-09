@@ -438,6 +438,13 @@ void DumpSummaryListFileToEventBuffer(void)
 			f_read(&file, summaryListCache, f_size(&file), (UINT*)&readSize);
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 			f_close(&file);
+#if ENDIAN_CONVERSION
+			for (uint16 i = 0; i < (readSize / sizeof(SUMMARY_LIST_ENTRY_STRUCT)); i++)
+			{
+				EndianSwapSummaryListStruct(summaryListCache);
+				summaryListCache++;
+			}
+#endif
 		}
 	}
 }
@@ -532,11 +539,18 @@ SUMMARY_LIST_ENTRY_STRUCT* GetSummaryFromSummaryList(uint16 eventNumber)
 			while (f_lseek(&file, summaryListIndex * sizeof(SUMMARY_LIST_ENTRY_STRUCT)) == FR_OK)
 			{
 				f_read(&file, &summaryListIndexEventNumber, 2, (UINT*)&readSize);
-
+#if ENDIAN_CONVERSION
+				// Swap summary list event number to Little Endian for processing
+				summaryListIndexEventNumber = __builtin_bswap16(summaryListIndexEventNumber);
+#endif
 				if (summaryListIndexEventNumber == eventNumber)
 				{
 					f_lseek(&file, summaryListIndex * sizeof(SUMMARY_LIST_ENTRY_STRUCT));
 					f_read(&file, &g_summaryList.cachedEntry, sizeof(SUMMARY_LIST_ENTRY_STRUCT), (UINT*)&readSize);
+#if ENDIAN_CONVERSION
+					// Swap summary list entry to Little Endian for processing
+					EndianSwapSummaryListStruct(&g_summaryList.cachedEntry);
+#endif
 					break;
 				}
 				else
@@ -670,6 +684,10 @@ void ParseAndCountSummaryListEntriesWithRewrite(void)
 
 	while (f_read(&file, (uint8*)&g_summaryList.cachedEntry, sizeof(SUMMARY_LIST_ENTRY_STRUCT), (UINT*)&rwSize) == FR_OK)
 	{
+#if ENDIAN_CONVERSION
+		// Swap summary list entry to Little Endian for processing
+		EndianSwapSummaryListStruct(&g_summaryList.cachedEntry);
+#endif
 		// Check if a second has passed
 		if (g_lifetimeHalfSecondTickCount > halfSecondCompare)
 		{
@@ -1121,7 +1139,9 @@ void GetEventFileInfo(uint16 eventNumber, EVENT_HEADER_STRUCT* eventHeaderPtr, E
 		else // File good
 		{
 			f_read(&file, (uint8*)&fileEventHeader, sizeof(EVENT_HEADER_STRUCT), (UINT*)&readSize);
-
+#if ENDIAN_CONVERSION
+			EndianSwapEventRecordHeader(&fileEventHeader);
+#endif
 			// If we find the EVENT_RECORD_START_FLAG followed by the encodeFlag2, then assume this is the start of an event
 			if ((fileEventHeader.startFlag == EVENT_RECORD_START_FLAG) &&
 				((fileEventHeader.recordVersion & EVENT_MAJOR_VERSION_MASK) == (EVENT_RECORD_VERSION & EVENT_MAJOR_VERSION_MASK)) &&
@@ -1130,6 +1150,9 @@ void GetEventFileInfo(uint16 eventNumber, EVENT_HEADER_STRUCT* eventHeaderPtr, E
 				debug("Found Valid Event File: %s\r\n", pathAndFilename);
 
 				f_read(&file, (uint8*)&fileSummary, sizeof(EVENT_SUMMARY_STRUCT), (UINT*)&readSize);
+#if ENDIAN_CONVERSION
+				EndianSwapEventRecordSummary(&fileSummary);
+#endif
 			
 				if (cacheDataToRamBuffer == YES)
 				{
@@ -1212,6 +1235,9 @@ void GetEventFileRecord(uint16 eventNumber, EVT_RECORD* eventRecord)
 		else // File good
 		{
 			f_read(&file, (uint8*)eventRecord, sizeof(EVT_RECORD), (UINT*)&readSize);
+#if ENDIAN_CONVERSION
+			EndianSwapEventRecord(eventRecord);
+#endif
 		}
 
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
@@ -1632,6 +1658,9 @@ uint8 CacheEventToRam(uint16 eventNumber, EVT_RECORD* eventRecordPtr)
 		else // File good
 		{
 			f_read(&file, (uint8*)eventRecordPtr, sizeof(EVT_RECORD), (UINT*)&readSize);
+#if ENDIAN_CONVERSION
+			EndianSwapEventRecord(eventRecordPtr);
+#endif
 			f_read(&file, (uint8*)&g_eventDataBuffer[0], (f_size(&file) - sizeof(EVT_RECORD)), (UINT*)&readSize);
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 			status = EVENT_CACHE_SUCCESS;
@@ -1673,7 +1702,11 @@ BOOLEAN CheckValidEventFile(uint16 eventNumber)
 		else // File good
 		{
 			f_read(&file, (uint8*)&fileEventHeader, sizeof(EVENT_HEADER_STRUCT), (UINT*)&readSize);
-
+#if ENDIAN_CONVERSION
+			fileEventHeader.startFlag = __builtin_bswap16(fileEventHeader.startFlag);
+			fileEventHeader.recordVersion = __builtin_bswap16(fileEventHeader.recordVersion);
+			fileEventHeader.headerLength = __builtin_bswap16(fileEventHeader.headerLength);
+#endif
 			// If we find the EVENT_RECORD_START_FLAG followed by the encodeFlag2, then assume this is the start of an event
 			if ((fileEventHeader.startFlag == EVENT_RECORD_START_FLAG) &&
 				((fileEventHeader.recordVersion & EVENT_MAJOR_VERSION_MASK) == (EVENT_RECORD_VERSION & EVENT_MAJOR_VERSION_MASK)) &&
@@ -2394,6 +2427,92 @@ void EndianSwapDataX16(uint16_t* data, uint32_t dataLength)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void EndianSwapEventRecordHeader(EVENT_HEADER_STRUCT* evtHdr)
+{
+	evtHdr->startFlag = __builtin_bswap16(evtHdr->startFlag);
+	evtHdr->recordVersion = __builtin_bswap16(evtHdr->recordVersion);
+	evtHdr->headerLength = __builtin_bswap16(evtHdr->headerLength);
+	evtHdr->summaryLength = __builtin_bswap16(evtHdr->summaryLength);
+	evtHdr->dataLength = __builtin_bswap32(evtHdr->dataLength);
+	evtHdr->dataCompression = __builtin_bswap16(evtHdr->dataCompression);
+	evtHdr->summaryChecksum = __builtin_bswap16(evtHdr->summaryChecksum);
+	evtHdr->dataChecksum = __builtin_bswap16(evtHdr->dataChecksum);
+	evtHdr->unused1 = __builtin_bswap16(evtHdr->unused1);
+	evtHdr->unused2 = __builtin_bswap16(evtHdr->unused2);
+	evtHdr->unused3 = __builtin_bswap16(evtHdr->unused3);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void EndianSwapEventRecordSummary(EVENT_SUMMARY_STRUCT* evtSum)
+{
+	evtSum->parameters.distToSource = __builtin_bswap32(evtSum->parameters.distToSource);
+	evtSum->parameters.weightPerDelay = __builtin_bswap32(evtSum->parameters.weightPerDelay);
+	evtSum->parameters.sampleRate = __builtin_bswap16(evtSum->parameters.sampleRate);
+	evtSum->parameters.seismicSensorType = __builtin_bswap16(evtSum->parameters.seismicSensorType);
+	evtSum->parameters.airSensorType = __builtin_bswap16(evtSum->parameters.airSensorType);
+	evtSum->parameters.seismicTriggerLevel = __builtin_bswap32(evtSum->parameters.seismicTriggerLevel);
+	evtSum->parameters.airTriggerLevel = __builtin_bswap32(evtSum->parameters.airTriggerLevel);
+	evtSum->parameters.recordTime = __builtin_bswap32(evtSum->parameters.recordTime);
+	evtSum->parameters.numOfSamples = __builtin_bswap16(evtSum->parameters.numOfSamples);
+	evtSum->parameters.preBuffNumOfSamples = __builtin_bswap16(evtSum->parameters.preBuffNumOfSamples);
+	evtSum->parameters.calDataNumOfSamples = __builtin_bswap16(evtSum->parameters.calDataNumOfSamples);
+	evtSum->parameters.barInterval = __builtin_bswap16(evtSum->parameters.barInterval);
+	evtSum->parameters.summaryInterval = __builtin_bswap16(evtSum->parameters.summaryInterval);
+	evtSum->parameters.seismicTriggerInUnits = __builtin_bswap32(evtSum->parameters.seismicTriggerInUnits);
+	evtSum->parameters.airTriggerInUnits = __builtin_bswap32(evtSum->parameters.airTriggerInUnits);
+	evtSum->parameters.seismicSensorCurrentCalDate.year = __builtin_bswap16(evtSum->parameters.seismicSensorCurrentCalDate.year);
+	evtSum->parameters.acousticSensorCurrentCalDate.year = __builtin_bswap16(evtSum->parameters.acousticSensorCurrentCalDate.year);
+
+	evtSum->captured.batteryLevel = __builtin_bswap32(evtSum->captured.batteryLevel);
+	evtSum->captured.comboEventsRecordedDuringSession = __builtin_bswap16(evtSum->captured.comboEventsRecordedDuringSession);
+	evtSum->captured.comboEventsRecordedStartNumber = __builtin_bswap16(evtSum->captured.comboEventsRecordedStartNumber);
+	evtSum->captured.comboEventsRecordedEndNumber = __builtin_bswap16(evtSum->captured.comboEventsRecordedEndNumber);
+	evtSum->captured.comboBargraphEventNumberLink = __builtin_bswap16(evtSum->captured.comboBargraphEventNumberLink);
+	evtSum->captured.gpsEpochTriggerTime = __builtin_bswap32(evtSum->captured.gpsEpochTriggerTime);
+	evtSum->captured.gpsFractionalSecond = __builtin_bswap32(evtSum->captured.gpsFractionalSecond);
+
+#if 0 /* Direct reference */
+	evtSum->calculated.a.peak = __builtin_bswap16(evtSum->calculated.a.peak);
+	evtSum->calculated.a.frequency = __builtin_bswap16(evtSum->calculated.a.frequency);
+	evtSum->calculated.a.displacement = __builtin_bswap32(evtSum->calculated.a.displacement);
+	evtSum->calculated.a.acceleration = __builtin_bswap32(evtSum->calculated.a.acceleration);
+	evtSum->calculated.r.peak = __builtin_bswap16(evtSum->calculated.r.peak);
+	evtSum->calculated.r.frequency = __builtin_bswap16(evtSum->calculated.r.frequency);
+	evtSum->calculated.r.displacement = __builtin_bswap32(evtSum->calculated.r.displacement);
+	evtSum->calculated.r.acceleration = __builtin_bswap32(evtSum->calculated.r.acceleration);
+	evtSum->calculated.v.peak = __builtin_bswap16(evtSum->calculated.v.peak);
+	evtSum->calculated.v.frequency = __builtin_bswap16(evtSum->calculated.v.frequency);
+	evtSum->calculated.v.displacement = __builtin_bswap32(evtSum->calculated.v.displacement);
+	evtSum->calculated.v.acceleration = __builtin_bswap32(evtSum->calculated.v.acceleration);
+	evtSum->calculated.t.peak = __builtin_bswap16(evtSum->calculated.t.peak);
+	evtSum->calculated.t.frequency = __builtin_bswap16(evtSum->calculated.t.frequency);
+	evtSum->calculated.t.displacement = __builtin_bswap32(evtSum->calculated.t.displacement);
+	evtSum->calculated.t.acceleration = __builtin_bswap32(evtSum->calculated.t.acceleration);
+	evtSum->calculated.bargraphEffectiveSampleRate = __builtin_bswap16(evtSum->calculated.bargraphEffectiveSampleRate);
+	evtSum->calculated.unused1 = __builtin_bswap16(evtSum->calculated.unused1);
+	evtSum->calculated.unused2 = __builtin_bswap32(evtSum->calculated.unused2);
+	evtSum->calculated.unused3 = __builtin_bswap32(evtSum->calculated.unused3);
+	evtSum->calculated.vectorSumPeak = __builtin_bswap32(evtSum->calculated.vectorSumPeak);
+	evtSum->calculated.batteryLevel = __builtin_bswap32(evtSum->calculated.batteryLevel);
+	evtSum->calculated.barIntervalsCaptured = __builtin_bswap32(evtSum->calculated.barIntervalsCaptured);
+	evtSum->calculated.summariesCaptured = __builtin_bswap16(evtSum->calculated.summariesCaptured);
+	evtSum->calculated.gpsPosition.latSeconds = __builtin_bswap16(evtSum->calculated.gpsPosition.latSeconds);
+	evtSum->calculated.gpsPosition.longSeconds = __builtin_bswap16(evtSum->calculated.gpsPosition.longSeconds);
+	evtSum->calculated.gpsPosition.altitude = __builtin_bswap16(evtSum->calculated.gpsPosition.altitude);
+	evtSum->calculated.gpsPosition.utcYear = __builtin_bswap16(evtSum->calculated.gpsPosition.utcYear);
+	evtSum->calculated.calcStructEndFlag = __builtin_bswap32(evtSum->calculated.calcStructEndFlag);
+#else /* Leverage Calculated Data swap funciton used for Sumamry Intervals */
+	EndianSwapCalculatedDataStruct(&(evtSum->calculated));
+#endif
+
+	evtSum->eventNumber = __builtin_bswap16(evtSum->eventNumber);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void EndianSwapEventRecord(EVT_RECORD* evtRec)
 {
 	/*
@@ -2418,6 +2537,7 @@ void EndianSwapEventRecord(EVT_RECORD* evtRec)
 		(Summary) uint16 eventNumber (1 element)
 	*/
 
+#if 0 /* Direct reference */
 	evtRec->header.startFlag = __builtin_bswap16(evtRec->header.startFlag);
 	evtRec->header.recordVersion = __builtin_bswap16(evtRec->header.recordVersion);
 	evtRec->header.headerLength = __builtin_bswap16(evtRec->header.headerLength);
@@ -2429,7 +2549,11 @@ void EndianSwapEventRecord(EVT_RECORD* evtRec)
 	evtRec->header.unused1 = __builtin_bswap16(evtRec->header.unused1);
 	evtRec->header.unused2 = __builtin_bswap16(evtRec->header.unused2);
 	evtRec->header.unused3 = __builtin_bswap16(evtRec->header.unused3);
+#else /* Broken into Header and Summary parts */
+	EndianSwapEventRecordHeader(&(evtRec->header));
+#endif
 
+#if 0 /* Direct reference */
 	evtRec->summary.parameters.distToSource = __builtin_bswap32(evtRec->summary.parameters.distToSource);
 	evtRec->summary.parameters.weightPerDelay = __builtin_bswap32(evtRec->summary.parameters.weightPerDelay);
 	evtRec->summary.parameters.sampleRate = __builtin_bswap16(evtRec->summary.parameters.sampleRate);
@@ -2491,6 +2615,9 @@ void EndianSwapEventRecord(EVT_RECORD* evtRec)
 #endif
 
 	evtRec->summary.eventNumber = __builtin_bswap16(evtRec->summary.eventNumber);
+#else /* Broken into Header and Summary parts */
+	EndianSwapEventRecordSummary(&(evtRec->summary));
+#endif
 }
 
 ///----------------------------------------------------------------------------

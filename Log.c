@@ -525,7 +525,9 @@ void InitMonitorLogTableFromLogFile(void)
 			OverlayMessage(getLangText(MONITOR_LOG_TEXT), getLangText(INITIALIZING_MONITOR_LOG_WITH_SAVED_ENTRIES_TEXT), 1 * SOFT_SECS);
 
 			f_read(&file, (uint8*)&monitorLogEntry, sizeof(MONITOR_LOG_ENTRY_STRUCT), (UINT*)&readSize);
-
+#if ENDIAN_CONVERSION
+			EndianSwapMonitorLogStruct(&monitorLogEntry);
+#endif
 			// Loop while data continues to be read from MONITOR log file
 			while (readSize > 0)
 			{
@@ -562,6 +564,9 @@ void InitMonitorLogTableFromLogFile(void)
 
 				// Always read the next entry
 				f_read(&file, (uint8*)&monitorLogEntry, sizeof(MONITOR_LOG_ENTRY_STRUCT), (UINT*)&readSize);
+#if ENDIAN_CONVERSION
+				EndianSwapMonitorLogStruct(&monitorLogEntry);
+#endif
 			}
 
 			// Done reading, close the monitor log file
