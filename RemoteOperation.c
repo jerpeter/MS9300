@@ -51,7 +51,6 @@ void HandleAAA(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 void HandleVFV(CMD_BUFFER_STRUCT* inCmd)
 {
-	uint32 msgCRC = 0;
 	uint8 vfvHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
 	uint8 msgTypeStr[HDR_TYPE_LEN+1];
 	uint8 resultCode = MSGTYPE_RESPONSE;
@@ -65,6 +64,11 @@ void HandleVFV(CMD_BUFFER_STRUCT* inCmd)
 	memset(&firmwareVersion[0], 0, sizeof(firmwareVersion));
 	strcpy((char*)&firmwareVersion[0], (char*)&g_buildVersion[0]);
 
+	// Calculate the CRC on the header
+	g_transmitCRC = CalcCCITT32((uint8*)&vfvHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
+	// Calculate the CRC on the data
+	g_transmitCRC = CalcCCITT32((uint8*)&firmwareVersion[0], sizeof(firmwareVersion), g_transmitCRC);
+
 	// Send Starting CRLF
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 	// Send Simple header
@@ -72,7 +76,10 @@ void HandleVFV(CMD_BUFFER_STRUCT* inCmd)
 	// Send Firmware version
 	ModemPuts((uint8*)&firmwareVersion[0], sizeof(firmwareVersion), g_binaryXferFlag);
 	// Send Ending Footer
-	ModemPuts((uint8*)&msgCRC, 4, NO_CONVERSION);
+#if ENDIAN_CONVERSION
+	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 
 	return;
@@ -462,7 +469,10 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 				ModemPuts((uint8*)ucmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
 
 				// Send Ending Footer
-				ModemPuts((uint8*)&msgCRC, 4, NO_CONVERSION);
+#if ENDIAN_CONVERSION
+				g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
+				ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 				ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 				
 				return;
@@ -1516,6 +1526,9 @@ void HandleDMM(CMD_BUFFER_STRUCT* inCmd)
 	ModemPuts((uint8*)&modemCfg, sizeof(MODEM_SETUP_STRUCT), g_binaryXferFlag);
 
 	// Ending Footer
+#if ENDIAN_CONVERSION
+	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
 	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 }
@@ -1633,6 +1646,9 @@ void HandleUMM(CMD_BUFFER_STRUCT* inCmd)
 	ModemPuts((uint8*)ummHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
 
 	// Send Ending Footer
+#if ENDIAN_CONVERSION
+	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
 	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 }
@@ -1783,6 +1799,9 @@ void HandleCAL(CMD_BUFFER_STRUCT* inCmd)
 	}
 
 	// Send Ending Footer
+#if ENDIAN_CONVERSION
+	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
 	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 

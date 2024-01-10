@@ -357,6 +357,9 @@ void HandleDLM(CMD_BUFFER_STRUCT* inCmd)
 	}
 
 	// Send the footer
+#if ENDIAN_CONVERSION
+	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
 	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 	g_transferCount = 0;
@@ -379,9 +382,7 @@ void handleEEM(CMD_BUFFER_STRUCT* inCmd)
 	uint8 eemHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
 	uint8 msgTypeStr[HDR_TYPE_LEN+1];
 	uint8 returnCode = MSGTYPE_RESPONSE;
-	uint32	msgCRC = 0;
 	UNUSED(inCmd);
-
 
 	if (ACTIVE_STATE == g_sampleProcessing)
 	{
@@ -403,12 +404,18 @@ void handleEEM(CMD_BUFFER_STRUCT* inCmd)
 	BuildOutgoingSimpleHeaderBuffer((uint8*)eemHdr, (uint8*)"EEMx",
 		(uint8*)msgTypeStr, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);
 
+	// Calculate the CRC on the header
+	g_transmitCRC = CalcCCITT32((uint8*)&eemHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
+
 	// Send Starting CRLF
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 	// Send Simple header
 	ModemPuts((uint8*)eemHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
 	// Send Ending Footer
-	ModemPuts((uint8*)&msgCRC, 4, NO_CONVERSION);
+#if ENDIAN_CONVERSION
+	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 
 	return;
@@ -537,6 +544,10 @@ void sendVMLData(void)
 				// Break out of the for loop since there are no more entries
 				break;
 			}
+
+#if ENDIAN_CONVERSION
+			EndianSwapMonitorLogStruct(&(s_vmlXferStruct.vmlData[i]));
+#endif
 		}
 
 		// Calculate the CRC on the data
@@ -556,6 +567,9 @@ void sendVMLData(void)
 	}
 	else if (s_vmlXferStruct.xferStateFlag == FOOTER_XFER_STATE)
 	{
+#if ENDIAN_CONVERSION
+		g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
 		ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 
@@ -664,6 +678,9 @@ void handleGAD(CMD_BUFFER_STRUCT* inCmd)
 		return;
 	}
 
+#if ENDIAN_CONVERSION
+	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
 	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 
@@ -735,6 +752,9 @@ void handleGFS(CMD_BUFFER_STRUCT* inCmd)
 		return;
 	}
 
+#if ENDIAN_CONVERSION
+	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
 	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 
@@ -908,7 +928,9 @@ uint8 sendDQMData(void)
 					g_dqmXferStructPtr->dqmData[idex].eventTime = ConvertEpochTimeToDateTime(eventListCache[g_dqmXferStructPtr->ramTableIndex].epochEventTime);
 					g_dqmXferStructPtr->dqmData[idex].subMode = eventListCache[g_dqmXferStructPtr->ramTableIndex].subMode;
 					g_dqmXferStructPtr->dqmData[idex].endFlag = 0xEE;
-
+#if ENDIAN_CONVERSION
+					g_dqmXferStructPtr->dqmData[idex].eventNumber = __builtin_bswap16(g_dqmXferStructPtr->dqmData[idex].eventNumber);
+#endif
 					idex++;
 					g_dqmXferStructPtr->numOfRecs--;
 				}
@@ -932,6 +954,9 @@ uint8 sendDQMData(void)
 
 	else if (FOOTER_XFER_STATE == g_dqmXferStructPtr->xferStateFlag)
 	{
+#if ENDIAN_CONVERSION
+		g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
 		ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 		g_dqmXferStructPtr->xferStateFlag = NOP_XFER_STATE;
@@ -952,7 +977,6 @@ void HandleDSM(CMD_BUFFER_STRUCT* inCmd)
 	uint8 flagData = 0;
 	uint8 dsmHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
 	uint8 msgTypeStr[HDR_TYPE_LEN+2];
-	uint32 msgCRC = 0;
 	uint16 startingEventNumber;
 	uint32 i;
 
@@ -1026,7 +1050,10 @@ void HandleDSM(CMD_BUFFER_STRUCT* inCmd)
 			ModemPuts((uint8*)dsmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
 
 			// Send Ending Footer
-			ModemPuts((uint8*)&msgCRC, 4, NO_CONVERSION);
+#if ENDIAN_CONVERSION
+			g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
+			ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 			ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 
 			return;
@@ -1144,7 +1171,11 @@ uint8 sendDSMData(void)
 			g_dsmXferStructPtr->dloadEventRec.structureFlag = START_DLOAD_FLAG;
 			g_dsmXferStructPtr->dloadEventRec.downloadDate = GetCurrentTime();
 			g_dsmXferStructPtr->dloadEventRec.endFlag = END_DLOAD_FLAG;
-
+#if ENDIAN_CONVERISON
+			g_dsmXferStructPtr->dloadEventRec.structureFlag = __builtin_bswap32(g_dsmXferStructPtr->dloadEventRec.structureFlag);
+			g_dsmXferStructPtr->dloadEventRec.endFlag = __builtin_bswap32(g_dsmXferStructPtr->dloadEventRec.endFlag);
+			EndianSwapEventRecord(&g_dsmXferStructPtr->dloadEventRec.eventRecord);
+#endif
 			// Setup the transfer structure pointers
 			g_dsmXferStructPtr->startDloadPtr = (uint8*)&(g_dsmXferStructPtr->dloadEventRec);
 			g_dsmXferStructPtr->dloadPtr = g_dsmXferStructPtr->startDloadPtr;
@@ -1185,6 +1216,9 @@ uint8 sendDSMData(void)
 
 	else if (FOOTER_XFER_STATE == g_dsmXferStructPtr->xferStateFlag)
 	{
+#if ENDIAN_CONVERSION
+		g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
 		ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 		g_dsmXferStructPtr->xferStateFlag = NOP_XFER_STATE;
@@ -1251,7 +1285,6 @@ void HandleDER(CMD_BUFFER_STRUCT* inCmd)
 {
 	uint8 derHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
 	//DER_REQUEST derRequest;
-	uint32 msgCRC;
 	char msgTypeStr[8];
 	uint8 derError = NO;
 
@@ -1291,12 +1324,18 @@ void HandleDER(CMD_BUFFER_STRUCT* inCmd)
 		sprintf((char*)msgTypeStr, "%02d", CFG_ERR_BAD_DER_REQUEST);
 		BuildOutgoingSimpleHeaderBuffer((uint8*)derHdr, (uint8*)"DERx",	(uint8*)msgTypeStr, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);
 
+		// Calculate the CRC on the header
+		g_transmitCRC = CalcCCITT32((uint8*)&derHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
+
 		// Send Starting CRLF
 		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 		// Send Simple header
 		ModemPuts((uint8*)derHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
 		// Send Ending Footer
-		ModemPuts((uint8*)&msgCRC, 4, NO_CONVERSION);
+#if ENDIAN_CONVERSION
+		g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
+		ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 
 		return;
@@ -1774,6 +1813,9 @@ uint8 ManageDER(void)
 		}
 
 		// CRC xmit
+#if ENDIAN_CONVERSION
+		g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
 		if (ModemPuts((uint8*)&g_transmitCRC, sizeof(g_transmitCRC), NO_CONVERSION) == MODEM_SEND_FAILED)
 		{
 			g_derXferStruct.xferStateFlag = NOP_XFER_STATE; g_modemStatus.xferMutex = NO; g_transferCount = 0; return (NOP_CMD);
@@ -2295,6 +2337,9 @@ void HandleDEM(CMD_BUFFER_STRUCT* inCmd)
 			ModemPuts((uint8*)&(g_inCmdHeaderPtr->cmd[0]), (uint32)(inCmd->size - 4), NO_CONVERSION);
 
 			// Send Ending Footer
+#if ENDIAN_CONVERSION
+			g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
 			ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 			ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 			return;
@@ -2650,6 +2695,9 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 	}
 
 	// CRC xmit
+#if ENDIAN_CONVERSION
+	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
 	if (ModemPuts((uint8*)&g_transmitCRC, dataLength, NO_CONVERSION) == MODEM_SEND_FAILED)
 	{
 		g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
@@ -2757,6 +2805,9 @@ uint8 sendDEMData(void)
 	else if (FOOTER_XFER_STATE == g_demXferStructPtr->xferStateFlag)
 	{
 		debug("CRC=%d g_transferCount=%d \r\n", g_transmitCRC, g_transferCount+2);
+#if ENDIAN_CONVERSION
+		g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
 		ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 		g_demXferStructPtr->xferStateFlag = NOP_XFER_STATE;
@@ -2852,7 +2903,6 @@ void handleGMN(CMD_BUFFER_STRUCT* inCmd)
 	uint16 readDex;
 	uint16 buffDex;
 	uint32 returnCode = CFG_ERR_NONE;
-	uint32 msgCRC = 0;
 
 	if (ACTIVE_STATE == g_sampleProcessing)
 	{
@@ -2906,12 +2956,18 @@ void handleGMN(CMD_BUFFER_STRUCT* inCmd)
 	BuildOutgoingSimpleHeaderBuffer((uint8*)gmnHdr, (uint8*)"GMNx",
 		tempBuff, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);
 
+	// Calculate the CRC on the header
+	g_transmitCRC = CalcCCITT32((uint8*)&gmnHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
+
 	// Send Starting CRLF
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 	// Send Simple header
 	ModemPuts((uint8*)gmnHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
 	// Send Ending Footer
-	ModemPuts((uint8*)&msgCRC, 4, NO_CONVERSION);
+#if ENDIAN_CONVERSION
+	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 }
 
@@ -2924,7 +2980,6 @@ void handleHLT(CMD_BUFFER_STRUCT* inCmd)
 	uint8 hltHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
 	uint8 msgTypeStr[HDR_TYPE_LEN+1];
 	uint8 resultCode = MSGTYPE_RESPONSE;
-	uint32 msgCRC = 0;
 
 	UNUSED(inCmd);
 
@@ -2943,12 +2998,18 @@ void handleHLT(CMD_BUFFER_STRUCT* inCmd)
 	BuildOutgoingSimpleHeaderBuffer((uint8*)hltHdr, (uint8*)"HLTx",
 		(uint8*)msgTypeStr, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);
 
+	// Calculate the CRC on the header
+	g_transmitCRC = CalcCCITT32((uint8*)&hltHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
+
 	// Send Starting CRLF
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 	// Send Simple header
 	ModemPuts((uint8*)hltHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
 	// Send Ending Footer
-	ModemPuts((uint8*)&msgCRC, 4, NO_CONVERSION);
+#if ENDIAN_CONVERSION
+	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 
 	// Stop the processing.

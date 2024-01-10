@@ -224,18 +224,23 @@ void BuildOutgoingSimpleHeaderBuffer(uint8* msgHdrBuf,
 ///----------------------------------------------------------------------------
 void SendErrorMsg(uint8* msgCmd, uint8* msgType)
 {
-	uint32 msgCRC = 0;
 	uint8 errHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
 
 	BuildOutgoingSimpleHeaderBuffer(errHdr, msgCmd, msgType,
 		MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);
+
+	// Calculate the CRC on the header
+	g_transmitCRC = CalcCCITT32((uint8*)&errHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send Starting CRLF
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 	// Send Simple header
 	ModemPuts((uint8*)errHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
 	// Send Ending Footer
-	ModemPuts((uint8*)&msgCRC, 4, NO_CONVERSION);
+#if ENDIAN_CONVERSION
+	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 }
 

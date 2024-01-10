@@ -216,7 +216,11 @@ uint8 g_disableDebugPrinting;
 uint8 g_autoCalDaysToWait = 0;
 uint8 g_autoDialoutState = AUTO_DIAL_IDLE;
 uint8 g_modemDataTransfered = NO;
+#if ENDIAN_CONVERSION
+uint16 g_CRLF = 0x0A0D;
+#else
 uint16 g_CRLF = 0x0D0A;
+#endif
 CMD_BUFFER_STRUCT g_msgPool[CMD_MSG_POOL_SIZE];
 DEMx_XFER_STRUCT g_demXferStruct;
 DERx_XFER_STRUCT g_derXferStruct;
