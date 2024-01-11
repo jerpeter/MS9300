@@ -48,18 +48,6 @@ enum {
 	EVENT_CACHE_SUCCESS,
 };
 
-typedef struct
-{
-	uint32 sizeUsed;
-	uint32 sizeFree;
-	uint16 waveEventsLeft;
-	uint16 barHoursLeft;
-	uint16 manualCalsLeft;
-	uint8 percentUsed;
-	uint8 percentFree;
-	uint16 clusterSizeInBytes;
-} FLASH_USAGE_STRUCT;
-
 typedef enum {
 	CREATE_EVENT_FILE,
 	READ_EVENT_FILE,
@@ -164,5 +152,11 @@ void EndianSwapBarInterval(BARGRAPH_BAR_INTERVAL_DATA* biData, uint8_t biType);
 void EndianSwapCalculatedDataStruct(CALCULATED_DATA_STRUCT* calcData);
 void EndianSwapMonitorLogStruct(MONITOR_LOG_ENTRY_STRUCT* mlData);
 void EndianSwapSummaryListStruct(SUMMARY_LIST_ENTRY_STRUCT* slData);
+void EndianSwapModemSetupStruct(MODEM_SETUP_STRUCT* msData);
+void EndianSwapAutoDialoutStruct(AUTODIALOUT_STRUCT* adData);
+void EndianSwapFlashUsageStruct(FLASH_USAGE_STRUCT* fuData);
+void EndianSwapWaveformEventData(uint16_t* wData, uint32_t wLen);
+void EndianSwapBargraphEventData(void* bData, uint32_t bLen, uint8_t bType, uint16_t bInt, uint16_t sInt);
+void EndianSwapEventData(EVT_RECORD* eRec, void* eData);
 
 #endif // _FLASHEVTS_H_

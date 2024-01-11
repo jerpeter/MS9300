@@ -1505,6 +1505,9 @@ void HandleDMM(CMD_BUFFER_STRUCT* inCmd)
 	memset(&modemCfg, 0, sizeof(modemCfg));
 
 	memcpy((uint8*)&modemCfg, &g_modemSetupRecord, sizeof(MODEM_SETUP_STRUCT));
+#if ENDIAN_CONVERSION
+	EndianSwapModemSetupStruct(&modemCfg);
+#endif
 
 	sprintf((char*)msgTypeStr, "%02d", MSGTYPE_RESPONSE);
 	BuildOutgoingSimpleHeaderBuffer((uint8*)dmmHdr, (uint8*)"DMMx", (uint8*)msgTypeStr,
@@ -1576,6 +1579,9 @@ void HandleUMM(CMD_BUFFER_STRUCT* inCmd)
 	}
 	else
 	{
+#if ENDIAN_CONVERSION
+		EndianSwapModemSetupStruct(&modemCfg);
+#endif
 		if ((modemCfg.modemStatus != NO) && (modemCfg.modemStatus != YES))
 		{
 			returnCode = CFG_ERR_MODEM_CONFIG;

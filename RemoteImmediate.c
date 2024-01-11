@@ -337,6 +337,11 @@ void HandleDLM(CMD_BUFFER_STRUCT* inCmd)
 		g_dsmXferStructPtr->dloadEventRec.downloadDate = GetCurrentTime();
 		memcpy(&g_dsmXferStructPtr->dloadEventRec.eventRecord, &g_pendingBargraphRecord, sizeof(EVT_RECORD));
 		g_dsmXferStructPtr->dloadEventRec.endFlag = END_DLOAD_FLAG;
+#if ENDIAN_CONVERSION
+		g_dsmXferStructPtr->dloadEventRec.structureFlag = __builtin_bswap32(g_dsmXferStructPtr->dloadEventRec.structureFlag);
+		g_dsmXferStructPtr->dloadEventRec.endFlag = __builtin_bswap32(g_dsmXferStructPtr->dloadEventRec.endFlag);
+		EndianSwapEventRecord(&g_dsmXferStructPtr->dloadEventRec.eventRecord);
+#endif
 
 		// Setup the transfer structure pointers
 		g_dsmXferStructPtr->startDloadPtr = (uint8*)&(g_dsmXferStructPtr->dloadEventRec);
@@ -589,6 +594,9 @@ void HandleUDE(CMD_BUFFER_STRUCT* inCmd)
 	// Set the data pointer to start after the UDE character data bytes
 	uint16* dataPtr = (uint16*)(inCmd->msg + MESSAGE_HEADER_SIMPLE_LENGTH);
 
+#if ENDIAN_CONVERSION
+	*dataPtr = __builtin_bswap16(*dataPtr);
+#endif
 	if (*dataPtr < g_nextEventNumberToUse)
 		__autoDialoutTbl.lastDownloadedEvent = *dataPtr;
 
@@ -664,6 +672,9 @@ void handleGAD(CMD_BUFFER_STRUCT* inCmd)
 		return;
 	}
 
+#if ENDIAN_CONVERSION
+	EndianSwapAutoDialoutStruct(&tempAutoDialout);
+#endif
 	// Calculate the CRC on the data
 	g_transmitCRC = CalcCCITT32((uint8*)&tempAutoDialout, sizeof(AUTODIALOUT_STRUCT), g_transmitCRC);
 
@@ -700,7 +711,8 @@ void handleGFS(CMD_BUFFER_STRUCT* inCmd)
 	uint32 dataLength;
 	uint8 msgTypeStr[HDR_TYPE_LEN+2];
 	uint8 gfsHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
-	
+	FLASH_USAGE_STRUCT tempUsageStats = g_sdCardUsageStats;
+
 	UNUSED(inCmd);
 
 	// Transmit a carrige return line feed
@@ -738,11 +750,14 @@ void handleGFS(CMD_BUFFER_STRUCT* inCmd)
 		return;
 	}
 
+#if ENDIAN_CONVERSION
+	EndianSwapFlashUsageStruct(&tempUsageStats);
+#endif
 	// Calculate the CRC on the data
-	g_transmitCRC = CalcCCITT32((uint8*)&g_sdCardUsageStats, sizeof(FLASH_USAGE_STRUCT), g_transmitCRC);
+	g_transmitCRC = CalcCCITT32((uint8*)&tempUsageStats, sizeof(FLASH_USAGE_STRUCT), g_transmitCRC);
 
 	// Send the data out the modem
-	if (ModemPuts((uint8*)&g_sdCardUsageStats, sizeof(FLASH_USAGE_STRUCT), g_binaryXferFlag) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)&tempUsageStats, sizeof(FLASH_USAGE_STRUCT), g_binaryXferFlag) == MODEM_SEND_FAILED)
 	{
 		// There was an error, so reset all global transfer and status fields
 		g_modemStatus.xferMutex = NO;
@@ -2532,6 +2547,11 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 	//----------------------------------------------------
 	// Send event record either compressed or not
 	//----------------------------------------------------
+#if ENDIAN_CONVERSION
+	g_demXferStructPtr->dloadEventRec.structureFlag = __builtin_bswap32(g_demXferStructPtr->dloadEventRec.structureFlag);
+	g_demXferStructPtr->dloadEventRec.endFlag = __builtin_bswap32(g_demXferStructPtr->dloadEventRec.endFlag);
+	EndianSwapEventRecord(&(g_demXferStructPtr->dloadEventRec.eventRecord));
+#endif
 	if (g_demXferStructPtr->downloadMethod == COMPRESS_MINILZO)
 	{
 		eventRecordXferLength = lzo1x_1_compress((void*)g_demXferStructPtr->startDloadPtr, sizeof(EVENT_RECORD_DOWNLOAD_STRUCT), OUT_SERIAL);
@@ -2607,6 +2627,9 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 	// Check if method is compressed but no compressed event data file is present
 	else if (g_demXferStructPtr->downloadMethod == COMPRESS_MINILZO)
 	{
+#if ENDIAN_CONVERSION
+		EndianSwapEventData(&g_demXferStructPtr->dloadEventRec.eventRecord, g_demXferStructPtr->startDataPtr);
+#endif
 		g_demXferStructPtr->xmitSize = 0;
 		eventDataXferLength = lzo1x_1_compress((void*)(g_demXferStructPtr->startDataPtr), g_demXferStructPtr->dloadEventRec.eventRecord.header.dataLength, OUT_SERIAL);
 		debug("Compressed Data length (serial): %d\r\n", eventDataXferLength);
@@ -2626,6 +2649,9 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 	}
 	else // (g_demXferStructPtr->downloadMethod == COMPRESS_NONE)
 	{
+#if ENDIAN_CONVERSION
+		EndianSwapEventData(&g_demXferStructPtr->dloadEventRec.eventRecord, g_demXferStructPtr->startDataPtr);
+#endif
 		// Actively monitoring, can't use event data buffer to cache the event
 		dataSizeRemaining = g_demXferStructPtr->dloadEventRec.eventRecord.header.dataLength;
 		dataOffset = sizeof(EVT_RECORD);
@@ -2669,6 +2695,9 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 	//----------------------------------------------------
 	dataLength = sizeof(uint32);
 	// send the compressed size of the event record; sizeof(uint32) = 4.
+#if ENDIAN_CONVERSION
+	eventRecordXferLength = __builtin_bswap32(eventRecordXferLength);
+#endif
 	g_transmitCRC = CalcCCITT32((uint8*)&(eventRecordXferLength), dataLength, g_transmitCRC);
 	if (ModemPuts((uint8*)&(eventRecordXferLength), dataLength, NO_CONVERSION) == MODEM_SEND_FAILED)
 	{
@@ -2677,6 +2706,9 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 	g_transferCount += dataLength;
 
 	// send the compressed size of the event data; sizeof(uint32) = 4.
+#if ENDIAN_CONVERSION
+	eventDataXferLength = __builtin_bswap32(eventDataXferLength);
+#endif
 	g_transmitCRC = CalcCCITT32((uint8*)&(eventDataXferLength), dataLength, g_transmitCRC);
 	if (ModemPuts((uint8*)&(eventDataXferLength), dataLength, NO_CONVERSION) == MODEM_SEND_FAILED)
 	{
@@ -2688,6 +2720,9 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 	//g_transferCount += (dataLength + dataLength + dataLength + 2);	// Not counting last crlf
 
 	g_transferCount += (dataLength + dataLength);
+#if ENDIAN_CONVERSION
+	g_transferCount = __builtin_bswap32(g_transferCount);
+#endif
 	g_transmitCRC = CalcCCITT32((uint8*)&(g_transferCount), dataLength, g_transmitCRC);
 	if (ModemPuts((uint8*)&(g_transferCount), dataLength, NO_CONVERSION) == MODEM_SEND_FAILED)
 	{

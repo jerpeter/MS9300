@@ -370,6 +370,18 @@ typedef struct
 	uint16				unused;
 } AUTODIALOUT_STRUCT;
 
+typedef struct
+{
+	uint32 sizeUsed;
+	uint32 sizeFree;
+	uint16 waveEventsLeft;
+	uint16 barHoursLeft;
+	uint16 manualCalsLeft;
+	uint8 percentUsed;
+	uint8 percentFree;
+	uint16 clusterSizeInBytes;
+} FLASH_USAGE_STRUCT;
+
 ///----------------------------------------------------------------------------
 ///	Prototypes
 ///----------------------------------------------------------------------------

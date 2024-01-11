@@ -2728,6 +2728,81 @@ void EndianSwapSummaryListStruct(SUMMARY_LIST_ENTRY_STRUCT* slData)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void EndianSwapModemSetupStruct(MODEM_SETUP_STRUCT* msData)
+{
+	msData->invalid = __builtin_bswap16(msData->invalid);
+	msData->modemStatus = __builtin_bswap16(msData->modemStatus);
+	msData->unlockCode = __builtin_bswap16(msData->unlockCode);
+	msData->dialOutType = __builtin_bswap16(msData->dialOutType);
+	msData->dialOutCycleTime = __builtin_bswap16(msData->dialOutCycleTime);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void EndianSwapAutoDialoutStruct(AUTODIALOUT_STRUCT* adData)
+{
+	adData->lastStoredEvent = __builtin_bswap16(adData->lastStoredEvent);
+	adData->lastDownloadedEvent = __builtin_bswap16(adData->lastDownloadedEvent);
+	adData->currentCycleConnects = __builtin_bswap16(adData->currentCycleConnects);
+	adData->unused = __builtin_bswap16(adData->unused);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void EndianSwapFlashUsageStruct(FLASH_USAGE_STRUCT* fuData)
+{
+	fuData->sizeUsed = __builtin_bswap32(fuData->sizeUsed);
+	fuData->sizeFree = __builtin_bswap32(fuData->sizeFree);
+	fuData->waveEventsLeft = __builtin_bswap16(fuData->waveEventsLeft);
+	fuData->barHoursLeft = __builtin_bswap16(fuData->barHoursLeft);
+	fuData->manualCalsLeft = __builtin_bswap16(fuData->manualCalsLeft);
+	fuData->clusterSizeInBytes = __builtin_bswap16(fuData->clusterSizeInBytes);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void EndianSwapWaveformEventData(uint16_t* wData, uint32_t wLen)
+{
+	for (uint32_t i = 0; i < (wLen / 2); i++)
+	{
+		*wData = __builtin_bswap16(*wData);
+		wData++;
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void EndianSwapBargraphEventData(void* bData, uint32_t bLen, uint8_t bType, uint16_t bInt, uint16_t sInt)
+{
+	// Handle full BI/SI segments
+	while (bLen > ((bType * bInt) + sizeof(CALCULATED_DATA_STRUCT)))
+	{
+		// Handle BI data
+		// Handle SI data
+		// Decrement length
+	}
+
+	// Handle partial BI/SI final segment
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void EndianSwapEventData(EVT_RECORD* eRec, void* eData)
+{
+	uint8_t mode = ((eRec->summary.mode == COMBO_MODE) ? eRec->summary.subMode : eRec->summary.mode);
+
+	if ((mode == WAVEFORM_MODE) || (mode == MANUAL_CAL_MODE)) { EndianSwapWaveformEventData((uint16_t*)eData, eRec->header.dataLength); }
+	else { EndianSwapBargraphEventData((uint16_t*)eData, eRec->header.dataLength, eRec->summary.parameters.barIntervalDataType, eRec->summary.parameters.barInterval, eRec->summary.parameters.summaryInterval); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 extern int getSize(void);
 static char testLogFilename[] = LOGS_PATH "Test.zzz";
 void TestEMMCFatFilesystem(void)
