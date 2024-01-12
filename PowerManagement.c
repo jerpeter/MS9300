@@ -1291,7 +1291,7 @@ int ltc294x_get_current(int r_sense, int* val)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int ltc294x_set_current_thr(int r_sense, int currThr)
+int ltc294x_set_current_thr_same(int r_sense, int currThr)
 {
 	uint8_t dataWrite[4];
 	int32_t currThrHigh;
@@ -1300,6 +1300,28 @@ int ltc294x_set_current_thr(int r_sense, int currThr)
 	// Current in mA converted to A for equation
 	currThrHigh = ((((currThr / 1000) * r_sense / 64) * 0x7FFF) + 0x7FFF);
 	currThrLow = ((((-currThr / 1000) * r_sense / 64) * 0x7FFF) + 0x7FFF);
+
+	// Set new charge value
+	dataWrite[0] = I16_MSB(currThrHigh);
+	dataWrite[1] = I16_LSB(currThrHigh);
+	dataWrite[2] = I16_MSB(currThrLow);
+	dataWrite[3] = I16_LSB(currThrLow);
+
+	return (ltc294x_write_regs(LTC2943_REG_CURRENT_THR_HIGH_MSB, &dataWrite[0], sizeof(dataWrite)));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int ltc294x_set_current_thr(int r_sense, int currThrCharging, int currThrDischarging)
+{
+	uint8_t dataWrite[4];
+	int32_t currThrHigh;
+	int32_t currThrLow;
+
+	// Current in mA converted to A for equation
+	currThrHigh = ((((currThrCharging / 1000) * r_sense / 64) * 0x7FFF) + 0x7FFF);
+	currThrLow = ((((-currThrDischarging / 1000) * r_sense / 64) * 0x7FFF) + 0x7FFF);
 
 	// Set new charge value
 	dataWrite[0] = I16_MSB(currThrHigh);
@@ -1620,9 +1642,11 @@ void FuelGaugeInit(void)
 	// Set the Current Thresold High and Low based on 3000mA
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
-		ltc294x_set_current_thr(ltc2944_device.r_sense, 3000); // Single pack
+		// Todo: Determine if charge/discharge current should be Standard 1320mA or Max continuous 3000mA
+		ltc294x_set_current_thr(ltc2944_device.r_sense, 3000, 3000); // Single pack
 	}
-	else { ltc294x_set_current_thr(ltc2944_device.r_sense, 6000); } // Double pack
+	// Todo: Determine if charge/discharge current should be Standard 2640mA or Max continuous 6000mA
+	else { ltc294x_set_current_thr(ltc2944_device.r_sense, 6000, 6000); } // Double pack
 
 	// Set thresholds for temperature (discharge range)
 	ltc294x_set_temp_thr(60, -20);
