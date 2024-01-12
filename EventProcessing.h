@@ -156,7 +156,8 @@ void EndianSwapModemSetupStruct(MODEM_SETUP_STRUCT* msData);
 void EndianSwapAutoDialoutStruct(AUTODIALOUT_STRUCT* adData);
 void EndianSwapFlashUsageStruct(FLASH_USAGE_STRUCT* fuData);
 void EndianSwapWaveformEventData(uint16_t* wData, uint32_t wLen);
-void EndianSwapBargraphEventData(void* bData, uint32_t bLen, uint8_t bType, uint16_t bInt, uint16_t sInt);
+void EndianSwapBargraphBarData(uint8_t* bData, uint8_t bType);
+void EndianSwapBargraphEventData(uint8_t* bData, uint32_t bLen, uint8_t bType, uint16_t bInt, uint16_t sInt);
 void EndianSwapEventData(EVT_RECORD* eRec, void* eData);
 
 #endif // _FLASHEVTS_H_

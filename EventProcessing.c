@@ -2776,17 +2776,83 @@ void EndianSwapWaveformEventData(uint16_t* wData, uint32_t wLen)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void EndianSwapBargraphEventData(void* bData, uint32_t bLen, uint8_t bType, uint16_t bInt, uint16_t sInt)
+void EndianSwapBargraphBarData(uint8_t* bData, uint8_t bType)
+{
+	/*
+		// Original
+		uint16 aMax;
+		uint16 rvtMax;
+		uint32 vsMax;
+
+		// New A+R+V+T+VS
+		uint16 aMax;
+		uint16 rMax;
+		uint16 vMax;
+		uint16 tMax;
+		uint32 vsMax;
+
+		// New A+R+V+T+VS+Freq
+		uint16 aMax;
+		uint16 rMax;
+		uint16 vMax;
+		uint16 tMax;
+		uint16 aFreq;
+		uint16 rFreq;
+		uint16 vFreq;
+		uint16 tFreq;
+		uint32 vsMax;
+	*/
+
+	uint16_t* bWordPtr = (uint16_t*)bData;
+	uint32_t* bLongPtr;
+
+	*bWordPtr = __builtin_bswap16(*bWordPtr); bWordPtr++; // aMax
+	*bWordPtr = __builtin_bswap16(*bWordPtr); bWordPtr++; // rvtMax or rMax
+
+	for (uint8_t i = 0; i < (bType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE ? 2 : 6); i++)
+	{
+		*bWordPtr = __builtin_bswap16(*bWordPtr); bWordPtr++;
+	}
+
+	bLongPtr = (uint32_t*)bWordPtr;
+	*bLongPtr = __builtin_bswap32(*bLongPtr); // vsMax
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void EndianSwapBargraphEventData(uint8_t* bData, uint32_t bLen, uint8_t bType, uint16_t bInt, uint16_t sInt)
 {
 	// Handle full BI/SI segments
-	while (bLen > ((bType * bInt) + sizeof(CALCULATED_DATA_STRUCT)))
+	while (bLen > (((sInt / bInt) * bType) + sizeof(CALCULATED_DATA_STRUCT)))
 	{
 		// Handle BI data
+		for (uint32_t i = 0; i < (sInt / bInt); i++)
+		{
+			EndianSwapBargraphBarData(bData, bType);
+			bData += bType;
+		}
+
 		// Handle SI data
+		EndianSwapCalculatedDataStruct((CALCULATED_DATA_STRUCT*)bData);
+		bData += sizeof(CALCULATED_DATA_STRUCT);
+
 		// Decrement length
+		bLen -= (((sInt / bInt) * bType) + sizeof(CALCULATED_DATA_STRUCT));
 	}
 
 	// Handle partial BI/SI final segment
+	while (bLen > sizeof(CALCULATED_DATA_STRUCT))
+	{
+		EndianSwapBargraphBarData(bData, bType);
+		bData += bType;
+		bLen -= bType;
+	}
+
+	if (bLen == sizeof(CALCULATED_DATA_STRUCT))
+	{
+		EndianSwapCalculatedDataStruct((CALCULATED_DATA_STRUCT*)bData);
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -2797,7 +2863,7 @@ void EndianSwapEventData(EVT_RECORD* eRec, void* eData)
 	uint8_t mode = ((eRec->summary.mode == COMBO_MODE) ? eRec->summary.subMode : eRec->summary.mode);
 
 	if ((mode == WAVEFORM_MODE) || (mode == MANUAL_CAL_MODE)) { EndianSwapWaveformEventData((uint16_t*)eData, eRec->header.dataLength); }
-	else { EndianSwapBargraphEventData((uint16_t*)eData, eRec->header.dataLength, eRec->summary.parameters.barIntervalDataType, eRec->summary.parameters.barInterval, eRec->summary.parameters.summaryInterval); }
+	else { EndianSwapBargraphEventData((uint8_t*)eData, eRec->header.dataLength, eRec->summary.parameters.barIntervalDataType, eRec->summary.parameters.barInterval, eRec->summary.parameters.summaryInterval); }
 }
 
 ///----------------------------------------------------------------------------
