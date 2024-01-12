@@ -703,8 +703,8 @@ void AdjustPowerSavings(uint8_t powerSavingsLevel)
 
 	/*
 		Notes: MXC_SYS_PERIPH_CLOCK_SCACHE not clearly defined. Could be tied to EMCC (unused) or the internal RAM (needed). Loose references to both.
-		Todo: Determine SCACHE function, either EMMC and enable the following or internal RAM and leave out
-			// Disable EMMC RAM
+		Todo: Determine SCACHE function, either EMCC and enable the following or internal RAM and leave out
+			// Disable EMCC RAM
 			MXC_PWRSEQ->mem_pwr |= MXC_F_PWRSEQ_MEM_PWR_SCACHESD;
 	*/
 
@@ -724,7 +724,7 @@ void AdjustPowerSavings(uint8_t powerSavingsLevel)
 		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_HBC); // Not using (Hyperbus/Xccela)
 		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_I2S); // Not using (Inter-IC Sound)
 
-		// Disable EMCC by stting dcache_dis bit = 1 in GCR_SCON
+		// Disable EMCC by setting dcache_dis bit = 1 in GCR_SCON
 		MXC_GCR->scon |= MXC_F_GCR_SCON_DCACHE_DIS; // Not using (EMCC)
 	}
 
