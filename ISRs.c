@@ -2060,7 +2060,7 @@ static inline void getChannelDataWithReadbackWithTemp_ISR_Inline(void)
 	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 	if (chanDataRaw[3] != 2) { s_channelSyncError = YES; }
 
-	// Chan 3 - A?
+	// Chan 3 - A
 	SetAdcConversionState(ON);
 	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
 	SetAdcConversionState(OFF);
