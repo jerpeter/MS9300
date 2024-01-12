@@ -465,7 +465,7 @@ void InitSoftwareSettings_MS9300(void)
 	//-------------------------------------------------------------------------
 	debug("Init complete, turning Kepypad LED Green...\r\n");
 	// Todo: Correct for the right LED once LED map is available (1&2=Red, 3&4=Green)
-	PowerControl(LED_3, ON);
+	//PowerControl(LED_3, ON);
 
 	//-------------------------------------------------------------------------
 	// Assign a one second keypad led update timer

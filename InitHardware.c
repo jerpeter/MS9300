@@ -136,7 +136,7 @@ void InitExternalKeypad(void)
 	}
 
 	// Todo: Find the right LED to light (1&2=Red?, 3&4=Green?)
-	PowerControl(LED_1, ON);
+	//PowerControl(LED_1, ON);
 }
 
 ///----------------------------------------------------------------------------
