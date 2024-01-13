@@ -2450,9 +2450,10 @@ void TestDriveAndFilesystem(void)
 
 typedef enum {
 	MXC_SDHC_LIB_LEGACY_TIMING = 0,
-	MXC_SDHC_LIB_HIGH_SPEED_TIMING, // 1
+	MXC_SDHC_LIB_HIGH_SPEED_TIMING_SDR, // 1
 	MXC_SDHC_LIB_HS200_TIMING, // 2
 	MXC_SDHC_LIB_HS400_TIMING, // 3
+	MXC_SDHC_LIB_HIGH_SPEED_TIMING_DDR = 5 // 5
 } mxc_sdhc_hs_timing;
 
 #define MXC_SDHC_LIB_CMD6       0x060A
@@ -2483,9 +2484,9 @@ int MXC_SDHC_Lib_SetHighSpeedTiming(mxc_sdhc_hs_timing highSpeedTiming)
 		// Todo: Check if host control 1 needs to be set with the high speed enable bit or does this invalidate the legacy timing?
 		//cmd_cfg.host_control_1 |= MXC_F_SDHC_HOST_CN_1_HS_EN; // Needed or a problem?
 	}
-	else if (highSpeedTiming == MXC_SDHC_LIB_HIGH_SPEED_TIMING)
+	else if (highSpeedTiming == MXC_SDHC_LIB_HIGH_SPEED_TIMING_SDR)
 	{
-		// High speed timing
+		// High speed timing SDR
 		cmd_cfg.arg_1 = 0x03B90100;
 		cmd_cfg.host_control_1 |= MXC_F_SDHC_HOST_CN_1_HS_EN;
 	}
@@ -2499,6 +2500,12 @@ int MXC_SDHC_Lib_SetHighSpeedTiming(mxc_sdhc_hs_timing highSpeedTiming)
 	{
 		// Can't use HS400 mode, data width can't be set to 8
 		result = E_BAD_STATE;
+	}
+	else if (highSpeedTiming == MXC_SDHC_LIB_HIGH_SPEED_TIMING_DDR)
+	{
+		// High speed timing DDR
+		cmd_cfg.arg_1 = 0x03B90500;
+		cmd_cfg.host_control_1 |= MXC_F_SDHC_HOST_CN_1_HS_EN;
 	}
 	else { result = E_BAD_STATE; }
 
@@ -2524,6 +2531,7 @@ int MXC_SDHC_Lib_SetHighSpeedTiming(mxc_sdhc_hs_timing highSpeedTiming)
 void SetupSDHCeMMC(void)
 {
     mxc_sdhc_cfg_t cfg;
+	mxc_sdhc_hs_timing timingMode;
 
     // Initialize SDHC peripheral
     cfg.bus_voltage = MXC_SDHC_Bus_Voltage_1_8;
@@ -2558,24 +2566,21 @@ void SetupSDHCeMMC(void)
 		32651 Datasheet: Supports SDR50 with SDHC clock of up to 60MHz (30MB/sec) -or- Supports DDR50 with SDHC clock of up to 30MHz (30MB/sec)
 	*/
 
-	// Todo: Test for 60 MHz clock (max SDHC clock since eMMC is using the newer 5.0 spec), and determine if/how to setup DDR (but drop clock to 30 MHz)
+	// Set timing mode to High Speed DDR (30MHz @ 30MB/sec)
+	timingMode = MXC_SDHC_LIB_HIGH_SPEED_TIMING_DDR;
 
-	// Todo: Check options for setting hs_timing
-#if 0 /* Enable high speed timing when sorted out */
-	MXC_SDHC_Lib_SetHighSpeedTiming(MXC_SDHC_LIB_HIGH_SPEED_TIMING);
-	-or-
-	MXC_SDHC_Lib_SetHighSpeedTiming(MXC_SDHC_LIB_HS200_TIMING);
-#endif
+	// Enable high speed timing when sorted out
+	MXC_SDHC_Lib_SetHighSpeedTiming(timingMode);
 
-    // Configure for fastest possible clock, must not exceed 52 MHz for eMMC
-    if (SystemCoreClock > 96000000)
+    // Configure for fastest possible clock, must not exceed 52 MHz for eMMC in Legacy mode, or lower clock rate for High Speed DDR mode
+    if (((SystemCoreClock > 96000000) && (timingMode == MXC_SDHC_LIB_LEGACY_TIMING)) || (timingMode == MXC_SDHC_LIB_HIGH_SPEED_TIMING_DDR))
 	{
-        debug("SD clock ratio (at card/device) is 4:1 (eMMC not to exceed 52 MHz)\r\n");
+        debug("SD clock ratio (at card/device) is 4:1, %dMHz, (eMMC not to exceed 52 MHz for legacy)\r\n", (SystemCoreClock / 4));
         MXC_SDHC_Set_Clock_Config(1);
     }
 	else // Slower system clock
 	{
-        debug("SD clock ratio (at card/device) is 2:1\r\n");
+        debug("SD clock ratio (at card/device) is 2:1, %dMHz\r\n", (SystemCoreClock / 2));
         MXC_SDHC_Set_Clock_Config(0);
     }
 
