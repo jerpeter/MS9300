@@ -1620,24 +1620,24 @@ void FuelGaugeInit(void)
 	// Reset the device with desired prescaler, ADC mode will be set to Scan and ALCC config set to Alert mode
 	ltc294x_reset(ltc2944_device.prescaler);
 
-#if 0 /* Todo: Verify how Charge operates */
-	// Set the charge based on expected near full charge capacity (95%), function handles disabling the analog section for setting the charge and re-enabling when done
+#if 1 /* Todo: Verify how Charge operates */
+	// Set the charge based on expected half charge capacity (50%), function handles disabling the analog section for setting the charge and re-enabling when done
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
-		ltc294x_set_charge_now(&ltc2944_device, (6600 * 0.95)); // Single pack
+		ltc294x_set_charge_now(ltc2944_device.Qlsb, (6600 * 0.5)); // Single pack
 	}
-	else { ltc294x_set_charge_now(&ltc2944_device, (13200 * 0.95)); } // Double pack
+	else { ltc294x_set_charge_now(ltc2944_device.Qlsb, (13200 * 0.5)); } // Double pack
 
 	// Set the Charge Thresold High and Low
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
-		ltc294x_set_charge_thr(&ltc2944_device, 6600, 0); // Single pack
+		ltc294x_set_charge_thr(ltc2944_device.Qlsb, 6600, 0); // Single pack
 	}
-	else { ltc294x_set_charge_thr(&ltc2944_device, 13200, 0); } // Double pack
+	else { ltc294x_set_charge_thr(ltc2944_device.Qlsb, 13200, 0); } // Double pack
 #endif
 
-	// Set the Voltage Thresold High and Low based on 7300mV max, 4000mV min
-	ltc294x_set_voltage_thr(7300, 4000);
+	// Set the Voltage Thresold High and Low based on 7300mV max, 5400mV min
+	ltc294x_set_voltage_thr(7300, 5400);
 
 	// Set the Current Thresold High and Low based on 3000mA
 	if (GetExpandedBatteryPresenceState() == NO)
