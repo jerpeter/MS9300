@@ -433,6 +433,9 @@ void System_power_button_irq(void)
 			// Unmount the file system, graceful shutdown
 			f_mount(NULL, "", 0);
 
+			// Put Fuel Gauge ADC to sleep while off (device is battery powered and not placed into reset)
+			ltc294x_i2c_shutdown();
+
 			SoftUsecWait(1 * SOFT_SECS);
 			PowerControl(MCU_POWER_LATCH, OFF);
 		}
