@@ -2852,7 +2852,7 @@ void ValidatePowerOn(void)
 
 				// Power on button released therefore startup condition not met, shut down
 				PowerControl(MCU_POWER_LATCH, OFF);
-				while (1) {}
+				while (1) { /* Wait for darkness (caps bleed and unit powers off) */}
 			}
 		}
 
@@ -2867,10 +2867,44 @@ void ValidatePowerOn(void)
 	// Check if USB charging is startup source
 	else if (vbusChargingDetect)
 	{
-		// Todo: Determine necessary action if USB charging is reason for power up, Aux power enable?
+		// Note: USB charging is reason for power up, could be USB or another source like 12V external battery (where setting Aux power enable is needed)
+		// Setup Battery Charger and Fuel Gauge, then monitor for user power on
+		BatteryChargerInit();
+		FuelGaugeInit();
 
 		// Todo: Turn on appropriate LED
 		//PowerControl(LED???, ON);
+
+		while (1)
+		{
+			// Check if Power On button depressed
+			if (GetPowerOnButtonState() == ON)
+			{
+				debugRaw("(2 second press validation) Power On button depress detected, Waiting");
+
+				// Monitor Power on button for 2 secs making sure it remains depressed signaling desire to turn unit on
+				for (i = 0; i < 40; i++)
+				{
+					MXC_Delay(MXC_DELAY_MSEC(50));
+					debugRaw(".");
+
+					// Determine if the Power on button was released early
+					if (GetPowerOnButtonState() == OFF)
+					{
+						debugRaw("\r\nPower On qualificaiton not met\r\n");
+						// Break the For loop
+						break;
+					}
+				}
+
+				debugRaw(" Power On activated\r\n");
+
+				// Unit startup condition verified, latch power and continue
+				PowerControl(MCU_POWER_LATCH, ON);
+				// Break the While loop and proceed with unit startup
+				break;
+			}
+		}
 	}
 	else
 	{
