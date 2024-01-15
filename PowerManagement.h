@@ -127,7 +127,7 @@ uint16_t GetBattChargerBatteryDischargeCurrent(void);
 uint16_t GetBattChargerInputVoltageInDischargeMode(void);
 uint16_t GetBattChargerOutputCurrentInDischargeMode(void);
 
-int ltc294x_get_voltage(int* val);
-void ltc294x_i2c_shutdown(void);
+int Ltc2944_get_voltage(int* val);
+void Ltc2944_i2c_shutdown(void);
 
 #endif //_POWER_MANAGEMENT_H_

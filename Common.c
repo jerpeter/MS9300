@@ -73,7 +73,7 @@ float GetExternalVoltageLevelAveraged(uint8 type)
 		case BATTERY_VOLTAGE:
 			for (i = 0; i < AD_VOLTAGE_READ_LOOP_COUNT; i++)
 			{
-				ltc294x_get_voltage(&voltage_mV);
+				Ltc2944_get_voltage(&voltage_mV);
 				adVoltageLevel += voltage_mV;
 			}
 			adVoltageLevel /= AD_VOLTAGE_READ_LOOP_COUNT;
