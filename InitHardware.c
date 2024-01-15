@@ -1540,7 +1540,7 @@ void SetupSPI(void)
 	status = MXC_SPI_Init(MXC_SPI3, YES, NO, 1, LOW, SPI_SPEED_ADC);
 	if (status != E_SUCCESS) { debugErr("SPI3 (ADC) Init failed with code: %d\r\n", status); }
 
-	mxc_gpio_cfg_t spi3SlaveSelect0GpioConfig = { GPIO_ADC_SPI_3_SS_0_PORT, GPIO_ADC_SPI_3_SS_0_PIN, MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE };
+	mxc_gpio_cfg_t spi3SlaveSelect0GpioConfig = { GPIO_ADC_SPI_3_SS_0_PORT, GPIO_ADC_SPI_3_SS_0_PIN, MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
 	MXC_GPIO_Config(&spi3SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
 
 	// Set standard SPI 4-wire (MISO/MOSI, full duplex), (Turns out ADC dual-SDO and MAX32651 dual mode are incompatible, can only use single mode)
@@ -1557,12 +1557,12 @@ void SetupSPI(void)
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL)
 	{
-		mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { GPIO_SPI_2_SS_0_LCD_PORT, GPIO_SPI_2_SS_0_LCD_PIN, MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE };
+		mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { GPIO_SPI_2_SS_0_LCD_PORT, GPIO_SPI_2_SS_0_LCD_PIN, MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
 		MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
 	}
 	else // SPI2 Slave Select controlled by the SPI driver
 	{
-		mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { GPIO_SPI_2_SS_0_LCD_PORT, GPIO_SPI_2_SS_0_LCD_PIN, MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE };
+		mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { GPIO_SPI_2_SS_0_LCD_PORT, GPIO_SPI_2_SS_0_LCD_PIN, MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
 		MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
 	}
 
@@ -2538,16 +2538,17 @@ void SetupSDHCeMMC(void)
     cfg.block_gap = 0;
     cfg.clk_div = 0x0b0; // Maximum divide ratio, frequency must be >= 400 kHz during Card Identification phase
 
-#if 0 /* Interface call assigns incorrect GPIO */
+#if 0 /* Interface call assigns incorrect GPIO (P0.31/SDHC_CDN and P1.2/SDHC_WP) */
     if (MXC_SDHC_Init(&cfg) != E_NO_ERROR) { debugErr("SDHC/eMMC initialization failed\r\n"); }
 #else /* Manual setup */
-	mxc_gpio_cfg_t gpio_cfg_sdhc_1 = { GPIO_SDHC_PORT, (GPIO_SDHC_CMD_PIN | GPIO_SDHC_DAT2_PIN | GPIO_SDHC_DAT3_PIN | GPIO_SDHC_DAT0_PIN | GPIO_SDHC_CLK_PIN | GPIO_SDHC_DAT1_PIN), MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE };
+	mxc_gpio_cfg_t gpio_cfg_sdhc_1 = { GPIO_SDHC_PORT, (GPIO_SDHC_CMD_PIN | GPIO_SDHC_DAT2_PIN | GPIO_SDHC_DAT3_PIN | GPIO_SDHC_DAT0_PIN | GPIO_SDHC_CLK_PIN | GPIO_SDHC_DAT1_PIN),
+										MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
 
     MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_SDHC);
 
     MXC_GPIO_Config(&gpio_cfg_sdhc_1);
     gpio_cfg_sdhc_1.port->vssel &= ~(gpio_cfg_sdhc_1.mask); // Set voltage select to MXC_GPIO_VSSEL_VDDIO, since it seems digital interface is at 1.8V
-    gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 2x (borrowing from reference example)
+    gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 2x (borrowing from internal driver)
 
     if (MXC_SDHC_RevA_Init((mxc_sdhc_reva_regs_t *)MXC_SDHC, &cfg) != E_NO_ERROR) { debugErr("SDHC/eMMC initialization failed\r\n"); }
 #endif
