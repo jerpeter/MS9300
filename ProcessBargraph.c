@@ -110,6 +110,7 @@ void MoveBarIntervalDataToFile(void)
 			while (g_bargraphBarIntervalsCached)
 			{
 #if ENDIAN_CONVERSION
+				// Swap to Big Endian for writing file
 				EndianSwapBarInterval(g_bargraphBarIntervalReadPtr, g_pendingBargraphRecord.summary.parameters.barIntervalDataType);
 #endif
 				// New BI with options
@@ -123,7 +124,10 @@ void MoveBarIntervalDataToFile(void)
 					f_write(&file, &g_bargraphBarIntervalReadPtr->rMax, (sizeof(g_bargraphBarIntervalReadPtr->rMax) * ((g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE) ? 3 : 7)), (UINT*)&bytesWritten);
 					f_write(&file, &g_bargraphBarIntervalReadPtr->vsMax, sizeof(g_bargraphBarIntervalReadPtr->vsMax), (UINT*)&bytesWritten);
 				}
-
+#if ENDIAN_CONVERSION
+				// Swap back to Little Endian for future references before SI ends (possible BLM cached reads?)
+				EndianSwapBarInterval(g_bargraphBarIntervalReadPtr, g_pendingBargraphRecord.summary.parameters.barIntervalDataType);
+#endif
 				// Increment based on the size of the Bar Interval data type
 				g_pendingBargraphRecord.header.dataLength += g_pendingBargraphRecord.summary.parameters.barIntervalDataType;
 
@@ -205,6 +209,7 @@ void MoveSummaryIntervalDataToFile(void)
 		while (g_bargraphBarIntervalsCached)
 		{
 #if ENDIAN_CONVERSION
+			// Swap to Big Endian for writing file
 			EndianSwapBarInterval(g_bargraphBarIntervalReadPtr, g_pendingBargraphRecord.summary.parameters.barIntervalDataType);
 #endif
 			// New BI with options
@@ -218,7 +223,10 @@ void MoveSummaryIntervalDataToFile(void)
 				f_write(&file, &g_bargraphBarIntervalReadPtr->rMax, (sizeof(g_bargraphBarIntervalReadPtr->rMax) * ((g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE) ? 3 : 7)), (UINT*)&bytesWritten);
 				f_write(&file, &g_bargraphBarIntervalReadPtr->vsMax, sizeof(g_bargraphBarIntervalReadPtr->vsMax), (UINT*)&bytesWritten);
 			}
-
+#if ENDIAN_CONVERSION
+			// Swap back to Little Endian for future references before SI ends (possible BLM cached reads?)
+			EndianSwapBarInterval(g_bargraphBarIntervalReadPtr, g_pendingBargraphRecord.summary.parameters.barIntervalDataType);
+#endif
 			// Increment based on the size of the Bar Interval data type
 			g_pendingBargraphRecord.header.dataLength += g_pendingBargraphRecord.summary.parameters.barIntervalDataType;
 
@@ -1195,6 +1203,9 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 
 				// Cache the Bargraph data for compression event file creation below
 				f_read(&file, (uint8*)&g_eventDataBuffer[0], dataLength, (UINT*)&bytesMoved);
+#if ENDIAN_CONVERSION
+				// Data should be read Big Endian before compression, so no conversion needed
+#endif
 			}
 		}
 
