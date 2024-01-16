@@ -506,7 +506,7 @@ void InitMonitorLogTableFromLogFile(void)
 	uint32_t readSize;
 
 	// -------------------------------------
-	// Monitor Log Binary file write
+	// Monitor Log Binary file read
 	// -------------------------------------
     if ((f_stat((const TCHAR*)s_monitorLogFilename, NULL)) == FR_NO_FILE)
 	{ 
