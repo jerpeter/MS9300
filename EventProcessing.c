@@ -1114,8 +1114,7 @@ void StoreCurrentEventNumber(void)
 ///----------------------------------------------------------------------------
 void GetEventFileInfo(uint16 eventNumber, EVENT_HEADER_STRUCT* eventHeaderPtr, EVENT_SUMMARY_STRUCT* eventSummaryPtr, BOOLEAN cacheDataToRamBuffer)
 {
-	EVENT_HEADER_STRUCT fileEventHeader;
-	EVENT_SUMMARY_STRUCT fileSummary;
+	EVT_RECORD fileEventRecord;
 	char* pathAndFilename;
 
 	FIL file;
@@ -1138,25 +1137,28 @@ void GetEventFileInfo(uint16 eventNumber, EVENT_HEADER_STRUCT* eventHeaderPtr, E
 		}
 		else // File good
 		{
-			f_read(&file, (uint8*)&fileEventHeader, sizeof(EVENT_HEADER_STRUCT), (UINT*)&readSize);
+			f_read(&file, (uint8*)&fileEventRecord.header, sizeof(EVENT_HEADER_STRUCT), (UINT*)&readSize);
 #if ENDIAN_CONVERSION
-			EndianSwapEventRecordHeader(&fileEventHeader);
+			EndianSwapEventRecordHeader(&fileEventRecord.header);
 #endif
 			// If we find the EVENT_RECORD_START_FLAG followed by the encodeFlag2, then assume this is the start of an event
-			if ((fileEventHeader.startFlag == EVENT_RECORD_START_FLAG) &&
-				((fileEventHeader.recordVersion & EVENT_MAJOR_VERSION_MASK) == (EVENT_RECORD_VERSION & EVENT_MAJOR_VERSION_MASK)) &&
-				(fileEventHeader.headerLength == sizeof(EVENT_HEADER_STRUCT)))
+			if ((fileEventRecord.header.startFlag == EVENT_RECORD_START_FLAG) &&
+				((fileEventRecord.header.recordVersion & EVENT_MAJOR_VERSION_MASK) == (EVENT_RECORD_VERSION & EVENT_MAJOR_VERSION_MASK)) &&
+				(fileEventRecord.header.headerLength == sizeof(EVENT_HEADER_STRUCT)))
 			{
 				debug("Found Valid Event File: %s\r\n", pathAndFilename);
 
-				f_read(&file, (uint8*)&fileSummary, sizeof(EVENT_SUMMARY_STRUCT), (UINT*)&readSize);
+				f_read(&file, (uint8*)&fileEventRecord.summary, sizeof(EVENT_SUMMARY_STRUCT), (UINT*)&readSize);
 #if ENDIAN_CONVERSION
-				EndianSwapEventRecordSummary(&fileSummary);
+				EndianSwapEventRecordSummary(&fileEventRecord.summary);
 #endif
 			
 				if (cacheDataToRamBuffer == YES)
 				{
 					f_read(&file, (uint8*)&g_eventDataBuffer[0], (f_size(&file) - (sizeof(EVENT_HEADER_STRUCT) - sizeof(EVENT_SUMMARY_STRUCT))), (UINT*)&readSize);
+#if ENDIAN_CONVERSION
+					EndianSwapEventData(&fileEventRecord, &g_eventDataBuffer[0]);
+#endif
 				}
 			}
 		}
@@ -1167,12 +1169,12 @@ void GetEventFileInfo(uint16 eventNumber, EVENT_HEADER_STRUCT* eventHeaderPtr, E
 
 	if (eventHeaderPtr != NULL)
 	{
-		memcpy(eventHeaderPtr, &fileEventHeader, sizeof(EVENT_HEADER_STRUCT));
+		memcpy(eventHeaderPtr, &fileEventRecord.header, sizeof(EVENT_HEADER_STRUCT));
 	}
 
 	if (eventSummaryPtr != NULL)
 	{
-		memcpy(eventSummaryPtr, &fileSummary, sizeof(EVENT_SUMMARY_STRUCT));
+		memcpy(eventSummaryPtr, &fileEventRecord.summary, sizeof(EVENT_SUMMARY_STRUCT));
 	}	
 }
 
@@ -1662,6 +1664,9 @@ uint8 CacheEventToRam(uint16 eventNumber, EVT_RECORD* eventRecordPtr)
 			EndianSwapEventRecord(eventRecordPtr);
 #endif
 			f_read(&file, (uint8*)&g_eventDataBuffer[0], (f_size(&file) - sizeof(EVT_RECORD)), (UINT*)&readSize);
+#if ENDIAN_CONVERSION
+			EndianSwapEventData(eventRecordPtr, &g_eventDataBuffer[0]);
+#endif
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 			status = EVENT_CACHE_SUCCESS;
 		}
