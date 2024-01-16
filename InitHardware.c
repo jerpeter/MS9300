@@ -2479,22 +2479,18 @@ int MXC_SDHC_Lib_SetHighSpeedTiming(mxc_sdhc_hs_timing highSpeedTiming)
 	cmd_cfg.host_control_1 = MXC_SDHC_Get_Host_Cn_1();
 	if (highSpeedTiming == MXC_SDHC_LIB_LEGACY_TIMING)
 	{
-		// Legacy timing
-		cmd_cfg.arg_1 = 0x03B90000;
-		// Todo: Check if host control 1 needs to be set with the high speed enable bit or does this invalidate the legacy timing?
-		//cmd_cfg.host_control_1 |= MXC_F_SDHC_HOST_CN_1_HS_EN; // Needed or a problem?
+		cmd_cfg.arg_1 = 0x03B90000; // Legacy timing
+		cmd_cfg.host_control_1 &= ~MXC_F_SDHC_HOST_CN_1_HS_EN; // Select Normal speed
 	}
 	else if (highSpeedTiming == MXC_SDHC_LIB_HIGH_SPEED_TIMING_SDR)
 	{
-		// High speed timing SDR
-		cmd_cfg.arg_1 = 0x03B90100;
-		cmd_cfg.host_control_1 |= MXC_F_SDHC_HOST_CN_1_HS_EN;
+		cmd_cfg.arg_1 = 0x03B90100; // High speed timing SDR
+		cmd_cfg.host_control_1 |= MXC_F_SDHC_HOST_CN_1_HS_EN; // Select High speed
 	}
 	else if (highSpeedTiming == MXC_SDHC_LIB_HS200_TIMING)
 	{
-		// High speed timing
-		cmd_cfg.arg_1 = 0x03B90200;
-		cmd_cfg.host_control_1 |= MXC_F_SDHC_HOST_CN_1_HS_EN;
+		cmd_cfg.arg_1 = 0x03B90200; // High speed timing
+		cmd_cfg.host_control_1 |= MXC_F_SDHC_HOST_CN_1_HS_EN; // Select High speed
 	}
 	else if (highSpeedTiming == MXC_SDHC_LIB_HS400_TIMING)
 	{
@@ -2503,9 +2499,8 @@ int MXC_SDHC_Lib_SetHighSpeedTiming(mxc_sdhc_hs_timing highSpeedTiming)
 	}
 	else if (highSpeedTiming == MXC_SDHC_LIB_HIGH_SPEED_TIMING_DDR)
 	{
-		// High speed timing DDR
-		cmd_cfg.arg_1 = 0x03B90500;
-		cmd_cfg.host_control_1 |= MXC_F_SDHC_HOST_CN_1_HS_EN;
+		cmd_cfg.arg_1 = 0x03B90500; // High speed timing DDR
+		cmd_cfg.host_control_1 |= MXC_F_SDHC_HOST_CN_1_HS_EN; // Select High speed
 	}
 	else { result = E_BAD_STATE; }
 
@@ -2567,19 +2562,29 @@ void SetupSDHCeMMC(void)
 		32651 Datasheet: Supports SDR50 with SDHC clock of up to 60MHz (30MB/sec) -or- Supports DDR50 with SDHC clock of up to 30MHz (30MB/sec)
 	*/
 
+#if 1 /* Start with HS SDR */
+	// Set timing mode to High Speed SDR (60MHz @ 30MB/sec)
+	timingMode = MXC_SDHC_LIB_HIGH_SPEED_TIMING_SDR;
+#else /* Attempt HS DDR mode at some point */
 	// Set timing mode to High Speed DDR (30MHz @ 30MB/sec)
+	// Note: JEDEC standard suggests changing Data Bus Width to 4-bit DDR which the framework driver does not do currently (Argument 0x03B7_0500 sets 4-bit DDR)
 	timingMode = MXC_SDHC_LIB_HIGH_SPEED_TIMING_DDR;
+#endif
 
 	// Enable high speed timing when sorted out
 	MXC_SDHC_Lib_SetHighSpeedTiming(timingMode);
 
-    // Configure for fastest possible clock, must not exceed 52 MHz for eMMC in Legacy mode, or lower clock rate for High Speed DDR mode
+    // Configure for best clock divider, must not exceed 52 MHz for eMMC in Legacy mode, or use lower clock rate for High Speed DDR mode (max 30MHz)
+#if 1 /* Limit setting HS SDR to 60MHz until data exchange verified */
+	if (SystemCoreClock > 96000000)
+#else /* More selective control on clock selection allowing HS SDR to run 60MHz */
     if (((SystemCoreClock > 96000000) && (timingMode == MXC_SDHC_LIB_LEGACY_TIMING)) || (timingMode == MXC_SDHC_LIB_HIGH_SPEED_TIMING_DDR))
+#endif
 	{
         debug("SD clock ratio (at card/device) is 4:1, %dMHz, (eMMC not to exceed 52 MHz for legacy)\r\n", (SystemCoreClock / 4));
         MXC_SDHC_Set_Clock_Config(1);
     }
-	else // Slower system clock
+	else // Use smallest clock divider for fastest clock rate (max 60MHz)
 	{
         debug("SD clock ratio (at card/device) is 2:1, %dMHz\r\n", (SystemCoreClock / 2));
         MXC_SDHC_Set_Clock_Config(0);
