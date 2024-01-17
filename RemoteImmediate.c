@@ -2084,8 +2084,12 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 				currentSample = (SAMPLE_DATA_STRUCT*)&(g_derXferStruct.xmitBuffer[0]);
 
 				i = 0;
-				while (i < (pullSize / 8))
+				while (i < (pullSize / sizeof(SAMPLE_DATA_STRUCT)))
 				{
+#if ENDIAN_CONVERSION
+					// Swap event read Big Endian to Little Endian for processing
+					EndianSwapWaveformEventData((uint16_t*)currentSample, sizeof(SAMPLE_DATA_STRUCT));
+#endif
 					// For seismic samples
 					//	(float)(sample - bitAccuracyScale) / (float)div
 					// For Acoustic sample
@@ -2151,6 +2155,10 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 					// Loop through all of the BI's pulled out of the Bargraph event data
 					for (i=0; i<(pullSize / barType); i++)
 					{
+#if ENDIAN_CONVERSION
+						// Swap event read Big Endian to Little Endian for processing
+						EndianSwapBargraphBarData((uint8_t*)currentBI, barType);
+#endif
 						airdB = HexToDB(currentBI[0], DATA_NORMALIZED, bitAccuracyScale, airSensorType);
 						airmb = HexToMB(currentBI[0], DATA_NORMALIZED, bitAccuracyScale, airSensorType);
 						rUnits = (float)(currentBI[1]) / (float)div;
@@ -2237,7 +2245,10 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 				while (sampleCount <= eventRecord->summary.calculated.summariesCaptured)
 				{
 					CacheEventDataToBuffer(eventRecord->summary.eventNumber, (uint8*)&(g_derXferStruct.xmitBuffer[0]), dataOffset, pullSize);
-
+#if ENDIAN_CONVERSION
+					// Swap event read Big Endian to Little Endian for processing
+					EndianSwapCalculatedDataStruct((CALCULATED_DATA_STRUCT*)&(g_derXferStruct.xmitBuffer[0]));
+#endif
 					airdB = HexToDB(cSum->a.peak, DATA_NORMALIZED, bitAccuracyScale, airSensorType);
 					airmb = HexToMB(cSum->a.peak, DATA_NORMALIZED, bitAccuracyScale, airSensorType);
 					rUnits = (float)(cSum->r.peak) / (float)div;
