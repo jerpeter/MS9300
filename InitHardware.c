@@ -2497,15 +2497,23 @@ int MXC_SDHC_Lib_SetHighSpeedTiming(mxc_sdhc_hs_timing highSpeedTiming)
 		// Can't use HS400 mode, data width can't be set to 8
 		result = E_BAD_STATE;
 	}
+#if 0 /* Not supported by MCU */
 	else if (highSpeedTiming == MXC_SDHC_LIB_HIGH_SPEED_TIMING_DDR)
 	{
 		cmd_cfg.arg_1 = 0x03B90500; // High speed timing DDR
 		cmd_cfg.host_control_1 |= MXC_F_SDHC_HOST_CN_1_HS_EN; // Select High speed
 	}
+#endif
 	else { result = E_BAD_STATE; }
 
 	cmd_cfg.command = MXC_SDHC_LIB_CMD6;
 	result = MXC_SDHC_SendCommand(&cmd_cfg);
+
+	// Setup the UHS mode as SDR25
+	MXC_SDHC->host_cn_2 &= MXC_F_SDHC_HOST_CN_2_UHS;
+	if (highSpeedTiming == MXC_SDHC_LIB_LEGACY_TIMING) { MXC_SDHC->host_cn_2 |= MXC_S_SDHC_HOST_CN_2_UHS_SDR12;	}
+	else if (highSpeedTiming == MXC_SDHC_LIB_HIGH_SPEED_TIMING_SDR) { MXC_SDHC->host_cn_2 |= MXC_S_SDHC_HOST_CN_2_UHS_SDR25;	}
+	else if (highSpeedTiming == MXC_SDHC_LIB_HS200_TIMING) { MXC_SDHC->host_cn_2 |= MXC_S_SDHC_HOST_CN_2_UHS_SDR50;	}
 
 	/* Wait until card busy (D0 low) disappears */
 	while (MXC_SDHC_Card_Busy()) {}
@@ -2531,7 +2539,7 @@ void SetupSDHCeMMC(void)
     // Initialize SDHC peripheral
     cfg.bus_voltage = MXC_SDHC_Bus_Voltage_1_8;
     cfg.block_gap = 0;
-    cfg.clk_div = 0x0b0; // Maximum divide ratio, frequency must be >= 400 kHz during Card Identification phase
+    cfg.clk_div = 0x96; // Large divide ratio, setting frequency to 400 kHz during Card Identification phase
 
 #if 0 /* Interface call assigns incorrect GPIO (P0.31/SDHC_CDN and P1.2/SDHC_WP) */
     if (MXC_SDHC_Init(&cfg) != E_NO_ERROR) { debugErr("SDHC/eMMC initialization failed\r\n"); }
@@ -2544,6 +2552,9 @@ void SetupSDHCeMMC(void)
     MXC_GPIO_Config(&gpio_cfg_sdhc_1);
     gpio_cfg_sdhc_1.port->vssel &= ~(gpio_cfg_sdhc_1.mask); // Set voltage select to MXC_GPIO_VSSEL_VDDIO, since it seems digital interface is at 1.8V
     gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 2x (borrowing from internal driver)
+
+	// Setup the 1.8V Signaling Enable
+	MXC_SDHC->host_cn_2 |= MXC_F_SDHC_HOST_CN_2_1_8V_SIGNAL;
 
     if (MXC_SDHC_RevA_Init((mxc_sdhc_reva_regs_t *)MXC_SDHC, &cfg) != E_NO_ERROR) { debugErr("SDHC/eMMC initialization failed\r\n"); }
 #endif
@@ -2562,13 +2573,14 @@ void SetupSDHCeMMC(void)
 		32651 Datasheet: Supports SDR50 with SDHC clock of up to 60MHz (30MB/sec) -or- Supports DDR50 with SDHC clock of up to 30MHz (30MB/sec)
 	*/
 
+	// Change the timing mode
+	// Note: HS DDR mode does not look supported by MCU
 #if 1 /* Start with HS SDR */
 	// Set timing mode to High Speed SDR (60MHz @ 30MB/sec)
 	timingMode = MXC_SDHC_LIB_HIGH_SPEED_TIMING_SDR;
-#else /* Attempt HS DDR mode at some point */
-	// Set timing mode to High Speed DDR (30MHz @ 30MB/sec)
-	// Note: JEDEC standard suggests changing Data Bus Width to 4-bit DDR which the framework driver does not do currently (Argument 0x03B7_0500 sets 4-bit DDR)
-	timingMode = MXC_SDHC_LIB_HIGH_SPEED_TIMING_DDR;
+#else /* Try HS200 timing at some point */
+	// Set timing mode to UHS SDR50 (30MHz @ 30MB/sec)
+	timingMode = MXC_SDHC_LIB_HS200_TIMING;
 #endif
 
 	// Enable high speed timing when sorted out
@@ -2581,7 +2593,7 @@ void SetupSDHCeMMC(void)
     if (((SystemCoreClock > 96000000) && (timingMode == MXC_SDHC_LIB_LEGACY_TIMING)) || (timingMode == MXC_SDHC_LIB_HIGH_SPEED_TIMING_DDR))
 #endif
 	{
-        debug("SD clock ratio (at card/device) is 4:1, %dMHz, (eMMC not to exceed 52 MHz for legacy)\r\n", (SystemCoreClock / 4));
+        debug("SD clock ratio (at card/device) is 4:1, %dMHz, (eMMC not to exceed 52 MHz for legacy or high speed modes)\r\n", (SystemCoreClock / 4));
         MXC_SDHC_Set_Clock_Config(1);
     }
 	else // Use smallest clock divider for fastest clock rate (max 60MHz)
