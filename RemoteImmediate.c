@@ -453,6 +453,9 @@ void HandleVML(CMD_BUFFER_STRUCT* inCmd)
 	uint16* dataPtr = (uint16*)(inCmd->msg + MESSAGE_HEADER_SIMPLE_LENGTH);
 
 	// Save the last downloaded unique entry ID
+#if ENDIAN_CONVERSION
+	*dataPtr = __builtin_bswap16(*dataPtr);
+#endif
 	s_vmlXferStruct.lastDlUniqueEntryId = *dataPtr;
 
 	// Init the start and temp monitor log table indices
