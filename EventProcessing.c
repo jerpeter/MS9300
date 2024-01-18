@@ -1510,7 +1510,9 @@ void CacheEventDataToBuffer(uint16 eventNumber, uint8* dataBuffer, uint32 dataOf
 		f_open(&file, pathAndFilename, FA_READ);
 		f_lseek(&file, dataOffset);
 		f_read(&file, dataBuffer, dataSize, (UINT*)&readSize);
-
+#if ENDIAN_CONVERISON
+		// Conversion done by caller (if needed) since data might be exported directly from read
+#endif
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 		f_close(&file);
 	}
@@ -1588,7 +1590,9 @@ void CacheERDataToBuffer(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffse
 
 		f_lseek(&file, dataOffset);
 		f_read(&file, dataBuffer, dataSize, (UINT*)&readSize);
-
+#if ENDIAN_CONVERISON
+		// No conversion to be done on compressed data
+#endif
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 		f_close(&file);
 	}
@@ -1597,6 +1601,7 @@ void CacheERDataToBuffer(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffse
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* Unused, needed by remote comms DER command (incomplete) */
 void CacheEventDataToRam(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffset, uint32 dataSize)
 {
 	char* pathAndFilename;
@@ -1623,13 +1628,16 @@ void CacheEventDataToRam(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffse
 		{
 			f_lseek(&file, (sizeof(EVT_RECORD) + dataOffset));
 			f_read(&file, dataBuffer, dataSize, (UINT*)&readSize);
-
+#if ENDIAN_CONVERISON
+			// Local or caller Endian conversion?
+#endif
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 		}
 
 		f_close(&file);
 	}
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -1665,7 +1673,8 @@ uint8 CacheEventToRam(uint16 eventNumber, EVT_RECORD* eventRecordPtr)
 #endif
 			f_read(&file, (uint8*)&g_eventDataBuffer[0], (f_size(&file) - sizeof(EVT_RECORD)), (UINT*)&readSize);
 #if ENDIAN_CONVERSION
-			EndianSwapEventData(eventRecordPtr, &g_eventDataBuffer[0]);
+			// Caller (currently only DEM) just needs data in Big Endian for transmission, so no conversion
+			/* (Skip) EndianSwapEventData(eventRecordPtr, &g_eventDataBuffer[0]); */
 #endif
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 			status = EVENT_CACHE_SUCCESS;
