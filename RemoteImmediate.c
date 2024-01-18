@@ -1298,6 +1298,7 @@ void HandleCAN(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 void HandleDER(CMD_BUFFER_STRUCT* inCmd)
 {
+#if 0 /* Incomplete, unfinished */
 	uint8 derHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
 	//DER_REQUEST derRequest;
 	char msgTypeStr[8];
@@ -1439,6 +1440,9 @@ void HandleDER(CMD_BUFFER_STRUCT* inCmd)
 				// Check if any remaining compressed data is queued
 				if (g_spareBufferIndex)
 				{
+#if ENDIAN_CONVERSION
+					// No conversion for compressed data
+#endif
 					// Finish writing the remaining compressed data
 					f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesMoved);
 					g_spareBufferIndex = 0;
@@ -1498,6 +1502,7 @@ void HandleDER(CMD_BUFFER_STRUCT* inCmd)
 
 	// Main - Craft Manager will pick up from here without directly calling
 	//ManageDER();
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -1505,6 +1510,7 @@ void HandleDER(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 uint8 ManageDER(void)
 {
+#if 0 /* Incomplete, unfinished */
 	uint32 startLocation;
 	uint32 cacheSize;
 
@@ -1881,6 +1887,7 @@ uint8 ManageDER(void)
 			}
 		}
 	}
+#endif
 
 	return (DERx_CMD);
 }
@@ -2087,7 +2094,7 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 				while (i < (pullSize / sizeof(SAMPLE_DATA_STRUCT)))
 				{
 #if ENDIAN_CONVERSION
-					// Swap event read Big Endian to Little Endian for processing
+					// Swap event stored Big Endian to Little Endian for processing
 					EndianSwapWaveformEventData((uint16_t*)currentSample, sizeof(SAMPLE_DATA_STRUCT));
 #endif
 					// For seismic samples
@@ -2156,7 +2163,7 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 					for (i=0; i<(pullSize / barType); i++)
 					{
 #if ENDIAN_CONVERSION
-						// Swap event read Big Endian to Little Endian for processing
+						// Swap event stored Big Endian to Little Endian for processing
 						EndianSwapBargraphBarData((uint8_t*)currentBI, barType);
 #endif
 						airdB = HexToDB(currentBI[0], DATA_NORMALIZED, bitAccuracyScale, airSensorType);
@@ -2246,7 +2253,7 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 				{
 					CacheEventDataToBuffer(eventRecord->summary.eventNumber, (uint8*)&(g_derXferStruct.xmitBuffer[0]), dataOffset, pullSize);
 #if ENDIAN_CONVERSION
-					// Swap event read Big Endian to Little Endian for processing
+					// Swap event stored Big Endian to Little Endian for processing
 					EndianSwapCalculatedDataStruct((CALCULATED_DATA_STRUCT*)&(g_derXferStruct.xmitBuffer[0]));
 #endif
 					airdB = HexToDB(cSum->a.peak, DATA_NORMALIZED, bitAccuracyScale, airSensorType);
@@ -2561,6 +2568,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 #if ENDIAN_CONVERSION
 	g_demXferStructPtr->dloadEventRec.structureFlag = __builtin_bswap32(g_demXferStructPtr->dloadEventRec.structureFlag);
 	g_demXferStructPtr->dloadEventRec.endFlag = __builtin_bswap32(g_demXferStructPtr->dloadEventRec.endFlag);
+	// Event record read from file Big Endian and converted to Little Endian for processing, need swap back to Big Endian for sending
 	EndianSwapEventRecord(&(g_demXferStructPtr->dloadEventRec.eventRecord));
 #endif
 	if (g_demXferStructPtr->downloadMethod == COMPRESS_MINILZO)
@@ -2639,7 +2647,8 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 	else if (g_demXferStructPtr->downloadMethod == COMPRESS_MINILZO)
 	{
 #if ENDIAN_CONVERSION
-		EndianSwapEventData(&g_demXferStructPtr->dloadEventRec.eventRecord, g_demXferStructPtr->startDataPtr);
+		// Event data cached from event in Big Endian, no conversion needed
+		/* (Skip) EndianSwapEventData(&g_demXferStructPtr->dloadEventRec.eventRecord, g_demXferStructPtr->startDataPtr); */
 #endif
 		g_demXferStructPtr->xmitSize = 0;
 		eventDataXferLength = lzo1x_1_compress((void*)(g_demXferStructPtr->startDataPtr), g_demXferStructPtr->dloadEventRec.eventRecord.header.dataLength, OUT_SERIAL);
@@ -2675,7 +2684,9 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 			while (dataSizeRemaining > CMD_BUFFER_SIZE)
 			{
 				CacheEventDataToBuffer(g_demXferStructPtr->dloadEventRec.eventRecord.summary.eventNumber, (uint8*)g_demXferStructPtr->xmitBuffer, dataOffset, CMD_BUFFER_SIZE);
-
+#if ENDIAN_CONVERISON
+				// No conversion needed since reading from stored Big Endian event to send out Big Endian
+#endif
 				g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, g_transmitCRC);
 
 				if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, NO_CONVERSION) == MODEM_SEND_FAILED)
@@ -2691,7 +2702,9 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 		if (dataSizeRemaining)
 		{
 			CacheEventDataToBuffer(g_demXferStructPtr->dloadEventRec.eventRecord.summary.eventNumber, (uint8*)g_demXferStructPtr->xmitBuffer, dataOffset, dataSizeRemaining);
-
+#if ENDIAN_CONVERISON
+				// No conversion needed since reading from stored Big Endian event to send out Big Endian
+#endif
 			g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->xmitBuffer, dataSizeRemaining, g_transmitCRC);
 
 			if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, dataSizeRemaining, NO_CONVERSION) == MODEM_SEND_FAILED)
