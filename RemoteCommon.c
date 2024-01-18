@@ -389,6 +389,9 @@ void WriteCompressedData(uint8 compressedData, uint8 outMode)
 
 		if (g_spareBufferIndex == SPARE_BUFFER_SIZE)
 		{
+#if ENDIAN_CONVERSION
+			// No conversion for compressed data
+#endif
 			f_write(g_globalFileHandle, g_spareBuffer, SPARE_BUFFER_SIZE, (UINT*)&bytesWritten);
 			g_spareBufferIndex = 0;
 		}

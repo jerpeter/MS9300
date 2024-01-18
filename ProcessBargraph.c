@@ -1204,7 +1204,7 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 				// Cache the Bargraph data for compression event file creation below
 				f_read(&file, (uint8*)&g_eventDataBuffer[0], dataLength, (UINT*)&bytesMoved);
 #if ENDIAN_CONVERSION
-				// Data should be read Big Endian before compression, so no conversion needed
+				// Data was read Big Endian (for compression below), no conversion needed
 #endif
 			}
 		}
@@ -1236,6 +1236,9 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 					// Check if any remaining compressed data is queued
 					if (g_spareBufferIndex)
 					{
+#if ENDIAN_CONVERSION
+						// No conversion for compressed data
+#endif
 						// Finish writing the remaining compressed data
 						f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesMoved);
 						g_spareBufferIndex = 0;

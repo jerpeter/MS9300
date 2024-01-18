@@ -285,7 +285,7 @@ void MoveWaveformEventToFile(void)
 					tempDataPtr = g_currentEventStartPtr;
 
 #if ENDIAN_CONVERSION
-					// Swap data to Big Endian for event file
+					// Swap data to Big Endian for event file (and compression below if used)
 					EndianSwapDataX16(tempDataPtr, remainingDataLength);
 #endif
 
@@ -360,6 +360,9 @@ void MoveWaveformEventToFile(void)
 							// Check if any remaining compressed data is queued
 							if (g_spareBufferIndex)
 							{
+#if ENDIAN_CONVERSION
+								// No conversion for compressed data
+#endif
 								// Finish writing the remaining compressed data
 								f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesWritten);
 								g_spareBufferIndex = 0;
