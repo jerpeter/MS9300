@@ -2849,8 +2849,8 @@ void ValidatePowerOn(void)
 	powerOnButtonDetect = GetPowerOnButtonState();
 	vbusChargingDetect = GetPowerGoodBatteryChargerState();
 
-	if (powerOnButtonDetect) { debug("Power On button pressed\r\n"); }
-	if (vbusChargingDetect) { debug("USB Charging detected\r\n"); }
+	if (powerOnButtonDetect) { debugRaw("\r\nPower On button pressed\r\n"); }
+	if (vbusChargingDetect) { debugRaw("\r\nUSB Charging detected\r\n"); }
 
 	// Check if Power on button is the startup source
 	if (powerOnButtonDetect)
