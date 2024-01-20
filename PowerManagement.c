@@ -526,6 +526,39 @@ void InitBattChargerRegisters(void)
 	//	Default all INT masked
 	//	Change all to unmasked
 	SetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_1, 0x0003);
+
+#if 1 /* Test */
+	uint16_t regResults;
+	GetBattChargerRegister(BATT_CHARGER_DEVICE_ADDRESS_SETTING, &regResults); if (regResults != 0x00E9) { debugErr("Battery Charger Read failed: Device address\r\n"); }
+	GetBattChargerRegister(BATT_CHARGER_INPUT_MINIMUM_VOLTAGE_LIMIT_SETTING, &regResults); if (regResults != 0x0037) { debugErr("Battery Charger Read failed: Input min V\r\n"); }
+	GetBattChargerRegister(BATT_CHARGER_INPUT_CURRENT_LIMIT_SETTING, &regResults); if (regResults != 0x0050) { debugErr("Battery Charger Read failed: Input current limit\r\n"); }
+	GetBattChargerRegister(BATT_CHARGER_OUTPUT_VOLTAGE_SETTING_IN_SOURCE_MODE, &regResults); if (regResults != 0x00F9) { debugErr("Battery Charger Read failed: Output voltage\r\n"); }
+	GetBattChargerRegister(BATT_CHARGER_BATTERY_IMPEDANCE_COMPENSATION_AND_OUTPUT_CURRENT_LIMIT_SETTING_IN_SOURCE_MODE, &regResults); if (regResults != 0x003C) { debugErr("Battery Charger Read failed: Output current\r\n"); }
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		GetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, &regResults); if (regResults != 0x303C) { debugErr("Battery Charger Read failed: Batt discharge source\r\n"); }
+	}
+	else { GetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, &regResults); if (regResults != 0x3078) { debugErr("Battery Charger Read failed: Batt discharge source\r\n"); } }
+	GetBattChargerRegister(BATT_CHARGER_JEITA_ACTION_SETTING, &regResults); if (regResults != 0x7C10) { debugErr("Battery Charger Read failed: JEITA\r\n"); }
+	GetBattChargerRegister(BATT_CHARGER_TEMPERATURE_PROTECTION_SETTING, &regResults); if (regResults != 0xBF99) { debugErr("Battery Charger Read failed: Temp protect\r\n"); }
+	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, &regResults); if (regResults != 0x0010) { debugErr("Battery Charger Read failed: config reg 0\r\n"); }
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF264) { debugErr("Battery Charger Read failed: Config reg 1\r\n"); }
+	}
+	else { GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF2C8) { debugErr("Battery Charger Read failed: Config reg 1\r\n"); } }
+	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_2, &regResults); if (regResults != 0x0A00) { debugErr("Battery Charger Read failed: Config reg 2\r\n"); }
+	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_3, &regResults); if (regResults != 0x60E8) { debugErr("Battery Charger Read failed: Config reg 3\r\n"); }
+	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, &regResults); if (regResults != 0x3C53) { debugErr("Battery Charger Read failed: Config reg 4\r\n"); }
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x0680) { debugErr("Battery Charger Read failed: Charge current\r\n"); }
+	}
+	else { GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x0D40) { debugErr("Battery Charger Read failed: Charge current\r\n"); } }
+	GetBattChargerRegister(BATT_CHARGER_BATTERY_REGULATION_VOLTAGE_SETTING, &regResults); if (regResults != 0x2D00) { debugErr("Battery Charger Read failed: Batt regulation\r\n"); }
+	GetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_0, &regResults); if (regResults != 0x3CFF) { debugErr("Battery Charger Read failed: Int mask reg 0\r\n"); }
+	GetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_1, &regResults); if (regResults != 0x0003) { debugErr("Battery Charger Read failed: Int mask reg 1\r\n"); }
+#endif
 }
 
 ///----------------------------------------------------------------------------
