@@ -541,7 +541,7 @@ void BuildLanguageLinkTable(uint8 languageSelection)
 #endif
 
 	// Attempt to find the file on the SD file system
-    if ((f_stat((const TCHAR*)&languageFilename[0], &fno)) == FR_NO_FILE)
+    if ((f_stat((const TCHAR*)&languageFilename[0], &fno)) != FR_OK)
 	{
 		debugWarn("Language file not found: %s\r\n", &languageFilename[0]);
 	}
@@ -635,7 +635,7 @@ void CheckBootloaderAppPresent(void)
 
 	sprintf((char*)g_spareBuffer, "%s%s", SYSTEM_PATH, default_boot_name);
 
-	if ((f_stat((const TCHAR*)g_spareBuffer, &fno)) == FR_NO_FILE)
+	if ((f_stat((const TCHAR*)g_spareBuffer, &fno)) != FR_OK)
 	{
 		debugWarn("Bootloader not found\r\n");
 	}

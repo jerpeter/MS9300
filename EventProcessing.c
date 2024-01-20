@@ -776,7 +776,7 @@ void InitSummaryListFile(void)
 
 	memset(&g_summaryList, 0, sizeof(g_summaryList));
 
-    if ((f_stat((const TCHAR*)s_summaryListFileName, &fno)) == FR_NO_FILE)
+    if ((f_stat((const TCHAR*)s_summaryListFileName, &fno)) != FR_OK)
 	{ 
 		debugWarn("Warning: Summary List file not found or has not yet been created\r\n");
 	}
@@ -1122,7 +1122,7 @@ void GetEventFileInfo(uint16 eventNumber, EVENT_HEADER_STRUCT* eventHeaderPtr, E
 
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
 
-    if (f_stat((const TCHAR*)pathAndFilename, NULL) == FR_NO_FILE)
+    if (f_stat((const TCHAR*)pathAndFilename, NULL) != FR_OK)
 	{ 
 		DisplayFileNotFound(pathAndFilename);
 	}
@@ -1221,7 +1221,7 @@ void GetEventFileRecord(uint16 eventNumber, EVT_RECORD* eventRecord)
 
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
 
-    if (f_stat((const TCHAR*)pathAndFilename, NULL) == FR_NO_FILE)
+    if (f_stat((const TCHAR*)pathAndFilename, NULL) != FR_OK)
 	{ 
 		DisplayFileNotFound(pathAndFilename);
 	}
@@ -1580,7 +1580,7 @@ void CacheERDataToBuffer(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffse
 
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, ER_DATA_FILE_TYPE);
 
-    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) == FR_NO_FILE)
+    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) != FR_OK)
 	{ 
 		DisplayFileNotFound(pathAndFilename);
 	}
@@ -1611,7 +1611,7 @@ void CacheEventDataToRam(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffse
 
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
 
-    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) == FR_NO_FILE)
+    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) != FR_OK)
 	{ 
 		DisplayFileNotFound(pathAndFilename);
 	}
@@ -1652,7 +1652,7 @@ uint8 CacheEventToRam(uint16 eventNumber, EVT_RECORD* eventRecordPtr)
 
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
 
-    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) == FR_NO_FILE)
+    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) != FR_OK)
 	{ 
 		DisplayFileNotFound(pathAndFilename);
 	}
@@ -1700,7 +1700,7 @@ BOOLEAN CheckValidEventFile(uint16 eventNumber)
 
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
 
-    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) == FR_NO_FILE)
+    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) != FR_OK)
 	{ 
 		DisplayFileNotFound(pathAndFilename);
 	}

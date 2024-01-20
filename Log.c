@@ -508,7 +508,7 @@ void InitMonitorLogTableFromLogFile(void)
 	// -------------------------------------
 	// Monitor Log Binary file read
 	// -------------------------------------
-    if ((f_stat((const TCHAR*)s_monitorLogFilename, NULL)) == FR_NO_FILE)
+    if ((f_stat((const TCHAR*)s_monitorLogFilename, NULL)) != FR_OK)
 	{ 
 		debugWarn("Warning: Monitor Log File not found or has not yet been created\r\n");
 	}
