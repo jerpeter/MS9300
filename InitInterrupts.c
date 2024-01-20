@@ -134,6 +134,18 @@ void InitInterrupts_MS9300(void)
 {
 	// Any specific interrupt setup?
 
+#if 1 /* Moved from Gpio Init in Init Hardware section */
+	//----------------------------------------------------------------------------------------------------------------------
+	// Enable IRQ's for any of the appropritate GPIO input interrupts
+	//----------------------------------------------------------------------------------------------------------------------
+#if 0 /* Temp remove until init further along and exception fixed */
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO0)));
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO2)));
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO3)));
+#endif
+#endif
+
     __enable_irq();
 }
 

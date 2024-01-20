@@ -116,12 +116,12 @@ void _init_startup(void)
 ///----------------------------------------------------------------------------
 void DebugUartInitBanner(void)
 {
-	debug("\r\n\n");
+	//debug("\r\n\n");
 	debug("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\r\n");
 	debug("---------------------------------------------------------------------------------------\r\n");
 	debug("-----     MS9300 Debug port, App version: %s (Date: %s)     -----\r\n", (char*)g_buildVersion, (char*)g_buildDate);
 	debug("---------------------------------------------------------------------------------------\r\n");
-	debug("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n\r\n");
+	debug("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n");
 }
 
 ///----------------------------------------------------------------------------
@@ -1109,6 +1109,7 @@ void SetupAllGPIO(void)
     MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
+#if 0 /* Moved to Init Interrupts section */
 	//----------------------------------------------------------------------------------------------------------------------
 	// Enable IRQ's for any of the appropritate GPIO input interrupts
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1116,6 +1117,7 @@ void SetupAllGPIO(void)
 	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
 	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO2)));
 	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO3)));
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -1394,8 +1396,13 @@ void SetupI2C(void)
 #endif
 
 	// Set I2C speed, either Standard (MXC_I2C_STD_MODE = 100000) or Fast (MXC_I2C_FAST_SPEED = 400000)
+#if 0 /* Fast Speed */
     MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_FAST_SPEED);
     MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_FAST_SPEED);
+#else /* Standard */
+    MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_STD_MODE);
+    MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_STD_MODE);
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -2200,7 +2207,7 @@ int appendFile(void)
     debug("Type length of random data to append: \r\n");
     scanf("%d", &length);
 
-    if ((err = f_stat((const TCHAR *)filename, &fno)) == FR_NO_FILE) {
+    if ((err = f_stat((const TCHAR *)filename, &fno)) != FR_OK) {
         debugErr("File %s doesn't exist\r\n", (const TCHAR *)filename);
         return err;
     }
@@ -2535,6 +2542,7 @@ void SetupSDHCeMMC(void)
 {
     mxc_sdhc_cfg_t cfg;
 	mxc_sdhc_hs_timing timingMode;
+	mxc_sdhc_lib_card_type cardType;
 
     // Initialize SDHC peripheral
     cfg.bus_voltage = MXC_SDHC_Bus_Voltage_1_8;
@@ -2563,8 +2571,10 @@ void SetupSDHCeMMC(void)
     if (MXC_SDHC_Lib_InitCard(10) == E_NO_ERROR) { debug("SDHC: Card/device Initialized\r\n"); }
 	else { debugErr("SDHC: No card/device response\n"); }
 
-    if (MXC_SDHC_Lib_Get_Card_Type() == CARD_MMC) { debug("SDHC: Card type discovered is MMC/eMMC\r\n"); }
-	else /* CARD_SDHC */ { debug("SDHC: Card type discovered is SD/SDHC\r\n"); }
+    cardType = MXC_SDHC_Lib_Get_Card_Type();
+	if (cardType == CARD_MMC) { debug("SDHC: Card type discovered is MMC/eMMC\r\n"); }
+	else if (cardType == CARD_SDHC) { debug("SDHC: Card type discovered is SD/SDHC\r\n"); }
+	else { debugErr("SDHC: No card type found\r\n"); }
 
 	/*
 		Note: The 0-52 MHz eMMC devices supported the legacy SDR mode as well as a newer transfer mode introduced by JEDEC version 4.4 called Dual Data Rate (DDR)
@@ -2991,7 +3001,10 @@ void InitSystemHardware_MS9300(void)
 	// Setup SDHC/eMMC
 	//-------------------------------------------------------------------------
 	SetupSDHCeMMC();
-
+#if 1 /* Test a second init call */
+	MXC_Delay(MXC_DELAY_MSEC(500));
+	SetupSDHCeMMC();
+#endif
 	//-------------------------------------------------------------------------
 	// Setup Drive(eMMC) and Filesystem
 	//-------------------------------------------------------------------------
@@ -3097,7 +3110,9 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Init the LCD display
 	//-------------------------------------------------------------------------
+#if 0 /* Disabled until LCD connector fixed or hardware modded */
 	InitLCD(); debug("LCD Display: Init complete\r\n");
+#endif
 
 	//-------------------------------------------------------------------------
 	// Init Keypad
