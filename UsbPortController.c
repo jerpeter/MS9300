@@ -158,7 +158,7 @@ static int tps25750_block_read(struct tps25750 *tps, uint8_t reg, void *val, siz
 		return E_INVALID;
 
     // Read in the desired bytes plus the byte count (+1)
-	ret = WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &reg, sizeof(uint8_t), data, (len + 1));
+	ret = WriteI2CDevice(MXC_I2C0, I2C_ADDR_USBC_PORT_CONTROLLER, &reg, sizeof(uint8_t), data, (len + 1));
 
 	if (ret)
 		return ret;
