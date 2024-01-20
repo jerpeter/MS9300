@@ -345,6 +345,9 @@ Write map to LCD replacement
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 1 /* Empty call until LCD connector fixed or hardware modded */
+void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, int ln_type) {}
+#else
 void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, int ln_type)
 {
 #if 0 /* original function */
@@ -564,6 +567,7 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 	}
 #endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -911,6 +915,9 @@ void MessageChoiceActiveSwap(MB_CHOICE_TYPE choiceType)
 ///	Function Break
 ///----------------------------------------------------------------------------
 extern const char sign_on_logo_l2_top_left[2064];
+#if 1 /* Empty call until LCD connector fixed or hardware modded */
+void DisplayLogoToLcd(void) {}
+#else
 void DisplayLogoToLcd(void)
 {
 	ft81x_cmd_memwrite(0x9000, (sizeof(sign_on_logo_l2_top_left) - 16));
@@ -936,10 +943,14 @@ void DisplayLogoToLcd(void)
 	ft81x_stream_stop();
 	ft81x_wait_finish();
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 1 /* Empty call until LCD connector fixed or hardware modded */
+void BitmapDisplayToLcd(void) {}
+#else
 void BitmapDisplayToLcd(void)
 {
 	LcdMapTranslationToBitMap();
@@ -966,6 +977,7 @@ void BitmapDisplayToLcd(void)
 	ft81x_stream_stop();
 	ft81x_wait_finish();
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break

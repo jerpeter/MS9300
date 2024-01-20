@@ -1866,6 +1866,9 @@ void test_dots(
 /*
  * Initialize the FT81x GPU
  */
+#if 1 /* Empty call until LCD connector fixed or hardware modded */
+uint8_t ft81x_init(void) { return (false); }
+#else
 uint8_t ft81x_init(void)
 {
     if (GetPowerControlState(LCD_POWER_ENABLE) == OFF) { PowerControl(LCD_POWER_ENABLE, ON); }
@@ -1888,6 +1891,7 @@ uint8_t ft81x_init(void)
 	ft81x_init_gpio();
 	return true;
 }
+#endif
 
 /*
  * Initialize the FT81x GPU and test for a valid chip response

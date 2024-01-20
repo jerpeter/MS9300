@@ -280,6 +280,9 @@ void WriteStringToLcd(uint8* p, uint8 x, uint8 y, uint8 (*table_ptr)[2][10])
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 1 /* Empty call until LCD connector fixed or hardware modded */
+void WriteMapToLcd(uint8 (*g_mmap_ptr)[128]) {}
+#else
 void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 {
 #if 0 /* original function */
@@ -390,10 +393,14 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 	ft81x_wait_finish(); // Wait till the GPU is finished? (or delay at start of next display interaction?)
 #endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 1 /* Empty call until LCD connector fixed or hardware modded */
+void ClearLcdMap(void) {}
+#else
 void ClearLcdMap(void)
 {
 #if 0 /* original function */
@@ -424,6 +431,7 @@ void ClearLcdMap(void)
 		//memset(&g_softKeyTranslation[0], 0, sizeof(g_softKeyTranslation));
 #endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -503,6 +511,9 @@ void SetNextLcdBacklightState(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 1 /* Empty call until LCD connector fixed or hardware modded */
+LCD_BACKLIGHT_STATES GetLcdBacklightState(void) { return (BACKLIGHT_OFF); }
+#else
 LCD_BACKLIGHT_STATES GetLcdBacklightState(void)
 {
 	uint8_t backlightLevel, backlightState;
@@ -521,10 +532,14 @@ LCD_BACKLIGHT_STATES GetLcdBacklightState(void)
 
 	return (backlightState);
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 1 /* Empty call until LCD connector fixed or hardware modded */
+void SetLcdBacklightState(LCD_BACKLIGHT_STATES state) {}
+#else
 void SetLcdBacklightState(LCD_BACKLIGHT_STATES state)
 {
 	switch (state)
@@ -536,6 +551,7 @@ void SetLcdBacklightState(LCD_BACKLIGHT_STATES state)
 		case BACKLIGHT_FULL: ft81x_set_backlight_level(FT81X_BACKLIGHT_FULL); break;
 	}
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
