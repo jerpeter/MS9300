@@ -163,7 +163,7 @@ uint8_t VerifyAccManuIDAndPartID(void)
 
    	WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddress, sizeof(uint8_t), manuIDAndPartID, sizeof(manuIDAndPartID));
 
-    if ((manuIDAndPartID[0] = 'K') && (manuIDAndPartID[1] = 'i') && (manuIDAndPartID[2] = 'o') && (manuIDAndPartID[3] = 'n'))
+    if ((manuIDAndPartID[0] == 'K') && (manuIDAndPartID[1] == 'i') && (manuIDAndPartID[2] == 'o') && (manuIDAndPartID[3] == 'n'))
     {
         status = PASSED;
         debug("Accelerometer Man ID verified, Part ID: 0x%x 0x%x\r\n", manuIDAndPartID[4], manuIDAndPartID[5]);
@@ -296,9 +296,13 @@ void TestAccelerometer(void)
 ///----------------------------------------------------------------------------
 void AccelerometerInit(void)
 {
-    // Put the Acc in standby mode to allow changing control register values
-    SetAccRegister(ACC_CONTROL_1_REGISTER, 0x00);
+    // Attempt to verify the part is present
+    if (VerifyAccManuIDAndPartID() == PASSED)
+    {
+        // Put the Acc in standby mode to allow changing control register values
+        SetAccRegister(ACC_CONTROL_1_REGISTER, 0x00);
 
-    // Put the Accelerometer in manual sleep
-    SetAccRegister(ACC_CONTROL_5_REGISTER, 0x01);
+        // Put the Accelerometer in manual sleep
+        SetAccRegister(ACC_CONTROL_5_REGISTER, 0x01);
+    }
 }
