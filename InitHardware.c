@@ -2706,25 +2706,33 @@ void SetupInteralPITTimer(uint8_t channel, uint16_t freq)
 	// Either MILLISECOND_TIMER or TYPEMATIC_TIMER
 
 	mxc_tmr_regs_t* mxcTimerPtr;
+	mxc_sys_reset_t mxcTimerReset;
+	mxc_sys_periph_clock_t mxcTimerClock;
 	int timerIrqNum;
 	void (*irqHandlerFunc)(void);
 
 	if (channel == MILLISECOND_TIMER)
 	{
-		MXC_SYS_Reset_Periph(MXC_SYS_RESET_TIMER2);
-		MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TIMER2);
 		mxcTimerPtr = MILLISECOND_TIMER_NUM;
-		timerIrqNum = TMR2_IRQn;
+		mxcTimerReset = MILLISECOND_TIMER_RESET;
+		mxcTimerClock = MILLISECOND_TIMER_PERIPH_CLOCK;
+		timerIrqNum = MILLISECOND_TIMER_IRQ;
 		irqHandlerFunc = Tc_ms_timer_irq;
 	}
 	else // TYPEMATIC_TIMER
 	{
-		MXC_SYS_Reset_Periph(MXC_SYS_RESET_TIMER3);
-		MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TIMER3);
 		mxcTimerPtr = TYPEMATIC_TIMER_NUM;
-		timerIrqNum = TMR2_IRQn;
+		mxcTimerReset = TYPEMATIC_TIMER_RESET;
+		mxcTimerClock = TYPEMATIC_TIMER_PERIPH_CLOCK;
+		timerIrqNum = TYPEMATIC_TIMER_IRQ;
 		irqHandlerFunc = Tc_typematic_irq;
 	}
+
+	// Reset preipheral
+	MXC_SYS_Reset_Periph(mxcTimerReset);
+
+	// Start timer clock
+	MXC_SYS_ClockEnable(mxcTimerClock);
 
     // Clear interrupt flag
     mxcTimerPtr->intr = MXC_F_TMR_INTR_IRQ;
@@ -3122,8 +3130,12 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Disable unused subsystems to save power
 	//-------------------------------------------------------------------------
+#if 0 /* Normal */
 	AdjustPowerSavings(POWER_SAVINGS_NORMAL); debug("Power Savings: Init complete\r\n");
-
+#else /* Initial test */
+	// Make sure no subsystems are incorrectly disabled
+	AdjustPowerSavings(POWER_SAVINGS_NONE);
+#endif
 	//-------------------------------------------------------------------------
 	// Read and cache Smart Sensor data
 	//-------------------------------------------------------------------------
