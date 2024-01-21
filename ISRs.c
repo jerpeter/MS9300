@@ -530,7 +530,7 @@ void Soft_timer_tick_irq(void)
 	// Based on Internal PIT timer, but will not generate interrupts in Deepsleep or Backup
 
 	// Test print to verify the interrupt is running
-	//debugRaw("`");
+	debugRaw("`");
 
 	// Increment the lifetime soft timer tick count
 	g_lifetimeHalfSecondTickCount++;
@@ -560,6 +560,9 @@ void Soft_timer_tick_irq(void)
 __attribute__((__interrupt__))
 void Tc_typematic_irq(void)
 {
+	// Test print to verify the interrupt is running
+	if ((g_keypadTimerTicks % 1000) == 0) {debugRaw("&"); }
+
 	// Increment the ms seconds counter
 	g_keypadTimerTicks++;
 
@@ -574,6 +577,9 @@ void Tc_typematic_irq(void)
 __attribute__((__interrupt__))
 void Tc_ms_timer_irq(void)
 {
+	// Test print to verify the interrupt is running
+	if ((g_msTimerTicks % 1000) == 0) { debugRaw("$"); }
+
 	// Increment the ms seconds counter
 	g_msTimerTicks++;
 
