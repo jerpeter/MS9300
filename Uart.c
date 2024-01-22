@@ -748,6 +748,7 @@ void TestExpansionI2CBridge(void)
 		debug("Power Control: Expansion I2C UART bridge enable being turned on\r\n");
 		PowerControl(EXPANSION_ENABLE, ON);
 		MXC_Delay(MXC_DELAY_MSEC(500));
+		PowerControl(EXPANSION_RESET, OFF);
 	}
 	else { debugWarn("Power Control: Expansion I2C UART bridge enable already on\r\n"); }
 
@@ -763,7 +764,8 @@ void ExpansionBridgeInit(void)
 	// Make sure Expansion bridge is turned off
 	if (GetPowerControlState(EXPANSION_ENABLE == ON))
 	{
-		debug("Power Control: Expansion I2C UART bridge being turned offr\n");
+		PowerControl(EXPANSION_RESET, ON);
+		debug("Power Control: Expansion I2C UART bridge being turned off\n");
 		PowerControl(EXPANSION_ENABLE, OFF);
 	}
 }
