@@ -269,22 +269,24 @@ enum {
 };
 
 // I2C0 @ 1.8V
-#define I2C_ADDR_ACCELEROMETER			(0x3C >> 1)
-#define I2C_ADDR_1_WIRE					(0x30 >> 1)
-#define I2C_ADDR_EEPROM					(0xA0 >> 1)
-#define I2C_ADDR_EEPROM_ID				(0xB0 >> 1)
-#define I2C_ADDR_BATT_CHARGER			(0x5C)
-#define I2C_ADDR_USBC_PORT_CONTROLLER	(0x42 >> 1)
+#define I2C_ADDR_ACCELEROMETER			(0x3C >> 1) // 0x1E /* Per datasheet */ - Read x2 return success, Read x1 return success (Needs Analog 5V powered to start)
+#define I2C_ADDR_1_WIRE					(0x30 >> 1) // 0x18 /* Per datasheet */ - Read x2 return success, Read x1 return success
+#define I2C_ADDR_EEPROM					(0xA0 >> 1) // 0x50 /* Per datasheet */ - Read x2 return success, Read x1 return success
+#define I2C_ADDR_EEPROM_ID				(0xB0 >> 1) // 0x58 /* Per datasheet */
+#define I2C_ADDR_BATT_CHARGER			(0x5C)		//		/* Per datasheet */ - Read x2 return success, Read x1 return success
+#define I2C_ADDR_USBC_PORT_CONTROLLER	(0x42 >> 1) // 0x21 - Read x2 return success, Read x1 return success
+
+													// 0x7F - Read x2 return success, Read x1 return success
 // I2C1 @ 3.3V
-#define I2C_ADDR_EXTERNAL_RTC			(0xA2 >> 1)
-#define I2C_ADDR_FUEL_GUAGE				(0xC8 >> 1)
-#define I2C_ADDR_EXPANSION				(0x9A >> 1)
+#define I2C_ADDR_EXTERNAL_RTC			(0xA2 >> 1) // 0x51 - Read x2 return success, Read x1 return success
+#define I2C_ADDR_FUEL_GUAGE				(0xC8 >> 1) // 0x64 - Read x2 return success, Read x1 return success
+#define I2C_ADDR_EXPANSION				(0x9A >> 1) // 0x4D - Read x2 return success, Read x1 return success
 
 
 #define VIN_CHANNEL		2
 #define VBAT_CHANNEL	3
 
-#define LOW_VOLTAGE_THRESHOLD		4.0 // Showing range 4V-7.3V
+#define LOW_VOLTAGE_THRESHOLD		5.4 // Showing range 4V-7.3V schematic, 5.4V probably min for good operation
 #define EXTERNAL_VOLTAGE_PRESENT	4.4 // USB minimum 3.0 is 4.5V, legacy is 4.4V
 
 #define CYCLIC_EVENT_TIME_THRESHOLD		(4 * 2)
