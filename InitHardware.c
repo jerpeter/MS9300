@@ -1396,7 +1396,7 @@ void SetupI2C(void)
 #endif
 
 	// Set I2C speed, either Standard (MXC_I2C_STD_MODE = 100000) or Fast (MXC_I2C_FAST_SPEED = 400000)
-#if 0 /* Fast Speed */
+#if 1 /* Fast Speed */
     MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_FAST_SPEED);
     MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_FAST_SPEED);
 #else /* Standard */
@@ -1436,7 +1436,11 @@ void SetupWatchdog(void)
 #endif
 }
 
+#if 0 /* Normal */
 #define SPI_SPEED_ADC 10000000 // Bit Rate
+#else
+#define SPI_SPEED_ADC 3000000 // Bit Rate
+#endif
 #define SPI_SPEED_LCD 10000000 // Bit Rate
 //#define SPI_WIDTH_DUAL	2
 
@@ -1544,10 +1548,14 @@ void SetupSPI(void)
 	//--------------------
 	// SPI3 - External ADC
 	//--------------------
+#if 1 /* Test SS Gpio setup before init */
+	mxc_gpio_cfg_t spi3SlaveSelect0GpioConfig = { GPIO_ADC_SPI_3_SS_0_PORT, GPIO_ADC_SPI_3_SS_0_PIN, MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
+	MXC_GPIO_Config(&spi3SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
+#endif
 	status = MXC_SPI_Init(MXC_SPI3, YES, NO, 1, LOW, SPI_SPEED_ADC);
 	if (status != E_SUCCESS) { debugErr("SPI3 (ADC) Init failed with code: %d\r\n", status); }
 
-	mxc_gpio_cfg_t spi3SlaveSelect0GpioConfig = { GPIO_ADC_SPI_3_SS_0_PORT, GPIO_ADC_SPI_3_SS_0_PIN, MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
+	//mxc_gpio_cfg_t spi3SlaveSelect0GpioConfig = { GPIO_ADC_SPI_3_SS_0_PORT, GPIO_ADC_SPI_3_SS_0_PIN, MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
 	MXC_GPIO_Config(&spi3SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
 
 	// Set standard SPI 4-wire (MISO/MOSI, full duplex), (Turns out ADC dual-SDO and MAX32651 dual mode are incompatible, can only use single mode)
@@ -1555,6 +1563,8 @@ void SetupSPI(void)
 
 	// External SPI3 uses SPI Mode 3 only
 	MXC_SPI_SetMode(MXC_SPI3, SPI_MODE_3);
+
+	debug("SPI3 Clock control config: Scale: %d, High CC: %d, Low CC: %d\r\n", (MXC_SPI3->clk_cfg >> 16), ((MXC_SPI3->clk_cfg >> 8) & 0xFF), (MXC_SPI3->clk_cfg >> 8) & 0xFF);
 
 	//-----------
 	// SPI2 - LCD
@@ -1566,6 +1576,9 @@ void SetupSPI(void)
 	{
 		mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { GPIO_SPI_2_SS_0_LCD_PORT, GPIO_SPI_2_SS_0_LCD_PIN, MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
 		MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
+
+		// Clear Master SS select control
+		MXC_SPI2->ctrl0 &= ~MXC_F_SPI_CTRL0_SS_SEL;
 	}
 	else // SPI2 Slave Select controlled by the SPI driver
 	{
@@ -2867,7 +2880,7 @@ void ValidatePowerOn(void)
 	powerOnButtonDetect = GetPowerOnButtonState();
 	vbusChargingDetect = GetPowerGoodBatteryChargerState();
 
-	if (powerOnButtonDetect) { debugRaw("\r\nPower On button pressed\r\n"); }
+	if (powerOnButtonDetect) { debugRaw("\r\n-----------------------\r\nPower On button pressed\r\n"); }
 	if (vbusChargingDetect) { debugRaw("\r\nUSB Charging detected\r\n"); }
 
 	// Check if Power on button is the startup source
@@ -2951,6 +2964,32 @@ void ValidatePowerOn(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint8_t IdentiifyI2C(uint8_t i2cNum, uint8_t readBytes, uint8_t regAddr)
+{
+	char deviceName[50];
+	uint8_t identified = NO;
+
+	switch (regAddr)
+	{
+		case I2C_ADDR_ACCELEROMETER: sprintf(deviceName, "Accelerometer"); identified = YES; break;
+		case I2C_ADDR_1_WIRE: sprintf(deviceName, "1-Wire"); identified = YES; break;
+		case I2C_ADDR_EEPROM: sprintf(deviceName, "EEPROM"); identified = YES; break;
+		case I2C_ADDR_EEPROM_ID: sprintf(deviceName, "EEPROM ID"); identified = YES; break;
+		case I2C_ADDR_BATT_CHARGER: sprintf(deviceName, "Battery Charger"); identified = YES; break;
+		case I2C_ADDR_USBC_PORT_CONTROLLER: sprintf(deviceName, "USB Port Controller"); identified = YES; break;
+		case I2C_ADDR_EXTERNAL_RTC: sprintf(deviceName, "External RTC"); identified = YES; break;
+		case I2C_ADDR_FUEL_GUAGE: sprintf(deviceName, "Fuel Gauge"); identified = YES; break;
+		case I2C_ADDR_EXPANSION: sprintf(deviceName, "Expansion"); identified = YES; break;
+	}
+
+	if (identified) { debug("(R%d) I2C%d device identified: %s (0x%x)\r\n", readBytes, i2cNum, deviceName, regAddr); }
+
+	return (identified);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void InitSystemHardware_MS9300(void)
 {
 	//-------------------------------------------------------------------------
@@ -3004,6 +3043,105 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Must init after SPI to correct for a wrong GPIO pin config in the library (and allow this project to work with an unmodified framework)
 	SetupAllGPIO();
+
+#if 1 /* Test device addresses */
+	uint8_t regAddr;
+	uint8_t regData[2];
+    mxc_i2c_req_t masterRequest;
+	int status;
+	uint8_t numDevices;
+
+	for (uint8_t i = 0; i < 10; i++)
+	{
+		MXC_Delay(MXC_DELAY_SEC(2));
+		debug("-- I2C Test, Cycle %d --\r\n", i);
+
+		if (i == 4)
+		{
+			debug("-- Power up 5V --\r\n");
+			// Bring up Analog 5V
+			PowerControl(ANALOG_5V_ENABLE, ON);
+			WaitAnalogPower5vGood();
+		}
+
+		if (i == 1)
+		{
+			debug("-- Power up SS, Exp --\r\n");
+			SetSmartSensorSleepState(OFF);
+			// Bring up Expansion
+			PowerControl(EXPANSION_ENABLE, ON);
+			MXC_Delay(MXC_DELAY_MSEC(500));
+			PowerControl(EXPANSION_RESET, OFF);
+		}
+
+		if (i == 7)
+		{
+			debug("-- Power down 5V --\r\n");
+			PowerControl(ANALOG_5V_ENABLE, OFF);
+			MXC_Delay(MXC_DELAY_SEC(1));
+		}
+
+#if 0
+		else
+		{
+			debug("Power down 5V & Exp\r\n");
+			// Turn off Analog 5V
+			PowerControl(ANALOG_5V_ENABLE, OFF);
+			// Turn off Expansion
+			PowerControl(EXPANSION_RESET, ON);
+			PowerControl(EXPANSION_ENABLE, OFF);
+		}
+#endif
+
+		numDevices = 0;
+		for (regAddr = 0; regAddr < 0x80; regAddr++)
+		{
+			memset(&regData[0], 0, sizeof(regData));
+			masterRequest.i2c = MXC_I2C0;
+			masterRequest.addr = regAddr;
+			masterRequest.tx_buf = NULL;
+			masterRequest.tx_len = 0;
+			masterRequest.rx_buf = &regData[0];
+			masterRequest.rx_len = sizeof(regData);
+			masterRequest.restart = 0;
+			masterRequest.callback = NULL;
+
+			status = MXC_I2C_MasterTransaction(&masterRequest); if (status == E_SUCCESS) { numDevices++; if (IdentiifyI2C(0, 2, regAddr) == NO) debug("(R2) I2C0 device @ 0x%x, status: %d, data: 0x%x 0x%x\r\n", regAddr, status, regData[0], regData[1]); }
+			//else if (status == E_COMM_ERR) { debug("(R2) No I2C0 device @ 0x%x (Comm error)\r\n", regAddr); }
+			//else { debug("(R2) Possible I2C0 device @ 0x%x, status: %d, data: 0x%x 0x%x\r\n", regAddr, status, regData[0], regData[1]); }
+			memset(&regData[0], 0, sizeof(regData));
+			masterRequest.i2c = MXC_I2C1;
+			status = MXC_I2C_MasterTransaction(&masterRequest); if (status == E_SUCCESS) { numDevices++; if (IdentiifyI2C(1, 2, regAddr) == NO) debug("(R2) I2C1 device @ 0x%x, status: %d, data: 0x%x 0x%x\r\n", regAddr, status, regData[0], regData[1]); }
+			//else if (status == E_COMM_ERR) { debug("(R2) No I2C1 device @ 0x%x (Comm error)\r\n", regAddr); }
+			//else { debug("(R2) Possible I2C1 device @ 0x%x, status: %d, data: 0x%x 0x%x\r\n", regAddr, status, regData[0], regData[1]); }
+		}
+		debug("(R2) I2C devices found: %d\r\n", numDevices);
+
+		numDevices = 0;
+		for (regAddr = 0; regAddr < 0x80; regAddr++)
+		{
+			memset(&regData[0], 0, sizeof(regData));
+			masterRequest.i2c = MXC_I2C0;
+			masterRequest.addr = regAddr;
+			masterRequest.tx_buf = NULL;
+			masterRequest.tx_len = 0;
+			masterRequest.rx_buf = &regData[0];
+			masterRequest.rx_len = sizeof(uint8_t);
+			masterRequest.restart = 0;
+			masterRequest.callback = NULL;
+
+			status = MXC_I2C_MasterTransaction(&masterRequest); if (status == E_SUCCESS) { numDevices++; if (IdentiifyI2C(0, 1, regAddr) == NO) debug("(R1) I2C0 device @ 0x%x, status: %d, data: 0x%x\r\n", regAddr, status, regData[0]); }
+			//else if (status == E_COMM_ERR) { debug("(R1) No I2C0 device @ 0x%x (Comm error)\r\n", regAddr); }
+			//else { debug("(R1) Possible I2C0 device @ 0x%x, status: %d, data: 0x%x\r\n", regAddr, status, regData[0]); }
+			memset(&regData[0], 0, sizeof(regData));
+			masterRequest.i2c = MXC_I2C1;
+			status = MXC_I2C_MasterTransaction(&masterRequest); if (status == E_SUCCESS) { numDevices++; if (IdentiifyI2C(1, 1, regAddr) == NO) debug("(R1) I2C1 device @ 0x%x, status: %d, data: 0x%x\r\n", regAddr, status, regData[0]); }
+			//else if (status == E_COMM_ERR) { debug("(R1) No I2C1 device @ 0x%x (Comm error)\r\n", regAddr); }
+			//else { debug("(R1) Possible I2C1 device @ 0x%x, status: %d, data: 0x%x\r\n", regAddr, status, regData[0]); }
+		}
+		debug("(R1) I2C devices found: %d\r\n", numDevices);
+	} // for i
+#endif
 
 	//-------------------------------------------------------------------------
 	// Setup SDHC/eMMC
@@ -3113,7 +3251,11 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Init and configure the A/D to prevent the unit from burning current charging internal reference (default config)
 	//-------------------------------------------------------------------------
+	while (1)
+	{
 	InitExternalAD(); debug("External ADC: Init complete\r\n");
+	MXC_Delay(1);
+	}
 
 	//-------------------------------------------------------------------------
 	// Init the LCD display
