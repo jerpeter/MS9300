@@ -1558,7 +1558,12 @@ void OneWireInit(void)
     if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
 	{
 		analog5vPoweredUp = YES;
+#if 0 /* Normal */
 		PowerUpAnalog5VandExternalADC();
+#else /* Skip External ADC */
+		PowerControl(ANALOG_5V_ENABLE, ON);
+		WaitAnalogPower5vGood();
+#endif
 	}
 
 	// No need to set and enable the 1-Wire mux since we're only going to write 1-Wire driver config
