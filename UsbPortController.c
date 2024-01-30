@@ -149,7 +149,6 @@ static int tps25750_block_write_raw(struct tps25750 *tps, uint8_t *data, size_t 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-static uint8_t testAddr = I2C_ADDR_USBC_PORT_CONTROLLER;
 static int tps25750_block_read(struct tps25750 *tps, uint8_t reg, void *val, size_t len)
 {
 	int ret;
@@ -159,11 +158,7 @@ static int tps25750_block_read(struct tps25750 *tps, uint8_t reg, void *val, siz
 		return E_INVALID;
 
     // Read in the desired bytes plus the byte count (+1)
-#if 0 /* Normal */
 	ret = WriteI2CDevice(MXC_I2C0, I2C_ADDR_USBC_PORT_CONTROLLER, &reg, sizeof(uint8_t), data, (len + 1));
-#else /* Test */
-	ret = WriteI2CDevice(MXC_I2C0, testAddr, &reg, sizeof(uint8_t), data, (len + 1));
-#endif
 
 	if (ret)
 		return ret;
@@ -1205,15 +1200,6 @@ void USBCPortControllerInit(void)
 	// In relation to VBUS charging (supplied externally through VBUS), what purpose does Aux Power Enable have?
 	// In order to set the Aux Power Enable, external VBUS must be present
 
-	testAddr = 0x40;
-	tps25750_get_mode(&tps);
-	testAddr = 0x42;
-	tps25750_get_mode(&tps);
-	testAddr = 0x44;
-	tps25750_get_mode(&tps);
-	testAddr = 0x46;
-	tps25750_get_mode(&tps);
-
 	// Check mode
 	if (tps2750_is_mode(&tps, TPS_MODE_BOOT) == 1)
 	{
@@ -1231,6 +1217,7 @@ void USBCPortControllerInit(void)
 
 	// Read power status to get connection state
 	tps25750_read16(&tps, TPS_REG_POWER_STATUS, &powerStatus);
+	debug("USB Port Controller: Power status is 0x%x\r\n", powerStatus);
 
 	// Check if there is a connection present
 	if (TPS_REG_POWER_STATUS_POWER_CONNECTION(powerStatus))
