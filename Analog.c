@@ -458,10 +458,8 @@ void GetChannelOffsets(uint32 sampleRate)
 		if (GetPowerControlState(ADC_RESET) == ON)
 		{
 			WaitAnalogPower5vGood();
+			AD4695_Init();
 		}
-
-		// Setup the External ADC (possible path for it already being setup but not guaranteed)
-		AD4695_Init();
 	}
 
 	// Reset offset values
@@ -889,7 +887,8 @@ void AD4695_SetRegisterAccessMode(enum ad4695_reg_access access)
 	test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_SPI_CONFIG_C, AD4695_REG_SPI_CONFIG_C_MB_STRICT_MASK, AD4695_REG_SPI_CONFIG_C_MB_STRICT(access));
 	AD4695_SpiReadRegister(AD4695_REG_SPI_CONFIG_C, &verify);
 
-	if(test != verify) { debugErr("Ext ADC: Access mode error\r\n"); }
+	if(test != verify) { debugErr("External ADC: Access mode error\r\n"); }
+	else debug("External ADC: Access mode updated\r\n");
 }
 
 ///----------------------------------------------------------------------------
@@ -902,17 +901,22 @@ void AD4695_SetBusyState(void)
 	// Set BSY_ALT_GP0 GPO Enable bit (general-purpose output function on BSY_ALT_GP0 enabled)
 	test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_GPIO_CTRL, AD4695_GPIO_CTRL_GPO0_EN_MASK, AD4695_GPIO_CTRL_GPO0_EN_EN(1));
 	AD4695_SpiReadRegister(AD4695_REG_GPIO_CTRL, &verify);
-	if(test != verify) { debugErr("Ext ADC: Busy state error (1)\r\n"); }
-
-	// Set BUSY_GP_EN bit (busy indicator on the general-purpose pin function enabled)
-	test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_GP_MODE, AD4695_GP_MODE_BUSY_GP_EN_MASK, AD4695_GP_MODE_BUSY_GP_EN(1));
-	AD4695_SpiReadRegister(AD4695_REG_GP_MODE, &verify);
-	if(test != verify) { debugErr("Ext ADC: Busy state error (1)\r\n"); }
-
-	// Once the BSY_ALT_GP0 is configured as an output from the External ADC, disable the weak pull down
-	GPIO_ADC_BUSY_ALT_GP0_PORT->pdpu_sel0 &= ~GPIO_ADC_BUSY_ALT_GP0_PIN;
-	GPIO_ADC_BUSY_ALT_GP0_PORT->pdpu_sel1 &= ~GPIO_ADC_BUSY_ALT_GP0_PIN;
-	GPIO_ADC_BUSY_ALT_GP0_PORT->pssel &= ~GPIO_ADC_BUSY_ALT_GP0_PIN;
+	if(test != verify) { debugErr("External ADC: Busy state error (1)\r\n"); }
+	else
+	{
+		// Set BUSY_GP_EN bit (busy indicator on the general-purpose pin function enabled)
+		test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_GP_MODE, AD4695_GP_MODE_BUSY_GP_EN_MASK, AD4695_GP_MODE_BUSY_GP_EN(1));
+		AD4695_SpiReadRegister(AD4695_REG_GP_MODE, &verify);
+		if(test != verify) { debugErr("External ADC: Busy state error (1)\r\n"); }
+		else
+		{
+			// Once the BSY_ALT_GP0 is configured as an output from the External ADC, disable the weak pull down
+			GPIO_ADC_BUSY_ALT_GP0_PORT->pdpu_sel0 &= ~GPIO_ADC_BUSY_ALT_GP0_PIN;
+			GPIO_ADC_BUSY_ALT_GP0_PORT->pdpu_sel1 &= ~GPIO_ADC_BUSY_ALT_GP0_PIN;
+			GPIO_ADC_BUSY_ALT_GP0_PORT->pssel &= ~GPIO_ADC_BUSY_ALT_GP0_PIN;
+			debug("External ADC: Set Busy status on Busy/Alt GPIO pin\r\n");
+		}
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -938,7 +942,8 @@ void AD4695_SetStandardSequenceModeChannelOSR(enum ad4695_osr_ratios ratio) /*ov
 	test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_CONFIG_IN(0), AD4695_REG_CONFIG_IN_OSR_MASK, AD4695_REG_CONFIG_IN_OSR(ratio));
 	AD4695_SpiReadRegister(AD4695_REG_CONFIG_IN(0), &verify);
 
-	if(test != verify){ debugErr("Ext ADC: Channel input OSR setting error\r\n"); }
+	if(test != verify){ debugErr("External ADC: Channel input OSR setting error\r\n"); }
+	else { debug("External ADC: Channel input OSR set\r\n"); }
 }
 
 ///----------------------------------------------------------------------------
@@ -951,7 +956,8 @@ void AD4695_SetStandardSequenceModeChannelInputConfig(uint8_t regData)
 	AD4695_SpiWriteRegister(AD4695_REG_CONFIG_IN(0), regData);
 	AD4695_SpiReadRegister(AD4695_REG_CONFIG_IN(0), &verify);
 
-	if(regData != verify){ debugErr("Ext ADC: Standard sequence mode channel input config error\r\n"); }
+	if(regData != verify){ debugErr("External ADC: Standard sequence mode channel input config error\r\n"); }
+	else { debug("External ADC: Standard sequence mode channel input config set\r\n"); }
 }
 
 ///----------------------------------------------------------------------------
@@ -964,7 +970,8 @@ void AD4695_SetStandardMode() /*Standard Sequencer Enable Bit*/
 	test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_SEQ_CTRL, AD4695_SEQ_CTRL_STD_SEQ_EN_MASK, AD4695_SEQ_CTRL_STD_SEQ_EN(1));
 	AD4695_SpiReadRegister(AD4695_REG_SEQ_CTRL, &verify);
 
-	if(test != verify) { debugErr("Ext ADC: Standard mode set error\r\n"); }
+	if(test != verify) { debugErr("External ADC: Standard mode set error\r\n"); }
+	else { debug("External ADC: Standard mode set\r\n"); }
 }
 
 ///----------------------------------------------------------------------------
@@ -983,7 +990,8 @@ void AD4695_SetReferenceInputRange(enum ad4695_ref REF)
 	test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_REF_CTRL, AD4695_REG_REF_CTRL_MASK, AD4695_REG_REF_CTRL_EN(REF));
 	AD4695_SpiReadRegister(AD4695_REG_REF_CTRL, &verify);
 
-	if(test != verify) { debugErr("Ext ADC: Reference control error\r\n"); }
+	if(test != verify) { debugErr("External ADC: Reference control error\r\n"); }
+	else { debug("External ADC: Reference control set\r\n"); }
 }
 
 ///----------------------------------------------------------------------------
@@ -997,7 +1005,8 @@ void AD4695_SetStandardSequenceActiveChannels(uint8_t channels)
 	AD4695_SpiWriteRegister(AD4695_REG_STD_SEQ_CONFIG, channels);
 	AD4695_SpiReadRegister(AD4695_REG_STD_SEQ_CONFIG, &verify);
 
-	if(channels != verify) { debugErr("Ext ADC: Set standard sequence active channels error\r\n"); }
+	if(channels != verify) { debugErr("External ADC: Set standard sequence active channels error\r\n"); }
+	else { debug("External ADC: Standard sequence active channels set\r\n"); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1040,6 +1049,7 @@ void AD4695_DisableInternalLDO(void)
 {
 	AD4695_SpiWriteRegister(AD4695_REG_SETUP, 0x00);
 	AD4695_SpiWriteRegisterWithMask(AD4695_REG_SETUP, AD4695_SETUP_LDO_ENABLE_MASK, AD4695_SETUP_LDO_ENABLE_EN(OFF));
+	debug("External ADC: Disabling Internal LDO...\r\n");
 }
 
 ///----------------------------------------------------------------------------
@@ -1047,7 +1057,27 @@ void AD4695_DisableInternalLDO(void)
 ///----------------------------------------------------------------------------
 void AD4695_Init()
 {
-	//This field disables the CRC
+	uint8_t testData;
+	debug("External ADC: Init\r\n");
+#if 1 /* Test */
+	AD4695_SpiReadRegister(AD4695_REG_VENDOR_L, &testData);
+	if (testData != 0x56) { debug("External ADC: Vendor ID verification low byte failed (0x%x not 0x56)\r\n", testData); }
+	else
+	{
+		AD4695_SpiReadRegister(AD4695_REG_VENDOR_H, &testData);
+		if (testData != 0x04) { debug("External ADC: Vendor ID verification high byte failed (0x%x not 0x56)\r\n", testData); }
+		else { debug("External ADC: Vendor ID verification passed\r\n"); }
+	}
+
+	testData = 0xAA; AD4695_SpiWriteRegister(AD4695_REG_SCRATCH_PAD, testData);
+	testData = 0x00; AD4695_SpiReadRegister(AD4695_REG_SCRATCH_PAD, &testData);
+	debug("External ADC: 1st Scratchpad test %s\r\n", (testData == 0xAA) ? "Passed" : "Failed");
+
+	testData = 0x55; AD4695_SpiWriteRegister(AD4695_REG_SCRATCH_PAD, testData);
+	testData = 0x00; AD4695_SpiReadRegister(AD4695_REG_SCRATCH_PAD, &testData);
+	debug("External ADC: 2nd Scratchpad test %s\r\n", (testData == 0x55) ? "Passed" : "Failed");
+#endif
+
 	AD4695_SetRegisterAccessMode(AD4695_BYTE_ACCESS); //individual bytes in multibyte registers are read from or written to in individual data phases
 	AD4695_DisableInternalLDO();
 	AD4695_SetBusyState();
@@ -1083,6 +1113,8 @@ void AD4695_EnterConversionMode(uint8_t enableChannelStatus)
 
 	// Enter conversion mode
 	AD4695_SpiWriteRegisterWithMask(AD4695_REG_SETUP, AD4695_SETUP_IF_MODE_MASK, AD4695_SETUP_IF_MODE_EN(ON));
+
+	debug("External ADC: Entering Conversion mode...\r\n");
 }
 
 ///----------------------------------------------------------------------------
@@ -1094,6 +1126,8 @@ void AD4695_ExitConversionMode()
 
 	// Swap from conversion mode to register configuration mode
 	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, &command, sizeof(command), NULL, 0, BLOCKING);
+
+	debug("External ADC: Exit Conversion mode...\r\n");
 }
 
 ///----------------------------------------------------------------------------
@@ -1134,7 +1168,6 @@ void AD4695_Test() //test the SPI com
 void TestExternalADC(void)
 {
 	uint8_t testData;
-	uint8_t vendorIdValid = NO;
 
     debug("External ADC: Test device access...\r\n");
 
@@ -1160,16 +1193,13 @@ void TestExternalADC(void)
 	debug("External ADC: Init complete\r\n");
 
 	AD4695_SpiReadRegister(AD4695_REG_VENDOR_L, &testData);
-	if (testData == 0x56)
+	if (testData != 0x56) { debug("External ADC: Vendor ID verification low byte failed (0x%x not 0x56)\r\n", testData); }
+	else
 	{
 		AD4695_SpiReadRegister(AD4695_REG_VENDOR_H, &testData);
-		if (testData == 0x04)
-		{
-			debug("External ADC: Vendor ID verification passed\r\n");
-			vendorIdValid = YES;
-		}
+		if (testData != 0x04) { debug("External ADC: Vendor ID verification high byte failed (0x%x not 0x56)\r\n", testData); }
+		else { debug("External ADC: Vendor ID verification passed\r\n"); }
 	}
-	if (vendorIdValid == NO) { debug("External ADC: Vendor ID verification failed\r\n"); }
 
 	testData = 0xAA; AD4695_SpiWriteRegister(AD4695_REG_SCRATCH_PAD, testData);
 	testData = 0x00; AD4695_SpiReadRegister(AD4695_REG_SCRATCH_PAD, &testData);
