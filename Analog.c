@@ -75,6 +75,7 @@ uint8_t GetAnalogConfigReadback(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint16_t dataTemperature;
 void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 {
 	uint8_t chanDataRaw[3];
@@ -118,6 +119,9 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 		SetAdcConversionState(ON);
 		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
 		SetAdcConversionState(OFF);
+#if 1 /* Test */
+		dataTemperature = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+#endif
 		if (chanDataRaw[3] != 15) { configError = YES; } // An INx value of 15 corresponds to either IN15 or the temperature sensor
 
 		if (configError == YES)
@@ -157,6 +161,9 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 		SetAdcConversionState(ON);
 		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING);
 		SetAdcConversionState(OFF);
+#if 1 /* Test */
+		dataTemperature = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+#endif
 	}
 	else // FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP
 	{
@@ -1136,7 +1143,10 @@ void AD4695_ExitConversionMode()
 int AD4695_TemperatureConversionCtoF(uint16_t tempCode)
 {
 	float temperature;
-	temperature = ((tempCode - 725) / (-1.8));
+	float vTemp;
+
+	vTemp = (float)((5000 * tempCode) / 65536);
+	temperature = ((vTemp - 725) / (-1.8));
 
 	// Conversion from C to F, (0°C × 9/5) + 32 = 32°F
 	temperature = ((temperature * 9 / 5) + 32);

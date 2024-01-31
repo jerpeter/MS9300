@@ -312,5 +312,6 @@ void AD4695_SetStandardSequenceActiveChannels(uint8_t channels);
 uint8_t AD4695_GetStandardSequenceActiveChannels(void);
 void AD4695_SetTemperatureSensorEnable(uint8_t mode);
 void AD4695_DisableInternalLDO(void);
+int AD4695_TemperatureConversionCtoF(uint16_t tempCode);
 
 #endif /* INC_AD4695_H_ */
