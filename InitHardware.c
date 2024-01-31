@@ -174,6 +174,14 @@ void InitExternalAD(void)
 	// Setup the A/D Channel configuration
 	SetupADChannelConfig(SAMPLE_RATE_DEFAULT, UNIT_CONFIG_CHANNEL_VERIFICATION);
 
+extern uint16_t dataTemperature;
+	SAMPLE_DATA_STRUCT tempData;
+	while (1)
+	{
+		ReadAnalogData(&tempData);
+		debug("Ext ADC (Batt: %1.3f): R:%04x T:%04x V:%04x A:%04x TempF:%04x (%d)\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE), tempData.r, tempData.t, tempData.v, tempData.a, dataTemperature, AD4695_TemperatureConversionCtoF(dataTemperature));
+	}
+
 	// Read a few test samples
 	GetChannelOffsets(SAMPLE_RATE_DEFAULT);
 
@@ -1396,13 +1404,14 @@ void SetupI2C(void)
 #endif
 
 	// Set I2C speed, either Standard (MXC_I2C_STD_MODE = 100000) or Fast (MXC_I2C_FAST_SPEED = 400000)
-#if 1 /* Fast Speed */
+#if 0 /* Fast Speed */
     MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_FAST_SPEED);
     MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_FAST_SPEED);
 #else /* Standard */
     MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_STD_MODE);
     MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_STD_MODE);
 #endif
+	debug("I2C Frequency: Channel 0: %d, Channel 1: %d\r\n", MXC_I2C_GetFrequency(MXC_I2C0), MXC_I2C_GetFrequency(MXC_I2C0));
 }
 
 ///----------------------------------------------------------------------------
@@ -1439,7 +1448,8 @@ void SetupWatchdog(void)
 #if 0 /* Normal */
 #define SPI_SPEED_ADC 10000000 // Bit Rate
 #else
-#define SPI_SPEED_ADC 3000000 // Bit Rate
+//#define SPI_SPEED_ADC 3000000 // Bit Rate
+#define SPI_SPEED_ADC 60000000 // Bit Rate
 #endif
 #define SPI_SPEED_LCD 10000000 // Bit Rate
 //#define SPI_WIDTH_DUAL	2
