@@ -1283,7 +1283,11 @@ int Ltc2944_get_voltage(int* val)
 	ret = Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &datar[0], 2);
 	voltage = ((datar[0] << 8) | datar[1]);
 
+	debug("Fuel Gauge: Get voltage register is 0x%x\r\n");
+
 	voltage *= (70800 / 0xFFFF); // units in mV
+
+	debug("Fuel Gauge: Voltage calc is %f\r\n", voltage);
 
 	*val = (int)voltage;
 	return (ret);
@@ -1696,4 +1700,15 @@ void FuelGaugeInit(void)
 
 	// Config the device with desired prescaler, ADC mode will be set to Scan and ALCC config set to Alert mode
 	Ltc2944_config(Ltc2944_device.prescaler, LTC2944_REG_CONTROL_MODE_SCAN);
+
+	debug("Fuel Gauge: Battery voltage is %f\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
+
+	uint8_t tempReg[2];
+	Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &tempReg[0], 2); debug("Fuel Gauge: Vh is 0x%x, Vl is 0x%x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_CURRENT_MSB, &tempReg[0], 2); debug("Fuel Gauge: Ch is 0x%x, Cl is 0x%x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_MSB, &tempReg[0], 2); debug("Fuel Gauge: Th is 0x%x, Tl is 0x%x\r\n", tempReg[0], tempReg[1]);
+
+	Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_VOLTAGE_LSB, &tempReg[1], 1); debug("Fuel Gauge: Vh is 0x%x, Vl is 0x%x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_CURRENT_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_CURRENT_LSB, &tempReg[0], 1); debug("Fuel Gauge: Ch is 0x%x, Cl is 0x%x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_LSB, &tempReg[0], 1); debug("Fuel Gauge: Th is 0x%x, Tl is 0x%x\r\n", tempReg[0], tempReg[1]);
 }
