@@ -652,36 +652,49 @@ void TestUartBridgeScratchpad(void)
 	// Check if LCR bit 7 is enabled
 	if (reg & 0x80)
 	{
+		debug("Expansion: LCR bit enabled\r\n");
 		// Disable LCR bit 7 so that SPR is available
 		reg &= 0x80;
 		WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, reg);
+
+		reg = ReadUartBridgeControlRegister(PI7C9X760_REG_LCR);
+		if (reg & 0x80) { debugErr("Expansion: LCR bit disable failed\r\n"); }
 	}
+	else { debug("Expansion: LCR bit disabled\r\n"); }
 
 	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_MCR);
 	// Check if MCR bit 2 is enabled
 	if (reg & 0x04)
 	{
+		debug("Expansion: MCR bit enabled\r\n");
 		// Disable MCR bit 2 so that SPR is available
 		reg &= 0x04;
 		WriteUartBridgeControlRegister(PI7C9X760_REG_MCR, reg);
-	}
 
+		reg = ReadUartBridgeControlRegister(PI7C9X760_REG_MCR);
+		if (reg & 0x04) { debugErr("Expansion: MCR bit disable failed\r\n"); }
+	}
+	else { debug("Expansion: MCR bit disabled\r\n"); }
+
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_SPR);
+	if (reg != 0xFF) { debugErr("Expansion I2C Uart Bridge: Scratchpad default error (0x%x)\r\n", reg); }
+	else { debug("Expansion I2C Uart Bridge: Scratchpad default correct\r\n"); }
 	WriteUartBridgeControlRegister(PI7C9X760_REG_SPR, 0xAA);
 	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_SPR);
-#if 1 /* shorter */
+#if 0 /* Shorter */
 	debug("Expansion I2C Uart Bridge: 1st scracth test: %s\r\n", (reg == 0xAA) ? "Passed" : "Failed");
 #else
-	if (ReadUartBridgeControlRegister(PI7C9X760_REG_SPR) == 0xAA) { debug("Expansion I2C Uart Bridge: Passed 1st scracth test\r\n"); }
-	else { debugErr("Expansion I2C Uart Bridge: Failed 1st scracth test\r\n"); }
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_SPR) == 0xAA) { debug("Expansion I2C Uart Bridge: 1st scracth test passed\r\n"); }
+	else { debugErr("Expansion I2C Uart Bridge: 1st scracth test failed (0x%x)\r\n", reg); }
 #endif
 
 	WriteUartBridgeControlRegister(PI7C9X760_REG_SPR, 0x55);
 	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_SPR);
-#if 1 /* shoter */
+#if 0 /* Shorter */
 	debug("Expansion I2C Uart Bridge: 2nd scracth test: %s\r\n", (reg == 0x55) ? "Passed" : "Failed");
 #else
-	if (ReadUartBridgeControlRegister(PI7C9X760_REG_SPR) == 0x55) { debug("Expansion I2C Uart Bridge: Passed 2nd scracth test\r\n"); }
-	else { debugErr("Expansion I2C Uart Bridge: Failed 2nd scracth test\r\n"); }
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_SPR) == 0x55) { debug("Expansion I2C Uart Bridge: 2nd scracth test passed\r\n"); }
+	else { debugErr("Expansion I2C Uart Bridge: 2nd scracth test failed (0x%x)\r\n", reg); }
 #endif
 }
 
@@ -743,7 +756,7 @@ void TestExpansionI2CBridge(void)
 {
     debug("Expansion I2C Uart Bridge: Test device access...\r\n");
 
-    if (GetPowerControlState(EXPANSION_ENABLE == OFF))
+    if (GetPowerControlState(EXPANSION_ENABLE) == OFF)
 	{
 		debug("Power Control: Expansion I2C UART bridge enable being turned on\r\n");
 		PowerControl(EXPANSION_ENABLE, ON);
@@ -761,8 +774,16 @@ void TestExpansionI2CBridge(void)
 ///----------------------------------------------------------------------------
 void ExpansionBridgeInit(void)
 {
+	PowerControl(EXPANSION_ENABLE, ON);
+	MXC_Delay(MXC_DELAY_MSEC(500));
+	PowerControl(EXPANSION_RESET, OFF);
+	MXC_Delay(MXC_DELAY_MSEC(250));
+
+	debug("Expansion I2C Uart Bridge: Powered on, Scratchpad test...\r\n");
+	TestUartBridgeScratchpad();
+
 	// Make sure Expansion bridge is turned off
-	if (GetPowerControlState(EXPANSION_ENABLE == ON))
+	if (GetPowerControlState(EXPANSION_ENABLE) == ON)
 	{
 		PowerControl(EXPANSION_RESET, ON);
 		debug("Power Control: Expansion I2C UART bridge being turned off\n");
