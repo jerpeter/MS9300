@@ -3061,18 +3061,10 @@ void InitSystemHardware_MS9300(void)
 	int status;
 	uint8_t numDevices;
 
-	for (uint8_t i = 0; i < 10; i++)
+	for (uint8_t i = 0; i < 2; i++)
 	{
-		MXC_Delay(MXC_DELAY_SEC(2));
+		MXC_Delay(MXC_DELAY_SEC(1));
 		debug("-- I2C Test, Cycle %d --\r\n", i);
-
-		if (i == 4)
-		{
-			debug("-- Power up 5V --\r\n");
-			// Bring up Analog 5V
-			PowerControl(ANALOG_5V_ENABLE, ON);
-			WaitAnalogPower5vGood();
-		}
 
 		if (i == 1)
 		{
@@ -3084,7 +3076,15 @@ void InitSystemHardware_MS9300(void)
 			PowerControl(EXPANSION_RESET, OFF);
 		}
 
-		if (i == 7)
+		if (i == 1)
+		{
+			debug("-- Power up 5V --\r\n");
+			// Bring up Analog 5V
+			PowerControl(ANALOG_5V_ENABLE, ON);
+			WaitAnalogPower5vGood();
+		}
+
+		if (i == 2)
 		{
 			debug("-- Power down 5V --\r\n");
 			PowerControl(ANALOG_5V_ENABLE, OFF);
@@ -3127,6 +3127,7 @@ void InitSystemHardware_MS9300(void)
 		}
 		debug("(R2) I2C devices found: %d\r\n", numDevices);
 
+#if 0 /* Read 1 */
 		numDevices = 0;
 		for (regAddr = 0; regAddr < 0x80; regAddr++)
 		{
@@ -3150,7 +3151,11 @@ void InitSystemHardware_MS9300(void)
 			//else { debug("(R1) Possible I2C1 device @ 0x%x, status: %d, data: 0x%x\r\n", regAddr, status, regData[0]); }
 		}
 		debug("(R1) I2C devices found: %d\r\n", numDevices);
+#endif
 	} // for i
+	debug("-- Power down 5V --\r\n");
+	PowerControl(ANALOG_5V_ENABLE, OFF);
+	MXC_Delay(MXC_DELAY_SEC(1));
 #endif
 
 	//-------------------------------------------------------------------------
@@ -3253,6 +3258,13 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	ExpansionBridgeInit(); debug("Expansion I2C Uart Bridge: Init complete\r\n");
 
+#if 1 /* Test */
+	//-------------------------------------------------------------------------
+	// Test EERPOM
+	//-------------------------------------------------------------------------
+	TestEEPROM();
+#endif
+
 	//-------------------------------------------------------------------------
 	// Initialize the AD Control
 	//-------------------------------------------------------------------------
@@ -3261,6 +3273,17 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Init and configure the A/D to prevent the unit from burning current charging internal reference (default config)
 	//-------------------------------------------------------------------------
+#if 1 /* Test */
+	uint32_t j = 16000000;
+	debug("Expanded Battery Presence Test...\r\n");
+	while (1)
+	{
+		if (GetExpandedBatteryPresenceState() == YES) { debugErr("Expanded Battery Presence: False detection of 2nd battery pack\r\n"); break; }
+		if (--j == 0) { break; }
+	}
+	if (j == 0) { debug("Expanded Battery Presence Test passed\r\n"); }
+#endif
+
 	while (1)
 	{
 	InitExternalAD(); debug("External ADC: Init complete\r\n");
