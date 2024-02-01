@@ -670,7 +670,8 @@ void SaveParameterMemory(uint8* dataSrc, uint16 startAddr, uint16 dataLength)
 		}			
 			
 		memcpy(&g_spareBuffer[2], dataSrc, writeLength);
-		WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM, g_spareBuffer, (writeLength + 2), NULL, 0);
+		debug("EEPROM SPM: Addr 0x%x 0x%x with Data 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_spareBuffer[0], g_spareBuffer[1], g_spareBuffer[2], g_spareBuffer[3], g_spareBuffer[4], g_spareBuffer[5], g_spareBuffer[6], g_spareBuffer[7], g_spareBuffer[8], g_spareBuffer[9]);
+		WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM, &g_spareBuffer[0], (writeLength + 2), NULL, 0);
 		dataSrc += writeLength;
 
 		// Old system used delay, needed?
@@ -754,27 +755,27 @@ void TestEEPROM(void)
 
     debug("EEPROM: Test device access...\r\n");
 
-	GetParameterMemory(testMem, 0, sizeof(testMem));
+	GetParameterMemory(&testMem[0], 0, sizeof(testMem));
 	debug("EEPROM: Mem @ Addr 0 is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", testMem[0], testMem[1], testMem[2], testMem[3], testMem[4], testMem[5], testMem[6], testMem[7]);
 
 	testMem[0] = 0xAA;
-	testMem[0] = 0x55;
-	testMem[0] = 0x00;
-	testMem[0] = 0x11;
-	testMem[0] = 0x01;
-	testMem[0] = 0x02;
-	testMem[0] = 0x03;
-	testMem[0] = 0x04;
+	testMem[1] = 0x55;
+	testMem[2] = 0x00;
+	testMem[3] = 0x11;
+	testMem[4] = 0x01;
+	testMem[5] = 0x02;
+	testMem[6] = 0x03;
+	testMem[7] = 0x04;
 
-	SaveParameterMemory(testMem, 0, sizeof(testMem));
 	debug("EEPROM: Write Mem @ Addr 0 with 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", testMem[0], testMem[1], testMem[2], testMem[3], testMem[4], testMem[5], testMem[6], testMem[7]);
+	SaveParameterMemory(&testMem[0], 0, sizeof(testMem));
 
-	GetParameterMemory(testMem, 0, sizeof(testMem));
+	GetParameterMemory(&testMem[0], 0, sizeof(testMem));
 	debug("EEPROM: Verify Mem @ Addr 0 is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", testMem[0], testMem[1], testMem[2], testMem[3], testMem[4], testMem[5], testMem[6], testMem[7]);
 
+	debug("EEPROM: Erasing %d bytes @ Addr 0...\r\n");
 	EraseParameterMemory(0, sizeof(testMem));
-	debug("EEPROM: Erasing %d bytes @ Addr 0\r\n");
 
-	GetParameterMemory(testMem, 0, sizeof(testMem));
+	GetParameterMemory(&testMem[0], 0, sizeof(testMem));
 	debug("EEPROM: Verify erase @ Addr 0 is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", testMem[0], testMem[1], testMem[2], testMem[3], testMem[4], testMem[5], testMem[6], testMem[7]);
 }
