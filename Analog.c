@@ -199,8 +199,11 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 void AnalogControlInit(void)
 {
 	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K);
+	debug("Analog Control: Cutoff Freq set @ 1K\r\n");
 	SetSeismicGainSelect(SEISMIC_GAIN_NORMAL);
+	debug("Analog Control: Seismic gain set as Normal\r\n");
 	SetAcousticPathSelect(ACOUSTIC_PATH_AOP);
+	debug("Analog Control: Acoustic path set as AOP\r\n");
 }
 
 ///----------------------------------------------------------------------------
