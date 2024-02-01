@@ -111,6 +111,25 @@ BOOLEAN ExternalRtcInit(void)
 	// Set the clock out control to turn off any clock interrupt generation
 	StopExternalRtcClock();
 
+#if 1 /* Test */
+	DATE_TIME_STRUCT testTime;
+	uint8_t ramData;
+	// Exercise the ram byte AKA scratchpad for comms validation
+	ramData = 0xAA; SetRtcRegisters(PCF85263_CTL_RAM_BYTE, &ramData, sizeof(ramData));
+	ramData = 0x00; GetRtcRegisters(PCF85263_CTL_RAM_BYTE, &ramData, sizeof(ramData));
+	debug("External RTC: 1st RAM data (scratchpad) test %s\r\n", (ramData == 0xAA) ? "Passed" : "Failed");
+
+	ramData = 0x55; SetRtcRegisters(PCF85263_CTL_RAM_BYTE, &ramData, sizeof(ramData));
+	ramData = 0x00; GetRtcRegisters(PCF85263_CTL_RAM_BYTE, &ramData, sizeof(ramData));
+	debug("External RTC: 2nd RAM data (scratchpad) test %s\r\n", (ramData == 0x55) ? "Passed" : "Failed");
+
+	// Print time in succession with 1 second processor delays to show time increment
+	testTime = GetExternalRtcTime(); debug("External RTC: Get time yields %02d:%02d:%02d, delaying 1 second for next check\r\n", testTime.hour, testTime.min, testTime.sec);
+	MXC_Delay(MXC_DELAY_SEC(1)); //debug("MXC 1 second delay\r\n");
+	testTime = GetExternalRtcTime(); debug("External RTC: Get time yields %02d:%02d:%02d, delaying 1 second for next check\r\n", testTime.hour, testTime.min, testTime.sec);
+	MXC_Delay(MXC_DELAY_SEC(1)); //debug("MXC 1 second delay\r\n");
+	testTime = GetExternalRtcTime(); debug("External RTC: Get time yields %02d:%02d:%02d\r\n", testTime.hour, testTime.min, testTime.sec);
+#endif
 	return (TRUE);
 }
 
