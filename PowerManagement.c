@@ -528,37 +528,39 @@ void InitBattChargerRegisters(void)
 	SetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_1, 0x0003);
 
 #if 1 /* Test */
-	uint16_t regResults;
+	uint16_t regResults, errStatus = NO;
 	// Device address doesn't read as expected
 	//GetBattChargerRegister(BATT_CHARGER_DEVICE_ADDRESS_SETTING, &regResults); if (regResults != 0x00E9) { debugErr("Battery Charger Read failed: Device address, 0x%x/0x%x\r\n", 0x00E9, regResults); }
-	GetBattChargerRegister(BATT_CHARGER_INPUT_MINIMUM_VOLTAGE_LIMIT_SETTING, &regResults); if (regResults != 0x0037) { debugErr("Battery Charger Read failed: Input min V, 0x%x/0x%x\r\n", 0x0037, regResults); }
-	GetBattChargerRegister(BATT_CHARGER_INPUT_CURRENT_LIMIT_SETTING, &regResults); if (regResults != 0x0050) { debugErr("Battery Charger Read failed: Input current limit, 0x%x/0x%x\r\n", 0x0050, regResults); }
-	GetBattChargerRegister(BATT_CHARGER_OUTPUT_VOLTAGE_SETTING_IN_SOURCE_MODE, &regResults); if (regResults != 0x00F9) { debugErr("Battery Charger Read failed: Output voltage, 0x%x/0x%x\r\n", 0x00F9, regResults); }
-	GetBattChargerRegister(BATT_CHARGER_BATTERY_IMPEDANCE_COMPENSATION_AND_OUTPUT_CURRENT_LIMIT_SETTING_IN_SOURCE_MODE, &regResults); if (regResults != 0x003C) { debugErr("Battery Charger Read failed: Output current, 0x%x/0x%x\r\n", 0x003C, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_INPUT_MINIMUM_VOLTAGE_LIMIT_SETTING, &regResults); if (regResults != 0x0037) { errStatus = YES; debugErr("Battery Charger Read failed: Input min V, 0x%x/0x%x\r\n", 0x0037, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_INPUT_CURRENT_LIMIT_SETTING, &regResults); if (regResults != 0x0050) {errStatus = YES;  debugErr("Battery Charger Read failed: Input current limit, 0x%x/0x%x\r\n", 0x0050, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_OUTPUT_VOLTAGE_SETTING_IN_SOURCE_MODE, &regResults); if (regResults != 0x00F9) { errStatus = YES; debugErr("Battery Charger Read failed: Output voltage, 0x%x/0x%x\r\n", 0x00F9, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_BATTERY_IMPEDANCE_COMPENSATION_AND_OUTPUT_CURRENT_LIMIT_SETTING_IN_SOURCE_MODE, &regResults); if (regResults != 0x003C) { errStatus = YES; debugErr("Battery Charger Read failed: Output current, 0x%x/0x%x\r\n", 0x003C, regResults); }
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
-		GetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, &regResults); if (regResults != 0x303C) { debugErr("Battery Charger Read failed: Batt discharge source, 0x%x/0x%x\r\n", 0x303C, regResults); }
+		GetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, &regResults); if (regResults != 0x303C) { errStatus = YES; debugErr("Battery Charger Read failed: Batt discharge source, 0x%x/0x%x\r\n", 0x303C, regResults); }
 	}
-	else { GetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, &regResults); if (regResults != 0x3078) { debugErr("Battery Charger Read failed: Batt discharge source, 0x%x/0x%x\r\n", 0x3078, regResults); } }
-	GetBattChargerRegister(BATT_CHARGER_JEITA_ACTION_SETTING, &regResults); if (regResults != 0x7C10) { debugErr("Battery Charger Read failed: JEITA, 0x%x/0x%x\r\n", 0x7C10, regResults); }
-	GetBattChargerRegister(BATT_CHARGER_TEMPERATURE_PROTECTION_SETTING, &regResults); if (regResults != 0xBF99) { debugErr("Battery Charger Read failed: Temp protect, 0x%x/0x%x\r\n", 0xBF99, regResults); }
-	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, &regResults); if (regResults != 0x0010) { debugErr("Battery Charger Read failed: config reg 0, 0x%x/0x%x\r\n", 0x0010, regResults); }
+	else { GetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, &regResults); if (regResults != 0x3078) { errStatus = YES; debugErr("Battery Charger Read failed: Batt discharge source, 0x%x/0x%x\r\n", 0x3078, regResults); } }
+	GetBattChargerRegister(BATT_CHARGER_JEITA_ACTION_SETTING, &regResults); if (regResults != 0x7C10) { errStatus = YES; debugErr("Battery Charger Read failed: JEITA, 0x%x/0x%x\r\n", 0x7C10, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_TEMPERATURE_PROTECTION_SETTING, &regResults); if (regResults != 0xBF99) { errStatus = YES; debugErr("Battery Charger Read failed: Temp protect, 0x%x/0x%x\r\n", 0xBF99, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, &regResults); if (regResults != 0x0010) { errStatus = YES; debugErr("Battery Charger Read failed: config reg 0, 0x%x/0x%x\r\n", 0x0010, regResults); }
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
-		GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF264) { debugErr("Battery Charger Read failed: Config reg 1, 0x%x/0x%x\r\n", 0xF264, regResults); }
+		GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF264) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 1, 0x%x/0x%x\r\n", 0xF264, regResults); }
 	}
-	else { GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF2C8) { debugErr("Battery Charger Read failed: Config reg 1, 0x%x/0x%x\r\n", 0xF2C8, regResults); } }
-	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_2, &regResults); if (regResults != 0x0A00) { debugErr("Battery Charger Read failed: Config reg 2, 0x%x/0x%x\r\n", 0x0A00, regResults); }
-	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_3, &regResults); if (regResults != 0x60E8) { debugErr("Battery Charger Read failed: Config reg 3, 0x%x/0x%x\r\n", 0x60E8, regResults); }
-	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, &regResults); if (regResults != 0x3C53) { debugErr("Battery Charger Read failed: Config reg 4, 0x%x/0x%x\r\n", 0x3C53, regResults); }
+	else { GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF2C8) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 1, 0x%x/0x%x\r\n", 0xF2C8, regResults); } }
+	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_2, &regResults); if (regResults != 0x0A00) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 2, 0x%x/0x%x\r\n", 0x0A00, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_3, &regResults); if (regResults != 0x60E8) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 3, 0x%x/0x%x\r\n", 0x60E8, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, &regResults); if (regResults != 0x3C53) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 4, 0x%x/0x%x\r\n", 0x3C53, regResults); }
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
-		GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x0680) { debugErr("Battery Charger Read failed: Charge current, 0x%x/0x%x\r\n", 0x0680, regResults); }
+		GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x0680) { errStatus = YES; debugErr("Battery Charger Read failed: Charge current, 0x%x/0x%x\r\n", 0x0680, regResults); }
 	}
-	else { GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x0D40) { debugErr("Battery Charger Read failed: Charge current, 0x%x/0x%x\r\n", 0x0D40, regResults); } }
-	GetBattChargerRegister(BATT_CHARGER_BATTERY_REGULATION_VOLTAGE_SETTING, &regResults); if (regResults != 0x2D00) { debugErr("Battery Charger Read failed: Batt regulation, 0x%x/0x%x\r\n", 0x2D00, regResults); }
-	GetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_0, &regResults); if (regResults != 0x3CFF) { debugErr("Battery Charger Read failed: Int mask reg 0, 0x%x/0x%x\r\n", 0x3CFF, regResults); }
-	GetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_1, &regResults); if (regResults != 0x0003) { debugErr("Battery Charger Read failed: Int mask reg 1, 0x%x/0x%x\r\n", 0x0003, regResults); }
+	else { GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x0D40) { errStatus = YES; debugErr("Battery Charger Read failed: Charge current, 0x%x/0x%x\r\n", 0x0D40, regResults); } }
+	GetBattChargerRegister(BATT_CHARGER_BATTERY_REGULATION_VOLTAGE_SETTING, &regResults); if (regResults != 0x2D00) { errStatus = YES; debugErr("Battery Charger Read failed: Batt regulation, 0x%x/0x%x\r\n", 0x2D00, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_0, &regResults); if (regResults != 0x3CFF) { errStatus = YES; debugErr("Battery Charger Read failed: Int mask reg 0, 0x%x/0x%x\r\n", 0x3CFF, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_1, &regResults); if (regResults != 0x0003) { errStatus = YES; debugErr("Battery Charger Read failed: Int mask reg 1, 0x%x/0x%x\r\n", 0x0003, regResults); }
+
+	if (errStatus == NO) { debug("Battery Charger: Configure registers written and verified\r\n"); }
 #endif
 }
 
@@ -1077,6 +1079,12 @@ int Ltc2944_config(int prescaler_exp, uint8_t adcMode)
 		if (ret < 0) { return ret; }
 	}
 
+#if 1 /* Test */
+	Ltc2944_read_regs(LTC2944_REG_CONTROL, &value, 1);
+	if (value != control) { debugErr("Fuel Gauge: Control register write failed verification (0x%x, 0x%x)\r\n", control, value);}
+	else { debug("Fuel Gauge: Control register write verified\r\n"); }
+#endif
+
 	return (0);
 }
 
@@ -1283,11 +1291,11 @@ int Ltc2944_get_voltage(int* val)
 	ret = Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &datar[0], 2);
 	voltage = ((datar[0] << 8) | datar[1]);
 
-	debug("Fuel Gauge: Get voltage register is 0x%x\r\n");
+	//debug("Fuel Gauge: Get voltage register is 0x%x\r\n");
 
 	voltage *= (70800 / 0xFFFF); // units in mV
 
-	debug("Fuel Gauge: Voltage calc is %f\r\n", voltage);
+	//debug("Fuel Gauge: Voltage calc is %f\r\n", voltage);
 
 	*val = (int)voltage;
 	return (ret);
@@ -1665,9 +1673,20 @@ void FuelGaugeInit(void)
 
 	Ltc2944_device.Qlsb = (((340 * 1000) * 50) / Ltc2944_device.r_sense) * (LTC2944_M_256 / LTC2944_MAX_PRESCALER); // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
 
+	uint8_t tempReg[2];
+#if 0 /* Test */
+	debugRaw("\r\n");
+	for (uint8_t i = 1; i < 24; i++)
+	{
+		Ltc2944_read_regs(i, &tempReg[0], 1); debugRaw("Fuel Gauge: Reg %02d, Value: 0x%x\r\n", i, tempReg[0]);
+	}
+#endif
+
 	// Check if the Fuel Gauge has not been configured already (First time power applied by battery or battery replaced), otherwise bypass config if reset values have been changed
 	if ((Ltc2944_read_register_value_x16(LTC2944_REG_CHARGE_THR_HIGH_MSB) == 0xFFFF) && (Ltc2944_read_register_value_x16(LTC2944_REG_CHARGE_THR_LOW_MSB) == 0))
 	{
+		debug("Fuel Gauge: First time configure\r\n");
+
 		// Set the inital charge level based on half charge capacity (50%), function handles disabling the analog section for setting the charge and re-enabling when done
 		if (GetExpandedBatteryPresenceState() == NO)
 		{
@@ -1697,13 +1716,17 @@ void FuelGaugeInit(void)
 		// Set thresholds for temperature (discharge range)
 		Ltc2944_set_temp_thr(60, -20);
 	}
+	else { debug("Fuel Gauge: Appears to have been already configured a first time\r\n"); }
+
+	debug("Fuel Gauge: Status reg is 0x%x\r\n", Ltc2944_get_status());
+	debug("Fuel Gauge: Status reg is 0x%x (should be 0, cleared)\r\n", Ltc2944_get_status());
 
 	// Config the device with desired prescaler, ADC mode will be set to Scan and ALCC config set to Alert mode
+	debug("Fuel Gauge: Enabling conversions (Scan mode)\r\n");
 	Ltc2944_config(Ltc2944_device.prescaler, LTC2944_REG_CONTROL_MODE_SCAN);
 
 	debug("Fuel Gauge: Battery voltage is %f\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
 
-	uint8_t tempReg[2];
 	Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &tempReg[0], 2); debug("Fuel Gauge: Vh is 0x%x, Vl is 0x%x\r\n", tempReg[0], tempReg[1]);
 	Ltc2944_read_regs(LTC2944_REG_CURRENT_MSB, &tempReg[0], 2); debug("Fuel Gauge: Ch is 0x%x, Cl is 0x%x\r\n", tempReg[0], tempReg[1]);
 	Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_MSB, &tempReg[0], 2); debug("Fuel Gauge: Th is 0x%x, Tl is 0x%x\r\n", tempReg[0], tempReg[1]);
@@ -1711,4 +1734,37 @@ void FuelGaugeInit(void)
 	Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_VOLTAGE_LSB, &tempReg[1], 1); debug("Fuel Gauge: Vh is 0x%x, Vl is 0x%x\r\n", tempReg[0], tempReg[1]);
 	Ltc2944_read_regs(LTC2944_REG_CURRENT_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_CURRENT_LSB, &tempReg[0], 1); debug("Fuel Gauge: Ch is 0x%x, Cl is 0x%x\r\n", tempReg[0], tempReg[1]);
 	Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_LSB, &tempReg[0], 1); debug("Fuel Gauge: Th is 0x%x, Tl is 0x%x\r\n", tempReg[0], tempReg[1]);
+
+#if 1 /* Test */
+	int val;
+	debug("Fuel Gauge: Enabling conversions (Auto mode)\r\n");
+	Ltc2944_config(Ltc2944_device.prescaler, LTC2944_REG_CONTROL_MODE_AUTO);
+
+	debug("Fuel Gauge: Battery voltage is %f\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
+
+	Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &tempReg[0], 2); debug("Fuel Gauge: Vh is 0x%x, Vl is 0x%x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_CURRENT_MSB, &tempReg[0], 2); debug("Fuel Gauge: Ch is 0x%x, Cl is 0x%x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_MSB, &tempReg[0], 2); debug("Fuel Gauge: Th is 0x%x, Tl is 0x%x\r\n", tempReg[0], tempReg[1]);
+
+	Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_VOLTAGE_LSB, &tempReg[1], 1); debug("Fuel Gauge: Vh is 0x%x, Vl is 0x%x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_CURRENT_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_CURRENT_LSB, &tempReg[0], 1); debug("Fuel Gauge: Ch is 0x%x, Cl is 0x%x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_LSB, &tempReg[0], 1); debug("Fuel Gauge: Th is 0x%x, Tl is 0x%x\r\n", tempReg[0], tempReg[1]);
+
+	debug("Fuel Gauge: Status reg is 0x%x\r\n", Ltc2944_get_status());
+
+	Ltc2944_get_charge(Ltc2944_device.Qlsb, LTC2944_REG_ACC_CHARGE_MSB, &val);
+	debug("Fuel Gauge: Accumulated charge is %d (uA)\r\n", val);
+
+	Ltc2944_get_voltage(&val);
+	debug("Fuel Gauge: Voltage is %d (mV)\r\n", val);
+
+	Ltc2944_get_current(Ltc2944_device.r_sense, &val);
+	debug("Fuel Gauge: Current is %d (uA)\r\n", val);
+
+	Ltc2944_get_temperature_farenheit(&val);
+	debug("Fuel Gauge: Temperature is %d (degrees F)\r\n", val);
+
+	debug("Fuel Gauge: Re-enabling conversions (Scan mode)\r\n");
+	Ltc2944_config(Ltc2944_device.prescaler, LTC2944_REG_CONTROL_MODE_SCAN);
+#endif
 }
