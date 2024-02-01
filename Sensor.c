@@ -1575,6 +1575,7 @@ void OneWireInit(void)
 
 	// Issue device reset (also sets read pointer at the status register)
 	if (ds2484_send_cmd(data, DS2484_CMD_RESET) < 0) { debugErr("1-Wire Master: Reset failed\r\n"); }
+	else { debug("1-Wire Master: Reset success\r\n"); }
 
 	/* Sleep at least 525ns to allow the reset to complete */
 	MXC_Delay(1);
@@ -1582,6 +1583,7 @@ void OneWireInit(void)
 	/* Read the status byte - only reset bit and line should be set */
 	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &status, sizeof(status));
 	if (status != (DS2484_REG_STS_LL | DS2484_REG_STS_RST)) { debugWarn("1-Wire Master: Reset status different than expected (0x%02X)\r\n", status); }
+	else { debug("1-Wire Master: Reset status as expected\r\n"); }
 
 	// Write device config, enabling power down for now, enabling active pullup (generally recommended for best 1-Wire bus performance)
 	ds2484_send_cmd_data(data, DS2484_CMD_WRITE_CONFIG, ds2484_calculate_config(DS2484_REG_CFG_PDN | DS2484_REG_CFG_APU));
@@ -1589,6 +1591,7 @@ void OneWireInit(void)
 	ds2484_select_register(data, DS2484_PTR_CODE_STATUS);
 	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &status, sizeof(status));
 	if (status & DS2484_REG_STS_RST) { debugWarn("1-Wire Master: Reset status should have been cleared (0x%02X)\r\n", status); }
+	else { debug("1-Wire Master: Device configured and reset status cleared\r\n"); }
 
 	if (analog5vPoweredUp)
 	{
