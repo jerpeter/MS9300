@@ -302,6 +302,23 @@ void AccelerometerInit(void)
         // Put the Acc in standby mode to allow changing control register values
         SetAccRegister(ACC_CONTROL_1_REGISTER, 0x00);
 
+        uint8_t testData;
+        GetAccRegister(ACC_CONTROL_2_REGISTER, &testData);
+        if (testData == 0x3F) { debug("Accelerometer: Ctrl2 is default value\r\n"); }
+        else { debug("Accelerometer: Ctrl2 is non-default value of 0x%x\r\n", testData); }
+
+        GetAccRegister(ACC_CONTROL_3_REGISTER, &testData);
+        if (testData == 0xA8) { debug("Accelerometer: Ctrl3 is default value\r\n"); }
+        else { debug("Accelerometer: Ctrl3 is non-default value of 0x%x\r\n", testData); }
+        SetAccRegister(ACC_CONTROL_3_REGISTER, 0x00);
+        GetAccRegister(ACC_CONTROL_3_REGISTER, &testData);
+        if (testData == 0) { debug("Accelerometer: Ctrl3 was changed successfully\r\n"); }
+        else { debug("Accelerometer: Ctrl3 not changed correctly, returns a non-zero value of 0x%x\r\n", testData); }
+
+        GetAccRegister(ACC_CONTROL_4_REGISTER, &testData);
+        if (testData == 0x40) { debug("Accelerometer: Ctrl4 is default value\r\n"); }
+        else { debug("Accelerometer: Ctrl4 is non-default value of 0x%x\r\n", testData); }
+
         // Put the Accelerometer in manual sleep
         SetAccRegister(ACC_CONTROL_5_REGISTER, 0x01);
     }
