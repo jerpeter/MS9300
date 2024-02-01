@@ -1196,15 +1196,13 @@ void USBCPortControllerInit(void)
 	struct tps25750 tps;
 	uint64_t bootStatus;
 	uint16_t powerStatus;
+	uint32_t status;
 
 	// In relation to VBUS charging (supplied externally through VBUS), what purpose does Aux Power Enable have?
 	// In order to set the Aux Power Enable, external VBUS must be present
 
 	// Check mode
-	if (tps2750_is_mode(&tps, TPS_MODE_BOOT) == 1)
-	{
-		debugWarn("USB Port Controller: In Boot mode, likely Device booting in dead battery\r\n");
-	}
+	if (tps2750_is_mode(&tps, TPS_MODE_BOOT) == 1) { debugWarn("USB Port Controller: In Boot mode, likely Device booting in dead battery\r\n"); }
 
 	// Check and clear Dead Battery flag if set
 	tps25750_get_reg_boot_status(&tps, &bootStatus);
@@ -1214,6 +1212,11 @@ void USBCPortControllerInit(void)
 		debugWarn("USB Port Controller: Dead Battery flag set, must clear to continue\r\n");
 		tps25750_clear_dead_battery(&tps);
 	}
+
+	tps25750_read32(&tps, TPS_REG_STATUS, &status);
+	debug("USB Port Controller: Status Register is 0x%x\r\n", status);
+	tps25750_read32(&tps, TPS_REG_PD_STATUS, &status);
+	debug("USB Port Controller: PD Status Register is 0x%x\r\n", status);
 
 	// Read power status to get connection state
 	tps25750_read16(&tps, TPS_REG_POWER_STATUS, &powerStatus);
@@ -1248,4 +1251,13 @@ void USBCPortControllerInit(void)
 		tps25750_pr_set(&tps, TYPEC_SINK);
 		tps25750_dr_set(&tps, TYPEC_DEVICE);
 	}
+
+	tps25750_read32(&tps, TPS_REG_STATUS, &status);
+	debug("USB Port Controller: Status Register is 0x%x\r\n", status);
+	tps25750_read32(&tps, TPS_REG_PD_STATUS, &status);
+	debug("USB Port Controller: PD Status Register is 0x%x\r\n", status);
+
+	uint8_t testBootStatus[5];
+	tps25750_block_read(&tps, TPS_REG_BOOT_STATUS, testBootStatus, sizeof(testBootStatus));
+	debug("USB Port Controller: Boot Status Register is 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", testBootStatus[0], testBootStatus[1], testBootStatus[2], testBootStatus[3], testBootStatus[4]);
 }
