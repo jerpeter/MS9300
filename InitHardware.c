@@ -1407,9 +1407,17 @@ void SetupI2C(void)
 #if 0 /* Fast Speed */
     MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_FAST_SPEED);
     MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_FAST_SPEED);
-#else /* Standard */
+#elif 1 /* Standard */
     MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_STD_MODE);
     MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_STD_MODE);
+#else /* Test */
+#define MXC_I2C_STD_TEST 75000 // Can't be lower than 58,593 to fit in hi/lo
+    //MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_STD_TEST);
+    //MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_STD_TEST);
+	MXC_I2C0->clk_hi = 0x1FF;
+	MXC_I2C0->clk_lo = 0x1FF;
+	MXC_I2C1->clk_hi = 0x1FF;
+	MXC_I2C1->clk_lo = 0x1FF;
 #endif
 	debug("I2C Frequency: Channel 0: %d, Channel 1: %d\r\n", MXC_I2C_GetFrequency(MXC_I2C0), MXC_I2C_GetFrequency(MXC_I2C0));
 }
@@ -3270,10 +3278,10 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	AnalogControlInit(); debug("Analog Control: Init complete\r\n");
 
-	//-------------------------------------------------------------------------
-	// Init and configure the A/D to prevent the unit from burning current charging internal reference (default config)
-	//-------------------------------------------------------------------------
 #if 1 /* Test */
+	//-------------------------------------------------------------------------
+	// Test Expanded battery presence
+	//-------------------------------------------------------------------------
 	uint32_t j = 16000000;
 	debug("Expanded Battery Presence Test...\r\n");
 	while (1)
@@ -3284,11 +3292,38 @@ void InitSystemHardware_MS9300(void)
 	if (j == 0) { debug("Expanded Battery Presence Test passed\r\n"); }
 #endif
 
+#if 0 /* Test */
+	//-------------------------------------------------------------------------
+	// Test I2C
+	//-------------------------------------------------------------------------
+	//uint16_t testReg16;
+	//uint8_t testBootStatus[6];
+	//uint8_t regA = 0x2D;
+	uint8_t ramData = 0xA5;
+	j = 1;
+	ramData = 0xAA; SetRtcRegisters(PCF85263_CTL_RAM_BYTE, &ramData, sizeof(ramData));
 	while (1)
 	{
-	InitExternalAD(); debug("External ADC: Init complete\r\n");
-	MXC_Delay(1);
+		//GetBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_0, &testReg16);
+		//WriteI2CDevice(MXC_I2C0, I2C_ADDR_USBC_PORT_CONTROLLER, &regA, sizeof(uint8_t), testBootStatus, sizeof(testBootStatus));
+		GetRtcRegisters(PCF85263_CTL_RAM_BYTE, &ramData, sizeof(ramData));
+
+		if (j++ % 10000 == 0) { debugRaw("."); }
 	}
+#endif
+
+	//-------------------------------------------------------------------------
+	// Init and configure the A/D to prevent the unit from burning current charging internal reference (default config)
+	//-------------------------------------------------------------------------
+#if 0 /* Normal */
+	InitExternalAD(); debug("External ADC: Init complete\r\n");
+#else
+	while (1)
+	{
+		InitExternalAD(); debug("External ADC: Init complete\r\n");
+		MXC_Delay(1);
+	}
+#endif
 
 	//-------------------------------------------------------------------------
 	// Init the LCD display
@@ -3309,7 +3344,8 @@ void InitSystemHardware_MS9300(void)
 	AdjustPowerSavings(POWER_SAVINGS_NORMAL); debug("Power Savings: Init complete\r\n");
 #else /* Initial test */
 	// Make sure no subsystems are incorrectly disabled
-	AdjustPowerSavings(POWER_SAVINGS_NONE);
+	//AdjustPowerSavings(POWER_SAVINGS_NONE);
+	AdjustPowerSavings(POWER_SAVINGS_HIGH);
 #endif
 	//-------------------------------------------------------------------------
 	// Read and cache Smart Sensor data
