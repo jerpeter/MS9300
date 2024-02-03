@@ -3292,23 +3292,24 @@ void InitSystemHardware_MS9300(void)
 	if (j == 0) { debug("Expanded Battery Presence Test passed\r\n"); }
 #endif
 
-#if 0 /* Test */
+#if 1 /* Test */
 	//-------------------------------------------------------------------------
 	// Test I2C
 	//-------------------------------------------------------------------------
+	debug("I2C Test Loop (forever)\r\n");
 	//uint16_t testReg16;
-	//uint8_t testBootStatus[6];
-	//uint8_t regA = 0x2D;
+	uint8_t testBootStatus[6];
+	uint8_t regA = 0x2D;
 	uint8_t ramData = 0xA5;
 	j = 1;
-	ramData = 0xAA; SetRtcRegisters(PCF85263_CTL_RAM_BYTE, &ramData, sizeof(ramData));
+	SetRtcRegisters(PCF85263_CTL_RAM_BYTE, &ramData, sizeof(ramData));
 	while (1)
 	{
 		//GetBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_0, &testReg16);
-		//WriteI2CDevice(MXC_I2C0, I2C_ADDR_USBC_PORT_CONTROLLER, &regA, sizeof(uint8_t), testBootStatus, sizeof(testBootStatus));
+		WriteI2CDevice(MXC_I2C0, I2C_ADDR_USBC_PORT_CONTROLLER, &regA, sizeof(uint8_t), testBootStatus, sizeof(testBootStatus));
 		GetRtcRegisters(PCF85263_CTL_RAM_BYTE, &ramData, sizeof(ramData));
-
-		if (j++ % 10000 == 0) { debugRaw("."); }
+		MXC_Delay(MXC_DELAY_MSEC(1));
+		if (j++ % 1000 == 0) { debugRaw("."); }
 	}
 #endif
 
