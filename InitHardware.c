@@ -2889,6 +2889,7 @@ void SetupHalfSecondTickTimer(void)
 ///----------------------------------------------------------------------------
 void ValidatePowerOn(void)
 {
+#if 0 /* Normal */
 	uint8_t powerOnButtonDetect;
 	uint8_t vbusChargingDetect;
 	uint16_t i;
@@ -2977,6 +2978,11 @@ void ValidatePowerOn(void)
 	{
 		debugWarn("MCU Power latch is power on source\r\n");
 	}
+#else /* Test without keyboard */
+	SetupPowerOnDetectGPIO();
+	debugRaw("\r\n-----------------------\r\nPower On Button check bypassed (for testing without keypad)\r\nPower On activated\r\n");
+	PowerControl(MCU_POWER_LATCH, ON);
+#endif
 }
 
 ///----------------------------------------------------------------------------
