@@ -670,7 +670,7 @@ void SaveParameterMemory(uint8* dataSrc, uint16 startAddr, uint16 dataLength)
 		}			
 			
 		memcpy(&g_spareBuffer[2], dataSrc, writeLength);
-		debug("EEPROM SPM: Addr 0x%x 0x%x with Data 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_spareBuffer[0], g_spareBuffer[1], g_spareBuffer[2], g_spareBuffer[3], g_spareBuffer[4], g_spareBuffer[5], g_spareBuffer[6], g_spareBuffer[7], g_spareBuffer[8], g_spareBuffer[9]);
+		//debug("EEPROM SPM: Addr 0x%x 0x%x with Data 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_spareBuffer[0], g_spareBuffer[1], g_spareBuffer[2], g_spareBuffer[3], g_spareBuffer[4], g_spareBuffer[5], g_spareBuffer[6], g_spareBuffer[7], g_spareBuffer[8], g_spareBuffer[9]);
 		WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM, &g_spareBuffer[0], (writeLength + 2), NULL, 0);
 		dataSrc += writeLength;
 
