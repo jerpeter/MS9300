@@ -179,7 +179,8 @@ extern uint16_t dataTemperature;
 	while (1)
 	{
 		ReadAnalogData(&tempData);
-		debug("Ext ADC (Batt: %1.3f): R:%04x T:%04x V:%04x A:%04x TempF:%04x (%d)\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE), tempData.r, tempData.t, tempData.v, tempData.a, dataTemperature, AD4695_TemperatureConversionCtoF(dataTemperature));
+		//debug("Ext ADC (Batt: %1.3f): R:%04x T:%04x V:%04x A:%04x TempF:%04x (%d)\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE), tempData.r, tempData.t, tempData.v, tempData.a, dataTemperature, AD4695_TemperatureConversionCtoF(dataTemperature));
+		debug("Ext ADC (%s): R:%04x T:%04x V:%04x A:%04x TempF:%04x (%d)\r\n", FuelGaugeDebugString(), tempData.r, tempData.t, tempData.v, tempData.a, dataTemperature, AD4695_TemperatureConversionCtoF(dataTemperature));
 	}
 
 	// Read a few test samples
@@ -3315,7 +3316,8 @@ void InitSystemHardware_MS9300(void)
 		WriteI2CDevice(MXC_I2C0, I2C_ADDR_USBC_PORT_CONTROLLER, &regA, sizeof(uint8_t), testBootStatus, sizeof(testBootStatus));
 		GetRtcRegisters(PCF85263_CTL_RAM_BYTE, &ramData, sizeof(ramData));
 		MXC_Delay(MXC_DELAY_MSEC(1));
-		if (j++ % 1000 == 0) { debugRaw("."); }
+		//if (j++ % 1000 == 0) { debugRaw("."); }
+		if (j++ % 1000 == 0) { FuelGaugeDebugInfo(); }
 	}
 #endif
 

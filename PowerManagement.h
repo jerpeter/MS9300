@@ -130,4 +130,7 @@ uint16_t GetBattChargerOutputCurrentInDischargeMode(void);
 int Ltc2944_get_voltage(int* val);
 void Ltc2944_i2c_shutdown(void);
 
+void FuelGaugeDebugInfo(void);
+char* FuelGaugeDebugString(void);
+
 #endif //_POWER_MANAGEMENT_H_
