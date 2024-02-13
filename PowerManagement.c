@@ -21,6 +21,7 @@
 #include "mxc_errors.h"
 #include "i2c.h"
 #include "ff.h"
+#include "mxc_delay.h"
 //#include "navigation.h"
 
 ///----------------------------------------------------------------------------
@@ -1036,7 +1037,7 @@ int Ltc2944_write_regs(enum LTC2944_REG reg, const uint8_t *buf, int bufSize)
 	g_spareBuffer[0] = reg;
 	memcpy(&g_spareBuffer[1], buf, bufSize);
 
-	return (WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GUAGE, &reg, (bufSize + 1), NULL, 0));
+	return (WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GUAGE, g_spareBuffer, (bufSize + 1), NULL, 0));
 }
 
 ///----------------------------------------------------------------------------
@@ -1181,10 +1182,11 @@ int Ltc2944_set_charge_now(int Qlsb, int val)
 	int ret;
 	uint8_t dataw[2];
 	uint8_t ctrl_reg;
-	int32_t value;
+	uint32_t value;
 
-	value = (val / Qlsb);
-	if ((value < 0) || (value > 0xFFFF)) { return E_INVALID; } // Input validation
+	value = (uint32_t)(((float)val * 1000 * 1000) / Qlsb);
+	//debug("Fuel Gauge: Charge now value is %d\r\n", value);
+	if ((value < 0) || (value > 0xFFFF)) { debugErr("Fuel Gauge: Charge now invalid\r\n"); return E_INVALID; } // Input validation
 
 	// Read control register
 	ret = Ltc2944_read_regs(LTC2944_REG_CONTROL, &ctrl_reg, 1);
@@ -1199,6 +1201,7 @@ int Ltc2944_set_charge_now(int Qlsb, int val)
 	dataw[0] = I16_MSB(value);
 	dataw[1] = I16_LSB(value);
 	ret = Ltc2944_write_regs(LTC2944_REG_ACC_CHARGE_MSB, &dataw[0], 2);
+	//debug("Fuel Gauge: Charge now reg is 0x%x / 0x%x\r\n", dataw[0], dataw[1]);
 
 	// Enable analog section
 	ctrl_reg &= ~LTC2944_REG_CONTROL_SHUTDOWN_MASK;
@@ -1244,22 +1247,23 @@ int Ltc2944_set_charge_thr_uAh(Ltc2944_info* info, int thrHigh, int thrLow)
 int Ltc2944_set_charge_thr(int Qlsb, int thrHigh, int thrLow)
 {
 	uint8_t dataWrite[4];
-	int32_t chargeThrHigh;
-	int32_t chargeThrLow;
+	uint32_t chargeThrHigh;
+	uint32_t chargeThrLow;
 
 	// Set the charge ADC value by dividing by the value represented by 1 bit
-	chargeThrHigh = (thrHigh / Qlsb);
-	if ((chargeThrHigh < 0) || (chargeThrHigh > 0xFFFF)) { return E_INVALID; } // input validation
+	chargeThrHigh = (uint32_t)(((float)thrHigh * 1000 * 1000) / Qlsb);
+	if ((chargeThrHigh < 0) || (chargeThrHigh > 0xFFFF)) { debugErr("Fuel Gauge: Charge Thr High invalid\r\n"); return E_INVALID; } // input validation
 
 	// Set the charge ADC value by dividing by the value represented by 1 bit
-	chargeThrLow = (thrLow / Qlsb);
-	if ((chargeThrLow < 0) || (chargeThrLow > 0xFFFF)) { return E_INVALID; } // input validation
+	chargeThrLow = (uint32_t)(((float)thrLow * 1000 * 1000) / Qlsb);
+	if ((chargeThrLow < 0) || (chargeThrLow > 0xFFFF)) { debugErr("Fuel Gauge: Charge Thr Low invalid\r\n"); return E_INVALID; } // input validation
 
 	// Set new charge value
 	dataWrite[0] = I16_MSB(chargeThrHigh);
 	dataWrite[1] = I16_LSB(chargeThrHigh);
 	dataWrite[2] = I16_MSB(chargeThrLow);
 	dataWrite[3] = I16_LSB(chargeThrLow);
+	//debug("Fuel Gauge: Charge Thr reg 0x%x 0x%x / 0x%x 0x%x\r\n", dataWrite[0], dataWrite[1], dataWrite[2], dataWrite[3]);
 
 	return (Ltc2944_write_regs(LTC2944_REG_CHARGE_THR_HIGH_MSB, &dataWrite[0], 4));
 }
@@ -1291,11 +1295,11 @@ int Ltc2944_get_voltage(int* val)
 	ret = Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &datar[0], 2);
 	voltage = ((datar[0] << 8) | datar[1]);
 
-	//debug("Fuel Gauge: Get voltage register is 0x%x\r\n");
+	//debug("Fuel Gauge: Get voltage register is 0x%x\r\n", voltage);
 
-	voltage *= (70800 / 0xFFFF); // units in mV
+	voltage = ((voltage * 70800) / 0xFFFF); // units in mV
 
-	//debug("Fuel Gauge: Voltage calc is %f\r\n", voltage);
+	//debug("Fuel Gauge: Voltage calc is %lu\r\n", voltage);
 
 	*val = (int)voltage;
 	return (ret);
@@ -1329,7 +1333,7 @@ int Ltc2944_get_current(int r_sense, int* val)
 {
 	int ret;
 	uint8_t datar[2];
-	int32_t value;
+	int64_t value;
 
 	ret = Ltc2944_read_regs(LTC2944_REG_CURRENT_MSB, &datar[0], 2);
 	value = ((datar[0] << 8) | datar[1]);
@@ -1337,7 +1341,7 @@ int Ltc2944_get_current(int r_sense, int* val)
 	value *= 64000;
 
 	// Value is in range -32k..+32k, r_sense is usually 10..50 mOhm, the formula below keeps everything in s32 range while preserving enough digits
-	*val = (1000 * (value / (r_sense * 0x7FFF))); // Units in uA
+	*val = (int)((1000 * value) / (r_sense * 0x7FFF)); // Units in uA
 
 	return (ret);
 }
@@ -1348,8 +1352,8 @@ int Ltc2944_get_current(int r_sense, int* val)
 int Ltc2944_set_current_thr_same(int r_sense, int currThr)
 {
 	uint8_t dataWrite[4];
-	int32_t currThrHigh;
-	int32_t currThrLow;
+	int16_t currThrHigh;
+	int16_t currThrLow;
 
 	// Current in mA converted to A for equation
 	currThrHigh = ((((currThr / 1000) * r_sense / 64) * 0x7FFF) + 0x7FFF);
@@ -1370,18 +1374,23 @@ int Ltc2944_set_current_thr_same(int r_sense, int currThr)
 int Ltc2944_set_current_thr(int r_sense, int currThrCharging, int currThrDischarging)
 {
 	uint8_t dataWrite[4];
-	int32_t currThrHigh;
-	int32_t currThrLow;
+	uint16_t currThrHigh;
+	uint16_t currThrLow;
 
 	// Current in mA converted to A for equation
-	currThrHigh = ((((currThrCharging / 1000) * r_sense / 64) * 0x7FFF) + 0x7FFF);
-	currThrLow = ((((-currThrDischarging / 1000) * r_sense / 64) * 0x7FFF) + 0x7FFF);
+	currThrHigh = ((((currThrCharging / 1000) * r_sense * 0x7FFF) / 64) + 0x7FFF);
+	currThrLow = ((((-currThrDischarging / 1000) * r_sense * 0x7FFF) / 64) + 0x7FFF);
 
 	// Set new charge value
 	dataWrite[0] = I16_MSB(currThrHigh);
 	dataWrite[1] = I16_LSB(currThrHigh);
 	dataWrite[2] = I16_MSB(currThrLow);
 	dataWrite[3] = I16_LSB(currThrLow);
+
+#if 0 /* Test */
+	debug("Fuel Gauge: Set Curent Thr, High Thr calc is 0x%x, Low Thr calc is 0x%x\r\n", currThrHigh, currThrLow);
+	debug("Fuel Gauge: Set Curent Thr, High Thr reg: 0x%x / 0x%x, Low Thr reg: 0x%x / 0x%x\r\n", dataWrite[0], dataWrite[1], dataWrite[2], dataWrite[3]);
+#endif
 
 	return (Ltc2944_write_regs(LTC2944_REG_CURRENT_THR_HIGH_MSB, &dataWrite[0], sizeof(dataWrite)));
 }
@@ -1417,7 +1426,7 @@ int Ltc2944_get_temperature_farenheit(int* val)
 	value = ((datar[0] << 8) | datar[1]);
 
 	// Convert to F, F = (C * (9/5)) + 32
-	*val = (((((value * 510) / 0xFFFF) - 273.15) * (9 / 5)) + 32);
+	*val = (int)((((((((float)value * 510) / 0xFFFF) - 273.15) * 9) / 5)) + 32);
 
 	return (ret);
 }
@@ -1428,17 +1437,22 @@ int Ltc2944_get_temperature_farenheit(int* val)
 int Ltc2944_set_temp_thr(int tempHigh, int tempLow)
 {
 	uint8_t dataWrite[2];
-	uint32_t tempHighThr;
-	uint32_t tempLowThr;
+	uint16_t tempHighThr;
+	uint16_t tempLowThr;
 
-	tempHighThr = ((tempHigh + 273.15) * 0xFFFF / 510);
-	tempLowThr = ((tempHigh + 273.15) * 0xFFFF / 510);
+	tempHighThr = (((tempHigh + 273.15) * 0xFFFF) / 510);
+	tempLowThr = (((tempLow + 273.15) * 0xFFFF) / 510);
 
 	// Set new charge value (only 11 bits in temp mode, can only set the top 8 MSB bits)
 	dataWrite[0] = I16_MSB(tempHighThr);
 	dataWrite[1] = I16_MSB(tempLowThr);
 
-	return (Ltc2944_write_regs(LTC2944_REG_CURRENT_THR_HIGH_MSB, &dataWrite[0], sizeof(dataWrite)));
+#if 0 /* Test */
+	debug("Fuel Gauge: Set Temp Thr, High Thr calc is 0x%x, Low Thr calc is 0x%x\r\n", tempHighThr, tempLowThr);
+	debug("Fuel Gauge: Set Temp Thr, High Thr reg: 0x%x, Low Thr reg: 0x%x\r\n", dataWrite[0], dataWrite[1]);
+#endif
+
+	return (Ltc2944_write_regs(LTC2944_REG_TEMPERATURE_THR_HIGH, &dataWrite[0], sizeof(dataWrite)));
 }
 
 ///----------------------------------------------------------------------------
@@ -1447,17 +1461,22 @@ int Ltc2944_set_temp_thr(int tempHigh, int tempLow)
 int Ltc2944_set_temp_thr_farenheit(int tempHigh, int tempLow)
 {
 	uint8_t dataWrite[2];
-	uint32_t tempHighThr;
-	uint32_t tempLowThr;
+	uint16_t tempHighThr;
+	uint16_t tempLowThr;
 
-	tempHighThr = (((((tempHigh - 32) * 5) / 9) + 273.15) * 0xFFFF / 510);
-	tempLowThr = (((((tempLow - 32) * 5) / 9) + 273.15) * 0xFFFF / 510);
+	tempHighThr = ((((((tempHigh - 32) * 5) / 9) + 273.15) * 0xFFFF) / 510);
+	tempLowThr = ((((((tempLow - 32) * 5) / 9) + 273.15) * 0xFFFF) / 510);
 
 	// Set new charge value (only 11 bits in temp mode, can only set the top 8 MSB bits)
 	dataWrite[0] = I16_MSB(tempHighThr);
 	dataWrite[1] = I16_MSB(tempLowThr);
 
-	return (Ltc2944_write_regs(LTC2944_REG_CURRENT_THR_HIGH_MSB, &dataWrite[0], sizeof(dataWrite)));
+#if 0 /* Test */
+	debug("Fuel Gauge: Set TempF Thr, High Thr calc is 0x%x, Low Thr calc is 0x%x\r\n", tempHighThr, tempLowThr);
+	debug("Fuel Gauge: Set TempF Thr, High Thr reg: 0x%x, Low Thr reg: 0x%x\r\n", dataWrite[0], dataWrite[1]);
+#endif
+
+	return (Ltc2944_write_regs(LTC2944_REG_TEMPERATURE_THR_HIGH, &dataWrite[0], sizeof(dataWrite)));
 }
 
 ///----------------------------------------------------------------------------
@@ -1507,7 +1526,7 @@ int Ltc2944_i2c_probe(void)
 
 	prescaler_exp = LTC2944_PRESCALER_256;
 
-	Ltc2944_device.Qlsb = ((340 * 50) / r_sense) * (LTC2944_M_256 / LTC2944_MAX_PRESCALER) * 1000; // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
+	Ltc2944_device.Qlsb = (((((340 * 1000) * 50) / r_sense) * LTC2944_M_256) / LTC2944_MAX_PRESCALER); // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
 
 	//info->supply_desc.external_power_changed = NULL;
 
@@ -1555,7 +1574,7 @@ void TestFuelGauge(void)
 	info.r_sense = 10;
 	if (GetExpandedBatteryPresenceState() == NO) { info.prescaler = LTC2944_PRESCALER_256; } // Single pack
 	else { info.prescaler = LTC2944_PRESCALER_1024; } // Double pack
-	info.Qlsb = (((340 * 1000) * 50) / info.r_sense) * (LTC2944_M_256 / LTC2944_MAX_PRESCALER); // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
+	info.Qlsb = (((((340 * 1000) * 50) / info.r_sense) * LTC2944_M_256) / LTC2944_MAX_PRESCALER); // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
 
     debug("Fuel Gauge: Test device access...\r\n");
 
@@ -1575,6 +1594,31 @@ void TestFuelGauge(void)
 
 	Ltc2944_get_temperature_farenheit(&val);
 	debug("Fuel Gauge: Temperature is %d (degrees F)\r\n", val);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void FuelGaugeDebugInfo(void)
+{
+	int vVal, cVal, tVal;
+	Ltc2944_get_voltage(&vVal);
+	Ltc2944_get_current(Ltc2944_device.r_sense, &cVal);
+	Ltc2944_get_temperature_farenheit(&tVal);
+	debug("Fuel Gauge: %0.3fV, %0.3fmA, %dF\r\n", (double)((float)vVal / 1000), (double)((float)cVal / 1000), tVal);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+char* FuelGaugeDebugString(void)
+{
+	int vVal, cVal, tVal;
+	Ltc2944_get_voltage(&vVal);
+	Ltc2944_get_current(Ltc2944_device.r_sense, &cVal);
+	Ltc2944_get_temperature_farenheit(&tVal);
+	sprintf((char*)g_debugBuffer, "Batt: %0.3fV, %0.3fmA, %dF", (double)((float)vVal / 1000), (double)((float)cVal / 1000), tVal);
+	return ((char*)g_debugBuffer);
 }
 
 ///----------------------------------------------------------------------------
@@ -1671,16 +1715,8 @@ void FuelGaugeInit(void)
 	}
 	else { Ltc2944_device.prescaler = LTC2944_PRESCALER_1024; } // Double pack
 
-	Ltc2944_device.Qlsb = (((340 * 1000) * 50) / Ltc2944_device.r_sense) * (LTC2944_M_256 / LTC2944_MAX_PRESCALER); // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
-
-	uint8_t tempReg[2];
-#if 0 /* Test */
-	debugRaw("\r\n");
-	for (uint8_t i = 1; i < 24; i++)
-	{
-		Ltc2944_read_regs(i, &tempReg[0], 1); debugRaw("Fuel Gauge: Reg %02d, Value: 0x%x\r\n", i, tempReg[0]);
-	}
-#endif
+	Ltc2944_device.Qlsb = (((((340 * 1000) * 50) / Ltc2944_device.r_sense) * LTC2944_M_256) / LTC2944_MAX_PRESCALER); // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
+	//debug("Fuel Gauge: Qlsb = %d (size: %d)\r\n", Ltc2944_device.Qlsb, sizeof(Ltc2944_device.Qlsb));
 
 	// Check if the Fuel Gauge has not been configured already (First time power applied by battery or battery replaced), otherwise bypass config if reset values have been changed
 	if ((Ltc2944_read_register_value_x16(LTC2944_REG_CHARGE_THR_HIGH_MSB) == 0xFFFF) && (Ltc2944_read_register_value_x16(LTC2944_REG_CHARGE_THR_LOW_MSB) == 0))
@@ -1719,36 +1755,65 @@ void FuelGaugeInit(void)
 	else { debug("Fuel Gauge: Appears to have been already configured a first time\r\n"); }
 
 	debug("Fuel Gauge: Status reg is 0x%x\r\n", Ltc2944_get_status());
-	debug("Fuel Gauge: Status reg is 0x%x (should be 0, cleared)\r\n", Ltc2944_get_status());
+	debug("Fuel Gauge: Status reg is 0x%x (should be 0/cleared)\r\n", Ltc2944_get_status());
 
+#if 0 /* Test with Scan mode */
 	// Config the device with desired prescaler, ADC mode will be set to Scan and ALCC config set to Alert mode
 	debug("Fuel Gauge: Enabling conversions (Scan mode)\r\n");
 	Ltc2944_config(Ltc2944_device.prescaler, LTC2944_REG_CONTROL_MODE_SCAN);
 
+	debug("Fuel Gauge: 10 second delay to allow scan mode to process...\r\n");
+	MXC_Delay(MXC_DELAY_SEC(10));
+
 	debug("Fuel Gauge: Battery voltage is %f\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
 
+#if 0 /* Verified reads are fine */
+	uint8_t tempReg[2];
 	Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &tempReg[0], 2); debug("Fuel Gauge: Vh is 0x%x, Vl is 0x%x\r\n", tempReg[0], tempReg[1]);
 	Ltc2944_read_regs(LTC2944_REG_CURRENT_MSB, &tempReg[0], 2); debug("Fuel Gauge: Ch is 0x%x, Cl is 0x%x\r\n", tempReg[0], tempReg[1]);
 	Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_MSB, &tempReg[0], 2); debug("Fuel Gauge: Th is 0x%x, Tl is 0x%x\r\n", tempReg[0], tempReg[1]);
 
 	Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_VOLTAGE_LSB, &tempReg[1], 1); debug("Fuel Gauge: Vh is 0x%x, Vl is 0x%x\r\n", tempReg[0], tempReg[1]);
-	Ltc2944_read_regs(LTC2944_REG_CURRENT_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_CURRENT_LSB, &tempReg[0], 1); debug("Fuel Gauge: Ch is 0x%x, Cl is 0x%x\r\n", tempReg[0], tempReg[1]);
-	Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_LSB, &tempReg[0], 1); debug("Fuel Gauge: Th is 0x%x, Tl is 0x%x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_CURRENT_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_CURRENT_LSB, &tempReg[1], 1); debug("Fuel Gauge: Ch is 0x%x, Cl is 0x%x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_LSB, &tempReg[1], 1); debug("Fuel Gauge: Th is 0x%x, Tl is 0x%x\r\n", tempReg[0], tempReg[1]);
+#endif
+#endif
 
-#if 1 /* Test */
+#if 1 /* Test with Auto mode */
 	int val;
 	debug("Fuel Gauge: Enabling conversions (Auto mode)\r\n");
 	Ltc2944_config(Ltc2944_device.prescaler, LTC2944_REG_CONTROL_MODE_AUTO);
 
-	debug("Fuel Gauge: Battery voltage is %f\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
+	// Small delay to allow conversions
+	MXC_Delay(MXC_DELAY_MSEC(100));
 
+	debug("Fuel Gauge: Battery voltage is %0.2fV\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
+
+#if 0 /* Verified reads are fine */
+	uint8_t tempReg[2];
 	Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &tempReg[0], 2); debug("Fuel Gauge: Vh is 0x%x, Vl is 0x%x\r\n", tempReg[0], tempReg[1]);
 	Ltc2944_read_regs(LTC2944_REG_CURRENT_MSB, &tempReg[0], 2); debug("Fuel Gauge: Ch is 0x%x, Cl is 0x%x\r\n", tempReg[0], tempReg[1]);
 	Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_MSB, &tempReg[0], 2); debug("Fuel Gauge: Th is 0x%x, Tl is 0x%x\r\n", tempReg[0], tempReg[1]);
 
 	Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_VOLTAGE_LSB, &tempReg[1], 1); debug("Fuel Gauge: Vh is 0x%x, Vl is 0x%x\r\n", tempReg[0], tempReg[1]);
-	Ltc2944_read_regs(LTC2944_REG_CURRENT_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_CURRENT_LSB, &tempReg[0], 1); debug("Fuel Gauge: Ch is 0x%x, Cl is 0x%x\r\n", tempReg[0], tempReg[1]);
-	Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_LSB, &tempReg[0], 1); debug("Fuel Gauge: Th is 0x%x, Tl is 0x%x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_CURRENT_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_CURRENT_LSB, &tempReg[1], 1); debug("Fuel Gauge: Ch is 0x%x, Cl is 0x%x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_MSB, &tempReg[0], 1); Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_LSB, &tempReg[1], 1); debug("Fuel Gauge: Th is 0x%x, Tl is 0x%x\r\n", tempReg[0], tempReg[1]);
+#endif
+
+#if 0 /* Read register map */
+	uint8_t tempReg[2];
+	Ltc2944_read_regs(LTC2944_REG_ACC_CHARGE_MSB, &tempReg[0], 2); debug("Fuel Gauge: Acc Charge is 0x%02x%02x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_CHARGE_THR_HIGH_MSB, &tempReg[0], 2); debug("Fuel Gauge: Charge Thr High is 0x%02x%02x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_CHARGE_THR_LOW_MSB, &tempReg[0], 2); debug("Fuel Gauge: Charge Thr Low is 0x%02x%02x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &tempReg[0], 2); debug("Fuel Gauge: Voltage is 0x%02x%02x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_VOLTAGE_THR_HIGH_MSB, &tempReg[0], 2); debug("Fuel Gauge: Voltage Thr High is 0x%02x%02x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_VOLTAGE_THR_LOW_MSB, &tempReg[0], 2); debug("Fuel Gauge: Voltage Thr Low is 0x%02x%02x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_CURRENT_MSB, &tempReg[0], 2); debug("Fuel Gauge: Current is 0x%02x%02x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_CURRENT_THR_HIGH_MSB, &tempReg[0], 2); debug("Fuel Gauge: Current Thx High is 0x%02x%02x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_CURRENT_THR_LOW_MSB, &tempReg[0], 2); debug("Fuel Gauge: Current Thr Low is 0x%02x%02x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_MSB, &tempReg[0], 2); debug("Fuel Gauge: Temperature is 0x%02x%02x\r\n", tempReg[0], tempReg[1]);
+	Ltc2944_read_regs(LTC2944_REG_TEMPERATURE_THR_HIGH, &tempReg[0], 2); debug("Fuel Gauge: Temperature Thr is 0x%02x%02x\r\n", tempReg[0], tempReg[1]);
+#endif
 
 	debug("Fuel Gauge: Status reg is 0x%x\r\n", Ltc2944_get_status());
 
@@ -1767,4 +1832,5 @@ void FuelGaugeInit(void)
 	debug("Fuel Gauge: Re-enabling conversions (Scan mode)\r\n");
 	Ltc2944_config(Ltc2944_device.prescaler, LTC2944_REG_CONTROL_MODE_SCAN);
 #endif
+	FuelGaugeDebugInfo();
 }
