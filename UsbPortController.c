@@ -6,6 +6,9 @@
  * Author: Abdel Alkuor <abdelalkuor@geotab.com>
  */
 
+///----------------------------------------------------------------------------
+///	Includes
+///----------------------------------------------------------------------------
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -18,6 +21,14 @@
 #include "UsbPortController.h"
 #include "PowerManagement.h"
 
+///----------------------------------------------------------------------------
+///	Externs
+///----------------------------------------------------------------------------
+#include "Globals.h"
+
+///----------------------------------------------------------------------------
+///	Defines
+///----------------------------------------------------------------------------
 /* Register offsets */
 #define TPS_REG_MODE			0x03
 #define TPS_REG_TYPE			0x04
@@ -183,10 +194,11 @@ static int tps25750_block_write(struct tps25750 *tps, uint8_t reg, const void *v
 	if (len + 1 > TPS_MAX_LEN)
 		return E_INVALID;
 
-	data[0] = len;
-	memcpy(&data[1], val, len);
+	data[0] = reg;
+	data[1] = len;
+	memcpy(&data[2], val, len);
 
-	return (WriteI2CDevice(MXC_I2C0, I2C_ADDR_USBC_PORT_CONTROLLER, &reg, sizeof(uint8_t), data, (len + 1)));
+	return (WriteI2CDevice(MXC_I2C0, I2C_ADDR_USBC_PORT_CONTROLLER, &data[0], (len + 2), NULL, 0));
 }
 
 ///----------------------------------------------------------------------------
@@ -1197,12 +1209,15 @@ void USBCPortControllerInit(void)
 	uint64_t bootStatus;
 	uint16_t powerStatus;
 	uint32_t status;
+	uint8_t fullAccess = YES;
 
 	// In relation to VBUS charging (supplied externally through VBUS), what purpose does Aux Power Enable have?
 	// In order to set the Aux Power Enable, external VBUS must be present
 
 	// Check mode
-	if (tps2750_is_mode(&tps, TPS_MODE_BOOT) == 1) { debugWarn("USB Port Controller: In Boot mode, likely Device booting in dead battery\r\n"); }
+	if (tps2750_is_mode(&tps, TPS_MODE_BOOT) == 1) { fullAccess = NO; debugWarn("USB Port Controller: In Boot mode, likely Device booting in dead battery\r\n"); }
+	if (tps2750_is_mode(&tps, TPS_MODE_PTCH) == 1) { fullAccess = NO; debugWarn("USB Port Controller: In Patch mode\r\n"); }
+	if (tps2750_is_mode(&tps, TPS_MODE_APP) == 1) { debug("USB Port Controller: In App mode\r\n"); }
 
 	// Check and clear Dead Battery flag if set
 	tps25750_get_reg_boot_status(&tps, &bootStatus);
@@ -1213,51 +1228,98 @@ void USBCPortControllerInit(void)
 		tps25750_clear_dead_battery(&tps);
 	}
 
-	tps25750_read32(&tps, TPS_REG_STATUS, &status);
-	debug("USB Port Controller: Status Register is 0x%x\r\n", status);
-	tps25750_read32(&tps, TPS_REG_PD_STATUS, &status);
-	debug("USB Port Controller: PD Status Register is 0x%x\r\n", status);
-
-	// Read power status to get connection state
-	tps25750_read16(&tps, TPS_REG_POWER_STATUS, &powerStatus);
-	debug("USB Port Controller: Power status is 0x%x\r\n", powerStatus);
-
-	// Check if there is a connection present
-	if (TPS_REG_POWER_STATUS_POWER_CONNECTION(powerStatus))
+	if (fullAccess)
 	{
-		// Determine if connection provides power (Sink mode)
-		if (TPS_REG_POWER_STATUS_SOURCE_SINK(powerStatus))
+		tps25750_read32(&tps, TPS_REG_STATUS, &status);
+		debug("USB Port Controller: Status Register is 0x%x\r\n", status);
+		tps25750_read32(&tps, TPS_REG_PD_STATUS, &status);
+		debug("USB Port Controller: PD Status Register is 0x%x\r\n", status);
+
+		// Read power status to get connection state
+		tps25750_read16(&tps, TPS_REG_POWER_STATUS, &powerStatus);
+		debug("USB Port Controller: Power status is 0x%x\r\n", powerStatus);
+
+		// Check if there is a connection present
+		if (TPS_REG_POWER_STATUS_POWER_CONNECTION(powerStatus))
 		{
-			debug("USB Port Controller: Connection found, provides power, attempting Sink/Device mode\r\n");
+			// Determine if connection provides power (Sink mode)
+			if (TPS_REG_POWER_STATUS_SOURCE_SINK(powerStatus))
+			{
+				debug("USB Port Controller: Connection found, provides power, attempting Sink/Device mode\r\n");
+
+				// Attempt to set Power role to Sink and Data role to Device
+				tps25750_pr_set(&tps, TYPEC_SINK);
+				tps25750_dr_set(&tps, TYPEC_DEVICE);
+			}
+			else // Connection requests power (Source mode)
+			{
+				debug("USB Port Controller: Connection found, requests power, attempting Source/Host mode\r\n");
+
+				// Attempt to set Power role to Source and Data tole to Host
+				tps25750_pr_set(&tps, TYPEC_SOURCE);
+				tps25750_dr_set(&tps, TYPEC_HOST);
+			}
+		}
+		else // No conneciton present
+		{
+			debug("USB Port Controller: No connection present (attempting Sink/Device mode as default)\r\n");
 
 			// Attempt to set Power role to Sink and Data role to Device
 			tps25750_pr_set(&tps, TYPEC_SINK);
 			tps25750_dr_set(&tps, TYPEC_DEVICE);
 		}
-		else // Connection requests power (Source mode)
-		{
-			debug("USB Port Controller: Connection found, requests power, attempting Source/Host mode\r\n");
 
-			// Attempt to set Power role to Source and Data tole to Host
-			tps25750_pr_set(&tps, TYPEC_SOURCE);
-			tps25750_dr_set(&tps, TYPEC_HOST);
-		}
+		tps25750_read32(&tps, TPS_REG_STATUS, &status);
+		debug("USB Port Controller: Status Register is 0x%x\r\n", status);
+		tps25750_read32(&tps, TPS_REG_PD_STATUS, &status);
+		debug("USB Port Controller: PD Status Register is 0x%x\r\n", status);
 	}
-	else // No conneciton present
+	else
 	{
-		debug("USB Port Controller: No connection present (attempting Sink/Device mode as default)\r\n");
-
-		// Attempt to set Power role to Sink and Data role to Device
-		tps25750_pr_set(&tps, TYPEC_SINK);
-		tps25750_dr_set(&tps, TYPEC_DEVICE);
+		debugWarn("USB Port Controller: Not in App mode, register access restricted, skipping device init\r\n");
 	}
 
-	tps25750_read32(&tps, TPS_REG_STATUS, &status);
-	debug("USB Port Controller: Status Register is 0x%x\r\n", status);
-	tps25750_read32(&tps, TPS_REG_PD_STATUS, &status);
-	debug("USB Port Controller: PD Status Register is 0x%x\r\n", status);
+	tps25750_block_read(&tps, TPS_REG_MODE, g_debugBuffer, 4);
+	debug("USB Port Controller: Mode Register is <%c%c%c%c>\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3]);
+	tps25750_block_read(&tps, TPS_REG_TYPE, g_debugBuffer, 4);
+	debug("USB Port Controller: Type Register is <%c%c%c%c>\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3]);
+	//tps25750_block_read(&tps, TPS_REG_CUSTUSE, g_debugBuffer, 8);
+	//debug("USB Port Controller: Custom Use Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7]);
+	tps25750_block_read(&tps, TPS_REG_DEVICE_CAPABILITIES, g_debugBuffer, 4);
+	debug("USB Port Controller: Device Cap Register is 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3]);
+	tps25750_block_read(&tps, TPS_REG_VERSION, g_debugBuffer, 4);
+	debug("USB Port Controller: Version Register is 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3]);
+	//tps25750_block_read(&tps, TPS_REG_STATUS, g_debugBuffer, 5);
+	//debug("USB Port Controller: Status Register is 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4]);
+	//tps25750_block_read(&tps, TPS_REG_POWER_PATH_STATUS, g_debugBuffer, 5);
+	//debug("USB Port Controller: Power Path Status Register is 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4]);
+	//tps25750_block_read(&tps, TPS_REG_PORT_CONTROL, g_debugBuffer, 4);
+	//debug("USB Port Controller: Port Control Register is 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3]);
+	tps25750_block_read(&tps, TPS_REG_BOOT_STATUS, g_debugBuffer, 5);
+	debug("USB Port Controller: Boot Status Register is 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4]);
+	//tps25750_block_read(&tps, TPS_REG_BUILD_DESCRIPTION, g_debugBuffer, 49);
+	//debug("USB Port Controller: Build Desc Register is <%s>\r\n", (char*)g_debugBuffer);
+	tps25750_block_read(&tps, TPS_REG_DEVICE_INFO, g_debugBuffer, 40);
+	debug("USB Port Controller: Device Info Register is <%s>\r\n", (char*)g_debugBuffer);
+	//tps25750_block_read(&tps, TPS_REG_ACTIVE_CONTRACT_PDO, g_debugBuffer, 6);
+	//debug("USB Port Controller: Active Contract PDO Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5]);
+	//tps25750_block_read(&tps, TPS_REG_ACTIVE_CONTRACT_RDO, g_debugBuffer, 4);
+	//debug("USB Port Controller: Active Contract RDO Register is 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3]);
+	//tps25750_block_read(&tps, TPS_REG_POWER_STATUS, g_debugBuffer, 2);
+	//debug("USB Port Controller: Power Status Register is 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1]);
+	//tps25750_block_read(&tps, TPS_REG_PD_STATUS, g_debugBuffer, 4);
+	//debug("USB Port Controller: PD Status Register is 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3]);
+	//tps25750_block_read(&tps, TPS_REG_TYPEC_STATE, g_debugBuffer, 4);
+	//debug("USB Port Controller: TypeC State Register is 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3]);
+	//tps25750_block_read(&tps, TPS_REG_GPIO_STATUS, g_debugBuffer, 8);
+	//debug("USB Port Controller: GPIO Status Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7]);
 
-	uint8_t testBootStatus[5];
-	tps25750_block_read(&tps, TPS_REG_BOOT_STATUS, testBootStatus, sizeof(testBootStatus));
-	debug("USB Port Controller: Boot Status Register is 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", testBootStatus[0], testBootStatus[1], testBootStatus[2], testBootStatus[3], testBootStatus[4]);
+	tps25750_block_read(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
+	debug("USB Port Controller: Int Mask1 Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+	g_debugBuffer[0] |= 0x02; g_debugBuffer[1] |= 0x40; g_debugBuffer[2] |= 0x02; g_debugBuffer[3] |= 0x01; g_debugBuffer[4] |= 0x01; g_debugBuffer[5] |= 0x04; g_debugBuffer[8] |= 0x02; g_debugBuffer[10] |= 0x01;
+	debug("USB Port Controller: Write to Int Mask1 is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+	tps25750_block_write(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
+	memset(g_debugBuffer, 0, 11);
+	tps25750_block_read(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
+	debug("USB Port Controller: Int Mask1 aft Write is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
 }
