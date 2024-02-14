@@ -650,6 +650,7 @@ void CheckBootloaderAppPresent(void)
 ///----------------------------------------------------------------------------
 void AdjustPowerSavings(uint8_t powerSavingsLevel)
 {
+	debug("Adjust Power Savings level: %d\r\n", powerSavingsLevel);
 	// Check if there is no debug built in
 #if (GLOBAL_DEBUG_PRINT_ENABLED == NO_DEBUG)
 	// Disable the debug Uart if any power savings mode besides none
