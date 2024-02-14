@@ -620,7 +620,10 @@ void SetUartBridgeRegisters(uint8_t registerAddress, uint8_t* registerData, uint
 ///----------------------------------------------------------------------------
 void WriteUartBridgeControlRegister(uint8_t registerAddress, uint8_t registerData)
 {
-	uint8_t writeData[2] = { registerAddress, registerData};
+	uint8_t writeData[2];
+
+	writeData[0] = registerAddress;
+	writeData[1] = registerData;
 
     WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, writeData, sizeof(writeData), NULL, 0);
 }
@@ -649,6 +652,7 @@ void TestUartBridgeScratchpad(void)
 	// Offset 07H: Scratch Pad Register (SPR). Accessible when LCR[7]=0 and MCR[2]=0. Default=FF
 
 	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_LCR);
+	debug("Expansion: LCR Register is 0x%x\r\n", reg);
 	// Check if LCR bit 7 is enabled
 	if (reg & 0x80)
 	{
@@ -663,6 +667,7 @@ void TestUartBridgeScratchpad(void)
 	else { debug("Expansion: LCR bit disabled\r\n"); }
 
 	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_MCR);
+	debug("Expansion: MCR Register is 0x%x\r\n", reg);
 	// Check if MCR bit 2 is enabled
 	if (reg & 0x04)
 	{
@@ -778,6 +783,15 @@ void ExpansionBridgeInit(void)
 	MXC_Delay(MXC_DELAY_MSEC(500));
 	PowerControl(EXPANSION_RESET, OFF);
 	MXC_Delay(MXC_DELAY_MSEC(250));
+
+#if 0 /* Test read for scope */
+	debug("Expansion I2C Uart Bridge: Forever read LCD register...\r\n");
+	while (1)
+	{
+		ReadUartBridgeControlRegister(PI7C9X760_REG_LCR);
+		MXC_Delay(50);
+	}
+#endif
 
 	debug("Expansion I2C Uart Bridge: Powered on, Scratchpad test...\r\n");
 	TestUartBridgeScratchpad();
