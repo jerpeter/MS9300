@@ -3203,6 +3203,7 @@ void InitSystemHardware_MS9300(void)
 #if 0
 	__disable_irq();
 #endif
+	AdjustPowerSavings(POWER_SAVINGS_HIGH);
 
 	//-------------------------------------------------------------------------
 	// Setup Internal PIT Timers
@@ -3256,7 +3257,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initalize the USB-C Port Controller
 	//-------------------------------------------------------------------------
-	USBCPortControllerInit(); debug("USB-C Port Controller: Init complete\r\n");
+	USBCPortControllerInit(); debug("USB Port Controller: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initialize the external RTC
