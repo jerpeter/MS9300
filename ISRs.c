@@ -487,6 +487,9 @@ void External_trigger_irq(void)
 __attribute__((__interrupt__))
 void Internal_rtc_alarms(void)
 {
+	// Test print to verify the interrupt is running
+	debugRaw("~");
+
     int flags = MXC_RTC_GetFlags();
 
     if (flags & MXC_F_RTC_CTRL_SSEC_ALARM_FL)
@@ -530,7 +533,7 @@ void Soft_timer_tick_irq(void)
 	// Based on Internal PIT timer, but will not generate interrupts in Deepsleep or Backup
 
 	// Test print to verify the interrupt is running
-	debugRaw("`");
+	//debugRaw("`");
 
 	// Increment the lifetime soft timer tick count
 	g_lifetimeHalfSecondTickCount++;
