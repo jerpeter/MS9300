@@ -174,14 +174,16 @@ void InitExternalAD(void)
 	// Setup the A/D Channel configuration
 	SetupADChannelConfig(SAMPLE_RATE_DEFAULT, UNIT_CONFIG_CHANNEL_VERIFICATION);
 
+#if 1 /* Test loop */
 extern uint16_t dataTemperature;
 	SAMPLE_DATA_STRUCT tempData;
 	while (1)
 	{
 		ReadAnalogData(&tempData);
-		//debug("Ext ADC (Batt: %1.3f): R:%04x T:%04x V:%04x A:%04x TempF:%04x (%d)\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE), tempData.r, tempData.t, tempData.v, tempData.a, dataTemperature, AD4695_TemperatureConversionCtoF(dataTemperature));
-		debug("Ext ADC (%s): R:%04x T:%04x V:%04x A:%04x TempF:%04x (%d)\r\n", FuelGaugeDebugString(), tempData.r, tempData.t, tempData.v, tempData.a, dataTemperature, AD4695_TemperatureConversionCtoF(dataTemperature));
+		//debug("Ext ADC (Batt: %1.3f): R:%04x T:%04x V:%04x A:%04x TempF:%d\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE), tempData.r, tempData.t, tempData.v, tempData.a, AD4695_TemperatureConversionCtoF(dataTemperature));
+		debug("Ext ADC (%s): R:%04x T:%04x V:%04x A:%04x TempF:%d\r\n", FuelGaugeDebugString(), tempData.r, tempData.t, tempData.v, tempData.a, AD4695_TemperatureConversionCtoF(dataTemperature));
 	}
+#endif
 
 	// Read a few test samples
 	GetChannelOffsets(SAMPLE_RATE_DEFAULT);
@@ -2844,37 +2846,43 @@ void StopInteralPITTimer(PIT_TIMER_NUM channel)
 ///----------------------------------------------------------------------------
 void SetupHalfSecondTickTimer(void)
 {
-#if 0 /* Internal PIT Timer based, will not generate interrupts in Deepsleep or Backup */
-	MXC_SYS_Reset_Periph(MXC_SYS_RESET_TIMER0);
-	MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TIMER0);
+#if 1 /* Internal PIT Timer based, will not generate interrupts in Deepsleep or Backup */
+	MXC_SYS_Reset_Periph(MXC_SYS_RESET_TIMER2);
+	MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TIMER2);
 
     // Clear interrupt flag
     CYCLIC_HALF_SEC_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
 
+	// Disable the PWM Output (datasheet says it's disabled on reset, but not showing that to be the case)
+	CYCLIC_HALF_SEC_TIMER_NUM->cn |= (MXC_S_TMR_CN_PWMCKBD_DIS);
+
     // Set the prescaler (TMR_PRES_4096)
 	CYCLIC_HALF_SEC_TIMER_NUM->cn |= (MXC_F_TMR_CN_PRES3);
-	CYCLIC_HALF_SEC_TIMER_NUM->cn |= (MXC_V_TMR_CN_PRES_DIV4096);
+	CYCLIC_HALF_SEC_TIMER_NUM->cn |= (MXC_S_TMR_CN_PRES_DIV4096);
 
     // Set the mode
-	CYCLIC_HALF_SEC_TIMER_NUM->cn |= TMR_MODE_CONTINUOUS << MXC_F_TMR_CN_TMODE_POS;
+	CYCLIC_HALF_SEC_TIMER_NUM->cn |= (MXC_S_TMR_CN_TMODE_CONTINUOUS);
 
 	// Set the polarity
-    CYCLIC_HALF_SEC_TIMER_NUM->cn |= (0) << MXC_F_TMR_CN_TPOL_POS; // Polarity (0 or 1) doesn't matter
+    CYCLIC_HALF_SEC_TIMER_NUM->cn |= (MXC_S_TMR_CN_TPOL_ACTIVELO); // Polarity (0 or 1) doesn't matter
 
 	// Init the compare value
-    CYCLIC_HALF_SEC_TIMER_NUM->cmp = 7324; // 60MHz clock / 4096 = 14648 counts/sec, 1/2 second count = 7324
+    //CYCLIC_HALF_SEC_TIMER_NUM->cmp = 7324; // 60MHz clock / 4096 = 14648 counts/sec, 1/2 second count = 7324
+	CYCLIC_HALF_SEC_TIMER_NUM->cmp = 30000000; // Note: For some reason the prescaler peripheral clock divider isn't working as described in the datasheet
 
 	// Init the counter
     CYCLIC_HALF_SEC_TIMER_NUM->cnt = 0x1;
 
 	// Setup the Timer 0 interrupt
-	NVIC_ClearPendingIRQ(TMR0_IRQn);
-    NVIC_DisableIRQ(TMR0_IRQn);
-    MXC_NVIC_SetVector(TMR0_IRQn, Soft_timer_tick_irq);
-    NVIC_EnableIRQ(TMR0_IRQn);
+	NVIC_ClearPendingIRQ(TMR2_IRQn);
+	NVIC_DisableIRQ(TMR2_IRQn);
+	MXC_NVIC_SetVector(TMR2_IRQn, Soft_timer_tick_irq);
+	NVIC_EnableIRQ(TMR2_IRQn);
 
 	// Enable the timer
 	CYCLIC_HALF_SEC_TIMER_NUM->cn |= MXC_F_TMR_CN_TEN;
+
+	//debug("Timer2 Control register: 0x%04x\r\n", CYCLIC_HALF_SEC_TIMER_NUM->cn);
 #else /* Internal RTC based off of Sub-Second Alarm register, will generate interrupts in sleep modes */
     while (MXC_RTC_Init(0, 0) == E_BUSY) {}
     while (MXC_RTC_DisableInt(MXC_F_RTC_CTRL_SSEC_ALARM_EN) == E_BUSY) {}
@@ -2882,6 +2890,11 @@ void SetupHalfSecondTickTimer(void)
 	MXC_NVIC_SetVector(RTC_IRQn, Internal_rtc_alarms);
     while (MXC_RTC_EnableInt(MXC_F_RTC_CTRL_SSEC_ALARM_EN) == E_BUSY) {}
     while (MXC_RTC_Start() == E_BUSY) {}
+
+#if 1 /* Test */
+	// Needed?
+    NVIC_EnableIRQ(RTC_IRQn);
+#endif
 #endif
 }
 
@@ -3026,6 +3039,11 @@ void InitSystemHardware_MS9300(void)
 	// Check power on source and validate for system startup
 	//-------------------------------------------------------------------------
 	ValidatePowerOn();
+
+	//-------------------------------------------------------------------------
+	// Setup Half Second tick timer
+	//-------------------------------------------------------------------------
+	SetupHalfSecondTickTimer();
 
 	//-------------------------------------------------------------------------
 	// Display Debug Banner (UART2)
@@ -3192,18 +3210,16 @@ void InitSystemHardware_MS9300(void)
 	SetupUSBComposite();
 
 	//-------------------------------------------------------------------------
-	// Setup Half Second tick timer
-	//-------------------------------------------------------------------------
-	SetupHalfSecondTickTimer();
-
-	//-------------------------------------------------------------------------
 	// Disable all interrupts
 	//-------------------------------------------------------------------------
 	// Todo: Determine if this is necessary
 #if 0
 	__disable_irq();
 #endif
+
+#if 1 /* Early call to adjust power savings for testing current */
 	AdjustPowerSavings(POWER_SAVINGS_HIGH);
+#endif
 
 	//-------------------------------------------------------------------------
 	// Setup Internal PIT Timers
@@ -3300,6 +3316,18 @@ void InitSystemHardware_MS9300(void)
 	if (j == 0) { debug("Expanded Battery Presence Test passed\r\n"); }
 #endif
 
+#if 0 /* Test */
+	debug("-- Power up 5V --\r\n");
+	//PowerControl(ANALOG_5V_ENABLE, ON);
+	//WaitAnalogPower5vGood();
+	PowerUpAnalog5VandExternalADC();
+	while (1)
+	{
+		MXC_Delay(MXC_DELAY_SEC(1));
+		FuelGaugeDebugInfo();
+	}
+#endif
+
 #if 1 /* Test */
 	//-------------------------------------------------------------------------
 	// Test I2C
@@ -3325,7 +3353,8 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Init and configure the A/D to prevent the unit from burning current charging internal reference (default config)
 	//-------------------------------------------------------------------------
-#if 0 /* Normal */
+#if 1 /* Normal */
+	// *** Note ***: Forever test loop inside
 	InitExternalAD(); debug("External ADC: Init complete\r\n");
 #else
 	while (1)
