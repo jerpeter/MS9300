@@ -1314,6 +1314,8 @@ void USBCPortControllerInit(void)
 	//tps25750_block_read(&tps, TPS_REG_GPIO_STATUS, g_debugBuffer, 8);
 	//debug("USB Port Controller: GPIO Status Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7]);
 
+	tps25750_block_read(&tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11);
+	debug("USB Port Controller: Int Event1 Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
 	tps25750_block_read(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
 	debug("USB Port Controller: Int Mask1 Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
 	g_debugBuffer[0] |= 0x02; g_debugBuffer[1] |= 0x40; g_debugBuffer[2] |= 0x02; g_debugBuffer[3] |= 0x01; g_debugBuffer[4] |= 0x01; g_debugBuffer[5] |= 0x04; g_debugBuffer[8] |= 0x02; g_debugBuffer[10] |= 0x01;
