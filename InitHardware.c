@@ -3256,11 +3256,6 @@ void InitSystemHardware_MS9300(void)
 	// eMMC + FF driver (should be none)
 
 	//-------------------------------------------------------------------------
-	// Initalize the Accelerometer
-	//-------------------------------------------------------------------------
-	AccelerometerInit(); debug("Accelerometer: Init complete\r\n");
-
-	//-------------------------------------------------------------------------
 	// Smart Sensor data/control init (Hardware pull up on signal)
 	//-------------------------------------------------------------------------
 	OneWireInit(); debug("One Wire Driver: Init complete\r\n");
@@ -3284,6 +3279,11 @@ void InitSystemHardware_MS9300(void)
 	// Initalize the Fuel Gauge
 	//-------------------------------------------------------------------------
 	FuelGaugeInit(); debug("Fuel Gauge: Init complete\r\n");
+
+	//-------------------------------------------------------------------------
+	// Initalize the Accelerometer
+	//-------------------------------------------------------------------------
+	AccelerometerInit(); debug("Accelerometer: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initalize the Expansion I2C UART Bridge
