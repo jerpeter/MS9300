@@ -625,7 +625,7 @@ void WriteUartBridgeControlRegister(uint8_t registerAddress, uint8_t registerDat
 	writeData[0] = registerAddress;
 	writeData[1] = registerData;
 
-    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, writeData, sizeof(writeData), NULL, 0);
+    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, &writeData[0], sizeof(writeData), NULL, 0);
 }
 
 ///----------------------------------------------------------------------------
@@ -779,8 +779,11 @@ void TestExpansionI2CBridge(void)
 ///----------------------------------------------------------------------------
 void ExpansionBridgeInit(void)
 {
+	uint8_t reg;
+
 	PowerControl(EXPANSION_ENABLE, ON);
 	MXC_Delay(MXC_DELAY_MSEC(500));
+
 	PowerControl(EXPANSION_RESET, OFF);
 	MXC_Delay(MXC_DELAY_MSEC(250));
 
@@ -792,6 +795,21 @@ void ExpansionBridgeInit(void)
 		MXC_Delay(50);
 	}
 #endif
+
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_LCR);
+	debug("Expansion: Register %d is 0x%x\r\n", PI7C9X760_REG_LCR, reg);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x7F);
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_LCR);
+	debug("Expansion: Register %d after 0x7F write is 0x%x\r\n", PI7C9X760_REG_LCR, reg);
+
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_MCR);
+	debug("Expansion: Register %d is 0x%x\r\n", PI7C9X760_REG_MCR, reg);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_MCR, 0xFF);
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_MCR);
+	debug("Expansion: Register %d after 0xFF write is 0x%x\r\n", PI7C9X760_REG_MCR, reg);
+
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_LSR);
+	debug("Expansion: Register %d is 0x%x\r\n", PI7C9X760_REG_LSR, reg);
 
 	debug("Expansion I2C Uart Bridge: Powered on, Scratchpad test...\r\n");
 	TestUartBridgeScratchpad();
