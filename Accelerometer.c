@@ -20,7 +20,8 @@
 //#include "OldUart.h"
 //#include "Crc.h"
 //#include "string.h"
-//#include "PowerManagement.h"
+#include "PowerManagement.h"
+#include "mxc_delay.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -35,6 +36,8 @@
 #define ACC_CONTROL_4_REGISTER  0x1E
 #define ACC_CONTROL_5_REGISTER  0x1F
 #define ACC_CONTROL_6_REGISTER  0x20
+#define ACC_INTERRUPT_CONTROL_1_REGISTER  0x22
+#define ACC_SELF_TEST_REGISTER  0x5D
 
 typedef struct
 {
@@ -179,12 +182,22 @@ uint8_t VerifyAccManuIDAndPartID(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void GetAccChannelData(uint16_t* channelData)
+void GetAccChannelData(ACC_DATA_STRUCT* channelData)
 {
     uint8_t registerAddress = ACC_CHANNEL_DATA_START_REGISTER;
+    uint8_t* chanDataBytePtr = (uint8_t*)channelData;
 
    	// Data read in LSB/MSB (little endian), so no conversion necessary
-    WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddress, sizeof(uint8_t), (uint8_t*)channelData, ACC_CHANNEL_DATA_SIZE);
+    WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddress, sizeof(uint8_t), chanDataBytePtr, ACC_CHANNEL_DATA_SIZE);
+
+    channelData->x = (chanDataBytePtr[0] | (chanDataBytePtr[1] << 8));
+    channelData->y = (chanDataBytePtr[2] | (chanDataBytePtr[3] << 8));
+    channelData->z = (chanDataBytePtr[4] | (chanDataBytePtr[5] << 8));
+
+    // Normalize around 0x8000
+    if (channelData->x & 0x8000) { channelData->x = (0x7FFF - ~channelData->x); } else { channelData->x += 0x8000; }
+    if (channelData->y & 0x8000) { channelData->y = (0x7FFF - ~channelData->y); } else { channelData->y += 0x8000; }
+    if (channelData->z & 0x8000) { channelData->z = (0x7FFF - ~channelData->z); } else { channelData->z += 0x8000; }
 }
 
 ///----------------------------------------------------------------------------
@@ -314,12 +327,52 @@ void AccelerometerInit(void)
         GetAccRegister(ACC_CONTROL_3_REGISTER, &testData);
         if (testData == 0) { debug("Accelerometer: Ctrl3 was changed successfully\r\n"); }
         else { debug("Accelerometer: Ctrl3 not changed correctly, returns a non-zero value of 0x%x\r\n", testData); }
+        //SetAccRegister(ACC_CONTROL_3_REGISTER, 0xA8);
 
         GetAccRegister(ACC_CONTROL_4_REGISTER, &testData);
         if (testData == 0x40) { debug("Accelerometer: Ctrl4 is default value\r\n"); }
         else { debug("Accelerometer: Ctrl4 is non-default value of 0x%x\r\n", testData); }
 
+#if 0 /* Attempt Self test */
+        // 1. Set STPOL bit to 1 in INC1 register to set the polarity of the self-test mode to positive.
+        // 2. Set PC1 bit to 1 in CNTL1 register to enable KX134-1211.
+        // 3. Write 0xCA to this register to enable the MEMS self-test function.
+        debug("Accelerometer: Starting Self-test...\r\n");
+        GetAccRegister(ACC_INTERRUPT_CONTROL_1_REGISTER, &testData);
+        testData |= 0x02;
+        SetAccRegister(ACC_INTERRUPT_CONTROL_1_REGISTER, testData);
+
+        GetAccRegister(ACC_CONTROL_1_REGISTER, &testData);
+        testData |= 0x80;
+        SetAccRegister(ACC_CONTROL_1_REGISTER, testData);
+
+        SetAccRegister(ACC_SELF_TEST_REGISTER, 0xCA);
+
+        MXC_Delay(MXC_DELAY_SEC(5));
+
+        SetAccRegister(ACC_CONTROL_1_REGISTER, 0x00);
+        SetAccRegister(ACC_SELF_TEST_REGISTER, 0x00);
+        debug("Accelerometer: Self-test disabled\r\n");
+        MXC_Delay(MXC_DELAY_SEC(1));
+#endif
+
+#if 0 /* Test reading data */
+        StartAccAquisition();
+        ACC_DATA_STRUCT channelData;
+
+        //for (uint8_t i = 0; i < 4; i++)
+        while (1)
+        {
+            GetAccChannelData(&channelData);
+            debug("Accelerometer (%s): X:%04x Y:%04x Z:%04x\r\n", FuelGaugeDebugString(), channelData.x, channelData.y, channelData.z);
+            MXC_Delay(MXC_DELAY_MSEC(250));
+        }
+
+        StopAccAquisition();
+#endif
+
         // Put the Accelerometer in manual sleep
         SetAccRegister(ACC_CONTROL_5_REGISTER, 0x01);
+        debug("Accelerometer: Manual sleep engaged\r\n");
     }
 }
