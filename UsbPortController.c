@@ -696,45 +696,32 @@ int tps25750_write_firmware(struct tps25750 *tps, uint8_t *data, size_t len)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+extern const char tps25750x_lowRegion_i2c_array[];
+extern int gSizeLowRegionArray;
 static int tps25750_start_patch_burst_mode(struct tps25750 *tps)
 {
+#if 1 /* Skip until patch ready */
 	int ret = 0;
-#if 0 /* Todo: fill in equivalent */
+#else /* Todo: fill in equivalent */
 	int ret;
-	const struct firmware *fw;
-	const char *firmware_name;
-	struct {
+	struct
+	{
 		uint32_t fw_size;
 		uint8_t i2c_slave_addr;
 		uint8_t timeout;
 	} __packed pbms_in_data;
 
-	ret = device_property_read_string(tps->dev, "firmware-name", &firmware_name);
-	if (ret)
-		return ret;
-
-	ret = request_firmware(&fw, firmware_name, tps->dev);
-	if (ret) {
-		debugErr("USB Port Controller: failed to retrieve \"%s\"\n", firmware_name);
-		return ret;
-	}
-
-	if (fw->size == 0) {
-		ret = E_INVALID;
-		goto release_fw;
-	}
-
-	pbms_in_data.fw_size = fw->size;
-	pbms_in_data.i2c_slave_addr = TPS_BUNDLE_SLAVE_ADDR;
+	pbms_in_data.fw_size = gSizeLowRegionArray;
+	pbms_in_data.i2c_slave_addr = I2C_ADDR_USBC_PORT_CONTROLLER; //TPS_BUNDLE_SLAVE_ADDR;
 	pbms_in_data.timeout = TPS_BUNDLE_TIMEOUT;
 
 	ret = tps25750_exec_patch_cmd_pbms(tps, (uint8_t *)&pbms_in_data, sizeof(pbms_in_data));
 	if (ret)
-		goto release_fw;
+		return (ret);
 
-	ret = tps25750_write_firmware(tps, fw->data, fw->size);
+	ret = tps25750_write_firmware(tps, (uint8_t*)tps25750x_lowRegion_i2c_array, gSizeLowRegionArray);
 	if (ret) {
-		debugErr("USB Port Controller: Failed to write patch %s of %lu bytes\n", firmware_name, fw->size);
+		debugErr("USB Port Controller: Failed to write low region patch of %lu bytes\n", gSizeLowRegionArray);
 	} else {
 		/*
 		 * A delay of 500us is required after the firmware is written
@@ -744,9 +731,6 @@ static int tps25750_start_patch_burst_mode(struct tps25750 *tps)
 		MXC_Delay(500);
 		ret = 0;
 	}
-
-release_fw:
-	release_firmware(fw);
 #endif
 
 	return (ret);
