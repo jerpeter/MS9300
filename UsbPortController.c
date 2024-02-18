@@ -97,7 +97,7 @@
  * pg.48 TPS2575 Host Interface Technical Reference
  * Manual (Rev. A)
  */
-#define TPS_BUNDLE_SLAVE_ADDR	0x0F
+#define TPS_BUNDLE_SLAVE_ADDR	0x42 //0x0F
 
 /*
  * BPMs task timeout, recommended 5 seconds
@@ -153,7 +153,6 @@ enum power_supply_usb_type tps25750_psy_usb_types[] = {
 ///----------------------------------------------------------------------------
 static int tps25750_block_write_raw(struct tps25750 *tps, uint8_t *data, size_t len)
 {
-
 	return (WriteI2CDevice(MXC_I2C0, I2C_ADDR_USBC_PORT_CONTROLLER, data, len, NULL, 0));
 }
 
@@ -267,8 +266,7 @@ static int tps25750_exec_cmd(struct tps25750 *tps, const char *cmd, size_t in_le
 		return E_INVALID;
 
 	if (in_len) {
-		ret = tps25750_block_write(tps, TPS_REG_DATA1,
-				     in_data, in_len);
+		ret = tps25750_block_write(tps, TPS_REG_DATA1, in_data, in_len);
 		if (ret)
 			return ret;
 	} else {
@@ -342,13 +340,13 @@ int tps25750_exec_patch_cmd_pbms(struct tps25750 *tps, uint8_t *in_data, size_t 
 
 	switch (rc) {
 	case TPS_TASK_BPMS_INVALID_BUNDLE_SIZE:
-		debugErr("USB Port Controller: invalid fw size\r\n");
+		debugErr("USB Port Controller: Invalid fw size\r\n");
 		return E_INVALID;
 	case TPS_TASK_BPMS_INVALID_SLAVE_ADDR:
-		debugErr("USB Port Controller: invalid slave address\r\n");
+		debugErr("USB Port Controller: Invalid slave address\r\n");
 		return E_INVALID;
 	case TPS_TASK_BPMS_INVALID_TIMEOUT:
-		debugErr("USB Port Controller: timed out\r\n");
+		debugErr("USB Port Controller: Timed out\r\n");
 		return E_TIME_OUT;
 	default:
 		break;
@@ -370,12 +368,15 @@ static int tps25750_complete_patch_process(struct tps25750 *tps)
 		return ret;
 
 	if (out_data[TPS_PBMC_RC]) {
-		debugErr("USB Port Controller: pbmc failed: %u\r\n", out_data[TPS_PBMC_RC]);
+		debugErr("USB Port Controller: PBMc failed: %u\r\n", out_data[TPS_PBMC_RC]);
+		debugRaw("\r\nUSB Port Controller: PBMc Outout data: ");
+		for (uint8_t i = 0; i < 40; i++) { debugRaw("%02x ", out_data[i]); }
+		debugRaw("\r\n");
 		return E_COMM_ERR;
 	}
 
 	if (out_data[TPS_PBMC_DPCS]) {
-		debugErr("USB Port Controller: failed device patch complete status: %u\r\n", out_data[TPS_PBMC_DPCS]);
+		debugErr("USB Port Controller: Failed device patch complete status: %u\r\n", out_data[TPS_PBMC_DPCS]);
 		return E_COMM_ERR;
 	}
 	return (0);
@@ -712,7 +713,7 @@ static int tps25750_start_patch_burst_mode(struct tps25750 *tps)
 	} __packed pbms_in_data;
 
 	pbms_in_data.fw_size = gSizeLowRegionArray;
-	pbms_in_data.i2c_slave_addr = I2C_ADDR_USBC_PORT_CONTROLLER; //TPS_BUNDLE_SLAVE_ADDR;
+	pbms_in_data.i2c_slave_addr = 0x42; //I2C_ADDR_USBC_PORT_CONTROLLER; //TPS_BUNDLE_SLAVE_ADDR;
 	pbms_in_data.timeout = TPS_BUNDLE_TIMEOUT;
 
 	ret = tps25750_exec_patch_cmd_pbms(tps, (uint8_t *)&pbms_in_data, sizeof(pbms_in_data));
@@ -743,35 +744,52 @@ static int tps25750_apply_patch(struct tps25750 *tps)
 {
 	int ret;
 	//unsigned long timeout;
-	uint64_t boot_status;
+
+#if 1 /* Added due to datasheet flowchart */
+	tps25750_block_read(tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11);
+	if (g_debugBuffer[10] & 0x02)
+	{
+		debug("USB Port Controller: Validated Ready for Patch flag set\r\n");
+	}
+	else
+	{
+		debugErr("USB Port Controller: Ready for Patch flag not set\r\n");
+	}
+#endif
 
 	ret = tps2750_is_mode(tps, TPS_MODE_PTCH);
 	if (ret != 1)
 		return ret;
 
+#if 0 /* Skip for now, purpose? */
+	uint64_t boot_status;
 	ret = tps25750_get_reg_boot_status(tps, &boot_status);
 	if (ret)
 		return ret;
+#endif
 
-	/*
-	 * Nothing to be done if the configuration
-	 * is being loaded from EERPOM
-	 */
+#if 0 /* No EEPROM, skip */
+	// Nothing to be done if the configuration is being loaded from EERPOM
 	if (TPS_REG_BOOT_STATUS_I2C_EEPROM_PRESENT(boot_status))
 		goto wait_for_app;
+#endif
 
+	debug("USB Port Controller: Start Patch Burst Mode...\r\n");
 	ret = tps25750_start_patch_burst_mode(tps);
 	if (ret) {
 		tps25750_abort_patch_process(tps);
 		return ret;
 	}
 
+	debug("USB Port Controller: Complete Patch Burst Mode...\r\n");
 	ret = tps25750_complete_patch_process(tps);
 	if (ret)
 		return ret;
 
+#if 0 /* No EEPROM, skip */
 wait_for_app:
 	//timeout = 1000; jiffies + msecs_to_jiffies(1000);
+#endif
 
 	do {
 		ret = tps2750_is_mode(tps, TPS_MODE_APP);
@@ -788,9 +806,12 @@ wait_for_app:
 	} while (ret != 1);
 
 	if (ret == 0)
+	{
+		debugErr("USB Port Controller: Controller mode switch failed after patch\r\n");
 		return E_FAIL;
+	}
 
-	debug("USB Port Controller: controller switched to \"APP\" mode\r\n");
+	debug("USB Port Controller: Controller switched to \"APP\" mode\r\n");
 
 	return (0);
 };
@@ -1200,7 +1221,7 @@ void USBCPortControllerInit(void)
 
 	// Check mode
 	if (tps2750_is_mode(&tps, TPS_MODE_BOOT) == 1) { fullAccess = NO; debugWarn("USB Port Controller: In Boot mode, likely Device booting in dead battery\r\n"); }
-	if (tps2750_is_mode(&tps, TPS_MODE_PTCH) == 1) { fullAccess = NO; debugWarn("USB Port Controller: In Patch mode\r\n"); }
+	if (tps2750_is_mode(&tps, TPS_MODE_PTCH) == 1) { fullAccess = NO; debugWarn("USB Port Controller: In Patch mode, applying patch...\r\n"); tps25750_apply_patch(&tps); }
 	if (tps2750_is_mode(&tps, TPS_MODE_APP) == 1) { debug("USB Port Controller: In App mode\r\n"); }
 
 	// Check and clear Dead Battery flag if set
