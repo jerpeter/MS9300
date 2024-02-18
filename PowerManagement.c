@@ -451,9 +451,10 @@ void InitBattChargerRegisters(void)
 	//	Change batt discharge current in source mode to 3000mA for single pack and 6000mA for double pack
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
+		debug("Battery Charger: Batt discharge in source set for Single pack\r\n");
 		SetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, 0x303C); // Single pack
 	}
-	else { SetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, 0x3078); } // Double pack
+	else { debug("Battery Charger: Batt discharge in source set for Dual pack\r\n"); SetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, 0x3078); } // Double pack
 
 	// JEITA Action
 	//	Default warm protect is only reduce Vbatt_reg, cool protect is only reduce Icc, decrement value for batt full voltage if NTC cool/warm protect occurs is 320mV/cell
@@ -536,11 +537,15 @@ void InitBattChargerRegisters(void)
 	GetBattChargerRegister(BATT_CHARGER_INPUT_CURRENT_LIMIT_SETTING, &regResults); if (regResults != 0x0050) {errStatus = YES;  debugErr("Battery Charger Read failed: Input current limit, 0x%x/0x%x\r\n", 0x0050, regResults); }
 	GetBattChargerRegister(BATT_CHARGER_OUTPUT_VOLTAGE_SETTING_IN_SOURCE_MODE, &regResults); if (regResults != 0x00F9) { errStatus = YES; debugErr("Battery Charger Read failed: Output voltage, 0x%x/0x%x\r\n", 0x00F9, regResults); }
 	GetBattChargerRegister(BATT_CHARGER_BATTERY_IMPEDANCE_COMPENSATION_AND_OUTPUT_CURRENT_LIMIT_SETTING_IN_SOURCE_MODE, &regResults); if (regResults != 0x003C) { errStatus = YES; debugErr("Battery Charger Read failed: Output current, 0x%x/0x%x\r\n", 0x003C, regResults); }
+#if 1 /* Test delay to see if that changes expanded Batt presenece to read different */
+	MXC_Delay(MXC_DELAY_MSEC(500));
+#endif
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
+		debug("Battery Charger: Batt discharge in source validate for Single pack\r\n");
 		GetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, &regResults); if (regResults != 0x303C) { errStatus = YES; debugErr("Battery Charger Read failed: Batt discharge source, 0x%x/0x%x\r\n", 0x303C, regResults); }
 	}
-	else { GetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, &regResults); if (regResults != 0x3078) { errStatus = YES; debugErr("Battery Charger Read failed: Batt discharge source, 0x%x/0x%x\r\n", 0x3078, regResults); } }
+	else { debug("Battery Charger: Batt discharge in source validate for Dual pack\r\n"); GetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, &regResults); if (regResults != 0x3078) { errStatus = YES; debugErr("Battery Charger Read failed: Batt discharge source, 0x%x/0x%x\r\n", 0x3078, regResults); } }
 	GetBattChargerRegister(BATT_CHARGER_JEITA_ACTION_SETTING, &regResults); if (regResults != 0x7C10) { errStatus = YES; debugErr("Battery Charger Read failed: JEITA, 0x%x/0x%x\r\n", 0x7C10, regResults); }
 	GetBattChargerRegister(BATT_CHARGER_TEMPERATURE_PROTECTION_SETTING, &regResults); if (regResults != 0xBF99) { errStatus = YES; debugErr("Battery Charger Read failed: Temp protect, 0x%x/0x%x\r\n", 0xBF99, regResults); }
 	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, &regResults); if (regResults != 0x0010) { errStatus = YES; debugErr("Battery Charger Read failed: config reg 0, 0x%x/0x%x\r\n", 0x0010, regResults); }
