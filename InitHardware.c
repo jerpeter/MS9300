@@ -3260,6 +3260,20 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	OneWireInit(); debug("One Wire Driver: Init complete\r\n");
 
+#if 1 /* Test */
+	//-------------------------------------------------------------------------
+	// Test Expanded battery presence
+	//-------------------------------------------------------------------------
+	uint32_t k = 16000000;
+	debug("Expanded Battery Presence Test...\r\n");
+	while (1)
+	{
+		if (GetExpandedBatteryPresenceState() == YES) { debugErr("Expanded Battery Presence: False detection of 2nd battery pack\r\n"); break; }
+		if (--k == 0) { break; }
+	}
+	if (k == 0) { debug("Expanded Battery Presence Test passed\r\n"); }
+#endif
+
 	//-------------------------------------------------------------------------
 	// Initalize the Battery Charger
 	//-------------------------------------------------------------------------
@@ -3279,6 +3293,14 @@ void InitSystemHardware_MS9300(void)
 	// Initalize the Fuel Gauge
 	//-------------------------------------------------------------------------
 	FuelGaugeInit(); debug("Fuel Gauge: Init complete\r\n");
+
+#if 0 /* Test loop spin */
+	while (1)
+	{
+		MXC_Delay(MXC_DELAY_SEC(1));
+		FuelGaugeDebugInfo();
+	}
+#endif
 
 	//-------------------------------------------------------------------------
 	// Initalize the Accelerometer
