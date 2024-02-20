@@ -130,6 +130,42 @@ void StopInteralSampleTimer(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void GPIO0_IRQHandler(void)
+{
+    //debug("GPIO Int Handler Port 0 processing...\n");
+    MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO0));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void GPIO1_IRQHandler(void)
+{
+    //debug("GPIO Int Handler Port 1 processing...\n");
+    MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO1));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void GPIO2_IRQHandler(void)
+{
+    //debug("GPIO Int Handler Port 2 processing...\n");
+    MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO2));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void GPIO3_IRQHandler(void)
+{
+    //debug("GPIO Int Handler Port 3 processing...\n");
+    MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO3));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void InitInterrupts_MS9300(void)
 {
 	// Any specific interrupt setup?
