@@ -890,6 +890,27 @@ void BatteryChargerInit(void)
 		Battery Regulation Voltage Setting
 		INT Mask Setting Register 0, 1
 	*/
+
+#if 1 /* Test proving that setting the ADC Conversion mode changes the state of the Expanded Battery Presence GPIO line */
+	debug("Battery Charger: Battery presence state is %s\r\n", ((GetExpandedBatteryPresenceState() == YES) ? "High/Present" : "Low/Absent"));
+	debug("Battery Charger: Write Config Reg 0 Conversion state test for Expanded battery line change...\r\n");
+
+	debug("Battery Charger: ADC Conv Off\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0010);
+	MXC_Delay(MXC_DELAY_SEC(2));
+	debug("Battery Charger: ADC Conv On\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0090);
+	MXC_Delay(MXC_DELAY_SEC(2));
+
+	debug("Battery Charger: ADC Conv Off\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0010);
+	MXC_Delay(MXC_DELAY_SEC(2));
+	debug("Battery Charger: ADC Conv On\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0090);
+	MXC_Delay(MXC_DELAY_SEC(2));
+
+	debug("Battery Charger: ADC Conv Off\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0010);
+	MXC_Delay(MXC_DELAY_SEC(2));
+	debug("Battery Charger: ADC Conv On\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0090);
+	MXC_Delay(MXC_DELAY_SEC(2));
+#endif
+
 	InitBattChargerRegisters();
 
 	// Set Continuous mode for ADC_CONV
