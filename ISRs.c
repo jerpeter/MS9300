@@ -227,10 +227,20 @@ void WDT0_IRQHandler(void)
 ///	Function Break
 ///----------------------------------------------------------------------------
 __attribute__((__interrupt__))
+void Expanded_battery_resence_irq(void)
+{
+	//debugRaw("=");
+	debugWarn("-(ISR) 2nd battery pack alert (%s)-\r\n", ((GetExpandedBatteryPresenceState() == YES) ? "Added" : "Removed"));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+__attribute__((__interrupt__))
 void Fuel_gauge_alert_irq(void)
 {
 	//debugRaw("'");
-	//debugRaw("-FG alert-");
+	debugWarn("-(ISR) FG alert-\r\n");
 
 	// Clear Fuel Gauge Alert interrupt flag (Port 0, Pin 4)
 	GPIO_GAUGE_ALERT_PORT->int_clr = GPIO_GAUGE_ALERT_PIN;
@@ -243,7 +253,7 @@ __attribute__((__interrupt__))
 void Battery_charger_irq(void)
 {
 	//debugRaw("+");
-	//debugRaw("-Batt Charge-");
+	debugWarn("-(ISR) Batt Charger-\r\n");
 
 	// Clear Battery Charger interrupt flag (Port 0, Pin 5)
 	GPIO_BATTERY_CHARGER_IRQ_PORT->int_clr = GPIO_BATTERY_CHARGER_IRQ_PIN;
@@ -256,7 +266,7 @@ __attribute__((__interrupt__))
 void Expansion_irq(void)
 {
 	//debugRaw("_");
-	//debugRaw("-Expansion-");
+	debugWarn("-(ISR) Expansion-\r\n");
 
 	// Clear Expansion interrupt flag (Port 0, Pin 8)
 	GPIO_EXPANSION_IRQ_PORT->int_clr = GPIO_EXPANSION_IRQ_PIN;
