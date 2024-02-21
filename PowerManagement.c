@@ -22,6 +22,7 @@
 #include "i2c.h"
 #include "ff.h"
 #include "mxc_delay.h"
+#include "stdlib.h"
 //#include "navigation.h"
 
 ///----------------------------------------------------------------------------
@@ -891,7 +892,7 @@ void BatteryChargerInit(void)
 		INT Mask Setting Register 0, 1
 	*/
 
-#if 1 /* Test proving that setting the ADC Conversion mode changes the state of the Expanded Battery Presence GPIO line */
+#if 0 /* Test proving that setting the ADC Conversion mode changes the state of the Expanded Battery Presence GPIO line */
 	debug("Battery Charger: Battery presence state is %s\r\n", ((GetExpandedBatteryPresenceState() == YES) ? "High/Present" : "Low/Absent"));
 	debug("Battery Charger: Write Config Reg 0 Conversion state test for Expanded battery line change...\r\n");
 
@@ -908,6 +909,14 @@ void BatteryChargerInit(void)
 	debug("Battery Charger: ADC Conv Off\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0010);
 	MXC_Delay(MXC_DELAY_SEC(2));
 	debug("Battery Charger: ADC Conv On\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0090);
+	MXC_Delay(MXC_DELAY_SEC(2));
+
+	debug("Battery Charger: Test One-Shot conversions for Expanded battery line change...\r\n");
+	debug("Battery Charger: ADC Conv One-Shot\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0110);
+	MXC_Delay(MXC_DELAY_SEC(2));
+	debug("Battery Charger: ADC Conv One-Shot\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0110);
+	MXC_Delay(MXC_DELAY_SEC(2));
+	debug("Battery Charger: ADC Conv One-Shot\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0110);
 	MXC_Delay(MXC_DELAY_SEC(2));
 #endif
 
@@ -1645,6 +1654,16 @@ char* FuelGaugeDebugString(void)
 	Ltc2944_get_temperature_farenheit(&tVal);
 	sprintf((char*)g_debugBuffer, "Batt: %0.3fV, %0.3fmA, %dF", (double)((float)vVal / 1000), (double)((float)cVal / 1000), tVal);
 	return ((char*)g_debugBuffer);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int FuelGaugeGetCurrent(void)
+{
+	int cVal;
+	Ltc2944_get_current(Ltc2944_device.r_sense, &cVal);
+	return (abs(cVal));
 }
 
 ///----------------------------------------------------------------------------
