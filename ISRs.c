@@ -279,7 +279,7 @@ __attribute__((__interrupt__))
 void Usbc_port_controller_i2c_irq(void)
 {
 	//debugRaw("/");
-	//debugRaw("-USB I2C-");
+	debugWarn("-(ISR) USB I2C-");
 
 	// Clear USBC I2C interrupt flag (Port 1, Pin 11)
 	GPIO_USBC_PORT_CONTROLLER_I2C_IRQ_PORT->int_clr = GPIO_USBC_PORT_CONTROLLER_I2C_IRQ_PIN;
@@ -292,7 +292,7 @@ __attribute__((__interrupt__))
 void Accelerometer_irq_1(void)
 {
 	//debugRaw("<");
-	//debugRaw("-Acc IRQ 1-");
+	debugWarn("-(ISR) Acc IRQ 1-");
 
 	// Clear Accelerometer interrupt flag 1 (Port 1, Pin 12)
 	GPIO_ACCEL_INT_1_PORT->int_clr = GPIO_ACCEL_INT_1_PIN;
@@ -305,7 +305,7 @@ __attribute__((__interrupt__))
 void Accelerometer_irq_2(void)
 {
 	//debugRaw(">");
-	//debugRaw("-Acc IRQ 2-");
+	debugWarn("-(ISR) Acc IRQ 2-");
 
 	// Clear Accelerometer interrupt flag 2 (Port 1, Pin 13)
 	GPIO_ACCEL_INT_2_PORT->int_clr = GPIO_ACCEL_INT_2_PIN;
@@ -318,7 +318,7 @@ __attribute__((__interrupt__))
 void External_rtc_irq(void)
 {
 	//debugRaw("`");
-	//debugRaw("-Ext RTC-");
+	debugWarn("-(ISR) Ext RTC-");
 
 	// Clear External RTC interrupt flag (Port 1, Pin 28)
 	GPIO_EXT_RTC_INTA_PORT->int_clr = GPIO_EXT_RTC_INTA_PIN;
@@ -376,6 +376,21 @@ void Keypad_irq(void)
 	// Read the keymap
 	g_kpadIsrKeymap = (((REGULAR_BUTTONS_GPIO_PORT->in) & REGULAR_BUTTONS_GPIO_MASK) >> 16);
 
+#if 1 /* Test */
+	// KB_SK_4, KB_SK_3, KB_SK_2, KB_SK_1, KB_ENTER, KB_RIGHT, KB_LEFT, KB_DOWN, KB_UP
+	char keyName[25]; sprintf(keyName, "None");
+	if (g_kpadIsrKeymap & 0x0001) { sprintf(keyName, "Soft Key 4"); }
+	else if (g_kpadIsrKeymap & 0x0002) { sprintf(keyName, "Soft Key 3"); }
+	else if (g_kpadIsrKeymap & 0x0004) { sprintf(keyName, "Soft Key 2"); }
+	else if (g_kpadIsrKeymap & 0x0008) { sprintf(keyName, "Soft Key 1"); }
+	else if (g_kpadIsrKeymap & 0x0010) { sprintf(keyName, "Enter"); }
+	else if (g_kpadIsrKeymap & 0x0020) { sprintf(keyName, "Right"); }
+	else if (g_kpadIsrKeymap & 0x0040) { sprintf(keyName, "Left"); }
+	else if (g_kpadIsrKeymap & 0x0080) { sprintf(keyName, "Down"); }
+	else if (g_kpadIsrKeymap & 0x0100) { sprintf(keyName, "Up"); }
+	debugWarn("-(ISR) Key found: %s- (0x%x)\r\n", keyName, g_kpadIsrKeymap);
+#endif
+
 	if (g_kpadProcessingFlag == DEACTIVATED)
 	{
 		raiseSystemEventFlag_ISR(KEYPAD_EVENT);
@@ -399,7 +414,7 @@ void System_power_button_irq(void)
 	uint16 onKeyFlag;
 
 	// Print test for verification of operation
-	//debugRaw("&");
+	debugRaw("&");
 
 	onKeyFlag = ((GPIO_POWER_BUTTON_IRQ_PORT->in) & GPIO_POWER_BUTTON_IRQ_PIN); // Power button interrupt on GPIO port 1, pin 15
 	//keyScan = (((REGULAR_BUTTONS_GPIO_PORT->in) & REGULAR_BUTTONS_GPIO_MASK) >> 16); // If needed to check for Combo keys
@@ -476,6 +491,7 @@ void External_trigger_irq(void)
 	PowerControl(TRIGGER_OUT, OFF);
 
 	//debugRaw("-ET-");
+	debugWarn("-(ISR) External Trigger-");
 
 	// Check if monitoring and not bargraph and not processing an event
 	if (((g_sampleProcessing == ACTIVE_STATE)) && (g_triggerRecord.opMode != BARGRAPH_MODE) && (g_busyProcessingEvent == NO))
