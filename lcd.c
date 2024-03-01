@@ -1400,7 +1400,7 @@ bool read_chip_id()
 		ft81x_chip_id = ft81x_rd16(MEM_CHIP_ID);
 		// Chip id: 08h, [id], 01h, 00h
 		// [id]: FT8xx=10h, 11h, 12h, 13h
-		if ((ft81x_chip_id & 0xff) == 0x08) { return (true); }
+		if ((ft81x_chip_id) == 0x0810) { return (true); } // Chip version is FT810
 
 		// Sleep (10ms)
 		MXC_Delay(MXC_DELAY_MSEC(10));
@@ -4554,12 +4554,12 @@ void TestLCD(void)
 		ft81x_chip_id = ft81x_rd16(MEM_CHIP_ID);
 		// Chip id: 08h, [id], 01h, 00h
 		// [id]: FT8xx=10h, 11h, 12h, 13h
-		if ((ft81x_chip_id & 0xff) == 0x08) { break; }
+		if ((ft81x_chip_id) == 0x0810) { break; } // Chip version is FT810
 
 		MXC_Delay(MXC_DELAY_MSEC(10));
 	}
 
-	if ((ft81x_chip_id & 0xff) == 0x08) { debug("LCD: Chip ID is 0x%04x\r\n", ft81x_chip_id); }
+	if ((ft81x_chip_id) == 0x0810) { debug("LCD: Chip ID is FT%3x\r\n", ft81x_chip_id); }
 	else { debugErr("LCD: Chip ID problem, reports 0x%04x\r\n", ft81x_chip_id); }
 
     debug("LCD: Single byte width selected\r\n");
