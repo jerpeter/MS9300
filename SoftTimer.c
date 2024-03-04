@@ -243,7 +243,7 @@ void LcdPwTimerCallBack(void)
 	g_lcdPowerFlag = DISABLED;
 
 	// Todo: Update to only power off display first, set timer to power off entire LCD section
-	PowerControl(LCD_POWER_DISPLAY, OFF);
+	PowerControl(LCD_POWER_DOWN, ON);
 	PowerControl(LCD_POWER_ENABLE, OFF);
 
 	if (g_sampleProcessing == ACTIVE_STATE)

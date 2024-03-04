@@ -37,7 +37,7 @@ typedef enum
 	BLE_RESET,
 	CELL_ENABLE,
 	EXPANSION_RESET,
-	LCD_POWER_DISPLAY,
+	LCD_POWER_DOWN,
 	LED_1,
 	LED_2,
 	LED_3,
@@ -60,7 +60,7 @@ typedef enum
 #define BLE_RESET_BIT						(1 << BLE_RESET)
 #define CELL_ENABLE_BIT						(1 << CELL_ENABLE)
 #define EXPANSION_RESET_BIT					(1 << EXPANSION_RESET)
-#define LCD_POWER_DISPLAY_BIT				(1 << LCD_POWER_DISPLAY)
+#define LCD_POWER_DOWN_BIT					(1 << LCD_POWER_DOWN)
 #define LED_1_BIT							(1 << LED_1)
 #define LED_2_BIT							(1 << LED_2)
 #define LED_3_BIT							(1 << LED_3)

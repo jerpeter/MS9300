@@ -607,7 +607,7 @@ typedef struct
 // GPIO2 Port defines
 //--------------------------------------------------------------------------------
 #define GPIO_LCD_POWER_ENABLE_PORT				MXC_GPIO2
-#define GPIO_LCD_POWER_DISPLAY_PORT				MXC_GPIO2
+#define GPIO_LCD_POWER_DOWN_PORT				MXC_GPIO2
 #define GPIO_SPI_2_SS_0_LCD_PORT				MXC_GPIO2
 #define GPIO_LCD_INT_PORT						MXC_GPIO2
 #define GPIO_SENSOR_CHECK_ENABLE_PORT			MXC_GPIO2
@@ -709,7 +709,7 @@ typedef struct
 // GPIO2 Port, Pin defines
 //--------------------------------------------------------------------------------
 #define GPIO_LCD_POWER_ENABLE_PIN				MXC_GPIO_PIN_0
-#define GPIO_LCD_POWER_DISPLAY_PIN				MXC_GPIO_PIN_1
+#define GPIO_LCD_POWER_DOWN_PIN					MXC_GPIO_PIN_1
 // GPIO_SPI2_SCK_LCD							MXC_GPIO_PIN_2
 // GPIO_SPI2_MISO_LCD							MXC_GPIO_PIN_3
 // GPIO_SPI2_MOSI_LCD							MXC_GPIO_PIN_4
@@ -921,6 +921,7 @@ void External_trigger_irq(void);
 void HandleActiveAlarmExtension(void);
 void SensorCalibrationDataInit(void);
 void ProcessSensorCalibrationData(void);
+void Expanded_battery_resence_irq(void);
 void Fuel_gauge_alert_irq(void);
 void Battery_charger_irq(void);
 void Expansion_irq(void);

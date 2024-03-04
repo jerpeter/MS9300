@@ -179,11 +179,11 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			break;
 
 		//----------------------------------------------------------------------------
-		case LCD_POWER_DISPLAY: // Active low
+		case LCD_POWER_DOWN: // Active low
 		//----------------------------------------------------------------------------
-			debug("LCD Power Display: %s\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON) { MXC_GPIO_OutClr(GPIO_LCD_POWER_DISPLAY_PORT, GPIO_LCD_POWER_DISPLAY_PIN); /* 20ms delay needed before FT810Q ready */ }
-			else /* (mode == OFF) */ { MXC_GPIO_OutSet(GPIO_LCD_POWER_DISPLAY_PORT, GPIO_LCD_POWER_DISPLAY_PIN); }
+			debug("LCD Power Down: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutClr(GPIO_LCD_POWER_DOWN_PORT, GPIO_LCD_POWER_DOWN_PIN); /* 20ms delay needed before FT810Q ready */ }
+			else /* (mode == OFF) */ { MXC_GPIO_OutSet(GPIO_LCD_POWER_DOWN_PORT, GPIO_LCD_POWER_DOWN_PIN); }
 			break;
 
 		//----------------------------------------------------------------------------
@@ -257,7 +257,7 @@ BOOLEAN GetPowerControlState(POWER_MGMT_OPTIONS option)
 		case BLE_RESET: state = !MXC_GPIO_OutGet(GPIO_BLE_RESET_PORT, GPIO_BLE_RESET_PIN); break; // Active low, invert state
 		case CELL_ENABLE: state = MXC_GPIO_OutGet(GPIO_CELL_ENABLE_PORT, GPIO_CELL_ENABLE_PIN); break;
 		case EXPANSION_RESET: state = !MXC_GPIO_OutGet(GPIO_EXPANSION_RESET_PORT, GPIO_EXPANSION_RESET_PIN); break; // Active low, invert state
-		case LCD_POWER_DISPLAY: state = !MXC_GPIO_OutGet(GPIO_LCD_POWER_DISPLAY_PORT, GPIO_LCD_POWER_DISPLAY_PIN); break; // Active low, invert state
+		case LCD_POWER_DOWN: state = !MXC_GPIO_OutGet(GPIO_LCD_POWER_DOWN_PORT, GPIO_LCD_POWER_DOWN_PIN); break; // Active low, invert state
 		case LED_1: state = MXC_GPIO_OutGet(GPIO_LED_1_PORT, GPIO_LED_1_PIN); break;
 		case LED_2: state = MXC_GPIO_OutGet(GPIO_LED_2_PORT, GPIO_LED_2_PIN); break;
 		case LED_3: state = MXC_GPIO_OutGet(GPIO_LED_3_PORT, GPIO_LED_3_PIN); break;
@@ -388,6 +388,19 @@ REG2Bh	0x2B	No	R	ADC Result of the Battery Discharge Current
 REG2Ch	0x2C	No	R	ADC Result of the Input Voltage in Discharge Mode
 REG2Dh	0x2D	No	R	ADC Result of the Output Current in Discharge Mode
 */
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t ReturnBattChargerRegister(uint8_t registerAddress)
+{
+	uint16_t registerContents;
+
+	// Word data read back in Little endian format
+	WriteI2CDevice(MXC_I2C0, I2C_ADDR_BATT_CHARGER, &registerAddress, sizeof(uint8_t), (uint8_t*)&registerContents, sizeof(uint16_t));
+
+	return (registerContents);
+}
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -919,6 +932,7 @@ void BatteryChargerInit(void)
 	debug("Battery Charger: ADC Conv One-Shot\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0110);
 	MXC_Delay(MXC_DELAY_SEC(2));
 #endif
+	debug("Battery Charger: Config Reg 0 reads: 0x%x\r\n", ReturnBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0));
 
 	InitBattChargerRegisters();
 

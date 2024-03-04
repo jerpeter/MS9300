@@ -22,6 +22,8 @@
 
 #define PREPEND_BLANK_COL_TO_EACH_CHAR
 
+#define LCD_SPI_DEASERT YES
+
 //#ifndef BUILD_FOR_PC
 
 // Large Numbers(2 Lines)
@@ -1866,23 +1868,27 @@ void test_dots(
 /*
  * Initialize the FT81x GPU
  */
-#if 1 /* Empty call until LCD connector fixed or hardware modded */
-uint8_t ft81x_init(void) { return (false); }
-#else
 uint8_t ft81x_init(void)
 {
     if (GetPowerControlState(LCD_POWER_ENABLE) == OFF) { PowerControl(LCD_POWER_ENABLE, ON); }
-    if (GetPowerControlState(LCD_POWER_DISPLAY) == OFF)
+    if (GetPowerControlState(LCD_POWER_DOWN) == ON)
 	{
-		PowerControl(LCD_POWER_DISPLAY, ON);
+		PowerControl(LCD_POWER_DOWN, OFF);
 		MXC_Delay(MXC_DELAY_MSEC(20)); // Per datasheet: From Sleep state, the host needs to wait at least 20ms before accessing any registers or commands
 		g_lcdPowerFlag = ENABLED;
 	}
 
+	// Bring LCD Controller active, done by issuing two read commands of address 0, and possibly waiting up to 300ms
+	ft81x_rd(CMD_ACTIVE);
+	ft81x_rd(CMD_ACTIVE);
+	MXC_Delay(MXC_DELAY_MSEC(300));
+
 	restart_core();
 	if (!read_chip_id()) {
+		debugErr("LCD Controller: Failed to read chip ID\r\n");
 		return false;
 	}
+	else { debug("LCD Controller: Chip ID verified\r\n"); }
 	select_spi_byte_width();
 	ft81x_backlight_off();
 	ft81x_fifo_reset();
@@ -1891,7 +1897,6 @@ uint8_t ft81x_init(void)
 	ft81x_init_gpio();
 	return true;
 }
-#endif
 
 /*
  * Initialize the FT81x GPU and test for a valid chip response
@@ -2040,7 +2045,7 @@ void ft81x_hostcmd_param(uint8_t command, uint8_t args)
 	writeData[2] = 0x00; // Dummy byte
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 #endif
 }
@@ -2106,7 +2111,7 @@ uint8_t ft81x_rd(uint32_t addr)
 	writeData[4] = 0x00; // Swap byte for data read 1
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
+	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 
 	return (readData[4]);
@@ -2177,7 +2182,7 @@ uint16_t ft81x_rd16(uint32_t addr)
 	writeData[5] = 0x00; // Swap byte for data read 2
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
+	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 
 	result = ((readData[4] << 8) | readData[5]);
@@ -2251,7 +2256,7 @@ uint32_t ft81x_rd32(uint32_t addr)
 	writeData[7] = 0x00; // Swap byte for data read 4
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
+	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 
 	result = ((readData[4] << 24) | (readData[5] << 16) | (readData[6] << 8) | readData[7]);
@@ -2373,7 +2378,7 @@ void ft81x_wr(uint32_t addr, uint8_t byteVal)
 	writeData[3] = byteVal;
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 #endif
 }
@@ -2426,7 +2431,7 @@ void ft81x_wr16(uint32_t addr, uint16_t wordVal)
 	writeData[4] = (wordVal & 0xFF);
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 #endif
 }
@@ -2481,7 +2486,7 @@ void ft81x_wr32(uint32_t addr, uint32_t longVal)
 	writeData[6] = (longVal & 0xFF);
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 #endif
 }
@@ -4537,15 +4542,15 @@ void TestLCD(void)
 	}
 	else { debugWarn("Power Control: LCD Power enable already on\r\n"); }
 
-    if (GetPowerControlState(LCD_POWER_DISPLAY) == OFF)
+    if (GetPowerControlState(LCD_POWER_DOWN) == ON)
 	{
-		debug("Power Control: LCD Power display being turned on\r\n");
-		PowerControl(LCD_POWER_DISPLAY, ON);
+		debug("Power Control: LCD Power down being turned off\r\n");
+		PowerControl(LCD_POWER_DOWN, OFF);
 		MXC_Delay(MXC_DELAY_MSEC(500));
 	}
-	else { debugWarn("Power Control: LCD Power display already on\r\n"); }
+	else { debugWarn("Power Control: LCD Power down already off\r\n"); }
 
-    debug("LCD: Restart code...\r\n");
+    debug("LCD: Restart core...\r\n");
 	restart_core();
 
 	// Read CHIP ID address until it returns a valid result.
