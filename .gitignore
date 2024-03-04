@@ -18,3 +18,4 @@ project_defines.h
 *.packet
 *.list
 *.zzz
+_empty_tmp_file.c
