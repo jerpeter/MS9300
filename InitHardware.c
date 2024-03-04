@@ -172,25 +172,92 @@ void InitExternalAD(void)
 	}
 
 	// Setup the A/D Channel configuration
+#if 1 /* Normal */
 	SetupADChannelConfig(SAMPLE_RATE_DEFAULT, UNIT_CONFIG_CHANNEL_VERIFICATION);
+#else /* Skip until hardware fix for current problems */
+	g_adChannelConfig = FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP;
+	AD4695_SetTemperatureSensorEnable(((g_adChannelConfig != FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP) ? YES : NO));
+	AD4695_EnterConversionMode(((g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP) ? YES : NO));
+#endif
 
 #if 1 /* Test loop */
 extern uint16_t dataTemperature;
 	SAMPLE_DATA_STRUCT tempData;
+	uint32_t i = 0;
 	while (1)
 	{
+#if 1
 		ReadAnalogData(&tempData);
 		//debug("Ext ADC (Batt: %1.3f): R:%04x T:%04x V:%04x A:%04x TempF:%d\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE), tempData.r, tempData.t, tempData.v, tempData.a, AD4695_TemperatureConversionCtoF(dataTemperature));
 		debug("Ext ADC (%s): R:%04x T:%04x V:%04x A:%04x TempF:%d\r\n", FuelGaugeDebugString(), tempData.r, tempData.t, tempData.v, tempData.a, AD4695_TemperatureConversionCtoF(dataTemperature));
+		if (FuelGaugeGetCurrent() > 500000) { debug("Fuel Gauge: Current over 500 (%d)\r\n", FuelGaugeGetCurrent()); break; }
+		MXC_Delay(MXC_DELAY_MSEC(100));
+		//if (i++ % 100 == 0) { debugRaw("."); }
+		//if (i++ % 10000 == 0) { debugRaw("."); }
+#else
+		debug("Monitor Sensor Enables: %s\r\n", FuelGaugeDebugString());
+		MXC_Delay(MXC_DELAY_SEC(1)); tempData.a++; dataTemperature++;
+		if (FuelGaugeGetCurrent() > 500000) { debug("Fuel Gauge: Current over 500 (%d)\r\n", FuelGaugeGetCurrent()); break; }
+#endif
 	}
+	AD4695_ExitConversionMode();
+	i = 0; while (1)
+	{
+		MXC_Delay(MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
+		if (i++ > 20) { break; }
+	}
+
+	debug("Ext ADC: Disable Sensor Blocks\r\n");
+	DisableSensorBlocks();
+	i = 0; while (1)
+	{
+		MXC_Delay(MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
+		if (i++ > 20) { break; }
+	}
+
+	while (FuelGaugeGetCurrent() > 500000)
+	{
+		MXC_Delay(MXC_DELAY_SEC(1));
+		debug("Fuel Gauge: Current high, %s\r\n", FuelGaugeDebugString());
+	}
+
+	debug("Ext ADC: Re-Entering conversions and Get Channel Offsets\r\n");
+	// Setup the A/D Channel configuration
+	SetupADChannelConfig(SAMPLE_RATE_DEFAULT, UNIT_CONFIG_CHANNEL_VERIFICATION);
+	debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
+	debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
 #endif
 
 	// Read a few test samples
 	GetChannelOffsets(SAMPLE_RATE_DEFAULT);
+	debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
+	AD4695_ExitConversionMode();
+	debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
 
+	debug("Ext ADC: Disable Sensor Blocks\r\n");
+	debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
 	DisableSensorBlocks();
+	debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
+
+#if 1 /* Test */
+	while (FuelGaugeGetCurrent() > 500000)
+	{
+		MXC_Delay(MXC_DELAY_SEC(1));
+		debug("Fuel Gauge: Current high, %s\r\n", FuelGaugeDebugString());
+	}
+	debug("Fuel Gauge: ADC put in reset and Analog 5V power off\r\n");
+#endif
+
 	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
+
+#if 1 /* Test */
+	while (FuelGaugeGetCurrent() > 500000)
+	{
+		MXC_Delay(MXC_DELAY_SEC(1));
+		debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
+	}
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -328,6 +395,9 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
     MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Expanded_battery_resence_irq, NULL);
+    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_RISING);
+    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// LED 1: Port 0, Pin 3, Output, No external pull, Active high, 3.3V
@@ -671,7 +741,7 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -684,7 +754,7 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -697,7 +767,7 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -710,7 +780,7 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -723,7 +793,7 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -736,7 +806,7 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -749,7 +819,7 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -762,7 +832,7 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -775,7 +845,7 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -820,9 +890,11 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
+#if 0 /* ISR removal option for 1 board where RTC Int is triggering to start */
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)External_rtc_irq, NULL);
     MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// BLE OTA: Port 1, Pin 29, Input, No external pull, Active unknown, 3.3V (device runs 3.3V)
@@ -871,15 +943,15 @@ void SetupAllGPIO(void)
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// LCD Power Display: Port 2, Pin 1, Output, External pulldown, Active low, 1.8V (minimum 1.7V)
+	// LCD Power Down: Port 2, Pin 1, Output, External pulldown, Active low, 1.8V (minimum 1.7V)
 	//----------------------------------------------------------------------------------------------------------------------
-	setupGPIO.port = GPIO_LCD_POWER_DISPLAY_PORT;
-	setupGPIO.mask = GPIO_LCD_POWER_DISPLAY_PIN;
+	setupGPIO.port = GPIO_LCD_POWER_DOWN_PORT;
+	setupGPIO.mask = GPIO_LCD_POWER_DOWN_PIN;
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
     MXC_GPIO_Config(&setupGPIO);
-	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as disabled
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// SPI2 Slave Select 0 LCD: Port 2, Pin 5, Output, External pullup, Active low, 1.8V (minimum 1.7V)
@@ -1128,6 +1200,9 @@ void SetupAllGPIO(void)
 	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
 	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO2)));
 	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO3)));
+#else /* Test GPIO0 */
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO0)));
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
 #endif
 }
 
@@ -1190,6 +1265,8 @@ void UART2_Handler(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+mxc_uart_req_t uart0ReadRequest; // Needs persistant storage because Maxim UART driver grabs only a reference to the request object
+mxc_uart_req_t uart1ReadRequest; // Needs persistant storage because Maxim UART driver grabs only a reference to the request object
 void SetupUART(void)
 {
 	int status;
@@ -1213,7 +1290,6 @@ void SetupUART(void)
     NVIC_EnableIRQ(UART1_IRQn);
 
     // Setup the asynchronous request
-    mxc_uart_req_t uart0ReadRequest;
     uart0ReadRequest.uart = MXC_UART0;
     uart0ReadRequest.rxData = g_Uart0_RxBuffer;
     uart0ReadRequest.rxLen = UART_BUFFER_SIZE;
@@ -1221,7 +1297,6 @@ void SetupUART(void)
     uart0ReadRequest.callback = UART0_Read_Callback;
 
     // Setup the asynchronous request
-    mxc_uart_req_t uart1ReadRequest;
     uart1ReadRequest.uart = MXC_UART1;
     uart1ReadRequest.rxData = g_Uart1_RxBuffer;
     uart1ReadRequest.rxLen = UART_BUFFER_SIZE;
@@ -1462,7 +1537,7 @@ void SetupWatchdog(void)
 //#define SPI_SPEED_ADC 3000000 // Bit Rate
 #define SPI_SPEED_ADC 60000000 // Bit Rate
 #endif
-#define SPI_SPEED_LCD 10000000 // Bit Rate
+#define SPI_SPEED_LCD 12000000 // Bit Rate
 //#define SPI_WIDTH_DUAL	2
 
 ///----------------------------------------------------------------------------
@@ -2105,8 +2180,13 @@ int formatSDHC(void)
 
     debug("Formatting flash drive...\n");
 
-    if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) !=
-        FR_OK) { //Format the default drive to FAT32
+#if 0 /* For versions FF13 and FF14 */
+	if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) != FR_OK)
+#else /* Version FF15 */
+	MKFS_PARM setupFS = { FM_ANY, 0, 0, 0, 0 };
+	if ((err = f_mkfs("", &setupFS, work, sizeof(work))) != FR_OK)
+#endif
+	{ //Format the default drive to FAT32
         debugErr("Formatting flash drive/device failed: %s\r\n", FF_ERRORS[err]);
     } else {
         debug("Flash drive formatted\n");
@@ -2354,14 +2434,17 @@ int delete(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int example(void)
+int example(uint8_t formatDrive)
 {
     unsigned int length = 256;
 
-    if ((err = formatSDHC()) != FR_OK) {
-        debugErr("Unable to format flash drive: %s\r\n", FF_ERRORS[err]);
-        return err;
-    }
+	if (formatDrive)
+	{
+		if ((err = formatSDHC()) != FR_OK) {
+			debugErr("Unable to format flash drive: %s\r\n", FF_ERRORS[err]);
+			return err;
+		}
+	}
 
     //open SD Card
     if ((err = mount()) != FR_OK) { debugErr("Unable to open flash drive: %s\r\n", FF_ERRORS[err]); return err; }
@@ -2379,7 +2462,7 @@ int example(void)
     generateMessage(length);
 
     if ((err = f_write(&file, &message, length, &bytes_written)) != FR_OK) { debugErr("Unable to write file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
-    debug("%d bytes written to file!\n", bytes_written);
+    debug("%d bytes written to file\n", bytes_written);
 
     if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
     debug("File closed\n");
@@ -2391,6 +2474,10 @@ int example(void)
         debug("Creating directory...\n");
         if ((err = f_mkdir("MaximSDHC")) != FR_OK) { debugErr("Unable to create directory: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
     }
+	else
+	{
+		f_unlink("0:MaximSDHC/HelloMaxim.txt");
+	}
 
     debug("Renaming File...\n");
     if ((err = f_rename("0:HelloWorld.txt", "0:MaximSDHC/HelloMaxim.txt")) != FR_OK) { /* /cr: clearify 0:file notation */ debugErr("Unable to move file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
@@ -2403,9 +2490,7 @@ int example(void)
     if ((err = f_read(&file, &message, bytes_written, &bytes_read)) != FR_OK) { debugErr("Unable to read file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
     debug("Read Back %d bytes\r\n", bytes_read);
-    debug("Message: ");
-    debug("%s", message);
-    debug("\r\n");
+    debug("Message: %s\r\n", message);
 
     if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
     debug("File closed\n");
@@ -2477,7 +2562,7 @@ void TestDriveAndFilesystem(void)
 			case 6: createFile(); break;
 			case 7: appendFile(); break;
 			case 8: delete(); break;
-			case 9: example(); break;
+			case 9: example(YES); break;
 			case 10: umount(); run = 0; break;
 			default: debugErr("Invalid Selection %d!\r\n", input); err = -1; break;
 		}
@@ -2581,19 +2666,35 @@ void SetupSDHCeMMC(void)
     // Initialize SDHC peripheral
     cfg.bus_voltage = MXC_SDHC_Bus_Voltage_1_8;
     cfg.block_gap = 0;
+#if 1 /* Normal */
     cfg.clk_div = 0x96; // Large divide ratio, setting frequency to 400 kHz during Card Identification phase
+#else /* Test full speed init */
+    cfg.clk_div = 0; // Full speed
+#endif
 
 #if 0 /* Interface call assigns incorrect GPIO (P0.31/SDHC_CDN and P1.2/SDHC_WP) */
     if (MXC_SDHC_Init(&cfg) != E_NO_ERROR) { debugErr("SDHC/eMMC initialization failed\r\n"); }
 #else /* Manual setup */
-	mxc_gpio_cfg_t gpio_cfg_sdhc_1 = { GPIO_SDHC_PORT, (GPIO_SDHC_CMD_PIN | GPIO_SDHC_DAT2_PIN | GPIO_SDHC_DAT3_PIN | GPIO_SDHC_DAT0_PIN | GPIO_SDHC_CLK_PIN | GPIO_SDHC_DAT1_PIN),
+	mxc_gpio_cfg_t gpio_cfg_sdhc_1 = { GPIO_SDHC_PORT, (GPIO_SDHC_CLK_PIN | GPIO_SDHC_CMD_PIN | GPIO_SDHC_DAT0_PIN | GPIO_SDHC_DAT1_PIN | GPIO_SDHC_DAT2_PIN | GPIO_SDHC_DAT3_PIN),
 										MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
 
     MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_SDHC);
 
     MXC_GPIO_Config(&gpio_cfg_sdhc_1);
     gpio_cfg_sdhc_1.port->vssel &= ~(gpio_cfg_sdhc_1.mask); // Set voltage select to MXC_GPIO_VSSEL_VDDIO, since it seems digital interface is at 1.8V
+#if 0 /* Normal */
+	debug("SDHC: Setting GPIO drive strength to 2x\r\n");
     gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 2x (borrowing from internal driver)
+#else /* Test inc drive strength */
+	//debug("SDHC: Setting GPIO drive strength to 4x\r\n");
+    //gpio_cfg_sdhc_1.port->ds_sel1 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 4x
+
+	//debug("SDHC: Setting GPIO drive strength to 8x\r\n");
+    //gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 8x
+    //gpio_cfg_sdhc_1.port->ds_sel1 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 8x
+
+	debug("SDHC: Setting GPIO drive strength to 1x\r\n");
+#endif
 
 	// Setup the 1.8V Signaling Enable
 	MXC_SDHC->host_cn_2 |= MXC_F_SDHC_HOST_CN_2_1_8V_SIGNAL;
@@ -2619,17 +2720,24 @@ void SetupSDHCeMMC(void)
 
 	// Change the timing mode
 	// Note: HS DDR mode does not look supported by MCU
-#if 1 /* Start with HS SDR */
+#if 0 /* Start with HS SDR */
 	// Set timing mode to High Speed SDR (60MHz @ 30MB/sec)
 	timingMode = MXC_SDHC_LIB_HIGH_SPEED_TIMING_SDR;
 #else /* Try HS200 timing at some point */
 	// Set timing mode to UHS SDR50 (30MHz @ 30MB/sec)
-	timingMode = MXC_SDHC_LIB_HS200_TIMING;
+	//timingMode = MXC_SDHC_LIB_HS200_TIMING;
+	timingMode = MXC_SDHC_LIB_LEGACY_TIMING;
 #endif
 
 	// Enable high speed timing when sorted out
-	MXC_SDHC_Lib_SetHighSpeedTiming(timingMode);
+	if (MXC_SDHC_Lib_SetHighSpeedTiming(timingMode) != E_NO_ERROR) { debugErr("SDHC: Failed to set flash device timing via CMD\r\n"); }
 
+#if 0 /* Test early setting of width */
+	// Swap over to quad data mode, although it looks like every transaction proceeds with setting the bus width again
+	if (MXC_SDHC_Lib_SetBusWidth(MXC_SDHC_LIB_QUAD_DATA) != E_NO_ERROR) { debugErr("SDHC: Failed to set Bus width to Quad\r\n"); }
+#endif
+
+#if 1 /* Normal */
     // Configure for best clock divider, must not exceed 52 MHz for eMMC in Legacy mode, or use lower clock rate for High Speed DDR mode (max 30MHz)
 #if 1 /* Limit setting HS SDR to 60MHz until data exchange verified */
 	if (SystemCoreClock > 96000000)
@@ -2637,17 +2745,25 @@ void SetupSDHCeMMC(void)
     if (((SystemCoreClock > 96000000) && (timingMode == MXC_SDHC_LIB_LEGACY_TIMING)) || (timingMode == MXC_SDHC_LIB_HIGH_SPEED_TIMING_DDR))
 #endif
 	{
-        debug("SD clock ratio (at card/device) is 4:1, %dMHz, (eMMC not to exceed 52 MHz for legacy or high speed modes)\r\n", (SystemCoreClock / 4));
-        MXC_SDHC_Set_Clock_Config(1);
+        //debug("SD clock ratio (at card/device) is 4:1, %dMHz, (eMMC not to exceed 52 MHz for legacy or high speed modes)\r\n", (SystemCoreClock / 4));
+        //MXC_SDHC_Set_Clock_Config(1);
+        debug("SD clock ratio: Super slow (%dMHz)\r\n", (SystemCoreClock / (2 * 0x96)));
+        MXC_SDHC_Set_Clock_Config(0x96);
     }
 	else // Use smallest clock divider for fastest clock rate (max 60MHz)
 	{
         debug("SD clock ratio (at card/device) is 2:1, %dMHz\r\n", (SystemCoreClock / 2));
         MXC_SDHC_Set_Clock_Config(0);
     }
+#else /* Test */
+	debug("SD clock ratio (at card/device) is 2:1, %dMHz\r\n", (SystemCoreClock / 2));
+	MXC_SDHC_Set_Clock_Config(0);
+#endif
 
+#if 1 /* Moved earlier in setup */
 	// Swap over to quad data mode, although it looks like every transaction proceeds with setting the bus width again
-	MXC_SDHC_Lib_SetBusWidth(MXC_SDHC_LIB_QUAD_DATA);
+	if (MXC_SDHC_Lib_SetBusWidth(MXC_SDHC_LIB_QUAD_DATA) != E_NO_ERROR) { debugErr("SDHC: Failed to set Bus width to Quad\r\n"); }
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -2664,7 +2780,12 @@ void SetupDriveAndFilesystem(void)
 			debug("Drive(eMMC): Formatting...\r\n");
 
 			// Format the default drive to a FAT filesystem
-			if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) !=  FR_OK)
+#if 0 /* For versions FF13 and FF14 */
+			if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) != FR_OK)
+#else /* Version FF15 */
+			MKFS_PARM setupFS = { FM_ANY, 0, 0, 0, 0 };
+			if ((err = f_mkfs("", &setupFS, work, sizeof(work))) != FR_OK)
+#endif
 			{
 				debugErr("Drive(eMMC): Formatting failed with error %s\r\n", FF_ERRORS[err]);
 			}
@@ -2694,6 +2815,9 @@ void SetupDriveAndFilesystem(void)
 	else
 	{
         debug("Drive(eMMC): mounted successfully\r\n");
+#if 1 /* Test */
+        mounted = 1;
+#endif
     }
 }
 
@@ -3087,6 +3211,11 @@ void InitSystemHardware_MS9300(void)
 	// Must init after SPI to correct for a wrong GPIO pin config in the library (and allow this project to work with an unmodified framework)
 	SetupAllGPIO();
 
+#if 0 /* Test Expanded battery presence line toggling */
+	MXC_Delay(MXC_DELAY_SEC(3));
+	BatteryChargerInit(); debug("Battery Charger: Init complete\r\n");
+#endif
+
 #if 1 /* Test device addresses */
 	uint8_t regAddr;
 	uint8_t regData[2];
@@ -3094,12 +3223,12 @@ void InitSystemHardware_MS9300(void)
 	int status;
 	uint8_t numDevices;
 
-	for (uint8_t i = 0; i < 2; i++)
+	for (uint8_t i = 0; i < 1; i++)
 	{
 		MXC_Delay(MXC_DELAY_SEC(1));
 		debug("-- I2C Test, Cycle %d --\r\n", i);
 
-		if (i == 1)
+		if (i == 0)
 		{
 			debug("-- Power up SS, Exp --\r\n");
 			SetSmartSensorSleepState(OFF);
@@ -3109,7 +3238,7 @@ void InitSystemHardware_MS9300(void)
 			PowerControl(EXPANSION_RESET, OFF);
 		}
 
-		if (i == 1)
+		if (i == 0)
 		{
 			debug("-- Power up 5V --\r\n");
 			// Bring up Analog 5V
@@ -3117,7 +3246,7 @@ void InitSystemHardware_MS9300(void)
 			WaitAnalogPower5vGood();
 		}
 
-		if (i == 2)
+		if (i == 1)
 		{
 			debug("-- Power down 5V --\r\n");
 			PowerControl(ANALOG_5V_ENABLE, OFF);
@@ -3195,7 +3324,7 @@ void InitSystemHardware_MS9300(void)
 	// Setup SDHC/eMMC
 	//-------------------------------------------------------------------------
 	SetupSDHCeMMC();
-#if 1 /* Test a second init call */
+#if 0 /* Test a second init call */
 	MXC_Delay(MXC_DELAY_MSEC(500));
 	SetupSDHCeMMC();
 #endif
@@ -3203,6 +3332,166 @@ void InitSystemHardware_MS9300(void)
 	// Setup Drive(eMMC) and Filesystem
 	//-------------------------------------------------------------------------
 	SetupDriveAndFilesystem();
+
+	getSize();
+
+	mxc_sdhc_csd_regs_t* csd = NULL;
+	if ((err = MXC_SDHC_Lib_GetCSD(csd)) == E_NO_ERROR) { debug("SDHC Lib Get Capacity: Flash is %lld\r\n", MXC_SDHC_Lib_GetCapacity(csd)); }
+	else { debug("SDHC Lib Get CSD: error (%d)\r\n"); }
+
+#if 0 /* Test */
+	int32_t j = 0;
+	uint32_t cycles;
+	volatile uint32_t hsTime;
+extern volatile uint8_t hsChange;
+	for (j = 0x94; j >= 0; j--)
+	{
+		debug("SDHC Clock Config: Changed to %d (0x%x)\r\n", j, j);
+		MXC_SDHC_Set_Clock_Config(j);
+
+		cycles = 0;
+		hsTime = g_lifetimeHalfSecondTickCount;
+		while (hsChange == 0) {;}
+		hsChange = 0;
+
+		generateMessage(256);
+		while (1)
+		{
+			//if ((err = f_open(&file, "0:MaximSDHC/HelloMaxim.txt", FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\r\n"); }
+			//if ((err = f_read(&file, &message, bytes_written, &bytes_read)) != FR_OK) { debugErr("Unable to read file: %s\r\n"); }
+			//if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\r\n"); f_mount(NULL, "", 0); }
+
+			if ((err = f_open(&file, "0:HelloWorld.txt", FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { debugErr("Unable to open file\r\n"); f_mount(NULL, "", 0); }
+			if ((err = f_write(&file, &message, 256, &bytes_written)) != FR_OK) { debugErr("Unable to write file\r\n"); f_mount(NULL, "", 0); }
+			if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\n"); f_mount(NULL, "", 0); }
+			if ((err = f_chmod("HelloWorld.txt", 0, AM_RDO | AM_ARC | AM_SYS | AM_HID)) != FR_OK) { debugErr("Problem with chmod: %s\r\n"); f_mount(NULL, "", 0); }
+			err = f_stat("MaximSDHC", &fno);
+			if (err == FR_NO_FILE) { if ((err = f_mkdir("MaximSDHC")) != FR_OK) { debugErr("Unable to create directory: %s\r\n"); f_mount(NULL, "", 0); } }
+			else { if ((err = f_unlink("0:MaximSDHC/HelloMaxim.txt")) != FR_OK) { debugErr("Unable to create directory: %s\r\n"); f_mount(NULL, "", 0); } }
+			if ((err = f_rename("0:HelloWorld.txt", "0:MaximSDHC/HelloMaxim.txt")) != FR_OK) { /* /cr: clearify 0:file notation */ debugErr("Unable to move file: %s\r\n"); f_mount(NULL, "", 0); }
+			if ((err = f_chdir("/MaximSDHC")) != FR_OK) { debugErr("Problem with chdir: %s\r\n"); f_mount(NULL, "", 0); }
+			if ((err = f_open(&file, "HelloMaxim.txt", FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\r\n"); f_mount(NULL, "", 0); }
+			if ((err = f_read(&file, &message, bytes_written, &bytes_read)) != FR_OK) { debugErr("Unable to read file: %s\r\n"); f_mount(NULL, "", 0); }
+			if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file\r\n"); f_mount(NULL, "", 0); }
+
+			if (g_lifetimeHalfSecondTickCount > (hsTime + 3)) { break; }
+			cycles++;
+		}
+		debug("Filesystem read cycles: %ld (clock divider: %d)\r\n", cycles, j);
+		j--;
+	}
+#endif
+
+#if 0 /* Test */
+	debug("SDHC Clock Config: Changed to %d (0x%x)\r\n", 0, 0);
+	MXC_SDHC_Set_Clock_Config(0);
+
+	uint32_t i = 0;
+	while (1)
+	{
+#if 0 /* Test 1 */
+		if ((err = f_open(&file, "0:MaximSDHC/HelloMaxim.txt", FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]); }
+		if ((err = f_read(&file, &message, bytes_written, &bytes_read)) != FR_OK) { debugErr("Unable to read file: %s\r\n", FF_ERRORS[err]); }
+		if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); }
+#elif 0 /* Test 2 */
+		if ((err = f_open(&file, "0:HelloWorld.txt", FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { debugErr("Unable to open file\r\n"); f_mount(NULL, "", 0); }
+		if ((err = f_write(&file, &message, 256, &bytes_written)) != FR_OK) { debugErr("Unable to write file\r\n"); f_mount(NULL, "", 0); }
+		if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\n"); f_mount(NULL, "", 0); }
+		if ((err = f_chmod("HelloWorld.txt", 0, AM_RDO | AM_ARC | AM_SYS | AM_HID)) != FR_OK) { debugErr("Problem with chmod: %s\r\n"); f_mount(NULL, "", 0); }
+		err = f_stat("MaximSDHC", &fno);
+		if (err == FR_NO_FILE) { if ((err = f_mkdir("MaximSDHC")) != FR_OK) { debugErr("Unable to create directory: %s\r\n"); f_mount(NULL, "", 0); } }
+		else { if ((err = f_unlink("0:MaximSDHC/HelloMaxim.txt")) != FR_OK) { debugErr("Unable to create directory: %s\r\n"); f_mount(NULL, "", 0); } }
+		if ((err = f_rename("0:HelloWorld.txt", "0:MaximSDHC/HelloMaxim.txt")) != FR_OK) { /* /cr: clearify 0:file notation */ debugErr("Unable to move file: %s\r\n"); f_mount(NULL, "", 0); }
+		if ((err = f_chdir("/MaximSDHC")) != FR_OK) { debugErr("Problem with chdir: %s\r\n"); f_mount(NULL, "", 0); }
+		if ((err = f_open(&file, "HelloMaxim.txt", FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\r\n"); f_mount(NULL, "", 0); }
+		if ((err = f_read(&file, &message, bytes_written, &bytes_read)) != FR_OK) { debugErr("Unable to read file: %s\r\n"); f_mount(NULL, "", 0); }
+		if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file\r\n"); f_mount(NULL, "", 0); }
+#elif 0 /* Test 3 verify (verified) */
+		generateMessage(256);
+		uint8_t readBuf[256];
+		if ((err = f_open(&file, "0:HelloWorld.txt", FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { debugErr("Unable to open file HelloWorld.txt\r\n"); f_mount(NULL, "", 0); }
+		if ((err = f_write(&file, &message, 256, &bytes_written)) != FR_OK) { debugErr("Unable to write file HelloWorld.txt\r\n"); f_mount(NULL, "", 0); }
+		if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file HelloWorld.txt\n"); f_mount(NULL, "", 0); }
+		if ((err = f_open(&file, "0:Test.txt", FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { debugErr("Unable to open file Test.txt\r\n"); f_mount(NULL, "", 0); }
+		if ((err = f_write(&file, &message, 256, &bytes_written)) != FR_OK) { debugErr("Unable to write file Test.txt\r\n"); f_mount(NULL, "", 0); }
+		if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file Test.txt\n"); f_mount(NULL, "", 0); }
+		if ((err = f_open(&file, "0:HelloWorld.txt", FA_READ)) != FR_OK) { debugErr("Unable to open file HelloWorld.txt (verify)\r\n"); f_mount(NULL, "", 0); }
+		if ((err = f_read(&file, readBuf, 256, &bytes_read)) != FR_OK) { debugErr("Unable to read file HelloWorld.txt (verify)\r\n"); f_mount(NULL, "", 0); }
+		if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file HelloWorld.txt (verify)\r\n"); f_mount(NULL, "", 0); }
+		if (bytes_read != 256) { debugErr("Verify did not read correct number of bytes (%d)\r\n", bytes_read); }
+		for (uint16_t j = 0; j < 256; j++)
+		{
+			if (readBuf[j] != message[j]) { debugErr("Verify error at byte %d\r\n", j); break; }
+		}
+#elif 1 /* Test 4 speed test */
+extern volatile uint8_t hsChange;
+		volatile uint32_t hsTime;
+		uint16_t c;
+		uint32_t fileSize;
+
+		if (i == 0)
+		{
+			debug("-- SDHC/eMMC Speet Test --\r\n");
+			for (fileSize = 0; fileSize < DER_CACHE_SIZE; fileSize++) { g_derCache[fileSize] = fileSize; }
+		}
+
+		c = 0;
+		if ((err = f_open(&file, "0:HelloWorld.txt", FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { debugErr("Unable to open file HelloWorld.txt\r\n"); f_mount(NULL, "", 0); }
+
+		hsTime = g_lifetimeHalfSecondTickCount;
+		while (hsChange == 0) {;}
+		hsChange = 0;
+
+		while (1)
+		{
+			if ((err = f_write(&file, &g_derCache[0], DER_CACHE_SIZE, &bytes_written)) != FR_OK) { debugErr("Unable to write file HelloWorld.txt\r\n"); f_mount(NULL, "", 0); }
+			c++;
+			if (g_lifetimeHalfSecondTickCount > (hsTime + 6)) { break; }
+		}
+
+		fileSize = f_size(&file);
+		if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file HelloWorld.txt\n"); f_mount(NULL, "", 0); }
+
+		if (fileSize != (c * DER_CACHE_SIZE)) { debugWarn("SDHC/eMMC Write file size difference (%ld <> %ld)\r\n", fileSize, (c * DER_CACHE_SIZE)); }
+		if ((c * DER_CACHE_SIZE) > 1000000) { debug("SDHC/eMMC Test write speed: %.3f MB/sec\r\n", (double)((c * DER_CACHE_SIZE) / 3) / (double)1000000); }
+		else { debug("SDHC/eMMC Test write speed: %.3f KB/sec\r\n", (double)((c * DER_CACHE_SIZE) / 3) / (double)1000); }
+
+		if ((err = f_open(&file, "0:HelloWorld.txt", FA_READ)) != FR_OK) { debugErr("Unable to open file HelloWorld.txt\r\n"); f_mount(NULL, "", 0); }
+
+		hsTime = g_lifetimeHalfSecondTickCount;
+		while (hsChange == 0) {;}
+		hsChange = 0;
+
+		while (c--)
+		{
+			if ((err = f_read(&file, &g_derCache[0], DER_CACHE_SIZE, &bytes_written)) != FR_OK) { debugErr("Unable to read file HelloWorld.txt\r\n"); f_mount(NULL, "", 0); }
+			if (g_lifetimeHalfSecondTickCount > (hsTime + 6)) { debugWarn("SDHC/eMMC Read took longer than write\r\n"); }
+		}
+		debug("SDHC/eMMC Read finished in %d HS ticks\r\n", (g_lifetimeHalfSecondTickCount - hsTime));
+
+		if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file HelloWorld.txt\n"); f_mount(NULL, "", 0); }
+
+		if (i >= 11) break;
+		debug("SDHC Clock Config: Changed to %d (0x%x)\r\n", ((i + 1) * 2), ((i + 1) * 2));
+		MXC_SDHC_Set_Clock_Config(((i + 1) * 2));
+#endif
+		i++; if (i % 100 == 0) { debugRaw("."); }
+	}
+#endif
+
+#if 0 /* Test */
+	for (uint8_t i = 0x94; i > 0; i--)
+	{
+		debug("SDHC Clock Config: Changed to %d (0x%x)\r\n", i, i);
+		MXC_SDHC_Set_Clock_Config(i);
+
+		//example(NO);
+
+		SetupDriveAndFilesystem();
+		f_mount(NULL, "", 0);
+		i--;
+	}
+#endif
 
 	//-------------------------------------------------------------------------
 	// Setup USB Composite (MSC + CDC/ACM)
@@ -3260,7 +3549,19 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	OneWireInit(); debug("One Wire Driver: Init complete\r\n");
 
-#if 1 /* Test */
+#if 1 /* Swap */
+	//-------------------------------------------------------------------------
+	// Initalize the USB-C Port Controller
+	//-------------------------------------------------------------------------
+	USBCPortControllerInit(); debug("USB Port Controller: Init complete\r\n");
+
+	//-------------------------------------------------------------------------
+	// Initialize the external RTC
+	//-------------------------------------------------------------------------
+	ExternalRtcInit(); debug("External RTC: Init complete\r\n");
+#endif
+
+#if 0 /* Test */
 	//-------------------------------------------------------------------------
 	// Test Expanded battery presence
 	//-------------------------------------------------------------------------
@@ -3279,6 +3580,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	BatteryChargerInit(); debug("Battery Charger: Init complete\r\n");
 
+#if 0 /* Normal */
 	//-------------------------------------------------------------------------
 	// Initalize the USB-C Port Controller
 	//-------------------------------------------------------------------------
@@ -3288,6 +3590,7 @@ void InitSystemHardware_MS9300(void)
 	// Initialize the external RTC
 	//-------------------------------------------------------------------------
 	ExternalRtcInit(); debug("External RTC: Init complete\r\n");
+#endif
 
 	//-------------------------------------------------------------------------
 	// Initalize the Fuel Gauge
@@ -3324,7 +3627,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	AnalogControlInit(); debug("Analog Control: Init complete\r\n");
 
-#if 1 /* Test */
+#if 0 /* Test */
 	//-------------------------------------------------------------------------
 	// Test Expanded battery presence
 	//-------------------------------------------------------------------------
@@ -3350,7 +3653,7 @@ void InitSystemHardware_MS9300(void)
 	}
 #endif
 
-#if 1 /* Test */
+#if 0 /* Test */
 	//-------------------------------------------------------------------------
 	// Test I2C
 	//-------------------------------------------------------------------------
@@ -3372,24 +3675,32 @@ void InitSystemHardware_MS9300(void)
 	}
 #endif
 
+#if 0 /* Test */
+	debug("Forever loop, testing interrupts...\r\n");
+	debug("External Trigger In state: %s\r\n", (MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_IN_PORT, GPIO_EXTERNAL_TRIGGER_IN_PIN) > 0 ? "HIGH" : "LOW"));
+	while (1) /* Spin, checking interrupts */
+	{
+		MXC_Delay(MXC_DELAY_SEC(15));
+		PowerControl(TRIGGER_OUT, ON);
+		debug("External Trigger In state: %s\r\n", (MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_IN_PORT, GPIO_EXTERNAL_TRIGGER_IN_PIN) > 0 ? "HIGH" : "LOW"));
+		MXC_Delay(MXC_DELAY_SEC(3));
+		PowerControl(TRIGGER_OUT, OFF);
+		debug("External Trigger In state: %s\r\n", (MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_IN_PORT, GPIO_EXTERNAL_TRIGGER_IN_PIN) > 0 ? "HIGH" : "LOW"));
+	}
+#endif
+
 	//-------------------------------------------------------------------------
 	// Init and configure the A/D to prevent the unit from burning current charging internal reference (default config)
 	//-------------------------------------------------------------------------
-#if 1 /* Normal */
+#if 0 /* Normal */
 	// *** Note ***: Forever test loop inside
 	InitExternalAD(); debug("External ADC: Init complete\r\n");
-#else
-	while (1)
-	{
-		InitExternalAD(); debug("External ADC: Init complete\r\n");
-		MXC_Delay(1);
-	}
 #endif
 
 	//-------------------------------------------------------------------------
 	// Init the LCD display
 	//-------------------------------------------------------------------------
-#if 0 /* Disabled until LCD connector fixed or hardware modded */
+#if 1 /* Disabled until LCD connector fixed or hardware modded */
 	InitLCD(); debug("LCD Display: Init complete\r\n");
 #endif
 
