@@ -553,6 +553,9 @@ void Internal_rtc_alarms(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 1 /* Test */
+volatile uint8_t hsChange = 0;
+#endif
 __attribute__((__interrupt__))
 void Soft_timer_tick_irq(void)
 {
@@ -563,6 +566,10 @@ void Soft_timer_tick_irq(void)
 
 	// Increment the lifetime soft timer tick count
 	g_lifetimeHalfSecondTickCount++;
+
+#if 1 /* Test */
+	hsChange = 1;
+#endif
 
 	// Every tick raise the flag to check soft timers
 	raiseTimerEventFlag(SOFT_TIMER_CHECK_EVENT);

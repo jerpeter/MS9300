@@ -2114,7 +2114,8 @@ FRESULT err; //FFat Result (Struct)
 FILINFO fno; //FFat File Information Object
 DIR dir; //FFat Directory Object
 TCHAR message[MAXLEN], directory[MAXLEN], cwd[MAXLEN], filename[MAXLEN], volume_label[24], volume = '0';
-TCHAR *FF_ERRORS[20];
+TCHAR *FF_ERRORS[20] = { "FR_OK", "FR_DISK_ERR", "FR_INT_ERR", "FR_NOT_READY", "FR_NO_FILE", "FR_NO_PATH", "FR_INVLAID_NAME", "FR_DENIED", "FR_EXIST", "FR_INVALID_OBJECT", "FR_WRITE_PROTECTED", "FR_INVALID_DRIVE", "FR_NOT_ENABLED", "FR_NO_FILESYSTEM", "FR_MKFS_ABORTED", "FR_TIMEOUT", 
+"FR_LOCKED", "FR_NOT_ENOUGH_CORE", "FR_TOO_MANY_OPEN_FILES", "FR_INVALID_PARAMETER" };
 DWORD clusters_free = 0, sectors_free = 0, sectors_total = 0, volume_sn = 0;
 UINT bytes_written = 0, bytes_read = 0, mounted = 0;
 BYTE work[4096];
@@ -2669,7 +2670,8 @@ void SetupSDHCeMMC(void)
 #if 1 /* Normal */
     cfg.clk_div = 0x96; // Large divide ratio, setting frequency to 400 kHz during Card Identification phase
 #else /* Test full speed init */
-    cfg.clk_div = 0; // Full speed
+    //cfg.clk_div = 0; // Full speed
+	cfg.clk_div = 0x12C; // Large divide ratio for testing formatting
 #endif
 
 #if 0 /* Interface call assigns incorrect GPIO (P0.31/SDHC_CDN and P1.2/SDHC_WP) */
@@ -2682,18 +2684,18 @@ void SetupSDHCeMMC(void)
 
     MXC_GPIO_Config(&gpio_cfg_sdhc_1);
     gpio_cfg_sdhc_1.port->vssel &= ~(gpio_cfg_sdhc_1.mask); // Set voltage select to MXC_GPIO_VSSEL_VDDIO, since it seems digital interface is at 1.8V
-#if 0 /* Normal */
+#if 1 /* Normal */
 	debug("SDHC: Setting GPIO drive strength to 2x\r\n");
     gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 2x (borrowing from internal driver)
 #else /* Test inc drive strength */
-	//debug("SDHC: Setting GPIO drive strength to 4x\r\n");
-    //gpio_cfg_sdhc_1.port->ds_sel1 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 4x
+	debug("SDHC: Setting GPIO drive strength to 4x\r\n");
+    gpio_cfg_sdhc_1.port->ds_sel1 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 4x
 
 	//debug("SDHC: Setting GPIO drive strength to 8x\r\n");
     //gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 8x
     //gpio_cfg_sdhc_1.port->ds_sel1 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 8x
 
-	debug("SDHC: Setting GPIO drive strength to 1x\r\n");
+	//debug("SDHC: Setting GPIO drive strength to 1x\r\n");
 #endif
 
 	// Setup the 1.8V Signaling Enable
@@ -2747,8 +2749,10 @@ void SetupSDHCeMMC(void)
 	{
         //debug("SD clock ratio (at card/device) is 4:1, %dMHz, (eMMC not to exceed 52 MHz for legacy or high speed modes)\r\n", (SystemCoreClock / 4));
         //MXC_SDHC_Set_Clock_Config(1);
-        debug("SD clock ratio: Super slow (%dMHz)\r\n", (SystemCoreClock / (2 * 0x96)));
+        debug("SD clock ratio: Super slow (%dHz)\r\n", (SystemCoreClock / (2 * 0x96)));
         MXC_SDHC_Set_Clock_Config(0x96);
+        //debug("SD clock ratio: Extermely slow (%dHz)\r\n", (SystemCoreClock / (2 * 0x12C)));
+        //MXC_SDHC_Set_Clock_Config(0x12C);
     }
 	else // Use smallest clock divider for fastest clock rate (max 60MHz)
 	{
@@ -2771,6 +2775,20 @@ void SetupSDHCeMMC(void)
 ///----------------------------------------------------------------------------
 void SetupDriveAndFilesystem(void)
 {
+#if 0 /* Version FF13 */
+	debug("Drive(eMMC): Using FF13 version\r\n");
+#else /* Version FF15 */
+	debug("Drive(eMMC): Using FF15 version\r\n");
+#endif
+
+#if 0 /* Test Re-formatting to start */
+	if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) != FR_OK)	{ debugErr("Drive(eMMC): Formatting failed with error %s\r\n", FF_ERRORS[err]); }
+	else { debug("Drive(eMMC): Formatted successfully\r\n"); }
+	//MKFS_PARM setupFS = { FM_FAT32, 0, 0, 0, 0 };
+	//if ((err = f_mkfs("", &setupFS, work, sizeof(work))) != FR_OK) { debugErr("Drive(eMMC): Formatting failed with error %s\r\n", FF_ERRORS[err]); }
+	//else { debug("Drive(eMMC): Formatted successfully\r\n"); }
+#endif
+
     // Mount the default drive to determine if the filesystem is created
 	if ((err = f_mount(&fs_obj, "", 1)) != FR_OK)
 	{
@@ -2784,6 +2802,7 @@ void SetupDriveAndFilesystem(void)
 			if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) != FR_OK)
 #else /* Version FF15 */
 			MKFS_PARM setupFS = { FM_ANY, 0, 0, 0, 0 };
+			//MKFS_PARM setupFS = { FM_FAT32, 0, 0, 0, 0 };
 			if ((err = f_mkfs("", &setupFS, work, sizeof(work))) != FR_OK)
 #endif
 			{
@@ -2810,6 +2829,35 @@ void SetupDriveAndFilesystem(void)
 		{
 			debugErr("Drive(eMMC): filed to mount with error %s\r\n", FF_ERRORS[err]);
 			f_mount(NULL, "", 0);
+
+#if 1 /* Test */
+#if 0 /* For versions FF13 and FF14 */
+			if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) != FR_OK)
+#else /* Version FF15 */
+			MKFS_PARM setupFS = { FM_ANY, 0, 0, 0, 0 };
+			//MKFS_PARM setupFS = { FM_FAT32, 0, 0, 0, 0 };
+			if ((err = f_mkfs("", &setupFS, work, sizeof(work))) != FR_OK)
+#endif
+			{
+				debugErr("Drive(eMMC): Formatting failed with error %s\r\n", FF_ERRORS[err]);
+			}
+			else
+			{
+				debug("Drive(eMMC): Formatted successfully\r\n");
+
+				// Remount
+				if ((err = f_mount(&fs_obj, "", 1)) != FR_OK)
+				{
+					debugErr("Drive(eMMC): filed to mount after formatting, with error %s\r\n", FF_ERRORS[err]);
+				}
+
+				if ((err = f_setlabel("NOMIS")) != FR_OK)
+				{
+					debugErr("Drive(eMMC): Setting label failed with error %s\r\n", FF_ERRORS[err]);
+					f_mount(NULL, "", 0);
+				}
+			}
+#endif
 		}
     }
 	else
