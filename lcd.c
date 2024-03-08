@@ -1402,7 +1402,11 @@ bool read_chip_id()
 		ft81x_chip_id = ft81x_rd16(MEM_CHIP_ID);
 		// Chip id: 08h, [id], 01h, 00h
 		// [id]: FT8xx=10h, 11h, 12h, 13h
+#if 0 /* Original */
 		if ((ft81x_chip_id) == 0x0810) { return (true); } // Chip version is FT810
+#else /* Swap order */
+		if ((ft81x_chip_id) == 0x1008) { return (true); } // Chip version is FT810
+#endif
 
 		// Sleep (10ms)
 		MXC_Delay(MXC_DELAY_MSEC(10));
@@ -1472,6 +1476,27 @@ void ft81x_init_display_settings()
 	// Screen specific settings
 	// Pulling from: NHD-4.3-800480FT-CSXP-CTP reference, but different package/options (display settings should be the same)
 	// NHD-4.3-800480CF-ASXP
+#if 1 /* Test */
+	uint16_t rData;
+	rData = ft81x_rd16(REG_HCYCLE); debug("LCD Controller: Hcycle is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_HOFFSET); debug("LCD Controller: Hoffset is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_HSIZE); debug("LCD Controller: Hsize is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_HSYNC0); debug("LCD Controller: Hsync0 is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_HSYNC1); debug("LCD Controller: Hsync1 is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_VCYCLE); debug("LCD Controller: Vcycle is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_VOFFSET); debug("LCD Controller: Voffest is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_VSIZE); debug("LCD Controller: Vsize is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_VSYNC0); debug("LCD Controller: Vsync0 is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_VSYNC1); debug("LCD Controller: Vsync1 is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_DITHER); debug("LCD Controller: Dither is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_PCLK_POL); debug("LCD Controller: PCLK pol is 0x%x\r\n", rData);
+	rData = ft81x_rd(REG_ROTATE); debug("LCD Controller: Rotate is 0x%x\r\n", rData);
+	rData = ft81x_rd(REG_SWIZZLE); debug("LCD Controller: Swizzle is 0x%x\r\n", rData);
+	rData = ft81x_rd(REG_HCYCLE); debug("LCD Controller: Hcycle+0 is 0x%x\r\n", rData);
+	rData = ft81x_rd(REG_HCYCLE + 1); debug("LCD Controller: Hcycle+1 is 0x%x\r\n", rData);
+#endif
+
+#if 0 /* Original */
 	ft81x_wr32(REG_HCYCLE, 928);
 	ft81x_wr32(REG_HOFFSET, 88);
 	ft81x_wr32(REG_HSIZE, FT81X_DISPLAY_WIDTH);
@@ -1486,6 +1511,41 @@ void ft81x_init_display_settings()
 	ft81x_wr32(REG_PCLK_POL, 1);
 	ft81x_wr(REG_ROTATE, 0);
 	ft81x_wr(REG_SWIZZLE, 0);
+#else /* Following datasheet */
+	ft81x_wr16(REG_HCYCLE, 928);
+	ft81x_wr16(REG_HOFFSET, 88);
+	ft81x_wr16(REG_HSIZE, FT81X_DISPLAY_WIDTH);
+	ft81x_wr16(REG_HSYNC0, 0);
+	ft81x_wr16(REG_HSYNC1, 48);
+	ft81x_wr16(REG_VCYCLE, 525);
+	ft81x_wr16(REG_VOFFSET, 32);
+	ft81x_wr16(REG_VSIZE, FT81X_DISPLAY_HEIGHT);
+	ft81x_wr16(REG_VSYNC0, 0);
+	ft81x_wr16(REG_VSYNC1, 3);
+	ft81x_wr16(REG_DITHER, 1);
+	ft81x_wr16(REG_PCLK_POL, 1);
+	ft81x_wr(REG_ROTATE, 0);
+	ft81x_wr(REG_SWIZZLE, 0);
+#endif
+
+#if 1 /* Test */
+	rData = ft81x_rd16(REG_HCYCLE); debug("LCD Controller: Hcycle is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_HOFFSET); debug("LCD Controller: Hoffset is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_HSIZE); debug("LCD Controller: Hsize is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_HSYNC0); debug("LCD Controller: Hsync0 is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_HSYNC1); debug("LCD Controller: Hsync1 is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_VCYCLE); debug("LCD Controller: Vcycle is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_VOFFSET); debug("LCD Controller: Voffest is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_VSIZE); debug("LCD Controller: Vsize is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_VSYNC0); debug("LCD Controller: Vsync0 is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_VSYNC1); debug("LCD Controller: Vsync1 is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_DITHER); debug("LCD Controller: Dither is 0x%x\r\n", rData);
+	rData = ft81x_rd16(REG_PCLK_POL); debug("LCD Controller: PCLK pol is 0x%x\r\n", rData);
+	rData = ft81x_rd(REG_ROTATE); debug("LCD Controller: Rotate is 0x%x\r\n", rData);
+	rData = ft81x_rd(REG_SWIZZLE); debug("LCD Controller: Swizzle is 0x%x\r\n", rData);
+	rData = ft81x_rd(REG_HCYCLE); debug("LCD Controller: Hcycle+0 is 0x%x\r\n", rData);
+	rData = ft81x_rd(REG_HCYCLE + 1); debug("LCD Controller: Hcycle+1 is 0x%x\r\n", rData);
+#endif
 
 	// Get screen size W,H to confirm
 	ft81x_display_width = ft81x_rd16(REG_HSIZE);
@@ -1526,6 +1586,23 @@ void test_black_screen()
 #else
 #define test_black_screen()
 #endif
+
+void test_white_screen()
+{
+	// Build a black display and display it
+	ft81x_stream_start(); // Start streaming
+	ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
+	ft81x_cmd_swap();     // Set AUTO swap at end of display list
+	ft81x_clear_color_rgb32(0xFFFFFF);
+	ft81x_clear();
+	ft81x_display();
+	ft81x_getfree(0);     // trigger FT81x to read the command buffer
+	ft81x_stream_stop();  // Finish streaming to command buffer
+	ft81x_wait_finish();  // Wait till the GPU is finished processing the commands
+
+	// Sleep a little (100ms)
+	MXC_Delay(MXC_DELAY_MSEC(3000));
+}
 
 #if 1
 // Display the built in FTDI logo animation and then calibrate
@@ -1878,6 +1955,13 @@ uint8_t ft81x_init(void)
 		g_lcdPowerFlag = ENABLED;
 	}
 
+#if 1 /* Test power draw after LCD power block enabled */
+	for (uint8_t j = 0; j < 5; j++)
+	{
+		MXC_Delay(MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
+	}
+#endif
+
 	// Bring LCD Controller active, done by issuing two read commands of address 0, and possibly waiting up to 300ms
 	ft81x_rd(CMD_ACTIVE);
 	ft81x_rd(CMD_ACTIVE);
@@ -1890,11 +1974,38 @@ uint8_t ft81x_init(void)
 	}
 	else { debug("LCD Controller: Chip ID verified\r\n"); }
 	select_spi_byte_width();
+#if 0 /* Normal */
 	ft81x_backlight_off();
+#else /* Test */
+	uint16_t rData;
+	rData = ft81x_rd16(REG_SPI_WIDTH);
+	debug("LCD Controller: SPI Width is 0x%x\r\n", rData);
+
+	rData = ft81x_rd16(0x302080);
+	debug("LCD Controller: Playback volume is (x16) 0x%x (Default is 0xFF)\r\n", rData);
+	ft81x_wr16(0x302080, 0x88);
+	rData = ft81x_rd16(0x302080);
+	debug("LCD Controller: Playback volume after write is (x16) 0x%x (Attempted setting to 0x88)\r\n", rData);
+
+	uint8_t r8Data;
+	r8Data = ft81x_rd(0x302080);
+	debug("LCD Controller: Playback volume is (x8) 0x%x\r\n", r8Data);
+	ft81x_wr(0x302080, 0x55);
+	r8Data = ft81x_rd(0x302080);
+	debug("LCD Controller: Playback volume after write is (x8) 0x%x (Attempted setting to 0x55)\r\n", r8Data);
+
+	debug("LCD Controller: Seting backlight level to half\r\n");
+	ft81x_set_backlight_level(64);
+#endif
 	ft81x_fifo_reset();
 	ft81x_init_display_settings();
 	test_black_screen();
 	ft81x_init_gpio();
+
+#if 1 /* Test */
+	test_memory_ops();
+#endif
+
 	return true;
 }
 
@@ -2185,7 +2296,11 @@ uint16_t ft81x_rd16(uint32_t addr)
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 
+#if 0 /* Original */
 	result = ((readData[4] << 8) | readData[5]);
+#else /* Swap order */
+	result = ((readData[5] << 8) | readData[4]);
+#endif
 	return (result);
 #endif
 }
@@ -2244,7 +2359,7 @@ uint32_t ft81x_rd32(uint32_t addr)
 #else
 	uint8_t writeData[8];
 	uint8_t readData[8];
-	uint16_t result;
+	uint32_t result;
 
 	writeData[0] = ((addr >> 16) & 0xFF);
 	writeData[1] = ((addr >> 8) & 0xFF);
@@ -2259,7 +2374,12 @@ uint32_t ft81x_rd32(uint32_t addr)
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 
+#if 0 /* Original */
 	result = ((readData[4] << 24) | (readData[5] << 16) | (readData[6] << 8) | readData[7]);
+#else /* Swap order */
+	result = ((readData[7] << 24) | (readData[6] << 16) | (readData[5] << 8) | readData[4]);
+#endif
+
 	return (result);
 #endif
 }
@@ -2427,8 +2547,13 @@ void ft81x_wr16(uint32_t addr, uint16_t wordVal)
 	writeData[0] = ((addr >> 16) & 0xFF);
 	writeData[1] = ((addr >> 8) & 0xFF);
 	writeData[2] = (addr & 0xFF);
+#if 0 /* Original */
 	writeData[3] = ((wordVal >> 8) & 0xFF);
 	writeData[4] = (wordVal & 0xFF);
+#else /* Swap order */
+	writeData[3] = (wordVal & 0xFF);
+	writeData[4] = ((wordVal >> 8) & 0xFF);
+#endif
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
@@ -2480,10 +2605,17 @@ void ft81x_wr32(uint32_t addr, uint32_t longVal)
 	writeData[0] = ((addr >> 16) & 0xFF);
 	writeData[1] = ((addr >> 8) & 0xFF);
 	writeData[2] = (addr & 0xFF);
+#if 0 /* Original */
 	writeData[3] = ((longVal >> 24) & 0xFF);
 	writeData[4] = ((longVal >> 16) & 0xFF);
 	writeData[5] = ((longVal >> 8) & 0xFF);
 	writeData[6] = (longVal & 0xFF);
+#else /* Swap order */
+	writeData[3] = (longVal & 0xFF);
+	writeData[4] = ((longVal >> 8) & 0xFF);
+	writeData[5] = ((longVal >> 16) & 0xFF);
+	writeData[6] = ((longVal >> 24) & 0xFF);
+#endif
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
@@ -2812,10 +2944,17 @@ void ft81x_cmd32(uint32_t word)
 #else
 	uint8_t writeData[4];
 
+#if 0 /* Original */
 	writeData[0] = ((word >> 24) & 0xFF);
 	writeData[1] = ((word >> 16) & 0xFF);
 	writeData[2] = ((word >> 8) & 0xFF);
 	writeData[3] = (word & 0xFF);
+#else /* Swap order */
+	writeData[0] = (word & 0xFF);
+	writeData[1] = ((word >> 8) & 0xFF);
+	writeData[2] = ((word >> 16) & 0xFF);
+	writeData[3] = ((word >> 24) & 0xFF);
+#endif
 
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, NO, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 #endif
@@ -4559,12 +4698,20 @@ void TestLCD(void)
 		ft81x_chip_id = ft81x_rd16(MEM_CHIP_ID);
 		// Chip id: 08h, [id], 01h, 00h
 		// [id]: FT8xx=10h, 11h, 12h, 13h
+#if 0 /* Original */
 		if ((ft81x_chip_id) == 0x0810) { break; } // Chip version is FT810
+#else /* Swap order */
+		if ((ft81x_chip_id) == 0x1008) { break; } // Chip version is FT810
+#endif
 
 		MXC_Delay(MXC_DELAY_MSEC(10));
 	}
 
+#if 0 /* Original */
 	if ((ft81x_chip_id) == 0x0810) { debug("LCD: Chip ID is FT%3x\r\n", ft81x_chip_id); }
+#else /* Swap order */
+	if ((ft81x_chip_id) == 0x1008) { debug("LCD: Chip ID is FT%3x\r\n", ft81x_chip_id); }
+#endif
 	else { debugErr("LCD: Chip ID problem, reports 0x%04x\r\n", ft81x_chip_id); }
 
     debug("LCD: Single byte width selected\r\n");
@@ -4581,6 +4728,9 @@ void TestLCD(void)
 
     debug("LCD: Test black screen\r\n");
 	test_black_screen();
+
+    debug("LCD: Test white screen\r\n");
+	test_white_screen();
 
     debug("LCD: Init GPIO\r\n");
 	ft81x_init_gpio();
