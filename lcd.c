@@ -1962,16 +1962,20 @@ uint8_t ft81x_init(void)
 	}
 #endif
 
+	if (!read_chip_id()) { debugErr("LCD Controller: Failed to read chip ID\r\n"); }
+	else { debug("LCD Controller: Chip ID verified\r\n"); }
+
 	// Bring LCD Controller active, done by issuing two read commands of address 0, and possibly waiting up to 300ms
+	debug("LCD Controller: Going Active...\r\n");
 	ft81x_rd(CMD_ACTIVE);
 	ft81x_rd(CMD_ACTIVE);
 	MXC_Delay(MXC_DELAY_MSEC(300));
 
+	if (ft81x_rd(REG_ID) != 0x7C) { debugErr("LCD Controller: Failed to read reg ID after going active\r\n"); }
+	else { debug("LCD Controller: Reg ID verified after going active\r\n"); }
+
 	restart_core();
-	if (!read_chip_id()) {
-		debugErr("LCD Controller: Failed to read chip ID\r\n");
-		return false;
-	}
+	if (!read_chip_id()) { debugErr("LCD Controller: Failed to read chip ID\r\n"); return false; }
 	else { debug("LCD Controller: Chip ID verified\r\n"); }
 	select_spi_byte_width();
 #if 0 /* Normal */
@@ -2001,6 +2005,8 @@ uint8_t ft81x_init(void)
 	ft81x_init_display_settings();
 	test_black_screen();
 	ft81x_init_gpio();
+
+	ft81x_wake(64);
 
 #if 1 /* Test */
 	test_memory_ops();
@@ -2131,24 +2137,6 @@ uint32_t ft81x_getwp()
  */
 void ft81x_hostcmd_param(uint8_t command, uint8_t args)
 {
-#if 0
-	// Using the extended structure and setting SPI_TRANS_VARIABLE_CMD to specify command_bits.
-	spi_transaction_ext_t trans;
-	// address_bits is not used as the SPI_TRANS_VARIABLE_ADDR flag is not set.
-	trans.address_bits = 0;
-	// 16 bits of data: arg command byte plus dummy byte.
-	uint16_t dargs = args << 8;
-	trans.base.flags = SPI_TRANS_VARIABLE_CMD;
-	// Fake dummy byte shift left 8
-	trans.command_bits = 8;
-	trans.base.cmd = command;
-	trans.base.tx_buffer = &dargs;
-	trans.base.length = 16;
-	trans.base.rx_buffer = NULL;
-	ft81x_assert_cs(true);
-	spi_device_transmit(ft81x_spi, (spi_transaction_t*)&trans);
-	ft81x_assert_cs(false);
-#else
 	uint8_t writeData[3];
 
 	writeData[0] = command; // Top 2 bits must be 01, already built into command defines
@@ -2158,60 +2146,15 @@ void ft81x_hostcmd_param(uint8_t command, uint8_t args)
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
 	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
-#endif
 }
 
 /*
  * Write 24 bit address + dummy byte
  * and read the 8 bit result.
- * A total of 6 bytes will be on the SPI BUS.
+ * A total of 5 bytes will be on the SPI BUS.
  */
 uint8_t ft81x_rd(uint32_t addr)
 {
-#if 0
-  // setup trans memory
-  spi_transaction_ext_t trans;
-  memset(&trans, 0, sizeof(trans));
-
-  // allocate memory for our return data
-  char *recvbuf=heap_caps_malloc(1, MALLOC_CAP_DMA);
-
-  // set trans options.
-  trans.base.flags = SPI_TRANS_VARIABLE_ADDR;
-  if (ft81x_qio) {
-    // Tell the ESP32 SPI ISR to accept MODE_XXX for QIO and DIO
-    trans.base.flags |= SPI_TRANS_MODE_DIOQIO_ADDR;
-    // Set this transaction to QIO
-    trans.base.flags |= SPI_TRANS_MODE_QIO;
-  }
-
-  // fake dummy byte shift left 8
-  trans.address_bits = 32;
-  trans.base.addr = addr << 8;
-
-  trans.base.length = 8;
-  trans.base.rxlength = 8;
-
-  // point to our RX buffer.
-  trans.base.rx_buffer = recvbuf; // RX buffer
-
-  // start the transaction ISR watches CS bit
-  ft81x_assert_cs(true);
-
-  // transmit our transaction to the ISR
-  spi_device_transmit(ft81x_spi, (spi_transaction_t*)&trans);
-
-  // grab our return data
-  uint8_t ret = *((uint8_t *)recvbuf);
-
-  // end the transaction
-  ft81x_assert_cs(false);
-
-  // cleanup
-  free(recvbuf);
-
-  return ret;
-#else
 	uint8_t writeData[5];
 	uint8_t readData[5];
 
@@ -2226,7 +2169,6 @@ uint8_t ft81x_rd(uint32_t addr)
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 
 	return (readData[4]);
-#endif
 }
 
 /*
@@ -2236,51 +2178,6 @@ uint8_t ft81x_rd(uint32_t addr)
  */
 uint16_t ft81x_rd16(uint32_t addr)
 {
-#if 0
-  // setup trans memory
-  spi_transaction_ext_t trans;
-  memset(&trans, 0, sizeof(trans));
-
-  // allocate memory for our return data
-  char *recvbuf=heap_caps_malloc(4, MALLOC_CAP_DMA);
-
-  // set trans options.
-  trans.base.flags = SPI_TRANS_VARIABLE_ADDR;
-  if (ft81x_qio) {
-    // Tell the ESP32 SPI ISR to accept MODE_XXX for QIO and DIO
-    trans.base.flags |= SPI_TRANS_MODE_DIOQIO_ADDR;
-    // Set this transaction to QIO
-    trans.base.flags |= SPI_TRANS_MODE_QIO;
-  }
-
-  // Set the address
-  trans.address_bits = 24;
-  trans.base.addr = addr;
-
-  // 1 byte is our dummy byte we will throw it away later
-  trans.base.length = 24;
-  trans.base.rxlength = 24;
-
-  // point to our RX buffer.
-  trans.base.rx_buffer = recvbuf;
-
-  // start the transaction ISR watches CS bit
-  ft81x_assert_cs(true);
-
-  // transmit our transaction to the ISR
-  spi_device_transmit(ft81x_spi, (spi_transaction_t*)&trans);
-
-  // grab our return data skip dummy byte
-  uint16_t ret = *((uint16_t *)&recvbuf[1]);
-
-  // end the transaction
-  ft81x_assert_cs(false);
-
-  // cleanup
-  free(recvbuf);
-
-  return ret;
-#else
 	uint8_t writeData[6];
 	uint8_t readData[6];
 	uint16_t result;
@@ -2302,7 +2199,6 @@ uint16_t ft81x_rd16(uint32_t addr)
 	result = ((readData[5] << 8) | readData[4]);
 #endif
 	return (result);
-#endif
 }
 
 /*
@@ -2312,51 +2208,6 @@ uint16_t ft81x_rd16(uint32_t addr)
  */
 uint32_t ft81x_rd32(uint32_t addr)
 {
-#if 0
-  // setup trans memory
-  spi_transaction_ext_t trans;
-  memset(&trans, 0, sizeof(trans));
-
-  // allocate memory for our return data
-  char *recvbuf=heap_caps_malloc(5, MALLOC_CAP_DMA);
-
-  // set trans options.
-  trans.base.flags = SPI_TRANS_VARIABLE_ADDR;
-  if (ft81x_qio) {
-    // Tell the ESP32 SPI ISR to accept MODE_XXX for QIO and DIO
-    trans.base.flags |= SPI_TRANS_MODE_DIOQIO_ADDR;
-    // Set this transaction to QIO
-    trans.base.flags |= SPI_TRANS_MODE_QIO;
-  }
-
-  // Set the address
-  trans.address_bits = 24;
-  trans.base.addr = addr;
-
-  // 1 byte is our dummy byte we will throw it away later
-  trans.base.length = 40;
-  trans.base.rxlength = 40;
-
-  // point to our RX buffer.
-  trans.base.rx_buffer = recvbuf;
-
-  // start the transaction ISR watches CS bit
-  ft81x_assert_cs(true);
-
-  // transmit our transaction to the ISR
-  spi_device_transmit(ft81x_spi, (spi_transaction_t*)&trans);
-
-  // grab our return data skip dummy byte
-  uint32_t ret = *((uint32_t *)&recvbuf[1]);
-
-  // end the transaction
-  ft81x_assert_cs(false);
-
-  // cleanup
-  free(recvbuf);
-
-  return ret;
-#else
 	uint8_t writeData[8];
 	uint8_t readData[8];
 	uint32_t result;
@@ -2381,7 +2232,116 @@ uint32_t ft81x_rd32(uint32_t addr)
 #endif
 
 	return (result);
+}
+
+/*
+ * Write 24 bit address + 8 bit value
+ * A total of 4 bytes will be on the SPI BUS.
+ */
+void ft81x_wr(uint32_t addr, uint8_t byteVal)
+{
+	uint8_t writeData[4];
+
+	addr &= HOST_MEMORY_WRITE_ADDR_BITS_VALID;
+	addr |= HOST_MEMORY_WRITE; // set write bit
+	writeData[0] = ((addr >> 16) & 0xFF);
+	writeData[1] = ((addr >> 8) & 0xFF);
+	writeData[2] = (addr & 0xFF);
+	writeData[3] = byteVal;
+
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
+	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
+}
+
+/*
+ * Write 24 bit address + 16 bit value
+ * A total of 5 bytes will be on the SPI BUS.
+ */
+void ft81x_wr16(uint32_t addr, uint16_t wordVal)
+{
+	uint8_t writeData[5];
+
+	addr &= HOST_MEMORY_WRITE_ADDR_BITS_VALID;
+	addr |= HOST_MEMORY_WRITE; // set write bit
+	writeData[0] = ((addr >> 16) & 0xFF);
+	writeData[1] = ((addr >> 8) & 0xFF);
+	writeData[2] = (addr & 0xFF);
+#if 0 /* Original */
+	writeData[3] = ((wordVal >> 8) & 0xFF);
+	writeData[4] = (wordVal & 0xFF);
+#else /* Swap order, send little Endian */
+	writeData[3] = (wordVal & 0xFF);
+	writeData[4] = ((wordVal >> 8) & 0xFF);
 #endif
+
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
+	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
+}
+
+/*
+ * Write 24 bit address + 32 bit value
+ * A total of 7 bytes will be on the SPI BUS.
+ */
+void ft81x_wr32(uint32_t addr, uint32_t longVal)
+{
+	uint8_t writeData[7];
+
+	addr &= HOST_MEMORY_WRITE_ADDR_BITS_VALID;
+	addr |= HOST_MEMORY_WRITE; // set write bit
+	writeData[0] = ((addr >> 16) & 0xFF);
+	writeData[1] = ((addr >> 8) & 0xFF);
+	writeData[2] = (addr & 0xFF);
+#if 0 /* Original */
+	writeData[3] = ((longVal >> 24) & 0xFF);
+	writeData[4] = ((longVal >> 16) & 0xFF);
+	writeData[5] = ((longVal >> 8) & 0xFF);
+	writeData[6] = (longVal & 0xFF);
+#else /* Swap order, send little Endian */
+	writeData[3] = (longVal & 0xFF);
+	writeData[4] = ((longVal >> 8) & 0xFF);
+	writeData[5] = ((longVal >> 16) & 0xFF);
+	writeData[6] = ((longVal >> 24) & 0xFF);
+#endif
+
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
+	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
+}
+
+/*
+ * Write 24 bit address leave CS open for data to be written
+ * A total of 3 bytes will be on the SPI BUS.
+ */
+void ft81x_wrA(uint32_t addr)
+{
+	uint8_t writeData[3];
+
+	addr &= HOST_MEMORY_WRITE_ADDR_BITS_VALID;
+	addr |= HOST_MEMORY_WRITE; // Set write bit
+	writeData[0] = ((addr >> 16) & 0xFF);
+	writeData[1] = ((addr >> 8) & 0xFF);
+	writeData[2] = (addr & 0xFF);
+
+	// SPI write but leave slave selected for future write data
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
+	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, NO, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+}
+
+/*
+ * Write bytes to the spi port no tracking.
+ */
+void ft81x_wrN(uint8_t *buffer, uint8_t size)
+{
+	// SPI write with slave select still active from before, write more data
+	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, NO, buffer, size, NULL, 0, BLOCKING);
+}
+
+void ft81x_wrE(uint32_t addr)
+{
+  // end the transaction
+	ft81x_assert_cs(NO);
 }
 
 #if 0 /* only seems used for touch inputs */
@@ -2450,259 +2410,6 @@ void ft81x_rdn(uint32_t addr, uint8_t *results, int8_t len) {
   free(recvbuf);
 }
 #endif
-
-/*
- * Write 24 bit address + 8 bit value
- * A total of 4 bytes will be on the SPI BUS.
- */
-void ft81x_wr(uint32_t addr, uint8_t byteVal)
-{
-#if 0
-  // setup trans memory
-  spi_transaction_ext_t trans;
-  memset(&trans, 0, sizeof(trans));
-
-  // set trans options.
-  trans.base.flags = SPI_TRANS_VARIABLE_ADDR;
-  if (ft81x_qio) {
-    // Tell the ESP32 SPI ISR to accept MODE_XXX for QIO and DIO
-    trans.base.flags |= SPI_TRANS_MODE_DIOQIO_ADDR;
-    // Set this transaction to QIO
-    trans.base.flags |= SPI_TRANS_MODE_QIO;
-  }
-
-  // no dummy byte for writes
-  trans.address_bits = 24;
-  trans.base.addr = addr | 0x800000; // set write bit
-
-  trans.base.length = 8;
-  trans.base.rx_buffer = NULL;
-  trans.base.tx_buffer = &byteVal;
-
-  // start the transaction ISR watches CS bit
-  ft81x_assert_cs(true);
-
-  // transmit our transaction to the ISR
-  spi_device_transmit(ft81x_spi, (spi_transaction_t*)&trans);
-
-  // end the transaction
-  ft81x_assert_cs(false);
-#else
-	uint8_t writeData[4];
-
-	addr &= HOST_MEMORY_WRITE_ADDR_BITS_VALID;
-	addr |= HOST_MEMORY_WRITE; // set write bit
-	writeData[0] = ((addr >> 16) & 0xFF);
-	writeData[1] = ((addr >> 8) & 0xFF);
-	writeData[2] = (addr & 0xFF);
-	writeData[3] = byteVal;
-
-	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
-	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
-#endif
-}
-
-/*
- * Write 24 bit address + 16 bit value
- * A total of 5 bytes will be on the SPI BUS.
- */
-void ft81x_wr16(uint32_t addr, uint16_t wordVal)
-{
-#if 0
-  // setup trans memory
-  spi_transaction_ext_t trans;
-  memset(&trans, 0, sizeof(trans));
-
-  // set trans options.
-  trans.base.flags = SPI_TRANS_VARIABLE_ADDR;
-  if (ft81x_qio) {
-    // Tell the ESP32 SPI ISR to accept MODE_XXX for QIO and DIO
-    trans.base.flags |= SPI_TRANS_MODE_DIOQIO_ADDR;
-    // Set this transaction to QIO
-    trans.base.flags |= SPI_TRANS_MODE_QIO;
-  }
-
-  // no dummy byte for writes
-  trans.address_bits = 24;
-  trans.base.addr = addr | 0x800000; // set write bit
-
-  trans.base.length = 16;
-  trans.base.rx_buffer = NULL;
-  trans.base.tx_buffer = &wordVal;
-
-  // start the transaction ISR watches CS bit
-  ft81x_assert_cs(true);
-
-  // transmit our transaction to the ISR
-  spi_device_transmit(ft81x_spi, (spi_transaction_t*)&trans);
-
-  // end the transaction
-  ft81x_assert_cs(false);
-#else
-	uint8_t writeData[5];
-
-	addr &= HOST_MEMORY_WRITE_ADDR_BITS_VALID;
-	addr |= HOST_MEMORY_WRITE; // set write bit
-	writeData[0] = ((addr >> 16) & 0xFF);
-	writeData[1] = ((addr >> 8) & 0xFF);
-	writeData[2] = (addr & 0xFF);
-#if 0 /* Original */
-	writeData[3] = ((wordVal >> 8) & 0xFF);
-	writeData[4] = (wordVal & 0xFF);
-#else /* Swap order */
-	writeData[3] = (wordVal & 0xFF);
-	writeData[4] = ((wordVal >> 8) & 0xFF);
-#endif
-
-	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
-	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
-#endif
-}
-
-/*
- * Write 24 bit address + 32 bit value
- * A total of 7 bytes will be on the SPI BUS.
- */
-void ft81x_wr32(uint32_t addr, uint32_t longVal)
-{
-#if 0
-  // setup trans memory
-  spi_transaction_ext_t trans;
-  memset(&trans, 0, sizeof(trans));
-
-  // set trans options.
-  trans.base.flags = SPI_TRANS_VARIABLE_ADDR;
-  if (ft81x_qio) {
-    // Tell the ESP32 SPI ISR to accept MODE_XXX for QIO and DIO
-    trans.base.flags |= SPI_TRANS_MODE_DIOQIO_ADDR;
-    // Set this transaction to QIO
-    trans.base.flags |= SPI_TRANS_MODE_QIO;
-  }
-
-  // no dummy byte for writes
-  trans.address_bits = 24;
-  trans.base.addr = addr | 0x800000; // set write bit
-
-  trans.base.length = 32;
-  trans.base.rx_buffer = NULL;
-  trans.base.tx_buffer = &longVal;
-
-  // start the transaction ISR watches CS bit
-  ft81x_assert_cs(true);
-
-  // transmit our transaction to the ISR
-  spi_device_transmit(ft81x_spi, (spi_transaction_t*)&trans);
-
-  // end the transaction
-  ft81x_assert_cs(false);
-#else
-	uint8_t writeData[7];
-
-	addr &= HOST_MEMORY_WRITE_ADDR_BITS_VALID;
-	addr |= HOST_MEMORY_WRITE; // set write bit
-	writeData[0] = ((addr >> 16) & 0xFF);
-	writeData[1] = ((addr >> 8) & 0xFF);
-	writeData[2] = (addr & 0xFF);
-#if 0 /* Original */
-	writeData[3] = ((longVal >> 24) & 0xFF);
-	writeData[4] = ((longVal >> 16) & 0xFF);
-	writeData[5] = ((longVal >> 8) & 0xFF);
-	writeData[6] = (longVal & 0xFF);
-#else /* Swap order */
-	writeData[3] = (longVal & 0xFF);
-	writeData[4] = ((longVal >> 8) & 0xFF);
-	writeData[5] = ((longVal >> 16) & 0xFF);
-	writeData[6] = ((longVal >> 24) & 0xFF);
-#endif
-
-	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
-	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
-#endif
-}
-
-/*
- * Write 24 bit address leave CS open for data to be written
- * A total of 3 bytes will be on the SPI BUS.
- */
-void ft81x_wrA(uint32_t addr)
-{
-#if 0
-  // setup trans memory
-  spi_transaction_ext_t trans;
-  memset(&trans, 0, sizeof(trans));
-
-  // set trans options.
-  if (ft81x_qio) {
-    // Tell the ESP32 SPI ISR to accept MODE_XXX for QIO and DIO
-    trans.base.flags |= SPI_TRANS_MODE_DIOQIO_ADDR;
-    // Set this transaction to QIO
-    trans.base.flags |= SPI_TRANS_MODE_QIO;
-  }
-
-  // set write bit if rw=1
-  addr |= 0x800000;
-  addr = SPI_REARRANGE_DATA(addr, 24);
-
-  trans.base.length = 24;
-  trans.base.tx_buffer = &addr;
-
-  // start the transaction ISR watches CS bit
-  ft81x_assert_cs(true);
-
-  // transmit our transaction to the ISR
-  spi_device_transmit(ft81x_spi, (spi_transaction_t*)&trans);
-#else
-	uint8_t writeData[3];
-
-	addr &= HOST_MEMORY_WRITE_ADDR_BITS_VALID;
-	addr |= HOST_MEMORY_WRITE; // set write bit
-	writeData[0] = ((addr >> 16) & 0xFF);
-	writeData[1] = ((addr >> 8) & 0xFF);
-	writeData[2] = (addr & 0xFF);
-
-	// SPI write but leave slave selected for future write data
-	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, NO, writeData, sizeof(writeData), NULL, 0, BLOCKING);
-#endif
-}
-
-/*
- * Write bytes to the spi port no tracking.
- */
-void ft81x_wrN(uint8_t *buffer, uint8_t size)
-{
-#if 0  
-  // setup trans memory
-  spi_transaction_ext_t trans;
-  memset(&trans, 0, sizeof(trans));
-
-  // set trans options.
-  if (ft81x_qio) {
-    // Tell the ESP32 SPI ISR to accept MODE_XXX for QIO and DIO
-    trans.base.flags |= SPI_TRANS_MODE_DIOQIO_ADDR;
-    // Set this transaction to QIO
-    trans.base.flags |= SPI_TRANS_MODE_QIO;
-  }
-
-  trans.base.length = size * 8;
-  trans.base.tx_buffer = buffer;
-
-  // transmit our transaction to the ISR
-  spi_device_transmit(ft81x_spi, (spi_transaction_t*)&trans);
-#else
-	// SPI write with slave select still active from before, write more data
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, NO, buffer, size, NULL, 0, BLOCKING);
-#endif
-}
-
-void ft81x_wrE(uint32_t addr)
-{
-  // end the transaction
-	ft81x_assert_cs(NO);
-}
 
 /*
  * Spool a large block of memory in chunks into the FT81X
@@ -4661,7 +4368,11 @@ void ft81x_logo()
   ft81x_getfree(0);     // trigger FT81x to read the command buffer
   ft81x_stream_stop();  // Finish streaming to command buffer
   // Wait till the Logo is finished
+#if 0 /* Original */
   ft81x_wait_finish();
+#else
+	MXC_Delay(MXC_DELAY_SEC(3));
+#endif
   // AFAIK the only command that will set the RD/WR to 0 when finished
   ft81x_fifo_reset();
 }
@@ -4725,6 +4436,10 @@ void TestLCD(void)
 
     debug("LCD: Init display settings\r\n");
 	ft81x_init_display_settings();
+
+#if 1 /* Added */
+	ft81x_wake(32);
+#endif
 
     debug("LCD: Test black screen\r\n");
 	test_black_screen();
