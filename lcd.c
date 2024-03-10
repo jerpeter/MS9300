@@ -1606,8 +1606,7 @@ void test_white_screen()
 
 #if 1
 // Display the built in FTDI logo animation and then calibrate
-void test_logo(
-)
+void test_logo(void)
 {
 	ft81x_logo();
 
@@ -1921,8 +1920,7 @@ void test_dots(
 		rblue = rand()%((253+1)-0) + 0;
 		ft81x_color_rgb888(rred, rgreen, rblue);
 		ft81x_begin(POINTS);
-		//uint16_t size = rand()%((600+1)-0) + 0;
-		uint16_t size = rand()%((360+1)-0) + 0;
+		uint16_t size = rand()%((800+1)-0) + 0;
 		uint16_t rndx = rand()%((ft81x_display_width+1)-0) + 0;
 		uint16_t rndy = rand()%((ft81x_display_height+1)-0) + 0;
 		ft81x_point_size(size);
@@ -4370,7 +4368,7 @@ void ft81x_logo()
   // Wait till the Logo is finished
 #if 0 /* Original */
   ft81x_wait_finish();
-#else
+#else /* Wait for finish doesn't work with the logo, the read pointer seems to get reset to 0 while the write pointer is still non-zero */
 	MXC_Delay(MXC_DELAY_SEC(3));
 #endif
   // AFAIK the only command that will set the RD/WR to 0 when finished
