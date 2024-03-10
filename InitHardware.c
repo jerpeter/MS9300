@@ -1537,7 +1537,7 @@ void SetupWatchdog(void)
 //#define SPI_SPEED_ADC 3000000 // Bit Rate
 #define SPI_SPEED_ADC 60000000 // Bit Rate
 #endif
-#define SPI_SPEED_LCD 12000000 // Bit Rate
+#define SPI_SPEED_LCD 10000000 //12000000 // Bit Rate
 //#define SPI_WIDTH_DUAL	2
 
 ///----------------------------------------------------------------------------
@@ -3384,8 +3384,63 @@ void InitSystemHardware_MS9300(void)
 	getSize();
 
 	mxc_sdhc_csd_regs_t* csd = NULL;
+	uint32_t csdArray[4];
 	if ((err = MXC_SDHC_Lib_GetCSD(csd)) == E_NO_ERROR) { debug("SDHC Lib Get Capacity: Flash is %lld\r\n", MXC_SDHC_Lib_GetCapacity(csd)); }
 	else { debug("SDHC Lib Get CSD: error (%d)\r\n"); }
+
+#if 1 /* Test CSD Structure read, seems to differ from Flash CSD */
+	debug("Flash CSD: <Start>\r\n");
+	debug("Flash CSD: rsv0 (2b) is 0x%x\r\n", csd->csd.rsv0);
+	debug("Flash CSD: file_format (2b) is 0x%x\r\n", csd->csd.file_format);
+	debug("Flash CSD: temp_write_protect (1b) is 0x%x\r\n", csd->csd.temp_write_protect);
+	debug("Flash CSD: perm_write_protect (1b) is 0x%x\r\n", csd->csd.perm_write_protect);
+	debug("Flash CSD: copy (1b) is 0x%x\r\n", csd->csd.copy);
+	debug("Flash CSD: rsv1 (5b) is 0x%x\r\n", csd->csd.rsv1);
+	debug("Flash CSD: write bl partial (1b) is 0x%x\r\n", csd->csd.write_bl_partial);
+	debug("Flash CSD: write_bl_len (4b) is 0x%x\r\n", csd->csd.write_bl_len);
+	debug("Flash CSD: r2w_factor (3b) is 0x%x\r\n", csd->csd.r2w_factor);
+	debug("Flash CSD: rsv2 (2b) is 0x%x\r\n", csd->csd.rsv2);
+	debug("Flash CSD: wp_grp_enable (1b) is 0x%x\r\n", csd->csd.wp_grp_enable);
+	debug("Flash CSD: wp_grp_size (7b) is 0x%x\r\n", csd->csd.wp_grp_size);
+	debug("Flash CSD: sector_size_0 (1b) is 0x%x\r\n", csd->csd.sector_size_0);
+	debug("Flash CSD: sector_size_1 (6b) is 0x%x\r\n", csd->csd.sector_size_1);
+	debug("Flash CSD: erase_blk_en (1b) is 0x%x\r\n", csd->csd.erase_blk_en);
+	debug("Flash CSD: rsv3 (1b) is 0x%x\r\n", csd->csd.rsv3);
+	debug("Flash CSD: c_size (22b) is 0x%x\r\n", csd->csd.c_size);
+	debug("Flash CSD: rsv4 (2b) is 0x%x\r\n", csd->csd.rsv4);
+	debug("Flash CSD: rsv5 (4b) is 0x%x\r\n", csd->csd.rsv5);
+	debug("Flash CSD: dsr_imp (1b) is 0x%x\r\n", csd->csd.dsr_imp);
+	debug("Flash CSD: read_blk_misalign (1b) is 0x%x\r\n", csd->csd.read_blk_misalign);
+	debug("Flash CSD: write_blk_misalign (1b) is 0x%x\r\n", csd->csd.write_blk_misalign);
+	debug("Flash CSD: read_bl_partial (1b) is 0x%x\r\n", csd->csd.read_bl_partial);
+	debug("Flash CSD: read_bl_len (4b) is 0x%x\r\n", csd->csd.read_bl_len);
+	debug("Flash CSD: ccc (12b) is 0x%x\r\n", csd->csd.ccc);
+	debug("Flash CSD: tran_speed (8b) is 0x%x\r\n", csd->csd.tran_speed);
+	debug("Flash CSD: nsac (8b) is 0x%x\r\n", csd->csd.nsac);
+	debug("Flash CSD: taac (8b) is 0x%x\r\n", csd->csd.taac);
+	debug("Flash CSD: rsv6 (6b) is 0x%x\r\n", csd->csd.rsv6);
+	debug("Flash CSD: csd_structure (2b) is 0x%x\r\n", csd->csd.csd_structure);
+	debug("Flash CSD: rsv7 (8b) is 0x%x\r\n", csd->csd.rsv7);
+	debug("Flash CSD: <End>\r\n");
+	debug("Flash CSD: Raw 0x%x 0x%x 0x%x 0x%x\r\n", csd->array[0], csd->array[1], csd->array[2], csd->array[3]);
+
+extern bool g_csd_is_cached;
+	g_csd_is_cached = false;
+	memcpy(csdArray, (void*)csd->array, sizeof(csdArray)); memset((void*)csd->array, 0, sizeof(csd->array));
+	if ((err = MXC_SDHC_Lib_GetCSD(csd)) == E_NO_ERROR)
+	{
+		debug("SDHC Lib Get CSD: success\r\n");
+		if (memcmp(csdArray, (void*)csd->array, sizeof(csdArray)) == 0) { debug("SDHC Lib Get CSD: Verify success\r\n"); }
+		else { debug("SDHC Lib Get CSD: Verify error\r\n"); }
+	}
+	else { debug("SDHC Lib Get CSD: error\r\n"); }
+#endif
+
+#if 0 /* Test CID, doesn't seem to work */
+	//uint32_t cid[4];
+	//if ((err = MXC_SDHC_Lib_GetCID(&cid[0])) == E_NO_ERROR) { debug("SDHC Lib Get CID: success\r\n"); debug("Flash CID: Raw 0x%x 0x%x 0x%x 0x%x\r\n", cid[0], cid[1], cid[2], cid[3]); }
+	//else { debug("SDHC Lib Get CID: error\r\n"); }
+#endif
 
 #if 0 /* Test */
 	int32_t j = 0;
@@ -3750,6 +3805,28 @@ extern volatile uint8_t hsChange;
 	//-------------------------------------------------------------------------
 #if 1 /* Disabled until LCD connector fixed or hardware modded */
 	InitLCD(); debug("LCD Display: Init complete\r\n");
+	TestLCD();
+#endif
+#if 1 /* Test LCD Display */
+extern void test_logo(void);
+	test_logo();
+	// Forever loop displaying current draw
+	while (1) { MXC_Delay(MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString()); }
+#endif
+#if 0 /* Test backlight and power draw */
+extern void test_black_screen(void);
+extern void ft81x_backlight_off(void);
+extern void ft81x_set_backlight_level(uint8_t backlightLevel);
+extern void test_logo(void);
+	test_logo();
+	test_black_screen();
+	ft81x_backlight_off();
+	uint32_t i = 1;
+	while (1)
+	{
+		MXC_Delay(MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s, Backlight level: %d\r\n", FuelGaugeDebugString(), (i % 128));
+		ft81x_set_backlight_level(i++ % 128);
+	}
 #endif
 
 	//-------------------------------------------------------------------------
