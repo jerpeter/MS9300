@@ -526,12 +526,31 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 			Reset foreground color
 			Reset background color
 	*/
+	uint8 cbit_size;
+	uint8 crow_size;
+	uint8 ccol_size;
+	if (font_type == SIX_BY_EIGHT_FONT)
+	{
+		cbit_size = EIGHT_ROW_SIZE;
+		crow_size = (uint8)(cbit_size / 8);
+		if (EIGHT_ROW_SIZE % 8) { crow_size++; }
+		ccol_size = SIX_COL_SIZE;
+
+		wnd_layout->next_row = (uint16)(wnd_layout->curr_row + cbit_size);
+		wnd_layout->next_col = (uint16)(wnd_layout->curr_col + ccol_size);
+	}
+
 	if ((ln_type == CURSOR_LN) || (ln_type == CURSOR_CHAR))
 	{
 		// Change/Invert/Swap foreground and background color of drawn text
+#if 0 /* Original */
 		ft81x_bgcolor_rgb32(~0xff0000);
 		ft81x_fgcolor_rgb32(~0x0000ff);
+#else /* Datasheet says fg and bg color don't affect CMD_TEXT */
+		ft81x_color_rgb32(0x00ff00);
+#endif
 	}
+	else { ft81x_color_rgb32(0x0000ff); }
 
 	/*
 		----------------------------
@@ -562,8 +581,12 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 	if ((ln_type == CURSOR_LN) || (ln_type == CURSOR_CHAR))
 	{
 		// Revert foreground and background color of drawn text to normal (for next objects)
+#if 0 /* Original */
 		ft81x_bgcolor_rgb32(0xff0000);
 		ft81x_fgcolor_rgb32(0x0000ff);
+#else /* Datasheet says fg and bg color don't affect CMD_TEXT */
+		ft81x_color_rgb32(0x0000ff);
+#endif
 	}
 #endif
 }
