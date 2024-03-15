@@ -601,7 +601,10 @@ void DebugPrintChar(uint8 charData)
 ///----------------------------------------------------------------------------
 void GetUartBridgeRegisters(uint8_t registerAddress, uint8_t* registerData, uint16_t dataLength)
 {
-    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, &registerAddress, sizeof(uint8_t), registerData, dataLength);
+    // I2C Sub-Address (Register Address) is moved to Bits 6:3 (UART Internal Register Address A3:A0)
+	registerAddress <<= 3;
+
+	WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, &registerAddress, sizeof(uint8_t), registerData, dataLength);
 }
 
 ///----------------------------------------------------------------------------
@@ -609,6 +612,9 @@ void GetUartBridgeRegisters(uint8_t registerAddress, uint8_t* registerData, uint
 ///----------------------------------------------------------------------------
 void SetUartBridgeRegisters(uint8_t registerAddress, uint8_t* registerData, uint16_t dataLength)
 {
+    // I2C Sub-Address (Register Address) is moved to Bits 6:3 (UART Internal Register Address A3:A0)
+    registerAddress <<= 3;
+
 	g_spareBuffer[0] = registerAddress;
 	memcpy(&g_spareBuffer[1], registerData, dataLength);
 
@@ -622,6 +628,9 @@ void WriteUartBridgeControlRegister(uint8_t registerAddress, uint8_t registerDat
 {
 	uint8_t writeData[2];
 
+    // I2C Sub-Address (Register Address) is moved to Bits 6:3 (UART Internal Register Address A3:A0)
+    registerAddress <<= 3;
+
 	writeData[0] = registerAddress;
 	writeData[1] = registerData;
 
@@ -634,6 +643,9 @@ void WriteUartBridgeControlRegister(uint8_t registerAddress, uint8_t registerDat
 uint8_t ReadUartBridgeControlRegister(uint8_t registerAddress)
 {
 	uint8_t readData;
+
+    // I2C Sub-Address (Register Address) is moved to Bits 6:3 (UART Internal Register Address A3:A0)
+    registerAddress <<= 3;
 
     WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, &registerAddress, sizeof(registerAddress), &readData, sizeof(readData));
 
