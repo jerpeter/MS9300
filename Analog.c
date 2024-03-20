@@ -92,28 +92,28 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
 		SetAdcConversionState(OFF);
 		dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-		if (chanDataRaw[3] != 0) { configError = YES; }
+		if (chanDataRaw[2] != 0) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 0, chanDataRaw[2]); }
 
 		// Chan 1
 		SetAdcConversionState(ON);
 		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
 		SetAdcConversionState(OFF);
 		dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-		if (chanDataRaw[3] != 1) { configError = YES; }
+		if (chanDataRaw[2] != 1) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 1, chanDataRaw[2]); }
 
 		// Chan 2
 		SetAdcConversionState(ON);
 		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
 		SetAdcConversionState(OFF);
 		dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-		if (chanDataRaw[3] != 2) { configError = YES; }
+		if (chanDataRaw[2] != 2) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 2, chanDataRaw[2]); }
 
 		// Chan 3
 		SetAdcConversionState(ON);
 		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
 		SetAdcConversionState(OFF);
 		dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-		if (chanDataRaw[3] != 3) { configError = YES; }
+		if (chanDataRaw[2] != 3) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 3, chanDataRaw[2]); }
 
 		// Temp
 		SetAdcConversionState(ON);
@@ -122,7 +122,7 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 #if 1 /* Test */
 		dataTemperature = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 #endif
-		if (chanDataRaw[3] != 15) { configError = YES; } // An INx value of 15 corresponds to either IN15 or the temperature sensor
+		if (chanDataRaw[2] != 15) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 15, chanDataRaw[2]); } // An INx value of 15 corresponds to either IN15 or the temperature sensor
 
 		if (configError == YES)
 		{
@@ -214,8 +214,11 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 	// Todo: make channel config dynamic
 	
 	// Enabled the specific sensor blocks (defaulting to Geo1+AOP1)
+#if 0 /* Normal */
 	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
 	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
+#else /* Test skipping sensor enables until current fixed */
+#endif
 
 	// Setup the stantard sequence channels to be monitored
 	AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_AOP_1));
@@ -226,15 +229,18 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 		// Check if channel verification is not disabled or verification override is enabled to allow reading back the config
 		if ((g_unitConfig.adChannelVerification != DISABLED) || (channelVerification == OVERRIDE_ENABLE_CHANNEL_VERIFICATION))
 		{
+			debug("ADC Channel Setup: 4 channels + Temperature + Readback\r\n");
 			g_adChannelConfig = FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP;
 		}
 		else // Verification disabled, don't read back config
 		{
+			debug("ADC Channel Setup: 4 channels + Temperature (No readback)\r\n");
 			g_adChannelConfig = FOUR_AD_CHANNELS_NO_READBACK_WITH_TEMP;
 		}
 	}
 	else // Sample rates above 16384 might take too long to read back config and temp, so skip them
 	{
+			debug("ADC Channel Setup: 4 channels only (No Temp, No readback)\r\n");
 		g_adChannelConfig = FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP;
 	}
 
@@ -918,14 +924,7 @@ void AD4695_SetBusyState(void)
 		test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_GP_MODE, AD4695_GP_MODE_BUSY_GP_EN_MASK, AD4695_GP_MODE_BUSY_GP_EN(1));
 		AD4695_SpiReadRegister(AD4695_REG_GP_MODE, &verify);
 		if(test != verify) { debugErr("External ADC: Busy state error (1)\r\n"); }
-		else
-		{
-			// Once the BSY_ALT_GP0 is configured as an output from the External ADC, disable the weak pull down
-			GPIO_ADC_BUSY_ALT_GP0_PORT->pdpu_sel0 &= ~GPIO_ADC_BUSY_ALT_GP0_PIN;
-			GPIO_ADC_BUSY_ALT_GP0_PORT->pdpu_sel1 &= ~GPIO_ADC_BUSY_ALT_GP0_PIN;
-			GPIO_ADC_BUSY_ALT_GP0_PORT->pssel &= ~GPIO_ADC_BUSY_ALT_GP0_PIN;
-			debug("External ADC: Set Busy status on Busy/Alt GPIO pin\r\n");
-		}
+		else { debug("External ADC: Set Busy status on Busy/Alt GPIO pin\r\n"); }
 	}
 }
 
@@ -1048,9 +1047,11 @@ void AD4695_SetTemperatureSensorEnable(uint8_t mode)
 	// Make sure mode is binary control
 	if (mode > ON) { mode = ON; }
 
+	if (mode) { debug("External ADC: Enabled reading Temperature sensor\r\n"); }
+	else { debug("External ADC: Disabled reading Temperature sensor\r\n"); }
+
 	AD4695_SpiWriteRegister(AD4695_REG_TEMP_CTRL, mode);
 }
-
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -1119,7 +1120,9 @@ void AD4695_EnterConversionMode(uint8_t enableChannelStatus)
 	if (enableChannelStatus)
 	{
 		AD4695_SpiWriteRegisterWithMask(AD4695_REG_SETUP, AD4695_SETUP_STATUS_ENABLE_MASK, AD4695_SETUP_STATUS_ENABLE_EN(ON));
+		debug("External ADC: Enabling channel status\r\n");
 	}
+	else { debug("External ADC: Disabling channel status\r\n"); }
 
 	// Enter conversion mode
 	AD4695_SpiWriteRegisterWithMask(AD4695_REG_SETUP, AD4695_SETUP_IF_MODE_MASK, AD4695_SETUP_IF_MODE_EN(ON));
@@ -1132,10 +1135,12 @@ void AD4695_EnterConversionMode(uint8_t enableChannelStatus)
 ///----------------------------------------------------------------------------
 void AD4695_ExitConversionMode()
 {
-	uint8_t command = AD4695_CMD_REG_CONFIG_MODE;
+	uint8_t command[3];
+	command[0] = AD4695_CMD_REG_CONFIG_MODE;
 
-	// Swap from conversion mode to register configuration mode
-	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, &command, sizeof(command), NULL, 0, BLOCKING);
+	SetAdcConversionState(ON);
+	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, command, 3, NULL, 0, BLOCKING);
+	SetAdcConversionState(OFF);
 
 	debug("External ADC: Exit Conversion mode...\r\n");
 }

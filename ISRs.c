@@ -2089,35 +2089,35 @@ static inline void getChannelDataWithReadbackWithTemp_ISR_Inline(void)
 	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
 	SetAdcConversionState(OFF);
 	s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-	if (chanDataRaw[3] != 0) { s_channelSyncError = YES; }
+	if (chanDataRaw[2] != 0) { s_channelSyncError = YES; }
 
 	// Chan 1 - T?
 	SetAdcConversionState(ON);
 	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
 	SetAdcConversionState(OFF);
 	s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-	if (chanDataRaw[3] != 1) { s_channelSyncError = YES; }
+	if (chanDataRaw[2] != 1) { s_channelSyncError = YES; }
 
 	// Chan 2 - V?
 	SetAdcConversionState(ON);
 	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
 	SetAdcConversionState(OFF);
 	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-	if (chanDataRaw[3] != 2) { s_channelSyncError = YES; }
+	if (chanDataRaw[2] != 2) { s_channelSyncError = YES; }
 
 	// Chan 3 - A
 	SetAdcConversionState(ON);
 	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
 	SetAdcConversionState(OFF);
 	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-	if (chanDataRaw[3] != 3) { s_channelSyncError = YES; }
+	if (chanDataRaw[2] != 3) { s_channelSyncError = YES; }
 
 	// Temperature
 	SetAdcConversionState(ON);
 	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
 	SetAdcConversionState(OFF);
 	g_currentTempReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-	if (chanDataRaw[3] != 15) { s_channelSyncError = YES; } // An INx value of 15 corresponds to either IN15 or the temperature sensor
+	if (chanDataRaw[2] != 15) { s_channelSyncError = YES; } // An INx value of 15 corresponds to either IN15 or the temperature sensor
 }
 
 ///----------------------------------------------------------------------------
