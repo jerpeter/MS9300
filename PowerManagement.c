@@ -23,6 +23,7 @@
 #include "ff.h"
 #include "mxc_delay.h"
 #include "stdlib.h"
+#include "spi.h"
 //#include "navigation.h"
 
 ///----------------------------------------------------------------------------
@@ -72,6 +73,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			debug("LCD Power Enable: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_LCD_POWER_ENABLE_PORT, GPIO_LCD_POWER_ENABLE_PIN); /* 20ms delay needed before FT810Q ready */ }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_LCD_POWER_ENABLE_PORT, GPIO_LCD_POWER_ENABLE_PIN); }
+			LcdPowerGpioSetup(mode);
 			break;
 
 		//----------------------------------------------------------------------------
@@ -80,6 +82,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			debug("Analog (5V) Enable: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_ENABLE_5V_PORT, GPIO_ENABLE_5V_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_ENABLE_5V_PORT, GPIO_ENABLE_5V_PIN); }
+			Analog5vPowerGpioSetup(mode);
 			break;
 
 		//----------------------------------------------------------------------------
@@ -136,6 +139,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			debug("Expansion Enable: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_EXPANSION_ENABLE_PORT, GPIO_EXPANSION_ENABLE_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_EXPANSION_ENABLE_PORT, GPIO_EXPANSION_ENABLE_PIN); }
+			ExpansionPowerGpioSetup(mode);
 			break;
 
 		//----------------------------------------------------------------------------
@@ -168,6 +172,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			debug("Cellular: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_CELL_ENABLE_PORT, GPIO_CELL_ENABLE_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_CELL_ENABLE_PORT, GPIO_CELL_ENABLE_PIN); }
+			CellPowerGpioSetup(mode);
 			break;
 
 		//----------------------------------------------------------------------------
@@ -238,31 +243,35 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 BOOLEAN GetPowerControlState(POWER_MGMT_OPTIONS option)
 {
 	BOOLEAN state = OFF;
+	uint32_t gpioReg = 0;
 
 	switch (option)
 	{
-		case ALARM_1_ENABLE: state = MXC_GPIO_OutGet(GPIO_ALERT_1_PORT, GPIO_ALERT_1_PIN); break;
-		case ALARM_2_ENABLE: state = MXC_GPIO_OutGet(GPIO_ALERT_2_PORT, GPIO_ALERT_2_PIN); break;
-		case LCD_POWER_ENABLE: state = MXC_GPIO_OutGet(GPIO_LCD_POWER_ENABLE_PORT, GPIO_LCD_POWER_ENABLE_PIN); break;
-		case ANALOG_5V_ENABLE: state = MXC_GPIO_OutGet(GPIO_ENABLE_5V_PORT, GPIO_ENABLE_5V_PIN); break;
-		case TRIGGER_OUT: state = MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_OUT_PORT, GPIO_EXTERNAL_TRIGGER_OUT_PIN); break;
-		case MCU_POWER_LATCH: state = MXC_GPIO_OutGet(GPIO_MCU_POWER_LATCH_PORT, GPIO_MCU_POWER_LATCH_PIN); break;
-		case ENABLE_12V: state = MXC_GPIO_OutGet(GPIO_ENABLE_12V_PORT, GPIO_ENABLE_12V_PIN); break;
-		case USB_SOURCE_ENABLE: state = MXC_GPIO_OutGet(GPIO_USB_SOURCE_ENABLE_PORT, GPIO_USB_SOURCE_ENABLE_PIN); break;
-		case USB_AUX_POWER_ENABLE: state = MXC_GPIO_OutGet(GPIO_USB_AUX_POWER_ENABLE_PORT, GPIO_USB_AUX_POWER_ENABLE_PIN); break;
-		case ADC_RESET: state = !MXC_GPIO_OutGet(GPIO_ADC_RESET_PORT, GPIO_ADC_RESET_PIN); break; // Active low, invert state
-		case EXPANSION_ENABLE: state = MXC_GPIO_OutGet(GPIO_EXPANSION_ENABLE_PORT, GPIO_EXPANSION_ENABLE_PIN); break;
-		case SENSOR_CHECK_ENABLE: state = MXC_GPIO_OutGet(GPIO_SENSOR_CHECK_ENABLE_PORT, GPIO_SENSOR_CHECK_ENABLE_PIN); break;
-		case LTE_RESET: state = !MXC_GPIO_OutGet(GPIO_LTE_RESET_PORT, GPIO_LTE_RESET_PIN); break; // Active low, invert state
-		case BLE_RESET: state = !MXC_GPIO_OutGet(GPIO_BLE_RESET_PORT, GPIO_BLE_RESET_PIN); break; // Active low, invert state
-		case CELL_ENABLE: state = MXC_GPIO_OutGet(GPIO_CELL_ENABLE_PORT, GPIO_CELL_ENABLE_PIN); break;
-		case EXPANSION_RESET: state = !MXC_GPIO_OutGet(GPIO_EXPANSION_RESET_PORT, GPIO_EXPANSION_RESET_PIN); break; // Active low, invert state
-		case LCD_POWER_DOWN: state = !MXC_GPIO_OutGet(GPIO_LCD_POWER_DOWN_PORT, GPIO_LCD_POWER_DOWN_PIN); break; // Active low, invert state
-		case LED_1: state = MXC_GPIO_OutGet(GPIO_LED_1_PORT, GPIO_LED_1_PIN); break;
-		case LED_2: state = MXC_GPIO_OutGet(GPIO_LED_2_PORT, GPIO_LED_2_PIN); break;
-		case LED_3: state = MXC_GPIO_OutGet(GPIO_LED_3_PORT, GPIO_LED_3_PIN); break;
-		case LED_4: state = MXC_GPIO_OutGet(GPIO_LED_4_PORT, GPIO_LED_4_PIN); break;
+		case ALARM_1_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_ALERT_1_PORT, GPIO_ALERT_1_PIN); break;
+		case ALARM_2_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_ALERT_2_PORT, GPIO_ALERT_2_PIN); break;
+		case LCD_POWER_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_LCD_POWER_ENABLE_PORT, GPIO_LCD_POWER_ENABLE_PIN); break;
+		case ANALOG_5V_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_ENABLE_5V_PORT, GPIO_ENABLE_5V_PIN); break;
+		case TRIGGER_OUT: gpioReg = MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_OUT_PORT, GPIO_EXTERNAL_TRIGGER_OUT_PIN); break;
+		case MCU_POWER_LATCH: gpioReg = MXC_GPIO_OutGet(GPIO_MCU_POWER_LATCH_PORT, GPIO_MCU_POWER_LATCH_PIN); break;
+		case ENABLE_12V: gpioReg = MXC_GPIO_OutGet(GPIO_ENABLE_12V_PORT, GPIO_ENABLE_12V_PIN); break;
+		case USB_SOURCE_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_USB_SOURCE_ENABLE_PORT, GPIO_USB_SOURCE_ENABLE_PIN); break;
+		case USB_AUX_POWER_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_USB_AUX_POWER_ENABLE_PORT, GPIO_USB_AUX_POWER_ENABLE_PIN); break;
+		case ADC_RESET: gpioReg = !MXC_GPIO_OutGet(GPIO_ADC_RESET_PORT, GPIO_ADC_RESET_PIN); break; // Active low, invert state
+		case EXPANSION_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_EXPANSION_ENABLE_PORT, GPIO_EXPANSION_ENABLE_PIN); break;
+		case SENSOR_CHECK_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_SENSOR_CHECK_ENABLE_PORT, GPIO_SENSOR_CHECK_ENABLE_PIN); break;
+		case LTE_RESET: gpioReg = !MXC_GPIO_OutGet(GPIO_LTE_RESET_PORT, GPIO_LTE_RESET_PIN); break; // Active low, invert state
+		case BLE_RESET: gpioReg = !MXC_GPIO_OutGet(GPIO_BLE_RESET_PORT, GPIO_BLE_RESET_PIN); break; // Active low, invert state
+		case CELL_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_CELL_ENABLE_PORT, GPIO_CELL_ENABLE_PIN); break;
+		case EXPANSION_RESET: gpioReg = !MXC_GPIO_OutGet(GPIO_EXPANSION_RESET_PORT, GPIO_EXPANSION_RESET_PIN); break; // Active low, invert state
+		case LCD_POWER_DOWN: gpioReg = !MXC_GPIO_OutGet(GPIO_LCD_POWER_DOWN_PORT, GPIO_LCD_POWER_DOWN_PIN); break; // Active low, invert state
+		case LED_1: gpioReg = MXC_GPIO_OutGet(GPIO_LED_1_PORT, GPIO_LED_1_PIN); break;
+		case LED_2: gpioReg = MXC_GPIO_OutGet(GPIO_LED_2_PORT, GPIO_LED_2_PIN); break;
+		case LED_3: gpioReg = MXC_GPIO_OutGet(GPIO_LED_3_PORT, GPIO_LED_3_PIN); break;
+		case LED_4: gpioReg = MXC_GPIO_OutGet(GPIO_LED_4_PORT, GPIO_LED_4_PIN); break;
 	}
+
+	// GPIO pin value tied to bit position so normalize to a logic 1 if any bit is set
+	if (gpioReg) { state = ON; }
 
 	return (state);
 }
@@ -285,14 +294,95 @@ BOOLEAN GetShadowPowerControlState(POWER_MGMT_OPTIONS option)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void Analog5vPowerGpioSetup(uint8_t mode)
+{
+	if (mode == ON)
+	{
+		MXC_GPIO_OutSet(GPIO_CAL_MUX_PRE_AD_ENABLE_PORT, GPIO_CAL_MUX_PRE_AD_ENABLE_PIN); // Disable (Active low)
+		MXC_GPIO_OutSet(GPIO_NYQUIST_2_ENABLE_PORT, GPIO_NYQUIST_2_ENABLE_PIN); // Disable (Active low)
+		MXC_GPIO_OutSet(GPIO_GAIN_SELECT_GEO1_PORT, GPIO_GAIN_SELECT_GEO1_PIN); // Enable (Active high)
+		MXC_GPIO_OutSet(GPIO_GAIN_SELECT_GEO2_PORT, GPIO_GAIN_SELECT_GEO2_PIN); // Enable (Active high)
+		MXC_GPIO_OutSet(GPIO_PATH_SELECT_AOP1_PORT, GPIO_PATH_SELECT_AOP1_PIN); // Enable (Active high)
+		MXC_GPIO_OutSet(GPIO_PATH_SELECT_AOP2_PORT, GPIO_PATH_SELECT_AOP2_PIN); // Enable (Active high)
+
+		SetupSPI3_ExternalADC();
+	}
+	else // (mode == OFF)
+	{
+		MXC_GPIO_OutClr(GPIO_CAL_MUX_PRE_AD_ENABLE_PORT, GPIO_CAL_MUX_PRE_AD_ENABLE_PIN); // Set low to prevent back powering
+		MXC_GPIO_OutClr(GPIO_NYQUIST_2_ENABLE_PORT, GPIO_NYQUIST_2_ENABLE_PIN); // Set low to prevent back powering
+		MXC_GPIO_OutClr(GPIO_GAIN_SELECT_GEO1_PORT, GPIO_GAIN_SELECT_GEO1_PIN); // Set low to prevent back powering
+		MXC_GPIO_OutClr(GPIO_GAIN_SELECT_GEO2_PORT, GPIO_GAIN_SELECT_GEO2_PIN); // Set low to prevent back powering
+		MXC_GPIO_OutClr(GPIO_PATH_SELECT_AOP1_PORT, GPIO_PATH_SELECT_AOP1_PIN); // Set low to prevent back powering
+		MXC_GPIO_OutClr(GPIO_PATH_SELECT_AOP2_PORT, GPIO_PATH_SELECT_AOP2_PIN); // Set low to prevent back powering
+
+		MXC_SPI_Shutdown(MXC_SPI3);
+		mxc_gpio_cfg_t gpio_cfg_spi3 = { MXC_GPIO0, (GPIO_ADC_SPI3_SCK_PIN | GPIO_ADC_SPI3_SS0_PIN | GPIO_ADC_SPI3_SDO1_PIN | GPIO_ADC_SPI3_SDI_PIN), MXC_GPIO_FUNC_IN, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
+		MXC_GPIO_Config(&gpio_cfg_spi3);
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void LcdPowerGpioSetup(uint8_t mode)
+{
+	if (mode == ON)
+	{
+		SetupSPI2_LCD();
+	}
+	else // (mode == OFF)
+	{
+		MXC_SPI_Shutdown(MXC_SPI2);
+		mxc_gpio_cfg_t gpio_cfg_spi2 = { MXC_GPIO2, (GPIO_LCD_SPI2_SCK_PIN | GPIO_LCD_SPI2_MISO_PIN | GPIO_LCD_SPI2_MOSI_PIN | GPIO_LCD_SPI2_SS0_PIN), MXC_GPIO_FUNC_IN, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
+		MXC_GPIO_Config(&gpio_cfg_spi2);
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void ExpansionPowerGpioSetup(uint8_t mode)
+{
+	if (mode == ON)
+	{
+
+	}
+	else // (mode == OFF)
+	{
+
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void CellPowerGpioSetup(uint8_t mode)
+{
+	if (mode == ON)
+	{
+		MXC_GPIO_OutSet(GPIO_LTE_RESET_PORT, GPIO_LTE_RESET_PIN); // Disable (Active low)
+		MXC_GPIO_OutSet(GPIO_BLE_RESET_PORT, GPIO_BLE_RESET_PIN); // Disable (Active low)
+	}
+	else // (mode == OFF)
+	{
+		MXC_GPIO_OutClr(GPIO_LTE_RESET_PORT, GPIO_LTE_RESET_PIN); // Set low to prevent back powering
+		MXC_GPIO_OutClr(GPIO_BLE_RESET_PORT, GPIO_BLE_RESET_PIN); // Set low to prevent back powering
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 uint8_t GetCurrentLedStates(void)
 {
 	uint8_t state;
 
-	state = MXC_GPIO_OutGet(GPIO_LED_1_PORT, GPIO_LED_1_PIN);
-	state |= (MXC_GPIO_OutGet(GPIO_LED_2_PORT, GPIO_LED_2_PIN) << 1);
-	state |= (MXC_GPIO_OutGet(GPIO_LED_3_PORT, GPIO_LED_3_PIN) << 2);
-	state |= (MXC_GPIO_OutGet(GPIO_LED_4_PORT, GPIO_LED_4_PIN) << 3);
+	// Get the LED states and shift bit representation to the lowest nibble, with LED 1 at bit 0
+	state = (MXC_GPIO_OutGet(GPIO_LED_1_PORT, GPIO_LED_1_PIN) ? ON : OFF);
+	state |= ((MXC_GPIO_OutGet(GPIO_LED_2_PORT, GPIO_LED_2_PIN) ? ON : OFF) << 1);
+	state |= ((MXC_GPIO_OutGet(GPIO_LED_3_PORT, GPIO_LED_3_PIN) ? ON : OFF) << 2);
+	state |= ((MXC_GPIO_OutGet(GPIO_LED_4_PORT, GPIO_LED_4_PIN) ? ON : OFF) << 3);
 
 	return (state);
 }
@@ -938,6 +1028,41 @@ void BatteryChargerInit(void)
 
 	// Set Continuous mode for ADC_CONV
 	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0090);
+
+#if 0 /* Test PG BC line with interrupt */
+	debug("Testing BC PG line...\r\n");
+	while(1) {}
+#endif
+#if 0 /* Test interrupt pin, verified line going low triggers the MCU int, but can't get the part to issue an int */
+	uint16_t readReg;
+	uint8_t nullReg;
+	while (1)
+	{
+		// Enable Watchdog for 40s and reset WD
+		SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, 0x3E93);
+		debug("Battery Charger: Status/Fault Reg 0 after clear reads: 0x%x\r\n", ReturnBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_0));
+		//debug("Battery Charger: Status/Fault Reg 1 after clear reads: 0x%x\r\n", ReturnBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_1));
+		for (uint8_t i = 0; i < 9; i++) { MXC_Delay(MXC_DELAY_SEC(5)); debug("Battery Charger: Delay...\r\n"); }
+		// Read int status reg 16 and 17
+		//debug("Battery Charger: Status/Fault Reg 0 reads: 0x%x\r\n", ReturnBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_0));
+		readReg = ReturnBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_0);
+		debug("Battery Charger: Status/Fault Reg 0 reads: 0x%x\r\n", readReg);
+		//readReg = ReturnBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_1);
+		//debug("Battery Charger: Status/Fault Reg 1 reads: 0x%x\r\n", readReg);
+		if (readReg)
+		{
+			SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, 0x3ED3);
+			debug("Battery Charger: Interrupt found, clearing...\r\n");
+			//WriteI2CDevice(MXC_I2C0, (0x18 >> 1), &writeReg, 1, NULL, 0); }
+			//WriteI2CDevice(MXC_I2C0, (0x18 >> 1), NULL, 0, NULL, 0);
+			WriteI2CDevice(MXC_I2C0, (0x18 >> 0), NULL, 0, NULL, 0);
+			//WriteI2CDevice(MXC_I2C0, (0x18 >> 1), NULL, 0, &nullReg, 1);
+			WriteI2CDevice(MXC_I2C0, (0x18 >> 0), NULL, 0, &nullReg, 1);
+			//WriteI2CDevice(MXC_I2C0, (0x18 >> 1), NULL, 0, (uint8_t*)&readReg, 2);
+			WriteI2CDevice(MXC_I2C0, (0x18 >> 0), NULL, 0, (uint8_t*)&readReg, 2);
+		}
+	}
+#endif
 }
 
 ///============================================================================
@@ -1427,8 +1552,13 @@ int Ltc2944_set_current_thr(int r_sense, int currThrCharging, int currThrDischar
 	uint16_t currThrLow;
 
 	// Current in mA converted to A for equation
+#if 0 /* Original */
 	currThrHigh = ((((currThrCharging / 1000) * r_sense * 0x7FFF) / 64) + 0x7FFF);
 	currThrLow = ((((-currThrDischarging / 1000) * r_sense * 0x7FFF) / 64) + 0x7FFF);
+#else /* Prevent small number integer divison leading to zero */
+	currThrHigh = ((((currThrCharging * r_sense * 0x7FFF) / 1000) / 64) + 0x7FFF);
+	currThrLow = ((((-currThrDischarging * r_sense * 0x7FFF) / 1000) / 64) + 0x7FFF);
+#endif
 
 	// Set new charge value
 	dataWrite[0] = I16_MSB(currThrHigh);
@@ -1770,9 +1900,10 @@ void FuelGaugeInit(void)
 
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
+		debug("Fuel Gauge: Prescaler set for Single Pack\r\n");
 		Ltc2944_device.prescaler = LTC2944_PRESCALER_256; // Single pack
 	}
-	else { Ltc2944_device.prescaler = LTC2944_PRESCALER_1024; } // Double pack
+	else { debug("Fuel Gauge: Prescaler set for Double Pack\r\n"); Ltc2944_device.prescaler = LTC2944_PRESCALER_1024; } // Double pack
 
 	Ltc2944_device.Qlsb = (((((340 * 1000) * 50) / Ltc2944_device.r_sense) * LTC2944_M_256) / LTC2944_MAX_PRESCALER); // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
 	//debug("Fuel Gauge: Qlsb = %d (size: %d)\r\n", Ltc2944_device.Qlsb, sizeof(Ltc2944_device.Qlsb));
@@ -1892,4 +2023,50 @@ void FuelGaugeInit(void)
 	Ltc2944_config(Ltc2944_device.prescaler, LTC2944_REG_CONTROL_MODE_SCAN);
 #endif
 	FuelGaugeDebugInfo();
+
+#if 0 /* Test Fuel Gauge ALCC interrupt pin */
+	debug("Fuel Gauge: Re-enabling Auto mode\r\n");
+	Ltc2944_config(Ltc2944_device.prescaler, LTC2944_REG_CONTROL_MODE_AUTO);
+
+	uint8_t readReg, readReg2;
+	debug("Fuel Gauge: Enabling Alert mode (ALCC pin)\r\n");
+	uint8_t writeReg = 0xE4; Ltc2944_write_regs(LTC2944_REG_CONTROL, &writeReg, 1);
+
+	Ltc2944_read_regs(LTC2944_REG_STATUS, &readReg, 1); debug("Fuel Gauge: Status register is 0x%x\r\n", readReg);
+
+	while (1)
+	{
+		//debug("Fuel Gauge: Setting threshold values out of range to test ALCC interrupt\r\n");
+		//Ltc2944_set_voltage_thr(5400, 5000);
+		//Ltc2944_set_current_thr(Ltc2944_device.r_sense, 1, 1); // Single pack
+		Ltc2944_set_temp_thr(0, -20);
+
+		//Ltc2944_read_regs(LTC2944_REG_STATUS, &readReg, 1); debug("Fuel Gauge: Status register is 0x%x\r\n", readReg);
+		MXC_Delay(MXC_DELAY_MSEC(50));
+		Ltc2944_read_regs(LTC2944_REG_STATUS, &readReg, 1); //debug("Fuel Gauge: Status register is 0x%x\r\n", readReg);
+
+		if (readReg)
+		{
+			// Special method to clear the alert response (interrupt) to allow the ALCC pin to continue to function
+			WriteI2CDevice(MXC_I2C1, (0x18 >> 1), NULL, 0, &readReg, 1);
+
+			// Follow up read no necessary, but is the following transaction ok?
+			//WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GUAGE, NULL, 0, &readReg, 1);
+		}
+		Ltc2944_read_regs(LTC2944_REG_CONTROL, &readReg, 1);
+		Ltc2944_read_regs(LTC2944_REG_STATUS, &readReg2, 1);
+		debug("Fuel Gauge: Control/Status register is 0x%x/0x%x\r\n", readReg, readReg2);
+
+		//debug("Fuel Gauge: Setting threshold values in range\r\n");
+		//Ltc2944_set_voltage_thr(7300, 5400);
+		//Ltc2944_set_current_thr(Ltc2944_device.r_sense, 3000, 3000); // Single pack
+		Ltc2944_set_temp_thr(60, -20);
+
+		//Ltc2944_read_regs(LTC2944_REG_STATUS, &readReg, 1); debug("Fuel Gauge: Status register is 0x%x\r\n", readReg);
+		MXC_Delay(MXC_DELAY_MSEC(50));
+		Ltc2944_read_regs(LTC2944_REG_STATUS, &readReg, 1); //debug("Fuel Gauge: Status register is 0x%x\r\n", readReg);
+	}
+
+	//Ltc2944_read_regs(LTC2944_REG_CONTROL, &readReg, 1); debug("Fuel Gauge: Control register is 0x%x\r\n", readReg);
+#endif
 }
