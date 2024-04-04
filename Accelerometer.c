@@ -30,6 +30,10 @@
 #define ACC_CHANNEL_DATA_START_REGISTER 0x08
 #define ACC_CHANNEL_DATA_SIZE   6
 #define ACC_COMMAND_TEST_RESPONSE_REGISTER  0x12
+#define ACC_INTERRUPT_SOURCE_1_REGISTER  0x16
+#define ACC_INTERRUPT_SOURCE_2_REGISTER  0x17
+#define ACC_INTERRUPT_SOURCE_3_REGISTER  0x18
+#define ACC_INTERRUPT_RELEASE_REGISTER  0x1A
 #define ACC_CONTROL_1_REGISTER  0x1B
 #define ACC_CONTROL_2_REGISTER  0x1C
 #define ACC_CONTROL_3_REGISTER  0x1D
@@ -37,6 +41,11 @@
 #define ACC_CONTROL_5_REGISTER  0x1F
 #define ACC_CONTROL_6_REGISTER  0x20
 #define ACC_INTERRUPT_CONTROL_1_REGISTER  0x22
+#define ACC_INTERRUPT_CONTROL_2_REGISTER  0x23
+#define ACC_INTERRUPT_CONTROL_3_REGISTER  0x24
+#define ACC_INTERRUPT_CONTROL_4_REGISTER  0x25
+#define ACC_INTERRUPT_CONTROL_5_REGISTER  0x26
+#define ACC_INTERRUPT_CONTROL_6_REGISTER  0x27
 #define ACC_SELF_TEST_REGISTER  0x5D
 
 typedef struct
@@ -315,6 +324,12 @@ void AccelerometerInit(void)
         // Put the Acc in standby mode to allow changing control register values
         SetAccRegister(ACC_CONTROL_1_REGISTER, 0x00);
 
+#if 0 /* Test */
+        // Reset interrupt controls
+        SetAccRegister(ACC_INTERRUPT_CONTROL_1_REGISTER, 0x10);
+        SetAccRegister(ACC_INTERRUPT_CONTROL_5_REGISTER, 0x10);
+#endif
+
         uint8_t testData;
         GetAccRegister(ACC_CONTROL_2_REGISTER, &testData);
         if (testData == 0x3F) { debug("Accelerometer: Ctrl2 is default value\r\n"); }
@@ -369,6 +384,60 @@ void AccelerometerInit(void)
         }
 
         StopAccAquisition();
+#endif
+
+#if 0 /* Test Accel Trig control */
+        while (1)
+        {
+            SetAccelerometerTriggerState(ON);
+            MXC_Delay(MXC_DELAY_MSEC(1));
+            SetAccelerometerTriggerState(OFF);
+            MXC_Delay(MXC_DELAY_MSEC(1));
+        }
+#endif
+
+#if 0 /* Test interrupts */
+        debug("Accelerometer: Both interrupts setup\r\n");
+        SetAccRegister(ACC_INTERRUPT_CONTROL_1_REGISTER, 0x38);
+        SetAccRegister(ACC_INTERRUPT_CONTROL_4_REGISTER, 0xFF);
+        SetAccRegister(ACC_INTERRUPT_CONTROL_5_REGISTER, 0x38);
+        SetAccRegister(ACC_INTERRUPT_CONTROL_6_REGISTER, 0xFF);
+
+        SetAccRegister(ACC_CONTROL_4_REGISTER, 0x70);
+
+        GetAccRegister(ACC_INTERRUPT_RELEASE_REGISTER, &testData);
+
+        debug("Accelerometer: Start operating...\r\n");
+        GetAccRegister(ACC_CONTROL_1_REGISTER, &testData);
+        testData |= 0xE5;
+        SetAccRegister(ACC_CONTROL_1_REGISTER, testData);
+
+        //MXC_Delay(MXC_DELAY_SEC(8));
+extern volatile uint8_t testAccInt;
+        uint8_t is1, is2, is3, count = 0;
+        SetAccelerometerTriggerState(ON);
+        MXC_Delay(MXC_DELAY_MSEC(5));
+        SetAccelerometerTriggerState(OFF);
+        while (1)
+        {
+            if (testAccInt)
+            {
+                GetAccRegister(ACC_INTERRUPT_SOURCE_1_REGISTER, &is1);
+                GetAccRegister(ACC_INTERRUPT_SOURCE_2_REGISTER, &is2);
+                GetAccRegister(ACC_INTERRUPT_SOURCE_3_REGISTER, &is3);
+                GetAccRegister(ACC_INTERRUPT_RELEASE_REGISTER, &testData);
+                debug("Accelerometer: Interrupt source regs: 0x%x 0x%x 0x%x\r\n", is1, is2, is3);
+                testAccInt = 0;
+
+                if (++count > 20) break;
+            }
+        }
+#endif
+
+#if 0 /* Test */
+        // Reset interrupt controls
+        SetAccRegister(ACC_INTERRUPT_CONTROL_1_REGISTER, 0x10);
+        SetAccRegister(ACC_INTERRUPT_CONTROL_5_REGISTER, 0x10);
 #endif
 
         // Put the Accelerometer in manual sleep
