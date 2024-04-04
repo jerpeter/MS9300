@@ -270,6 +270,9 @@ void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 #define REG_GPIO             0x302094UL //  8RW Legacy GPIO pin direction
 #define REG_GPIOX_DIR        0x302098UL // 16RW Extended GPIO pin direction 0=In 1=Out
 #define REG_GPIOX            0x30209cUL // 16RW Extended GPIO read/write
+#define REG_INT_FLAGS        0x3020A8UL //  8RW Interrupt flags, clear by read
+#define REG_INT_EN           0x3020ACUL //  1RW Global interrupt enable, 1=enable
+#define REG_INT_MASK         0x3020B0UL //  8RW Individual interrupt enable, 1=enable
 #define REG_PLAYBACK_START   0x3020b4UL // 20RW Start of audio data in G_RAM
 #define REG_PLAYBACK_LENGTH  0x3020b8UL // 20RW Length of audio data in G_RAM to play
 #define REG_PLAYBACK_FREQ    0x3020c0UL // 16RO The sampling fequency of audio playback data. Units is in Hz.

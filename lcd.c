@@ -1350,8 +1350,8 @@ void ft81x_assert_cs(bool assert)
 {
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL)
 	{
-		if (assert) { MXC_GPIO_OutClr(GPIO_SPI_2_SS_0_LCD_PORT, GPIO_SPI_2_SS_0_LCD_PIN); }
-		else { MXC_GPIO_OutSet(GPIO_SPI_2_SS_0_LCD_PORT, GPIO_SPI_2_SS_0_LCD_PIN); }
+		if (assert) { MXC_GPIO_OutClr(GPIO_LCD_SPI2_SS0_PORT, GPIO_LCD_SPI2_SS0_PIN); }
+		else { MXC_GPIO_OutSet(GPIO_LCD_SPI2_SS0_PORT, GPIO_LCD_SPI2_SS0_PIN); }
 	}
 	else // SPI2 Slave select controlled by the SPI driver
 	{
@@ -1945,6 +1945,18 @@ void test_dots(
  */
 uint8_t ft81x_init(void)
 {
+	mxc_gpio_cfg_t setupGPIO;
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL)
+	{
+		setupGPIO.port = GPIO_LCD_SPI2_SS0_PORT;
+		setupGPIO.mask = GPIO_LCD_SPI2_SS0_PIN;
+		setupGPIO.func = MXC_GPIO_FUNC_OUT;
+		setupGPIO.pad = MXC_GPIO_PAD_NONE;
+		setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+		MXC_GPIO_Config(&setupGPIO);
+		MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as disabled
+	}
+
     if (GetPowerControlState(LCD_POWER_ENABLE) == OFF) { PowerControl(LCD_POWER_ENABLE, ON); }
     if (GetPowerControlState(LCD_POWER_DOWN) == ON)
 	{
@@ -1978,7 +1990,7 @@ uint8_t ft81x_init(void)
 	select_spi_byte_width();
 #if 0 /* Normal */
 	ft81x_backlight_off();
-#else /* Test */
+#else /* Test register access */
 	uint16_t rData;
 	rData = ft81x_rd16(REG_SPI_WIDTH);
 	debug("LCD Controller: SPI Width is 0x%x\r\n", rData);
@@ -2008,6 +2020,24 @@ uint8_t ft81x_init(void)
 
 #if 1 /* Test */
 	test_memory_ops();
+#endif
+
+#if 0 /* Test LCD interrupt */
+	// Have to set enable for interrupts to work, then status based on mask
+	ft81x_wr(REG_INT_EN, 0x01);
+	ft81x_wr(REG_INT_MASK, 0x61);
+	debug("LCD Controller: Global Int Enable is 0x%x, Mask is 0x%x\r\n", ft81x_rd(REG_INT_EN), ft81x_rd(REG_INT_MASK));
+	while (1)
+	{
+		test_black_screen();
+		debug("LCD Controller: Flags are 0x%x\r\n", ft81x_rd(REG_INT_FLAGS));
+		debug("LCD Controller: Flags are 0x%x\r\n", ft81x_rd(REG_INT_FLAGS));
+		MXC_Delay(MXC_DELAY_SEC(1));
+		test_white_screen();
+		debug("LCD Controller: Flags are 0x%x\r\n", ft81x_rd(REG_INT_FLAGS));
+		debug("LCD Controller: Flags are 0x%x\r\n", ft81x_rd(REG_INT_FLAGS));
+		MXC_Delay(MXC_DELAY_SEC(1));
+	}
 #endif
 
 	return true;
