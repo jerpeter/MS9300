@@ -242,6 +242,9 @@ void Fuel_gauge_alert_irq(void)
 	//debugRaw("'");
 	debugWarn("-(ISR) FG alert-\r\n");
 
+	// Flag for special method to clear the alert response (interrupt) to allow the ALCC pin to continue to function
+	// Todo: create FG flag for carrying out operation
+
 	// Clear Fuel Gauge Alert interrupt flag (Port 0, Pin 4)
 	GPIO_GAUGE_ALERT_PORT->int_clr = GPIO_GAUGE_ALERT_PIN;
 }
@@ -275,11 +278,14 @@ void Expansion_irq(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint8_t usbIsrActive = NO;
 __attribute__((__interrupt__))
 void Usbc_port_controller_i2c_irq(void)
 {
 	//debugRaw("/");
-	debugWarn("-(ISR) USB I2C-");
+	debugWarn("-(ISR) USB I2C-\r\n");
+
+	usbIsrActive = YES;
 
 	// Clear USBC I2C interrupt flag (Port 1, Pin 11)
 	GPIO_USBC_PORT_CONTROLLER_I2C_IRQ_PORT->int_clr = GPIO_USBC_PORT_CONTROLLER_I2C_IRQ_PIN;
@@ -289,10 +295,26 @@ void Usbc_port_controller_i2c_irq(void)
 ///	Function Break
 ///----------------------------------------------------------------------------
 __attribute__((__interrupt__))
+void Power_good_battery_charger_irq(void)
+{
+	//debugRaw("_");
+	debugWarn("-(ISR) PG BC-\r\n");
+
+	// Clear PG BC interrupt flag (Port 0, Pin 12)
+	GPIO_POWER_GOOD_BATTERY_CHARGE_PORT->int_clr = GPIO_POWER_GOOD_BATTERY_CHARGE_PIN;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+volatile uint8_t testAccInt = 0;
+__attribute__((__interrupt__))
 void Accelerometer_irq_1(void)
 {
 	//debugRaw("<");
-	debugWarn("-(ISR) Acc IRQ 1-");
+	//debugWarn("-(ISR) Acc IRQ 1-\r\n");
+
+	testAccInt = 1;
 
 	// Clear Accelerometer interrupt flag 1 (Port 1, Pin 12)
 	GPIO_ACCEL_INT_1_PORT->int_clr = GPIO_ACCEL_INT_1_PIN;
@@ -305,7 +327,9 @@ __attribute__((__interrupt__))
 void Accelerometer_irq_2(void)
 {
 	//debugRaw(">");
-	debugWarn("-(ISR) Acc IRQ 2-");
+	//debugWarn("-(ISR) Acc IRQ 2-\r\n");
+
+	testAccInt = 1;
 
 	// Clear Accelerometer interrupt flag 2 (Port 1, Pin 13)
 	GPIO_ACCEL_INT_2_PORT->int_clr = GPIO_ACCEL_INT_2_PIN;
@@ -318,7 +342,7 @@ __attribute__((__interrupt__))
 void External_rtc_irq(void)
 {
 	//debugRaw("`");
-	debugWarn("-(ISR) Ext RTC-");
+	debugWarn("-(ISR) Ext RTC-\r\n");
 
 	// Clear External RTC interrupt flag (Port 1, Pin 28)
 	GPIO_EXT_RTC_INTA_PORT->int_clr = GPIO_EXT_RTC_INTA_PIN;
@@ -331,7 +355,7 @@ __attribute__((__interrupt__))
 void Lcd_irq(void)
 {
 	//debugRaw(":");
-	//debugRaw("-LCD IRQ-");
+	debugRaw("-LCD IRQ-\r\n");
 
 	// Clear LCD interrupt flag (Port 2, Pin 6)
 	GPIO_LCD_INT_PORT->int_clr = GPIO_LCD_INT_PIN;
@@ -588,6 +612,31 @@ void Soft_timer_tick_irq(void)
 	}
 
 	CYCLIC_HALF_SEC_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+#if 1 /* Test */
+volatile uint8_t psChange = 0;
+volatile uint32_t g_lifetimePeriodicSecondCount = 0;
+#endif
+__attribute__((__interrupt__))
+void External_rtc_periodic_timer(void)
+{
+	// Based on Internal PIT timer, but will not generate interrupts in Deepsleep or Backup
+
+	// Test print to verify the interrupt is running
+	//debugRaw("$");
+
+	// Increment the lifetime soft timer tick count
+	g_lifetimePeriodicSecondCount++;
+
+#if 1 /* Test */
+	psChange = 1;
+#endif
+
+	MXC_GPIO_ClearFlags(GPIO_EXT_RTC_INTA_PORT, GPIO_EXT_RTC_INTA_PIN);
 }
 
 ///----------------------------------------------------------------------------
@@ -2363,9 +2412,20 @@ void Sample_irq(void)
 	uint32 startTiming = DWT->CYCCNT;
 #endif
 
+#if 0 /* Test */
+static uint32_t trash = 0;
+	if (++trash % 1024 == 0) { debugRaw("-"); }
+#endif
+
 	//___________________________________________________________________________________________
 	//___Test timing (throw away at some point)
 	g_sampleCount++;
+	//if (g_sampleCount % 1024 == 0) { debugRaw("+"); }
+
+#if 1 /* Test sample count */
+	MXC_GPIO_ClearFlags(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	return;
+#endif
 
 	//___________________________________________________________________________________________
 	//___Check for Adaptive sampling w/ Min rate and off boundary
