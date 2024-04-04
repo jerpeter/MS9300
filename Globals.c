@@ -284,7 +284,7 @@ uint8 g_serialNumberCache[SERIAL_NUMBER_CACHE_ENTRIES][SERIAL_NUMBER_STRING_SIZE
 uint32 g_execCycles = 0;
 FLASH_USAGE_STRUCT g_sdCardUsageStats;
 SUMMARY_LIST_FILE_DETAILS g_summaryList;
-volatile uint32 g_sampleCount = 0;
+/* volatile */ uint32 g_sampleCount = 0;
 uint32 g_sampleCountHold = 0;
 uint8 g_channelSyncError = NO;
 uint8 g_powerOffActivated = NO;
