@@ -826,6 +826,10 @@ void ExpansionBridgeInit(void)
 	debug("Expansion I2C Uart Bridge: Powered on, Scratchpad test...\r\n");
 	TestUartBridgeScratchpad();
 
+#if 0 /* Test interrupt line */
+	WriteUartBridgeControlRegister(PI7C9X760_REG_IER, 0xEF);
+#endif
+
 	// Make sure Expansion bridge is turned off
 	if (GetPowerControlState(EXPANSION_ENABLE) == ON)
 	{
