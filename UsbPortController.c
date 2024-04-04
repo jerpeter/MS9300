@@ -81,6 +81,7 @@
 #define TPS_4CC_PBMS	"PBMs" /* Start Patch Burst Mode Download Sequence */
 #define TPS_4CC_PBMC	"PBMc" /* Patch Burst Mode Download Complete */
 #define TPS_4CC_PBME	"PBMe" /* End Patch Burst Mode Download Sequence */
+#define TPS_4CC_GO2P	"GO2P" /* Go to Patch mode */
 #define TPS_4CC_SWSK	"SWSk" /* Swap to sink power role */
 #define TPS_4CC_SWSR	"SWSr" /* Swap to source power role */
 #define TPS_4CC_SWUF	"SWUF" /* Swap to up facing stream (device) */
@@ -97,7 +98,7 @@
  * pg.48 TPS2575 Host Interface Technical Reference
  * Manual (Rev. A)
  */
-#define TPS_BUNDLE_SLAVE_ADDR	0x42 //0x0F
+#define TPS_BUNDLE_SLAVE_ADDR	0x40 // Poorly documented, needs to be one of the possible TPS2575 I2C device addresses, but not the one configured
 
 /*
  * BPMs task timeout, recommended 5 seconds
@@ -247,6 +248,10 @@ static int tps25750_wait_cmd_complete(struct tps25750 *tps, unsigned long timeou
 			return -ETIMEDOUT;
 #endif
 
+#if 0 /* Test */
+		debugRaw("<%d>", val);
+#endif
+
 		// Delay 10ms
 		MXC_Delay(MXC_DELAY_MSEC(10));
 	} while (val);
@@ -269,16 +274,25 @@ static int tps25750_exec_cmd(struct tps25750 *tps, const char *cmd, size_t in_le
 		ret = tps25750_block_write(tps, TPS_REG_DATA1, in_data, in_len);
 		if (ret)
 			return ret;
-	} else {
+	}
+#if 1 /* Original */
+	else {
 		/*
 		 * For some reason, if no data is written to
 		 * TPS_REG_DATA1 before sending 4CC, then 4CC would fail
 		 */
 		dummy[0] = TPS_REG_DATA1;
+#if 0 /* Test */
+		dummy[1] = 0;
+		dummy[2] = 0;
+#endif
 		ret = tps25750_block_write_raw(tps, dummy, sizeof(dummy));
 		if (ret)
 			return ret;
 	}
+#else
+	UNUSED(dummy);
+#endif
 
 	ret = tps25750_block_write(tps, TPS_REG_CMD1, cmd, 4);
 	if (ret)
@@ -372,7 +386,27 @@ static int tps25750_complete_patch_process(struct tps25750 *tps)
 		debugRaw("\r\nUSB Port Controller: PBMc Outout data: ");
 		for (uint8_t i = 0; i < 40; i++) { debugRaw("%02x ", out_data[i]); }
 		debugRaw("\r\n");
+
+#if 0 /* Test to read status */
+//extern uint8_t usbIsrActive;
+	//if (usbIsrActive)
+	{
+		//usbIsrActive = NO;
+		tps25750_block_read(tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11); debug("USB Port Controller: Int Event1 Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+		tps25750_block_read(tps, TPS_REG_STATUS, g_debugBuffer, 5); debug("USB Port Controller: Status Register is 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4]);
+		memset(g_debugBuffer, 0xFF, 11); tps25750_block_write(tps, TPS_REG_INT_CLEAR1, g_debugBuffer, 11);
+		tps25750_block_read(tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11); debug("USB Port Controller: Int Event1 Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+	}
+#endif
+
+#if 1 /* Normal */
 		return E_COMM_ERR;
+#else /* Test */
+	debug("USB Port Controller: Sending PBMe command...\r\n");
+	ret = tps25750_exec_normal_cmd(tps, TPS_4CC_PBME);
+	if (ret)
+		return ret;
+#endif
 	}
 
 	if (out_data[TPS_PBMC_DPCS]) {
@@ -671,7 +705,7 @@ release_lock:
 ///----------------------------------------------------------------------------
 int tps25750_write_firmware(struct tps25750 *tps, uint8_t *data, size_t len)
 {
-	int ret;
+	int ret = 0;
 	//uint8_t addr;
 	//int timeout;
 
@@ -686,7 +720,37 @@ int tps25750_write_firmware(struct tps25750 *tps, uint8_t *data, size_t len)
 	//tps->client->adapter->timeout = 5000; //msecs_to_jiffies(5000);
 	//tps->client->addr = TPS_BUNDLE_SLAVE_ADDR;
 
+#if 0 /* Original */
 	ret = tps25750_block_write_raw(tps, data, len);
+#elif 0 /* Test chopped up segment write */
+	while (len > 32)
+	{
+		// Write 32 byte block length
+		ret = tps25750_block_write_raw(tps, data, 32);
+		if (ret) { debugErr("USB Port Controller: Write firmware blocks failed\r\n"); return (ret); }
+		data += 32;
+		len -= 32;
+	}
+
+	if (len)
+	{
+		// Write remaining length
+		ret = tps25750_block_write_raw(tps, data, len);
+		if (ret) { debugErr("USB Port Controller: Write firmware blocks failed\r\n"); return (ret); }
+	}
+#elif 1 /* Test Alt whole */
+	ret = WriteI2CDevice(MXC_I2C0, TPS_BUNDLE_SLAVE_ADDR, data, len, NULL, 0);
+#else
+	while (len)
+	{
+		// Write 32 byte block length
+		//ret = tps25750_block_write_raw(tps, data, 1);
+		ret = WriteI2CDevice(MXC_I2C0, TPS_BUNDLE_SLAVE_ADDR, data, len, NULL, 0);
+		if (ret) { debugErr("USB Port Controller: Write firmware blocks failed\r\n"); return (ret); }
+		data++;
+		len--;
+	}
+#endif
 
 	//tps->client->addr = addr;
 	//tps->client->adapter->timeout = timeout;
@@ -701,7 +765,7 @@ extern const char tps25750x_lowRegion_i2c_array[];
 extern int gSizeLowRegionArray;
 static int tps25750_start_patch_burst_mode(struct tps25750 *tps)
 {
-#if 1 /* Skip until patch ready */
+#if 0 /* Skip until patch ready */
 	int ret = 0;
 #else /* Todo: fill in equivalent */
 	int ret;
@@ -713,12 +777,40 @@ static int tps25750_start_patch_burst_mode(struct tps25750 *tps)
 	} __packed pbms_in_data;
 
 	pbms_in_data.fw_size = gSizeLowRegionArray;
-	pbms_in_data.i2c_slave_addr = 0x42; //I2C_ADDR_USBC_PORT_CONTROLLER; //TPS_BUNDLE_SLAVE_ADDR;
+	pbms_in_data.i2c_slave_addr = TPS_BUNDLE_SLAVE_ADDR;
 	pbms_in_data.timeout = TPS_BUNDLE_TIMEOUT;
+
+#if 0 /* Test to read status */
+extern uint8_t usbIsrActive;
+	if (usbIsrActive)
+	{
+		usbIsrActive = NO;
+		tps25750_block_read(tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11); debug("USB Port Controller: Int Event1 Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+		tps25750_block_read(tps, TPS_REG_STATUS, g_debugBuffer, 5); debug("USB Port Controller: Status Register is 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4]);
+		memset(g_debugBuffer, 0xFF, 11); tps25750_block_write(tps, TPS_REG_INT_CLEAR1, g_debugBuffer, 11);
+		tps25750_block_read(tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11); debug("USB Port Controller: Int Event1 Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+	}
+#endif
 
 	ret = tps25750_exec_patch_cmd_pbms(tps, (uint8_t *)&pbms_in_data, sizeof(pbms_in_data));
 	if (ret)
+	{
+		debugErr("USB Port Controller: Failed Patch Start process with code %d\n", ret);
 		return (ret);
+	}
+	else { debug("USB Port Controller: Patch Start process success\n"); }
+
+#if 0 /* Test to read status */
+extern uint8_t usbIsrActive;
+	if (usbIsrActive)
+	{
+		usbIsrActive = NO;
+		tps25750_block_read(tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11); debug("USB Port Controller: Int Event1 Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+		tps25750_block_read(tps, TPS_REG_STATUS, g_debugBuffer, 5); debug("USB Port Controller: Status Register is 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4]);
+		memset(g_debugBuffer, 0xFF, 11); tps25750_block_write(tps, TPS_REG_INT_CLEAR1, g_debugBuffer, 11);
+		tps25750_block_read(tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11); debug("USB Port Controller: Int Event1 Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+	}
+#endif
 
 	ret = tps25750_write_firmware(tps, (uint8_t*)tps25750x_lowRegion_i2c_array, gSizeLowRegionArray);
 	if (ret) {
@@ -731,6 +823,7 @@ static int tps25750_start_patch_burst_mode(struct tps25750 *tps)
 		 */
 		MXC_Delay(500);
 		ret = 0;
+		debug("USB Port Controller: Low region patch write success (%d bytes)\n", gSizeLowRegionArray);
 	}
 #endif
 
@@ -744,6 +837,10 @@ static int tps25750_apply_patch(struct tps25750 *tps)
 {
 	int ret;
 	//unsigned long timeout;
+
+#if 0 /* Skip until patch is verified (unitl then the path file will not be in source control) */
+	return (-1);
+#endif
 
 #if 1 /* Added due to datasheet flowchart */
 	tps25750_block_read(tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11);
@@ -780,6 +877,18 @@ static int tps25750_apply_patch(struct tps25750 *tps)
 		tps25750_abort_patch_process(tps);
 		return ret;
 	}
+
+#if 0 /* Test to read status */
+extern uint8_t usbIsrActive;
+	if (usbIsrActive)
+	{
+		usbIsrActive = NO;
+		tps25750_block_read(tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11); debug("USB Port Controller: Int Event1 Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+		tps25750_block_read(tps, TPS_REG_STATUS, g_debugBuffer, 5); debug("USB Port Controller: Status Register is 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4]);
+		memset(g_debugBuffer, 0xFF, 11); tps25750_block_write(tps, TPS_REG_INT_CLEAR1, g_debugBuffer, 11);
+		tps25750_block_read(tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11); debug("USB Port Controller: Int Event1 Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+	}
+#endif
 
 	debug("USB Port Controller: Complete Patch Burst Mode...\r\n");
 	ret = tps25750_complete_patch_process(tps);
@@ -1219,10 +1328,45 @@ void USBCPortControllerInit(void)
 	// In relation to VBUS charging (supplied externally through VBUS), what purpose does Aux Power Enable have?
 	// In order to set the Aux Power Enable, external VBUS must be present
 
+#if 0 /* Test Interrupts */
+	debug("USB Port Controller: Setting Interrupt mask...\r\n");
+	memset(g_debugBuffer, 0xFF, 11);
+	tps25750_block_write(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
+	MXC_Delay(MXC_DELAY_MSEC(500));
+	memset(g_debugBuffer, 0x00, 11);
+	tps25750_block_write(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
+	MXC_Delay(MXC_DELAY_MSEC(1500));
+	memset(g_debugBuffer, 0xFF, 11);
+	tps25750_block_write(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
+#endif
+
 	// Check mode
 	if (tps2750_is_mode(&tps, TPS_MODE_BOOT) == 1) { fullAccess = NO; debugWarn("USB Port Controller: In Boot mode, likely Device booting in dead battery\r\n"); }
 	if (tps2750_is_mode(&tps, TPS_MODE_PTCH) == 1) { fullAccess = NO; debugWarn("USB Port Controller: In Patch mode, applying patch...\r\n"); tps25750_apply_patch(&tps); }
-	if (tps2750_is_mode(&tps, TPS_MODE_APP) == 1) { debug("USB Port Controller: In App mode\r\n"); }
+	if (tps2750_is_mode(&tps, TPS_MODE_APP) == 1) { fullAccess = YES; debug("USB Port Controller: In App mode\r\n"); }
+
+#if 0 /* Test going back into Patch mode */
+	if (fullAccess)
+	{
+		uint8_t rc, ret;
+		//ret = tps25750_exec_cmd(&tps, TPS_4CC_GO2P, 0, NULL, 1, &rc, 0, TPS_BUNDLE_TIMEOUT * 100);
+		ret = tps25750_block_write(&tps, TPS_REG_CMD1, TPS_4CC_GO2P, 4);
+		if (ret) { debugWarn("USB Port Controller: Failed to write Go2P (0x%x)\r\n", ret); }
+		ret = tps25750_wait_cmd_complete(&tps, 5000);
+		if (ret) { debugWarn("USB Port Controller: Failed to wait for commmand complete (0x%x)\r\n", ret); }
+		MXC_Delay(MXC_DELAY_MSEC(20));
+		ret = tps25750_block_read(&tps, TPS_REG_DATA1, &rc, sizeof(rc));
+		if (ret) { debugWarn("USB Port Controller: Failed to read status (0x%x)\r\n", ret); }
+
+		if (!ret && !rc)
+		{
+			MXC_Delay(MXC_DELAY_MSEC(1000));
+			if (tps2750_is_mode(&tps, TPS_MODE_PTCH) == 1) { fullAccess = NO; debugWarn("USB Port Controller: In Patch mode, applying patch...\r\n"); tps25750_apply_patch(&tps); }
+			if (tps2750_is_mode(&tps, TPS_MODE_APP) == 1) { fullAccess = YES; debug("USB Port Controller: In App mode\r\n"); }
+		}
+		else { debugWarn("USB Port Controller: Failed to go to patch mode (0x%x)\r\n", rc); }
+	}
+#endif
 
 	// Check and clear Dead Battery flag if set
 	tps25750_get_reg_boot_status(&tps, &bootStatus);
@@ -1320,13 +1464,15 @@ void USBCPortControllerInit(void)
 	//debug("USB Port Controller: GPIO Status Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7]);
 
 	tps25750_block_read(&tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11);
-	debug("USB Port Controller: Int Event1 Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+	debug("USB Port Controller: Int Event1 Register is %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
 	tps25750_block_read(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
-	debug("USB Port Controller: Int Mask1 Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+	debug("USB Port Controller: Int Mask1 Register is %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+#if 0 /* Test for r/w success */
 	g_debugBuffer[0] |= 0x02; g_debugBuffer[1] |= 0x40; g_debugBuffer[2] |= 0x02; g_debugBuffer[3] |= 0x01; g_debugBuffer[4] |= 0x01; g_debugBuffer[5] |= 0x04; g_debugBuffer[8] |= 0x02; g_debugBuffer[10] |= 0x01;
-	debug("USB Port Controller: Write to Int Mask1 is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+	debug("USB Port Controller: Write to Int Mask1 is %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
 	tps25750_block_write(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
 	memset(g_debugBuffer, 0, 11);
 	tps25750_block_read(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
-	debug("USB Port Controller: Int Mask1 aft Write is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+	debug("USB Port Controller: Int Mask1 aft Write is %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+#endif
 }
