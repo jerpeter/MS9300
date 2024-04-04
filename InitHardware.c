@@ -43,6 +43,8 @@
 #include "ff.h"
 #include "sdhc_reva.h"
 #include "sdhc_reva_regs.h"
+#include "spi_reva_regs.h"
+#include "spi_reva1.h"
 
 //#include "mxc_delay.h"
 //#include "mxc_errors.h"
@@ -83,6 +85,10 @@
 #include "NomisLogo.h"
 //#include "navigation.h"
 #include "Analog.h"
+
+#if 1 /* Test */
+#include "math.h"
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -156,7 +162,7 @@ void InitInternalAD(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void InitExternalAD(void)
+void InitExternalADC(void)
 {
 	if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
 	{
@@ -173,14 +179,14 @@ void InitExternalAD(void)
 
 	// Setup the A/D Channel configuration
 #if 1 /* Normal */
-	SetupADChannelConfig(SAMPLE_RATE_DEFAULT, UNIT_CONFIG_CHANNEL_VERIFICATION);
+	SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION);
 #else /* Skip until hardware fix for current problems */
 	g_adChannelConfig = FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP;
 	AD4695_SetTemperatureSensorEnable(((g_adChannelConfig != FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP) ? YES : NO));
 	AD4695_EnterConversionMode(((g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP) ? YES : NO));
 #endif
 
-#if 1 /* Test loop */
+#if 0 /* Test loop */
 extern uint16_t dataTemperature;
 	SAMPLE_DATA_STRUCT tempData;
 	uint32_t i = 0;
@@ -228,6 +234,13 @@ extern uint16_t dataTemperature;
 	debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
 #endif
 
+#if 0 /* Test loop */
+	while (1)
+	{
+		GetChannelOffsets(SAMPLE_RATE_DEFAULT);
+	}
+#endif
+
 	// Read a few test samples
 	GetChannelOffsets(SAMPLE_RATE_DEFAULT);
 	debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
@@ -239,7 +252,7 @@ extern uint16_t dataTemperature;
 	DisableSensorBlocks();
 	debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
 
-#if 1 /* Test */
+#if 0 /* Test */
 	while (FuelGaugeGetCurrent() > 500000)
 	{
 		MXC_Delay(MXC_DELAY_SEC(1));
@@ -251,7 +264,7 @@ extern uint16_t dataTemperature;
 	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
 
-#if 1 /* Test */
+#if 0 /* Test */
 	while (FuelGaugeGetCurrent() > 500000)
 	{
 		MXC_Delay(MXC_DELAY_SEC(1));
@@ -270,6 +283,18 @@ void InitLCD(void)
 
 	// Load the logo bitmap into the display controller and send to LCD
 	DisplayLogoToLcd();
+
+	BuildLanguageLinkTable(ENGLISH_LANG);
+	INPUT_MSG_STRUCT mn_msg;
+	debug("Jumping to Main Menu\r\n");
+	SETUP_MENU_MSG(MAIN_MENU);
+	JUMP_TO_ACTIVE_MENU();
+#if 1 /* Test disable of LCD for now */
+	MXC_Delay(MXC_DELAY_SEC(3));
+	PowerControl(LCD_POWER_ENABLE, OFF);
+	PowerControl(LCD_POWER_DOWN, ON);
+	MXC_Delay(MXC_DELAY_SEC(1));
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -424,13 +449,13 @@ void SetupAllGPIO(void)
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// Battery Charger IRQ: Port 0, Pin 5, Input, Needs strong internal pullup, Active low, 1.8V, Interrupt
+	// Battery Charger IRQ: Port 0, Pin 5, Input, External pullup, Active low, 3.3V, Interrupt
 	//----------------------------------------------------------------------------------------------------------------------
 	setupGPIO.port = GPIO_BATTERY_CHARGER_IRQ_PORT;
 	setupGPIO.mask = GPIO_BATTERY_CHARGER_IRQ_PIN;
 	setupGPIO.func = MXC_GPIO_FUNC_IN;
-	setupGPIO.pad = MXC_GPIO_PAD_STRONG_PULL_UP;
-	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Battery_charger_irq, NULL);
     MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
@@ -512,6 +537,11 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
     MXC_GPIO_Config(&setupGPIO);
+#if 1 /* Test line with interrupt */
+	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Power_good_battery_charger_irq, NULL);
+    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH);
+    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Smart Sensor Sleep: Port 0, Pin 13, Output, No external pull, Active low, 1.8V (minimum 1.3V)
@@ -546,17 +576,25 @@ void SetupAllGPIO(void)
     MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start in reset
 
-#if 1 /* Special addition (ADC Dual-SDO and Max32651 Dual mode not compatible), re-configure SPI3_SDIO2 (P0.17) from SPI line to ADC GPIO */
 	//----------------------------------------------------------------------------------------------------------------------
-	// External ADC Busy, Alt, GP0: Port 0, Pin 17, Input, No external pullup, Active high, 1.8V
+	// External ADC SPI3 Serial Clock: Port 0, Pin 16, Input when not powered, SPI Control when powered, External pullup, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_ADC_SPI3_SCK_PORT;
+	setupGPIO.mask = GPIO_ADC_SPI3_SCK_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// External ADC Busy Alt Gpio0: Port 0, Pin 17, Input, External pullup, 1.8V
 	//----------------------------------------------------------------------------------------------------------------------
 	setupGPIO.port = GPIO_ADC_BUSY_ALT_GP0_PORT;
 	setupGPIO.mask = GPIO_ADC_BUSY_ALT_GP0_PIN;
 	setupGPIO.func = MXC_GPIO_FUNC_IN;
-	setupGPIO.pad = MXC_GPIO_PAD_WEAK_PULL_DOWN; // ADC GP0 line inits as input, set pull down until ADC GP0 configured as output
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
-#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// ADC Conversion: Port 0, Pin 18, Output, External pulldown, Active high, 1.8V (minimuim 1.26V)
@@ -570,6 +608,36 @@ void SetupAllGPIO(void)
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as no conversion
 
 	//----------------------------------------------------------------------------------------------------------------------
+	// External ADC SPI3 Slave Select 0: Port 0, Pin 19, Input when not powered, SPI Control when powered, External pullup, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_ADC_SPI3_SS0_PORT;
+	setupGPIO.mask = GPIO_ADC_SPI3_SS0_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// External ADC SPI3 Serial Data Out: Port 0, Pin 20, Input when not powered, SPI Control when powered, External pullup, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_ADC_SPI3_SDO1_PORT;
+	setupGPIO.mask = GPIO_ADC_SPI3_SDO1_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// External ADC SPI3 Serial Data In: Port 0, Pin 21, Input when not powered, SPI Control when powered, External pullup, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_ADC_SPI3_SDI_PORT;
+	setupGPIO.mask = GPIO_ADC_SPI3_SDI_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+
+	//----------------------------------------------------------------------------------------------------------------------
 	// Cal Mux Pre-A/D Enable: Port 0, Pin 22, Output, External pulldown, Active low, 3.3V (minimum 2V)
 	//----------------------------------------------------------------------------------------------------------------------
 	setupGPIO.port = GPIO_CAL_MUX_PRE_AD_ENABLE_PORT;
@@ -578,7 +646,11 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&setupGPIO);
+#if 0 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#else /* Test starting as enabled so not back powering the analog section */
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as enabled to prevent back powering
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Cal Mux Pre-A/D Select: Port 0, Pin 23, Output, External pulldown, Select (0 is default), 3.3V (minimum 2V)
@@ -895,6 +967,12 @@ void SetupAllGPIO(void)
     MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 #endif
+#if 1 /* Test periodic 1 second interrupt */
+extern void External_rtc_periodic_timer(void);
+	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)External_rtc_periodic_timer, NULL);
+    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// BLE OTA: Port 1, Pin 29, Input, No external pull, Active unknown, 3.3V (device runs 3.3V)
@@ -954,18 +1032,64 @@ void SetupAllGPIO(void)
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
+	// LCD SPI2 Serial Clock: Port 2, Pin 2, Input when not powered, SPI Control when powered, No external pull, 1.8V (minimum 1.7V)
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_LCD_SPI2_SCK_PORT;
+	setupGPIO.mask = GPIO_LCD_SPI2_SCK_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// LCD SPI2 Master In Slave Out: Port 2, Pin 3, Input when not powered, SPI Control when powered, No external pull, 1.8V (minimum 1.7V)
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_LCD_SPI2_MISO_PORT;
+	setupGPIO.mask = GPIO_LCD_SPI2_MISO_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// LCD SPI2 Master Out Slave In: Port 2, Pin 4, Input when not powered, SPI Control when powered, No external pull, 1.8V (minimum 1.7V)
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_LCD_SPI2_MOSI_PORT;
+	setupGPIO.mask = GPIO_LCD_SPI2_MOSI_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// LCD SPI2 Slave Select 0: Port 2, Pin 5, Input when not powered, SPI Control when powered, No external pull, 1.8V (minimum 1.7V)
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_LCD_SPI2_SS0_PORT;
+	setupGPIO.mask = GPIO_LCD_SPI2_SS0_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+
+#if 0 /* Moved to LCD Power up section */
+	//----------------------------------------------------------------------------------------------------------------------
 	// SPI2 Slave Select 0 LCD: Port 2, Pin 5, Output, External pullup, Active low, 1.8V (minimum 1.7V)
 	//----------------------------------------------------------------------------------------------------------------------
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL)
 	{
-		setupGPIO.port = GPIO_SPI_2_SS_0_LCD_PORT;
-		setupGPIO.mask = GPIO_SPI_2_SS_0_LCD_PIN;
+		setupGPIO.port = GPIO_LCD_SPI2_SS0_PORT;
+		setupGPIO.mask = GPIO_LCD_SPI2_SS0_PIN;
 		setupGPIO.func = MXC_GPIO_FUNC_OUT;
 		setupGPIO.pad = MXC_GPIO_PAD_NONE;
 		setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 		MXC_GPIO_Config(&setupGPIO);
+#if 0 /* Orignal */
 		MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#else /* Start as enabled to prevent back powering the LCD until it's on */
+		MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as enabled to prevent back powering
+#endif
 	}
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// LCD Int: Port 2, Pin 6, Input, External pullup, Active low, 1.8V
@@ -1002,7 +1126,6 @@ void SetupAllGPIO(void)
     MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
-
 	//----------------------------------------------------------------------------------------------------------------------
 	// LTE Reset: Port 2, Pin 13, Output, External pull up, Active low, 3.3V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1012,7 +1135,11 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&setupGPIO);
+#if 0 /* Orignal */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#else /* Test starting as enabled so not back powering the Cell section */
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// BLE Reset: Port 2, 15, Output, External pull up, Active low, 3.3V
@@ -1023,7 +1150,11 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&setupGPIO);
+#if 0 /* Orignal */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#else /* Test starting as enabled so not back powering the Cell section */
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Smart Sensor Mux A0: Port 2, Pin 23, Output, External pulldown, Select, 3.3V (minimum 2.0V)
@@ -1078,7 +1209,11 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
     MXC_GPIO_Config(&setupGPIO);
+#if 0 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as disabled (960Hz select)
+#else /* Start as enabled to prevent back powering the 5V analog section */
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as enabled to prevent back powering
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Cellular Enable: Port 3, Pin 0, Output, No external pull, Active high, 3.3V (minimum 0.5)
@@ -1144,7 +1279,11 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
     MXC_GPIO_Config(&setupGPIO);
+#if 0 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as high (Normal gain)
+#else /* Start as low to prevent possibly back powering the 5V analog section */
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low (High gain) to prevent back powering
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Path Select Aop1: Port 3, Pin 6, Output, External pulldown, Select, 1.8V (minimum 0.5V)
@@ -1155,7 +1294,11 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
     MXC_GPIO_Config(&setupGPIO);
+#if 0 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as high (AOP path)
+#else /* Start as low to prevent possibly back powering the 5V analog section */
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low (A-weighting path) to prevent back powering
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Gain Select Geo2: Port 3, Pin 7,Output, External pulldown, Select, 1.8V (minimum 0.5V)
@@ -1166,7 +1309,11 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
     MXC_GPIO_Config(&setupGPIO);
+#if 0 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as high (Normal gain)
+#else /* Start as low to prevent possibly back powering the 5V analog section */
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low (High gain) to prevent back powering
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Path Select Aop2: Port 3, Pin 8, Output, External pulldown, Select, 1.8V (minimum 0.5V)
@@ -1177,7 +1324,11 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
     MXC_GPIO_Config(&setupGPIO);
+#if 0 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as high (AOP path)
+#else /* Start as low to prevent possibly back powering the 5V analog section */
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low (A-weighting path) to prevent back powering
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// RTC Clock: Port 3, Pin 9, Input, No external pull, Active high, 3.3V (minimum 2.64V)
@@ -1189,7 +1340,7 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Sample_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_RISING);
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 #if 0 /* Moved to Init Interrupts section */
@@ -1203,6 +1354,8 @@ void SetupAllGPIO(void)
 #else /* Test GPIO0 */
 	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO0)));
 	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO1)));
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO2)));
+	NVIC_EnableIRQ(MXC_GPIO_GET_IRQ(MXC_GPIO_GET_IDX(MXC_GPIO3)));
 #endif
 }
 
@@ -1637,22 +1790,22 @@ void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeasser
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SetupSPI(void)
+void SetupSPI3_ExternalADC(void)
 {
 	int status;
 
-	//--------------------
-	// SPI3 - External ADC
-	//--------------------
-#if 1 /* Test SS Gpio setup before init */
-	mxc_gpio_cfg_t spi3SlaveSelect0GpioConfig = { GPIO_ADC_SPI_3_SS_0_PORT, GPIO_ADC_SPI_3_SS_0_PIN, MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
-	MXC_GPIO_Config(&spi3SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
-#endif
-	status = MXC_SPI_Init(MXC_SPI3, YES, NO, 1, LOW, SPI_SPEED_ADC);
-	if (status != E_SUCCESS) { debugErr("SPI3 (ADC) Init failed with code: %d\r\n", status); }
+	// Setup the SPI3 GPIO control lines (including Slave Select) to the alternate function
+	mxc_gpio_cfg_t gpio_cfg_spi3 = { MXC_GPIO0, (GPIO_ADC_SPI3_SCK_PIN | GPIO_ADC_SPI3_SS0_PIN | GPIO_ADC_SPI3_SDO1_PIN | GPIO_ADC_SPI3_SDI_PIN), MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
+	MXC_GPIO_Config(&gpio_cfg_spi3);
 
-	//mxc_gpio_cfg_t spi3SlaveSelect0GpioConfig = { GPIO_ADC_SPI_3_SS_0_PORT, GPIO_ADC_SPI_3_SS_0_PIN, MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
-	MXC_GPIO_Config(&spi3SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
+#if 0 /* SPI GPIO init inside SPI init call reassigns ADC_RESET and does not set the Slave Select 0 alternate function */
+	status = MXC_SPI_Init(MXC_SPI3, YES, NO, 1, LOW, SPI_SPEED_ADC);
+#else /* Manual setup */
+	MXC_SYS_Reset_Periph(MXC_SYS_RESET_SPI3);
+	MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_SPI3);
+	status = MXC_SPI_RevA1_Init((mxc_spi_reva_regs_t *)MXC_SPI3, YES, NO, 1, LOW, SPI_SPEED_ADC);
+#endif
+	if (status != E_SUCCESS) { debugErr("SPI3 (ADC) Init failed with code: %d\r\n", status); }
 
 	// Set standard SPI 4-wire (MISO/MOSI, full duplex), (Turns out ADC dual-SDO and MAX32651 dual mode are incompatible, can only use single mode)
 	MXC_SPI_SetWidth(MXC_SPI3, SPI_WIDTH_STANDARD);
@@ -1661,26 +1814,23 @@ void SetupSPI(void)
 	MXC_SPI_SetMode(MXC_SPI3, SPI_MODE_3);
 
 	debug("SPI3 Clock control config: Scale: %d, High CC: %d, Low CC: %d\r\n", (MXC_SPI3->clk_cfg >> 16), ((MXC_SPI3->clk_cfg >> 8) & 0xFF), (MXC_SPI3->clk_cfg >> 8) & 0xFF);
+}
 
-	//-----------
-	// SPI2 - LCD
-	//-----------
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetupSPI2_LCD(void)
+{
+	int status;
+
+	// Setup the SPI2 Slave Select since the driver init call does not initialize the GPIO
+	mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { GPIO_LCD_SPI2_SS0_PORT, GPIO_LCD_SPI2_SS0_PIN, MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_SPI2->ctrl0 &= ~MXC_F_SPI_CTRL0_SS_SEL; } // Clear Master SS select control
+	else { spi2SlaveSelect0GpioConfig.func = MXC_GPIO_FUNC_ALT1; } // SPI2 Slave Select controlled by the SPI driver
+	MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig);
+
 	status = MXC_SPI_Init(MXC_SPI2, YES, NO, 1, LOW, SPI_SPEED_LCD);
 	if (status != E_SUCCESS) { debugErr("SPI2 (LCD) Init failed with code: %d\r\n", status); }
-
-	if (FT81X_SPI_2_SS_CONTROL_MANUAL)
-	{
-		mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { GPIO_SPI_2_SS_0_LCD_PORT, GPIO_SPI_2_SS_0_LCD_PIN, MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
-		MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
-
-		// Clear Master SS select control
-		MXC_SPI2->ctrl0 &= ~MXC_F_SPI_CTRL0_SS_SEL;
-	}
-	else // SPI2 Slave Select controlled by the SPI driver
-	{
-		mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { GPIO_SPI_2_SS_0_LCD_PORT, GPIO_SPI_2_SS_0_LCD_PIN, MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
-		MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig); // Seems the SPI framework driver does not set the Slave Select 0 alternate function on the GPIO pin
-	}
 
 	// Set standard SPI 4-wire (MISO/MOSI, full duplex)
 	MXC_SPI_SetWidth(MXC_SPI2, SPI_WIDTH_STANDARD);
@@ -3200,70 +3350,8 @@ uint8_t IdentiifyI2C(uint8_t i2cNum, uint8_t readBytes, uint8_t regAddr)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void InitSystemHardware_MS9300(void)
+void TestI2CDeviceAddresses(void)
 {
-	//-------------------------------------------------------------------------
-	// Setup Debug Uart (UART2)
-	//-------------------------------------------------------------------------
-	SetupDebugUART();
-
-	//-------------------------------------------------------------------------
-	// Check power on source and validate for system startup
-	//-------------------------------------------------------------------------
-	ValidatePowerOn();
-
-	//-------------------------------------------------------------------------
-	// Setup Half Second tick timer
-	//-------------------------------------------------------------------------
-	SetupHalfSecondTickTimer();
-
-	//-------------------------------------------------------------------------
-	// Display Debug Banner (UART2)
-	//-------------------------------------------------------------------------
-	DebugUartInitBanner();
-
-	//-------------------------------------------------------------------------
-	// Enable Cycle Counter
-	//-------------------------------------------------------------------------
-	EnableMpuCycleCounter();
-
-	//-------------------------------------------------------------------------
-	// Setup Watchdog
-	//-------------------------------------------------------------------------
-    SetupWatchdog();
-
-	//-------------------------------------------------------------------------
-	// Enable the instruction cache
-	//-------------------------------------------------------------------------
-    SetupICC();
-
-	//-------------------------------------------------------------------------
-	// Setup UART0 (LTE) and UART1 (BLE)
-	//-------------------------------------------------------------------------
-	SetupUART();
-
-	//-------------------------------------------------------------------------
-	// Setup I2C0 (1.8V devices) and I2C1 (3.3V devices)
-	//-------------------------------------------------------------------------
-	SetupI2C();
-
-	//-------------------------------------------------------------------------
-	// Setup SPI3 (ADC) and SPI2 (LCD)
-	//-------------------------------------------------------------------------
-	// SPI3 GPIO pin config (pins_me10.c, library code) is outside the scope of this project code and incorrectly assigns Port 0 Pin 15
-	SetupSPI();
-
-	//-------------------------------------------------------------------------
-	// Setup all GPIO
-	//-------------------------------------------------------------------------
-	// Must init after SPI to correct for a wrong GPIO pin config in the library (and allow this project to work with an unmodified framework)
-	SetupAllGPIO();
-
-#if 0 /* Test Expanded battery presence line toggling */
-	MXC_Delay(MXC_DELAY_SEC(3));
-	BatteryChargerInit(); debug("Battery Charger: Init complete\r\n");
-#endif
-
 #if 1 /* Test device addresses */
 	uint8_t regAddr;
 	uint8_t regData[2];
@@ -3279,7 +3367,7 @@ void InitSystemHardware_MS9300(void)
 		if (i == 0)
 		{
 			debug("-- Power up SS, Exp --\r\n");
-			SetSmartSensorSleepState(OFF);
+			//SetSmartSensorSleepState(OFF);
 			// Bring up Expansion
 			PowerControl(EXPANSION_ENABLE, ON);
 			MXC_Delay(MXC_DELAY_MSEC(500));
@@ -3328,12 +3416,12 @@ void InitSystemHardware_MS9300(void)
 
 			status = MXC_I2C_MasterTransaction(&masterRequest); if (status == E_SUCCESS) { numDevices++; if (IdentiifyI2C(0, 2, regAddr) == NO) debug("(R2) I2C0 device @ 0x%x, status: %d, data: 0x%x 0x%x\r\n", regAddr, status, regData[0], regData[1]); }
 			//else if (status == E_COMM_ERR) { debug("(R2) No I2C0 device @ 0x%x (Comm error)\r\n", regAddr); }
-			//else { debug("(R2) Possible I2C0 device @ 0x%x, status: %d, data: 0x%x 0x%x\r\n", regAddr, status, regData[0], regData[1]); }
+			else if (status != E_COMM_ERR) { debug("(R2) Possible I2C0 device @ 0x%x, status: %d, data: 0x%x 0x%x\r\n", regAddr, status, regData[0], regData[1]); }
 			memset(&regData[0], 0, sizeof(regData));
 			masterRequest.i2c = MXC_I2C1;
 			status = MXC_I2C_MasterTransaction(&masterRequest); if (status == E_SUCCESS) { numDevices++; if (IdentiifyI2C(1, 2, regAddr) == NO) debug("(R2) I2C1 device @ 0x%x, status: %d, data: 0x%x 0x%x\r\n", regAddr, status, regData[0], regData[1]); }
 			//else if (status == E_COMM_ERR) { debug("(R2) No I2C1 device @ 0x%x (Comm error)\r\n", regAddr); }
-			//else { debug("(R2) Possible I2C1 device @ 0x%x, status: %d, data: 0x%x 0x%x\r\n", regAddr, status, regData[0], regData[1]); }
+			else if (status != E_COMM_ERR) { debug("(R2) Possible I2C1 device @ 0x%x, status: %d, data: 0x%x 0x%x\r\n", regAddr, status, regData[0], regData[1]); }
 		}
 		debug("(R2) I2C devices found: %d\r\n", numDevices);
 
@@ -3364,23 +3452,197 @@ void InitSystemHardware_MS9300(void)
 #endif
 	} // for i
 	debug("-- Power down 5V --\r\n");
+	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
 	MXC_Delay(MXC_DELAY_SEC(1));
+
+	SetSmartSensorSleepState(ON);
+	PowerControl(EXPANSION_RESET, ON);
+	PowerControl(EXPANSION_ENABLE, OFF);
 #endif
 
+#if 0 /* Test */
 	//-------------------------------------------------------------------------
-	// Setup SDHC/eMMC
+	// Test I2C
 	//-------------------------------------------------------------------------
-	SetupSDHCeMMC();
+	debug("I2C Test Loop (forever)\r\n");
+	//uint16_t testReg16;
+	uint8_t testBootStatus[6];
+	uint8_t regA = 0x2D;
+	uint8_t ramData = 0xA5;
+	j = 1;
+	SetRtcRegisters(PCF85263_CTL_RAM_BYTE, &ramData, sizeof(ramData));
+	while (1)
+	{
+		//GetBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_0, &testReg16);
+		WriteI2CDevice(MXC_I2C0, I2C_ADDR_USBC_PORT_CONTROLLER, &regA, sizeof(uint8_t), testBootStatus, sizeof(testBootStatus));
+		GetRtcRegisters(PCF85263_CTL_RAM_BYTE, &ramData, sizeof(ramData));
+		MXC_Delay(MXC_DELAY_MSEC(1));
+		//if (j++ % 1000 == 0) { debugRaw("."); }
+		if (j++ % 1000 == 0) { FuelGaugeDebugInfo(); }
+	}
+#endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestGPIO(void)
+{
+#if 0 /* Test Alarm states */
+	debug("Forever: Toggling Alarm Pins, Alarm1 twice Alarm 2...\r\n");
+	while (1)
+	{
+		MXC_GPIO_OutSet(GPIO_ALERT_1_PORT, GPIO_ALERT_1_PIN);
+		MXC_GPIO_OutSet(GPIO_ALERT_2_PORT, GPIO_ALERT_2_PIN);
+		MXC_Delay(MXC_DELAY_MSEC(1));
+
+		MXC_GPIO_OutClr(GPIO_ALERT_1_PORT, GPIO_ALERT_1_PIN);
+		MXC_Delay(MXC_DELAY_MSEC(1));
+
+		MXC_GPIO_OutSet(GPIO_ALERT_1_PORT, GPIO_ALERT_1_PIN);
+		MXC_GPIO_OutClr(GPIO_ALERT_2_PORT, GPIO_ALERT_2_PIN);
+		MXC_Delay(MXC_DELAY_MSEC(1));
+
+		MXC_GPIO_OutClr(GPIO_ALERT_1_PORT, GPIO_ALERT_1_PIN);
+		MXC_Delay(MXC_DELAY_MSEC(1));
+	}
+#endif
+
+#if 0 /* Test power states */
+	PowerControl(ALARM_1_ENABLE, ON);
+	PowerControl(EXPANSION_ENABLE, ON);
+	debug("Power state ALARM_1_ENABLE: 0x%x\r\n", GetPowerControlState(ALARM_1_ENABLE));
+	debug("Power state ALARM_2_ENABLE: 0x%x\r\n", GetPowerControlState(ALARM_2_ENABLE));
+	debug("Power state LCD_POWER_ENABLE: 0x%x\r\n", GetPowerControlState(LCD_POWER_ENABLE));
+	debug("Power state ANALOG_5V_ENABLE: 0x%x\r\n", GetPowerControlState(ANALOG_5V_ENABLE));
+	debug("Power state TRIGGER_OUT: 0x%x\r\n", GetPowerControlState(TRIGGER_OUT));
+	debug("Power state MCU_POWER_LATCH: 0x%x\r\n", GetPowerControlState(MCU_POWER_LATCH));
+	debug("Power state ENABLE_12V: 0x%x\r\n", GetPowerControlState(ENABLE_12V));
+	debug("Power state USB_SOURCE_ENABLE: 0x%x\r\n", GetPowerControlState(USB_SOURCE_ENABLE));
+	debug("Power state USB_AUX_POWER_ENABLE: 0x%x\r\n", GetPowerControlState(USB_AUX_POWER_ENABLE));
+	debug("Power state ADC_RESET: 0x%x\r\n", GetPowerControlState(ADC_RESET));
+	debug("Power state EXPANSION_ENABLE: 0x%x\r\n", GetPowerControlState(EXPANSION_ENABLE));
+	debug("Power state SENSOR_CHECK_ENABLE: 0x%x\r\n", GetPowerControlState(SENSOR_CHECK_ENABLE));
+	debug("Power state LTE_RESET: 0x%x\r\n", GetPowerControlState(LTE_RESET));
+	debug("Power state BLE_RESET: 0x%x\r\n", GetPowerControlState(BLE_RESET));
+	debug("Power state CELL_ENABLE: 0x%x\r\n", GetPowerControlState(CELL_ENABLE));
+	debug("Power state EXPANSION_RESET: 0x%x\r\n", GetPowerControlState(EXPANSION_RESET));
+	debug("Power state LCD_POWER_DOWN: 0x%x\r\n", GetPowerControlState(LCD_POWER_DOWN));
+	debug("Power state LED_1: 0x%x\r\n", GetPowerControlState(LED_1));
+	debug("Power state LED_2: 0x%x\r\n", GetPowerControlState(LED_2));
+	debug("Power state LED_3: 0x%x\r\n", GetPowerControlState(LED_3));
+	debug("Power state LED_4: 0x%x\r\n", GetPowerControlState(LED_4));
+	debug("Power state LEDS: 0x%x\r\n", GetCurrentLedStates());
+	PowerControl(ALARM_1_ENABLE, OFF);
+	debug("Power state ALARM_1_ENABLE: 0x%x\r\n", GetPowerControlState(ALARM_1_ENABLE));
+#endif
+
+#if 0 /* Test back powering */
+	PowerControl(ANALOG_5V_ENABLE, ON);
+	PowerControl(ANALOG_5V_ENABLE, OFF);
+
+	PowerControl(ANALOG_5V_ENABLE, ON);
+	PowerControl(ADC_RESET, ON);
+	PowerControl(ANALOG_5V_ENABLE, OFF);
+
+	PowerControl(CELL_ENABLE, ON);
+	PowerControl(CELL_ENABLE, OFF);
+#endif
+
+#if 0 /* Test GPIO pins */
+	PowerControl(USB_SOURCE_ENABLE, ON);
+	MXC_Delay(MXC_DELAY_SEC(1));
+	PowerControl(USB_SOURCE_ENABLE, OFF);
+	MXC_Delay(MXC_DELAY_SEC(1));
+
+	PowerControl(USB_AUX_POWER_ENABLE, ON);
+	MXC_Delay(MXC_DELAY_SEC(1));
+	PowerControl(USB_AUX_POWER_ENABLE, OFF);
+	MXC_Delay(MXC_DELAY_SEC(1));
+
+	PowerControl(ENABLE_12V, ON);
+	MXC_Delay(MXC_DELAY_SEC(1));
+	PowerControl(ENABLE_12V, OFF);
+	MXC_Delay(MXC_DELAY_SEC(1));
+
+	SetSmartSensorMuxA0State(ON);
+	SetSmartSensorMuxA0State(OFF);
+	SetSmartSensorMuxA1State(ON);
+	SetSmartSensorMuxA1State(OFF);
+	SetSmartSensorMuxEnableState(ON);
+	SetSmartSensorMuxEnableState(OFF);
+
+	MXC_GPIO_OutSet(GPIO_CAL_MUX_PRE_AD_SELECT_PORT, GPIO_CAL_MUX_PRE_AD_SELECT_PIN);
+	MXC_GPIO_OutClr(GPIO_CAL_MUX_PRE_AD_SELECT_PORT, GPIO_CAL_MUX_PRE_AD_SELECT_PIN);
+
+	MXC_GPIO_OutSet(GPIO_CAL_MUX_PRE_AD_ENABLE_PORT, GPIO_CAL_MUX_PRE_AD_ENABLE_PIN);
+	MXC_GPIO_OutClr(GPIO_CAL_MUX_PRE_AD_ENABLE_PORT, GPIO_CAL_MUX_PRE_AD_ENABLE_PIN);
+
+	PowerControl(ALARM_1_ENABLE, ON);
+	PowerControl(ALARM_1_ENABLE, OFF);
+	PowerControl(ALARM_2_ENABLE, ON);
+	PowerControl(ALARM_2_ENABLE, OFF);
+
+	PowerControl(TRIGGER_OUT, ON);
+	PowerControl(TRIGGER_OUT, OFF);
+
+	PowerControl(SENSOR_CHECK_ENABLE, ON);
+	SetSensorCheckState(ON);
+	SetSensorCheckState(OFF);
+	PowerControl(SENSOR_CHECK_ENABLE, OFF);
+
+	SetNyquist0State(ON);
+	SetNyquist0State(OFF);
+	SetNyquist1State(ON);
+	SetNyquist1State(OFF);
+	SetNyquist2EnableState(OFF);
+	SetNyquist2EnableState(ON);
+
+	SetGainGeo1State(ON);
+	SetGainGeo1State(OFF);
+	SetGainGeo2State(ON);
+	SetGainGeo2State(OFF);
+	SetPathSelectAop1State(ON);
+	SetPathSelectAop1State(OFF);
+	SetPathSelectAop2State(ON);
+	SetPathSelectAop2State(OFF);
+#endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestSDHCeMMC(void)
+{
 #if 0 /* Test a second init call */
 	MXC_Delay(MXC_DELAY_MSEC(500));
 	SetupSDHCeMMC();
 #endif
-	//-------------------------------------------------------------------------
-	// Setup Drive(eMMC) and Filesystem
-	//-------------------------------------------------------------------------
-	SetupDriveAndFilesystem();
 
+#if 0 /* Test Flash reset pin */
+	SetupSDHCeMMC();
+	SetupDriveAndFilesystem();
+	MXC_GPIO_OutClr(GPIO_EMMC_RESET_PORT, GPIO_EMMC_RESET_PIN);
+	MXC_Delay(MXC_DELAY_SEC(1));
+	SetupSDHCeMMC();
+	SetupDriveAndFilesystem();
+	SetupSDHCeMMC();
+	SetupDriveAndFilesystem();
+	MXC_GPIO_OutSet(GPIO_EMMC_RESET_PORT, GPIO_EMMC_RESET_PIN);
+	MXC_Delay(MXC_DELAY_SEC(2));
+	SetupSDHCeMMC();
+	SetupDriveAndFilesystem();
+	SetupSDHCeMMC();
+	SetupDriveAndFilesystem();
+#endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestFlashAndFatFilesystem(void)
+{
 	getSize();
 
 	mxc_sdhc_csd_regs_t* csd = NULL;
@@ -3442,7 +3704,7 @@ extern bool g_csd_is_cached;
 	//else { debug("SDHC Lib Get CID: error\r\n"); }
 #endif
 
-#if 0 /* Test */
+#if 0 /* Test SDHC Clock */
 	int32_t j = 0;
 	uint32_t cycles;
 	volatile uint32_t hsTime;
@@ -3485,7 +3747,7 @@ extern volatile uint8_t hsChange;
 	}
 #endif
 
-#if 0 /* Test */
+#if 0 /* Test SDHC eMMC Flash access, read/write, speed/throughput */
 	debug("SDHC Clock Config: Changed to %d (0x%x)\r\n", 0, 0);
 	MXC_SDHC_Set_Clock_Config(0);
 
@@ -3582,7 +3844,7 @@ extern volatile uint8_t hsChange;
 	}
 #endif
 
-#if 0 /* Test */
+#if 0 /* Test SDHC clock changes and ability to mount flash */
 	for (uint8_t i = 0x94; i > 0; i--)
 	{
 		debug("SDHC Clock Config: Changed to %d (0x%x)\r\n", i, i);
@@ -3595,6 +3857,270 @@ extern volatile uint8_t hsChange;
 		i--;
 	}
 #endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestAnalog5V(void)
+{
+#if 0 /* Test */
+	debug("-- Power up 5V --\r\n");
+	//PowerControl(ANALOG_5V_ENABLE, ON);
+	//WaitAnalogPower5vGood();
+	PowerUpAnalog5VandExternalADC();
+	while (1)
+	{
+		MXC_Delay(MXC_DELAY_SEC(1));
+		FuelGaugeDebugInfo();
+	}
+#endif
+
+#if 0 /* Test */
+	debug("Forever loop, testing interrupts...\r\n");
+	debug("External Trigger In state: %s\r\n", (MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_IN_PORT, GPIO_EXTERNAL_TRIGGER_IN_PIN) > 0 ? "HIGH" : "LOW"));
+	while (1) /* Spin, checking interrupts */
+	{
+		MXC_Delay(MXC_DELAY_SEC(15));
+		PowerControl(TRIGGER_OUT, ON);
+		debug("External Trigger In state: %s\r\n", (MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_IN_PORT, GPIO_EXTERNAL_TRIGGER_IN_PIN) > 0 ? "HIGH" : "LOW"));
+		MXC_Delay(MXC_DELAY_SEC(3));
+		PowerControl(TRIGGER_OUT, OFF);
+		debug("External Trigger In state: %s\r\n", (MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_IN_PORT, GPIO_EXTERNAL_TRIGGER_IN_PIN) > 0 ? "HIGH" : "LOW"));
+	}
+#endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestExtADC(void)
+{
+#if 0 /* Test Re-init after shutting down the SPI and domain */
+	MXC_Delay(MXC_DELAY_SEC(1));
+	InitExternalADC(); debug("External ADC: Init complete\r\n");
+#endif
+
+#if 0 /* Test sampling clock (Ext RTC) accuracy against accurate timing source */
+#if 0 /* Test loop of clock output */
+	StartExternalRtcClock(SAMPLE_RATE_1K);
+	while (1)
+	{
+		MXC_Delay(MXC_DELAY_SEC(5));
+		StopExternalRtcClock();
+		MXC_Delay(MXC_DELAY_SEC(3));
+		StartExternalRtcClock(SAMPLE_RATE_1K);
+	}
+#endif
+
+extern volatile uint8_t psChange;
+extern volatile uint32_t g_lifetimePeriodicSecondCount;
+	volatile uint32 trackSeconds = 0;
+
+	uint8_t rtcReg = 0;
+	rtcReg = 0x02; SetRtcRegisters(PCF85263_CTL_PIN_IO, (uint8_t*)&rtcReg, sizeof(rtcReg));
+
+	g_sampleCount = 0;
+	psChange = 0; while (psChange == 0) {;}
+	trackSeconds = g_lifetimePeriodicSecondCount;
+	//StartExternalRtcClock(SAMPLE_RATE_1K);
+	rtcReg = 0x25; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
+	//MXC_Delay(MXC_DELAY_SEC(16));
+	while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackSeconds + 64)) {;}
+	//StopExternalRtcClock();
+	rtcReg = 0x27; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
+	debug("Sample clock: Sample rate @ %d results in %lu actual (%lu)\r\n", SAMPLE_RATE_1K, (g_sampleCount >> 6), g_sampleCount);
+
+	g_sampleCount = 0;
+	psChange = 0; while (psChange == 0) {;}
+	trackSeconds = g_lifetimePeriodicSecondCount;
+	//StartExternalRtcClock(SAMPLE_RATE_2K);
+	rtcReg = 0x24; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
+	//MXC_Delay(MXC_DELAY_SEC(16));
+	while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackSeconds + 64)) {;}
+	//StopExternalRtcClock();
+	rtcReg = 0x27; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
+	debug("Sample clock: Sample rate @ %d results in %lu actual (%lu)\r\n", SAMPLE_RATE_2K, (g_sampleCount >> 6), g_sampleCount);
+
+	g_sampleCount = 0;
+	psChange = 0; while (psChange == 0) {;}
+	trackSeconds = g_lifetimePeriodicSecondCount;
+	//StartExternalRtcClock(SAMPLE_RATE_4K);
+	rtcReg = 0x23; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
+	//MXC_Delay(MXC_DELAY_SEC(16));
+	while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackSeconds + 64)) {;}
+	//StopExternalRtcClock();
+	rtcReg = 0x27; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
+	debug("Sample clock: Sample rate @ %d results in %lu actual (%lu)\r\n", SAMPLE_RATE_4K, (g_sampleCount >> 6), g_sampleCount);
+
+	g_sampleCount = 0;
+	psChange = 0; while (psChange == 0) {;}
+	trackSeconds = g_lifetimePeriodicSecondCount;
+	//StartExternalRtcClock(SAMPLE_RATE_8K);
+	rtcReg = 0x22; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
+	//MXC_Delay(MXC_DELAY_SEC(16));
+	while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackSeconds + 64)) {;}
+	//StopExternalRtcClock();
+	rtcReg = 0x27; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
+	debug("Sample clock: Sample rate @ %d results in %lu actual (%lu)\r\n", SAMPLE_RATE_8K, (g_sampleCount >> 6), g_sampleCount);
+
+	g_sampleCount = 0;
+	psChange = 0; while (psChange == 0) {;}
+	trackSeconds = g_lifetimePeriodicSecondCount;
+	//StartExternalRtcClock(SAMPLE_RATE_16K);
+	rtcReg = 0x21; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
+	//MXC_Delay(MXC_DELAY_SEC(16));
+	while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackSeconds + 64)) {;}
+	//StopExternalRtcClock();
+	rtcReg = 0x27; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
+	debug("Sample clock: Sample rate @ %d results in %lu actual (%lu)\r\n", SAMPLE_RATE_16K, (g_sampleCount >> 6), g_sampleCount);
+
+	g_sampleCount = 0;
+	psChange = 0; while (psChange == 0) {;}
+	trackSeconds = g_lifetimePeriodicSecondCount;
+	//StartExternalRtcClock(SAMPLE_RATE_32K);
+	rtcReg = 0x20; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
+	//MXC_Delay(MXC_DELAY_SEC(16));
+	while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackSeconds + 64)) {;}
+	//StopExternalRtcClock();
+	rtcReg = 0x27; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
+	debug("Sample clock: Sample rate @ %d results in %lu actual (%lu)\r\n", SAMPLE_RATE_32K, (g_sampleCount >> 6), g_sampleCount);
+#endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void TestLCDController(void)
+{
+#if 0 /* Test LCD screens */
+	TestLCD();
+#endif
+
+#if 0 /* Test LCD Logo */
+extern void test_logo(void);
+	test_logo();
+	// Forever loop displaying current draw
+	//while (1) { MXC_Delay(MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString()); }
+	PowerControl(LCD_POWER_DOWN, ON);
+	PowerControl(LCD_POWER_ENABLE, OFF);
+#endif
+
+#if 0 /* Test backlight and power draw */
+extern void test_black_screen(void);
+extern void ft81x_backlight_off(void);
+extern void ft81x_set_backlight_level(uint8_t backlightLevel);
+extern void test_logo(void);
+	test_logo();
+	test_black_screen();
+	ft81x_backlight_off();
+	uint32_t i = 1;
+	while (1)
+	{
+		MXC_Delay(MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s, Backlight level: %d\r\n", FuelGaugeDebugString(), (i % 128));
+		ft81x_set_backlight_level(i++ % 128);
+	}
+#endif
+
+#if 0 /* Test Re-init after shutting down SPI and domain */
+extern void test_logo(void);
+	test_logo();
+	PowerControl(LCD_POWER_DOWN, ON);
+	PowerControl(LCD_POWER_ENABLE, OFF);
+	MXC_Delay(MXC_DELAY_SEC(1));
+	InitLCD(); debug("LCD Display: Init complete\r\n");
+	test_logo();
+	PowerControl(LCD_POWER_DOWN, ON);
+	PowerControl(LCD_POWER_ENABLE, OFF);
+#endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void InitSystemHardware_MS9300(void)
+{
+	//-------------------------------------------------------------------------
+	// Setup Debug Uart (UART2)
+	//-------------------------------------------------------------------------
+	SetupDebugUART();
+
+	//-------------------------------------------------------------------------
+	// Check power on source and validate for system startup
+	//-------------------------------------------------------------------------
+	ValidatePowerOn();
+
+	//-------------------------------------------------------------------------
+	// Setup Half Second tick timer
+	//-------------------------------------------------------------------------
+	SetupHalfSecondTickTimer();
+
+	//-------------------------------------------------------------------------
+	// Display Debug Banner (UART2)
+	//-------------------------------------------------------------------------
+	DebugUartInitBanner();
+
+	//-------------------------------------------------------------------------
+	// Enable Cycle Counter
+	//-------------------------------------------------------------------------
+	EnableMpuCycleCounter();
+
+	//-------------------------------------------------------------------------
+	// Setup Watchdog
+	//-------------------------------------------------------------------------
+    SetupWatchdog();
+
+	//-------------------------------------------------------------------------
+	// Enable the instruction cache
+	//-------------------------------------------------------------------------
+    SetupICC();
+
+	//-------------------------------------------------------------------------
+	// Setup UART0 (LTE) and UART1 (BLE)
+	//-------------------------------------------------------------------------
+	SetupUART();
+
+	//-------------------------------------------------------------------------
+	// Setup I2C0 (1.8V devices) and I2C1 (3.3V devices)
+	//-------------------------------------------------------------------------
+	SetupI2C();
+
+	//-------------------------------------------------------------------------
+	// Setup SPI3 (ADC) and SPI2 (LCD)
+	//-------------------------------------------------------------------------
+#if 0 /* Only initializing when the power domain is activated */
+	SetupSPI3_ExternalADC();
+	SetupSPI2_LCD();
+#endif
+
+	//-------------------------------------------------------------------------
+	// Setup all GPIO
+	//-------------------------------------------------------------------------
+	// Must init after SPI to correct for a wrong GPIO pin config in the library (and allow this project to work with an unmodified framework)
+	SetupAllGPIO();
+#if 1 /* Test */
+	TestGPIO();
+#endif
+
+#if 1 /* Test */
+	TestI2CDeviceAddresses();
+#endif
+
+	//-------------------------------------------------------------------------
+	// Setup SDHC/eMMC
+	//-------------------------------------------------------------------------
+	SetupSDHCeMMC();
+#if 1 /* Test */
+	TestSDHCeMMC();
+#endif
+
+	//-------------------------------------------------------------------------
+	// Setup Drive(eMMC) and Filesystem
+	//-------------------------------------------------------------------------
+	SetupDriveAndFilesystem();
+#if 1 /* Test */
+	TestFlashAndFatFilesystem();
+#endif
 
 	//-------------------------------------------------------------------------
 	// Setup USB Composite (MSC + CDC/ACM)
@@ -3604,13 +4130,32 @@ extern volatile uint8_t hsChange;
 	//-------------------------------------------------------------------------
 	// Disable all interrupts
 	//-------------------------------------------------------------------------
-	// Todo: Determine if this is necessary
 #if 0
+	// Todo: Determine if this is necessary, thus far no problems
 	__disable_irq();
 #endif
 
 #if 1 /* Early call to adjust power savings for testing current */
 	AdjustPowerSavings(POWER_SAVINGS_HIGH);
+#else /* Test MPU peripheral power shuntdowns and sleep states (sleep states can't be done using JTAG) */
+	AdjustPowerSavings(POWER_SAVINGS_MAX);
+	AdjustPowerSavings(POWER_SAVINGS_NONE);
+	AdjustPowerSavings(POWER_SAVINGS_MINIMUM);
+	AdjustPowerSavings(POWER_SAVINGS_NORMAL);
+	AdjustPowerSavings(POWER_SAVINGS_HIGH);
+
+	ExternalRtcInit(); debug("External RTC: Init complete\r\n");
+extern void GoSleepState(uint32_t mode);
+/*
+	SLEEP_MODE,
+	BACKGROUND_MODE,
+	DEEPSLEEP_MODE,
+	BACKUP_MODE
+*/
+	debug("Sleep states: Going SLEEP_MODE...\r\n");	GoSleepState(SLEEP_MODE); debug("Sleep states: Out of SLEEP_MODE\r\n");
+	debug("Sleep states: Going BACKGROUND_MODE...\r\n");	GoSleepState(BACKGROUND_MODE); debug("Sleep states: Out of BACKGROUND_MODE\r\n");
+	debug("Sleep states: Going DEEPSLEEP_MODE...\r\n");	GoSleepState(DEEPSLEEP_MODE); debug("Sleep states: Out of DEEPSLEEP_MODE\r\n");
+	debug("Sleep states: Going BACKUP_MODE...\r\n");	GoSleepState(BACKUP_MODE); debug("Sleep states: Out of BACKUP_MODE\r\n");
 #endif
 
 	//-------------------------------------------------------------------------
@@ -3648,65 +4193,29 @@ extern volatile uint8_t hsChange;
 	// eMMC + FF driver (should be none)
 
 	//-------------------------------------------------------------------------
-	// Smart Sensor data/control init (Hardware pull up on signal)
-	//-------------------------------------------------------------------------
-	OneWireInit(); debug("One Wire Driver: Init complete\r\n");
-
-#if 1 /* Swap */
-	//-------------------------------------------------------------------------
-	// Initalize the USB-C Port Controller
-	//-------------------------------------------------------------------------
-	USBCPortControllerInit(); debug("USB Port Controller: Init complete\r\n");
-
-	//-------------------------------------------------------------------------
 	// Initialize the external RTC
 	//-------------------------------------------------------------------------
 	ExternalRtcInit(); debug("External RTC: Init complete\r\n");
-#endif
-
-#if 0 /* Test */
-	//-------------------------------------------------------------------------
-	// Test Expanded battery presence
-	//-------------------------------------------------------------------------
-	uint32_t k = 16000000;
-	debug("Expanded Battery Presence Test...\r\n");
-	while (1)
-	{
-		if (GetExpandedBatteryPresenceState() == YES) { debugErr("Expanded Battery Presence: False detection of 2nd battery pack\r\n"); break; }
-		if (--k == 0) { break; }
-	}
-	if (k == 0) { debug("Expanded Battery Presence Test passed\r\n"); }
-#endif
-
-	//-------------------------------------------------------------------------
-	// Initalize the Battery Charger
-	//-------------------------------------------------------------------------
-	BatteryChargerInit(); debug("Battery Charger: Init complete\r\n");
-
-#if 0 /* Normal */
-	//-------------------------------------------------------------------------
-	// Initalize the USB-C Port Controller
-	//-------------------------------------------------------------------------
-	USBCPortControllerInit(); debug("USB Port Controller: Init complete\r\n");
-
-	//-------------------------------------------------------------------------
-	// Initialize the external RTC
-	//-------------------------------------------------------------------------
-	ExternalRtcInit(); debug("External RTC: Init complete\r\n");
-#endif
 
 	//-------------------------------------------------------------------------
 	// Initalize the Fuel Gauge
 	//-------------------------------------------------------------------------
 	FuelGaugeInit(); debug("Fuel Gauge: Init complete\r\n");
 
-#if 0 /* Test loop spin */
-	while (1)
-	{
-		MXC_Delay(MXC_DELAY_SEC(1));
-		FuelGaugeDebugInfo();
-	}
-#endif
+	//-------------------------------------------------------------------------
+	// Smart Sensor data/control init (Hardware pull up on signal)
+	//-------------------------------------------------------------------------
+	OneWireInit(); debug("One Wire Driver: Init complete\r\n");
+
+	//-------------------------------------------------------------------------
+	// Initalize the USB-C Port Controller
+	//-------------------------------------------------------------------------
+	USBCPortControllerInit(); debug("USB Port Controller: Init complete\r\n");
+
+	//-------------------------------------------------------------------------
+	// Initalize the Battery Charger
+	//-------------------------------------------------------------------------
+	BatteryChargerInit(); debug("Battery Charger: Init complete\r\n");
 
 	//-------------------------------------------------------------------------
 	// Initalize the Accelerometer
@@ -3720,7 +4229,7 @@ extern volatile uint8_t hsChange;
 
 #if 1 /* Test */
 	//-------------------------------------------------------------------------
-	// Test EERPOM
+	// Test EERPOM (No specific init needed, only I2C comms)
 	//-------------------------------------------------------------------------
 	TestEEPROM();
 #endif
@@ -3729,104 +4238,26 @@ extern volatile uint8_t hsChange;
 	// Initialize the AD Control
 	//-------------------------------------------------------------------------
 	AnalogControlInit(); debug("Analog Control: Init complete\r\n");
-
-#if 0 /* Test */
-	//-------------------------------------------------------------------------
-	// Test Expanded battery presence
-	//-------------------------------------------------------------------------
-	uint32_t j = 16000000;
-	debug("Expanded Battery Presence Test...\r\n");
-	while (1)
-	{
-		if (GetExpandedBatteryPresenceState() == YES) { debugErr("Expanded Battery Presence: False detection of 2nd battery pack\r\n"); break; }
-		if (--j == 0) { break; }
-	}
-	if (j == 0) { debug("Expanded Battery Presence Test passed\r\n"); }
-#endif
-
-#if 0 /* Test */
-	debug("-- Power up 5V --\r\n");
-	//PowerControl(ANALOG_5V_ENABLE, ON);
-	//WaitAnalogPower5vGood();
-	PowerUpAnalog5VandExternalADC();
-	while (1)
-	{
-		MXC_Delay(MXC_DELAY_SEC(1));
-		FuelGaugeDebugInfo();
-	}
-#endif
-
-#if 0 /* Test */
-	//-------------------------------------------------------------------------
-	// Test I2C
-	//-------------------------------------------------------------------------
-	debug("I2C Test Loop (forever)\r\n");
-	//uint16_t testReg16;
-	uint8_t testBootStatus[6];
-	uint8_t regA = 0x2D;
-	uint8_t ramData = 0xA5;
-	j = 1;
-	SetRtcRegisters(PCF85263_CTL_RAM_BYTE, &ramData, sizeof(ramData));
-	while (1)
-	{
-		//GetBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_0, &testReg16);
-		WriteI2CDevice(MXC_I2C0, I2C_ADDR_USBC_PORT_CONTROLLER, &regA, sizeof(uint8_t), testBootStatus, sizeof(testBootStatus));
-		GetRtcRegisters(PCF85263_CTL_RAM_BYTE, &ramData, sizeof(ramData));
-		MXC_Delay(MXC_DELAY_MSEC(1));
-		//if (j++ % 1000 == 0) { debugRaw("."); }
-		if (j++ % 1000 == 0) { FuelGaugeDebugInfo(); }
-	}
-#endif
-
-#if 0 /* Test */
-	debug("Forever loop, testing interrupts...\r\n");
-	debug("External Trigger In state: %s\r\n", (MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_IN_PORT, GPIO_EXTERNAL_TRIGGER_IN_PIN) > 0 ? "HIGH" : "LOW"));
-	while (1) /* Spin, checking interrupts */
-	{
-		MXC_Delay(MXC_DELAY_SEC(15));
-		PowerControl(TRIGGER_OUT, ON);
-		debug("External Trigger In state: %s\r\n", (MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_IN_PORT, GPIO_EXTERNAL_TRIGGER_IN_PIN) > 0 ? "HIGH" : "LOW"));
-		MXC_Delay(MXC_DELAY_SEC(3));
-		PowerControl(TRIGGER_OUT, OFF);
-		debug("External Trigger In state: %s\r\n", (MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_IN_PORT, GPIO_EXTERNAL_TRIGGER_IN_PIN) > 0 ? "HIGH" : "LOW"));
-	}
+#if 1 /* Test */
+	TestAnalog5V();
 #endif
 
 	//-------------------------------------------------------------------------
 	// Init and configure the A/D to prevent the unit from burning current charging internal reference (default config)
 	//-------------------------------------------------------------------------
-#if 0 /* Normal */
-	// *** Note ***: Forever test loop inside
-	InitExternalAD(); debug("External ADC: Init complete\r\n");
+	InitExternalADC(); debug("External ADC: Init complete\r\n");
+#if 1 /* Test */
+	TestExtADC();
 #endif
 
 	//-------------------------------------------------------------------------
 	// Init the LCD display
 	//-------------------------------------------------------------------------
-#if 1 /* Disabled until LCD connector fixed or hardware modded */
+#if 1 /* Only enable if LCD connector fixed or hardware modded */
 	InitLCD(); debug("LCD Display: Init complete\r\n");
-	TestLCD();
 #endif
-#if 1 /* Test LCD Display */
-extern void test_logo(void);
-	test_logo();
-	// Forever loop displaying current draw
-	while (1) { MXC_Delay(MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString()); }
-#endif
-#if 0 /* Test backlight and power draw */
-extern void test_black_screen(void);
-extern void ft81x_backlight_off(void);
-extern void ft81x_set_backlight_level(uint8_t backlightLevel);
-extern void test_logo(void);
-	test_logo();
-	test_black_screen();
-	ft81x_backlight_off();
-	uint32_t i = 1;
-	while (1)
-	{
-		MXC_Delay(MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s, Backlight level: %d\r\n", FuelGaugeDebugString(), (i % 128));
-		ft81x_set_backlight_level(i++ % 128);
-	}
+#if 1 /* Test */
+	TestLCDController();
 #endif
 
 	//-------------------------------------------------------------------------
@@ -3839,10 +4270,21 @@ extern void test_logo(void);
 	//-------------------------------------------------------------------------
 #if 0 /* Normal */
 	AdjustPowerSavings(POWER_SAVINGS_NORMAL); debug("Power Savings: Init complete\r\n");
-#else /* Initial test */
+#elif 1 /* Initial test */
 	// Make sure no subsystems are incorrectly disabled
 	//AdjustPowerSavings(POWER_SAVINGS_NONE);
 	AdjustPowerSavings(POWER_SAVINGS_HIGH);
+#else
+	AdjustPowerSavings(POWER_SAVINGS_NONE);
+	MXC_Delay(MXC_DELAY_SEC(1));
+	AdjustPowerSavings(POWER_SAVINGS_MINIMUM);
+	MXC_Delay(MXC_DELAY_SEC(1));
+	AdjustPowerSavings(POWER_SAVINGS_NORMAL);
+	MXC_Delay(MXC_DELAY_SEC(1));
+	AdjustPowerSavings(POWER_SAVINGS_HIGH);
+	MXC_Delay(MXC_DELAY_SEC(1));
+	AdjustPowerSavings(POWER_SAVINGS_MAX);
+	MXC_Delay(MXC_DELAY_SEC(1));
 #endif
 	//-------------------------------------------------------------------------
 	// Read and cache Smart Sensor data
