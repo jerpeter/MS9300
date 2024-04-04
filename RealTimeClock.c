@@ -47,7 +47,9 @@ BOOLEAN ExternalRtcInit(void)
 	uint8_t secondsReg;
 	uint8_t stopEnableReg;
 	uint8_t flagsReg;
+	uint8_t ioConfig;
 	uint8_t interruptReg;
+	uint8_t controlReg;
 
 	// Initialize the soft timer array
 	memset(&g_rtcTimerBank[0], 0, sizeof(g_rtcTimerBank));
@@ -85,9 +87,26 @@ BOOLEAN ExternalRtcInit(void)
 	flagsReg = 0;
 	SetRtcRegisters(PCF85263_CTL_FLAGS, (uint8_t*)&flagsReg, sizeof(flagsReg));
 
+	// Change Interrupt A to be an interrupt and not a mirrored clock
+	ioConfig = PCF85263_CTL_INTAPM_INTA;
+	SetRtcRegisters(PCF85263_CTL_PIN_IO, (uint8_t*)&ioConfig, sizeof(ioConfig));
+
 	// Enable interrupts for the periodic and alarm 1
 	interruptReg = (PCF85263_CTL_INTA_PIEA | PCF85263_CTL_INTA_A1IEA);
 	SetRtcRegisters(PCF85263_CTL_INTA_ENABLE, (uint8_t*)&interruptReg, sizeof(interruptReg));
+
+#if 0 /* Test 1 sec PI */
+	// Turn on 1 second periodic interrupt
+	debug("External RTC: Setting up 1 sec Periodic Int\r\n");
+	controlReg = PCF85263_CTL_FUNC_PI_SEC;
+	SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&controlReg, sizeof(controlReg));
+#elif 1 /* Test 1 min PI */
+	// Turn on 1 second periodic interrupt
+	debug("External RTC: Setting up 1 min Periodic Int\r\n");
+	controlReg = PCF85263_CTL_FUNC_PI_MIN;
+	SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&controlReg, sizeof(controlReg));
+#endif
+
 #else /* Test */
 	// Disable alarm settings and clear flags 
 	DisableExternalRtcAlarm();
@@ -109,7 +128,10 @@ BOOLEAN ExternalRtcInit(void)
 	}
 
 	// Set the clock out control to turn off any clock interrupt generation
+#if 1 /* Normal */
 	StopExternalRtcClock();
+#else /* Test leaving interrupt active */
+#endif
 
 #if 1 /* Test */
 	DATE_TIME_STRUCT testTime;
@@ -165,10 +187,12 @@ void StartExternalRtcClock(uint16 sampleRate)
 	// Enable the clock pin (active low)
 	pinIOControlReg &= (~PCF85263_CTL_CLKPM);
 
+	debug("Starting External RTC Interrupt (SR: %d)\r\n", sampleRate);
+#if 1 /* Test */
+	debug("External RTC: Pin I/O is 0x%x, Function is 0x%x\r\n", pinIOControlReg, controlReg);
+#endif
 	SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&controlReg, sizeof(controlReg));
 	SetRtcRegisters(PCF85263_CTL_PIN_IO, (uint8_t*)&pinIOControlReg, sizeof(pinIOControlReg));
-
-	debug("Starting External RTC Interrupt\r\n");
 }
 
 ///----------------------------------------------------------------------------
