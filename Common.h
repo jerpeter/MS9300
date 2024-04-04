@@ -564,13 +564,20 @@ typedef struct
 #define GPIO_SMART_SENSOR_SLEEP_PORT			MXC_GPIO0
 #define GPIO_SMART_SENSOR_MUX_ENABLE_PORT		MXC_GPIO0
 #define GPIO_ADC_RESET_PORT						MXC_GPIO0
+#define GPIO_ADC_SPI3_SCK_PORT					MXC_GPIO0
 #define GPIO_ADC_BUSY_ALT_GP0_PORT				MXC_GPIO0
 #define GPIO_ADC_CONVERSION_PORT				MXC_GPIO0
-#define GPIO_ADC_SPI_3_SS_0_PORT				MXC_GPIO0
+#define GPIO_ADC_SPI3_SS0_PORT					MXC_GPIO0
+#define GPIO_ADC_SPI3_SDO1_PORT					MXC_GPIO0
+#define GPIO_ADC_SPI3_SDI_PORT					MXC_GPIO0
 #define GPIO_CAL_MUX_PRE_AD_ENABLE_PORT			MXC_GPIO0
 #define GPIO_CAL_MUX_PRE_AD_SELECT_PORT			MXC_GPIO0
 #define GPIO_ALERT_1_PORT						MXC_GPIO0
 #define GPIO_ALERT_2_PORT						MXC_GPIO0
+#define GPIO_JTAG_TDI_PORT						MXC_GPIO0
+#define GPIO_JTAG_TDO_PORT						MXC_GPIO0
+#define GPIO_JTAG_TMS_PORT						MXC_GPIO0
+#define GPIO_JTAG_TCK_PORT						MXC_GPIO0
 #define GPIO_LTE_OTA_PORT						MXC_GPIO0
 #define GPIO_EMMC_RESET_PORT					MXC_GPIO0
 
@@ -581,6 +588,8 @@ typedef struct
 #define GPIO_EMMC_DATA_STROBE_PORT				MXC_GPIO1
 #define GPIO_EXPANSION_ENABLE_PORT				MXC_GPIO1
 #define GPIO_EXPANSION_RESET_PORT				MXC_GPIO1
+#define GPIO_MCU_UART2_RX_PORT					MXC_GPIO1
+#define GPIO_MCU_UART2_TX_PORT					MXC_GPIO1
 #define GPIO_USBC_PORT_CONTROLLER_I2C_IRQ_PORT	MXC_GPIO1
 #define GPIO_ACCEL_INT_1_PORT					MXC_GPIO1
 #define GPIO_ACCEL_INT_2_PORT					MXC_GPIO1
@@ -608,12 +617,23 @@ typedef struct
 //--------------------------------------------------------------------------------
 #define GPIO_LCD_POWER_ENABLE_PORT				MXC_GPIO2
 #define GPIO_LCD_POWER_DOWN_PORT				MXC_GPIO2
-#define GPIO_SPI_2_SS_0_LCD_PORT				MXC_GPIO2
+#define GPIO_LCD_SPI2_SCK_PORT					MXC_GPIO2
+#define GPIO_LCD_SPI2_MISO_PORT					MXC_GPIO2
+#define GPIO_LCD_SPI2_MOSI_PORT					MXC_GPIO2
+#define GPIO_LCD_SPI2_SS0_PORT					MXC_GPIO2
 #define GPIO_LCD_INT_PORT						MXC_GPIO2
+#define GPIO_I2C0_SDA_PORT						MXC_GPIO2
+#define GPIO_I2C0_SCL_PORT						MXC_GPIO2
 #define GPIO_SENSOR_CHECK_ENABLE_PORT			MXC_GPIO2
 #define GPIO_SENSOR_CHECK_PORT					MXC_GPIO2
+#define GPIO_LTE_UART0_TXD_PORT					MXC_GPIO2
+#define GPIO_LTE_UART0_RXD_PORT					MXC_GPIO2
 #define GPIO_LTE_RESET_PORT						MXC_GPIO2
+#define GPIO_BLE_UART1_TXD_PORT					MXC_GPIO2
 #define GPIO_BLE_RESET_PORT						MXC_GPIO2
+#define GPIO_BLE_UART1_RXD_PORT					MXC_GPIO2
+#define GPIO_I2C1_SDA_PORT						MXC_GPIO2
+#define GPIO_I2C1_SCL_PORT						MXC_GPIO2
 #define GPIO_SMART_SENSOR_MUX_A0_PORT			MXC_GPIO2
 #define GPIO_SMART_SENSOR_MUX_A1_PORT			MXC_GPIO2
 #define GPIO_NYQUIST_0_A0_PORT					MXC_GPIO2
@@ -637,122 +657,122 @@ typedef struct
 //--------------------------------------------------------------------------------
 // GPIO0 Port, Pin defines
 //--------------------------------------------------------------------------------
-#define GPIO_MCU_POWER_LATCH_PIN				MXC_GPIO_PIN_1
-#define GPIO_EXPANDED_BATTERY_PIN				MXC_GPIO_PIN_2
-#define GPIO_LED_1_PIN							MXC_GPIO_PIN_3
-#define GPIO_GAUGE_ALERT_PIN					MXC_GPIO_PIN_4
-#define GPIO_BATTERY_CHARGER_IRQ_PIN			MXC_GPIO_PIN_5
-#define GPIO_ENABLE_12V_PIN						MXC_GPIO_PIN_6
-#define GPIO_ENABLE_5V_PIN						MXC_GPIO_PIN_7
-#define GPIO_EXPANSION_IRQ_PIN					MXC_GPIO_PIN_8
-#define GPIO_USB_SOURCE_ENABLE_PIN				MXC_GPIO_PIN_9
-#define GPIO_USB_AUX_POWER_ENABLE_PIN			MXC_GPIO_PIN_10
-#define GPIO_POWER_GOOD_5V_PIN					MXC_GPIO_PIN_11
-#define GPIO_POWER_GOOD_BATTERY_CHARGE_PIN		MXC_GPIO_PIN_12
-#define GPIO_SMART_SENSOR_SLEEP_PIN				MXC_GPIO_PIN_13
-#define GPIO_SMART_SENSOR_MUX_ENABLE_PIN		MXC_GPIO_PIN_14
-#define GPIO_ADC_RESET_PIN						MXC_GPIO_PIN_15
-// GPIO_ADC_SPI_SCK								MXC_GPIO_PIN_16
-#define GPIO_ADC_BUSY_ALT_GP0_PIN				MXC_GPIO_PIN_17
-#define GPIO_ADC_CONVERSION_PIN					MXC_GPIO_PIN_18
-#define GPIO_ADC_SPI_3_SS_0_PIN					MXC_GPIO_PIN_19
-// GPIO_ADC_SPI_3_SDO1							MXC_GPIO_PIN_20
-// GPIO_ADC_SPI_3_SDI							MXC_GPIO_PIN_21
-#define GPIO_CAL_MUX_PRE_AD_ENABLE_PIN			MXC_GPIO_PIN_22
-#define GPIO_CAL_MUX_PRE_AD_SELECT_PIN			MXC_GPIO_PIN_23
-#define GPIO_ALERT_1_PIN						MXC_GPIO_PIN_24
-#define GPIO_ALERT_2_PIN						MXC_GPIO_PIN_25
-// GPIO_TDI										MXC_GPIO_PIN_26
-// GPIO_TDO										MXC_GPIO_PIN_27
-// GPIO_TMS										MXC_GPIO_PIN_28
-// GPIO_TCK										MXC_GPIO_PIN_29
-#define GPIO_LTE_OTA_PIN						MXC_GPIO_PIN_30
-#define GPIO_EMMC_RESET_PIN						MXC_GPIO_PIN_31
+#define GPIO_MCU_POWER_LATCH_PIN				MXC_GPIO_PIN_1			// Power domain: Main
+#define GPIO_EXPANDED_BATTERY_PIN				MXC_GPIO_PIN_2			// Power domain: Main
+#define GPIO_LED_1_PIN							MXC_GPIO_PIN_3			// Power domain: Main
+#define GPIO_GAUGE_ALERT_PIN					MXC_GPIO_PIN_4			// Power domain: Main
+#define GPIO_BATTERY_CHARGER_IRQ_PIN			MXC_GPIO_PIN_5			// Power domain: Main
+#define GPIO_ENABLE_12V_PIN						MXC_GPIO_PIN_6			// Power domain: Main
+#define GPIO_ENABLE_5V_PIN						MXC_GPIO_PIN_7			// Power domain: Main
+#define GPIO_EXPANSION_IRQ_PIN					MXC_GPIO_PIN_8			// Power domain: Expansion
+#define GPIO_USB_SOURCE_ENABLE_PIN				MXC_GPIO_PIN_9			// Power domain: Main
+#define GPIO_USB_AUX_POWER_ENABLE_PIN			MXC_GPIO_PIN_10			// Power domain: Main
+#define GPIO_POWER_GOOD_5V_PIN					MXC_GPIO_PIN_11			// Power domain: Main
+#define GPIO_POWER_GOOD_BATTERY_CHARGE_PIN		MXC_GPIO_PIN_12			// Power domain: Main
+#define GPIO_SMART_SENSOR_SLEEP_PIN				MXC_GPIO_PIN_13			// Power domain: Analog 5V
+#define GPIO_SMART_SENSOR_MUX_ENABLE_PIN		MXC_GPIO_PIN_14			// Power domain: Analog 5V
+#define GPIO_ADC_RESET_PIN						MXC_GPIO_PIN_15			// Power domain: Analog 5V
+#define GPIO_ADC_SPI3_SCK_PIN					MXC_GPIO_PIN_16			// Power domain: Analog 5V
+#define GPIO_ADC_BUSY_ALT_GP0_PIN				MXC_GPIO_PIN_17			// Power domain: Analog 5V
+#define GPIO_ADC_CONVERSION_PIN					MXC_GPIO_PIN_18			// Power domain: Analog 5V
+#define GPIO_ADC_SPI3_SS0_PIN					MXC_GPIO_PIN_19			// Power domain: Analog 5V
+#define GPIO_ADC_SPI3_SDO1_PIN					MXC_GPIO_PIN_20			// Power domain: Analog 5V
+#define GPIO_ADC_SPI3_SDI_PIN					MXC_GPIO_PIN_21			// Power domain: Analog 5V
+#define GPIO_CAL_MUX_PRE_AD_ENABLE_PIN			MXC_GPIO_PIN_22			// Power domain: Analog 5V
+#define GPIO_CAL_MUX_PRE_AD_SELECT_PIN			MXC_GPIO_PIN_23			// Power domain: Analog 5V
+#define GPIO_ALERT_1_PIN						MXC_GPIO_PIN_24			// Power domain: Main
+#define GPIO_ALERT_2_PIN						MXC_GPIO_PIN_25			// Power domain: Main
+#define GPIO_JTAG_TDI_PIN						MXC_GPIO_PIN_26			// Power domain: Main
+#define GPIO_JTAG_TDO_PIN						MXC_GPIO_PIN_27			// Power domain: Main
+#define GPIO_JTAG_TMS_PIN						MXC_GPIO_PIN_28			// Power domain: Main
+#define GPIO_JTAG_TCK_PIN						MXC_GPIO_PIN_29			// Power domain: Main
+#define GPIO_LTE_OTA_PIN						MXC_GPIO_PIN_30			// Power domain: Cell/LTE
+#define GPIO_EMMC_RESET_PIN						MXC_GPIO_PIN_31			// Power domain: Main
 
 //--------------------------------------------------------------------------------
 // GPIO1 Port, Pin defines
 //--------------------------------------------------------------------------------
-#define GPIO_SDHC_CMD_PIN						MXC_GPIO_PIN_0
-#define GPIO_SDHC_DAT2_PIN						MXC_GPIO_PIN_1
-#define GPIO_EMMC_DATA_STROBE_PIN				MXC_GPIO_PIN_2
-#define GPIO_SDHC_DAT3_PIN						MXC_GPIO_PIN_3
-#define GPIO_SDHC_DAT0_PIN						MXC_GPIO_PIN_4
-#define GPIO_SDHC_CLK_PIN						MXC_GPIO_PIN_5
-#define GPIO_SDHC_DAT1_PIN						MXC_GPIO_PIN_6
-#define GPIO_EXPANSION_ENABLE_PIN				MXC_GPIO_PIN_7
-#define GPIO_EXPANSION_RESET_PIN				MXC_GPIO_PIN_8
-// GPIO_MCU_UART2_RX							MXC_GPIO_PIN_9
-// GPIO_MCU_UART2_TX							MXC_GPIO_PIN_10
-#define GPIO_USBC_PORT_CONTROLLER_I2C_IRQ_PIN	MXC_GPIO_PIN_11
-#define GPIO_ACCEL_INT_1_PIN					MXC_GPIO_PIN_12
-#define GPIO_ACCEL_INT_2_PIN					MXC_GPIO_PIN_13
-#define GPIO_ACCEL_TRIG_PIN						MXC_GPIO_PIN_14
-#define GPIO_POWER_BUTTON_IRQ_PIN				MXC_GPIO_PIN_15
-#define GPIO_BUTTON_1_PIN						MXC_GPIO_PIN_16
-#define GPIO_BUTTON_2_PIN						MXC_GPIO_PIN_17
-#define GPIO_BUTTON_3_PIN						MXC_GPIO_PIN_18
-#define GPIO_BUTTON_4_PIN						MXC_GPIO_PIN_19
-#define GPIO_BUTTON_5_PIN						MXC_GPIO_PIN_20
-#define GPIO_BUTTON_6_PIN						MXC_GPIO_PIN_21
-#define GPIO_BUTTON_7_PIN						MXC_GPIO_PIN_22
-#define GPIO_BUTTON_8_PIN						MXC_GPIO_PIN_23
-#define GPIO_BUTTON_9_PIN						MXC_GPIO_PIN_24
-#define GPIO_LED_2_PIN							MXC_GPIO_PIN_25
-#define GPIO_LED_3_PIN							MXC_GPIO_PIN_26
-#define GPIO_LED_4_PIN							MXC_GPIO_PIN_27
-#define GPIO_EXT_RTC_INTA_PIN					MXC_GPIO_PIN_28
-#define GPIO_BLE_OTA_PIN						MXC_GPIO_PIN_29
-#define GPIO_EXTERNAL_TRIGGER_OUT_PIN			MXC_GPIO_PIN_30
-#define GPIO_EXTERNAL_TRIGGER_IN_PIN			MXC_GPIO_PIN_31
+#define GPIO_SDHC_CMD_PIN						MXC_GPIO_PIN_0			// Power domain: Main
+#define GPIO_SDHC_DAT2_PIN						MXC_GPIO_PIN_1			// Power domain: Main
+#define GPIO_EMMC_DATA_STROBE_PIN				MXC_GPIO_PIN_2			// Power domain: Main
+#define GPIO_SDHC_DAT3_PIN						MXC_GPIO_PIN_3			// Power domain: Main
+#define GPIO_SDHC_DAT0_PIN						MXC_GPIO_PIN_4			// Power domain: Main
+#define GPIO_SDHC_CLK_PIN						MXC_GPIO_PIN_5			// Power domain: Main
+#define GPIO_SDHC_DAT1_PIN						MXC_GPIO_PIN_6			// Power domain: Main
+#define GPIO_EXPANSION_ENABLE_PIN				MXC_GPIO_PIN_7			// Power domain: Main
+#define GPIO_EXPANSION_RESET_PIN				MXC_GPIO_PIN_8			// Power domain: Expansion
+#define GPIO_MCU_UART2_RX_PIN					MXC_GPIO_PIN_9			// Power domain: Main
+#define GPIO_MCU_UART2_TX_PIN					MXC_GPIO_PIN_10			// Power domain: Main
+#define GPIO_USBC_PORT_CONTROLLER_I2C_IRQ_PIN	MXC_GPIO_PIN_11			// Power domain: Main
+#define GPIO_ACCEL_INT_1_PIN					MXC_GPIO_PIN_12			// Power domain: Main
+#define GPIO_ACCEL_INT_2_PIN					MXC_GPIO_PIN_13			// Power domain: Main
+#define GPIO_ACCEL_TRIG_PIN						MXC_GPIO_PIN_14			// Power domain: Main
+#define GPIO_POWER_BUTTON_IRQ_PIN				MXC_GPIO_PIN_15			// Power domain: Main
+#define GPIO_BUTTON_1_PIN						MXC_GPIO_PIN_16			// Power domain: Main
+#define GPIO_BUTTON_2_PIN						MXC_GPIO_PIN_17			// Power domain: Main
+#define GPIO_BUTTON_3_PIN						MXC_GPIO_PIN_18			// Power domain: Main
+#define GPIO_BUTTON_4_PIN						MXC_GPIO_PIN_19			// Power domain: Main
+#define GPIO_BUTTON_5_PIN						MXC_GPIO_PIN_20			// Power domain: Main
+#define GPIO_BUTTON_6_PIN						MXC_GPIO_PIN_21			// Power domain: Main
+#define GPIO_BUTTON_7_PIN						MXC_GPIO_PIN_22			// Power domain: Main
+#define GPIO_BUTTON_8_PIN						MXC_GPIO_PIN_23			// Power domain: Main
+#define GPIO_BUTTON_9_PIN						MXC_GPIO_PIN_24			// Power domain: Main
+#define GPIO_LED_2_PIN							MXC_GPIO_PIN_25			// Power domain: Main
+#define GPIO_LED_3_PIN							MXC_GPIO_PIN_26			// Power domain: Main
+#define GPIO_LED_4_PIN							MXC_GPIO_PIN_27			// Power domain: Main
+#define GPIO_EXT_RTC_INTA_PIN					MXC_GPIO_PIN_28			// Power domain: Main
+#define GPIO_BLE_OTA_PIN						MXC_GPIO_PIN_29			// Power domain: Cell/LTE
+#define GPIO_EXTERNAL_TRIGGER_OUT_PIN			MXC_GPIO_PIN_30			// Power domain: Main
+#define GPIO_EXTERNAL_TRIGGER_IN_PIN			MXC_GPIO_PIN_31			// Power domain: Main
 
 //--------------------------------------------------------------------------------
 // GPIO2 Port, Pin defines
 //--------------------------------------------------------------------------------
-#define GPIO_LCD_POWER_ENABLE_PIN				MXC_GPIO_PIN_0
-#define GPIO_LCD_POWER_DOWN_PIN					MXC_GPIO_PIN_1
-// GPIO_SPI2_SCK_LCD							MXC_GPIO_PIN_2
-// GPIO_SPI2_MISO_LCD							MXC_GPIO_PIN_3
-// GPIO_SPI2_MOSI_LCD							MXC_GPIO_PIN_4
-#define GPIO_SPI_2_SS_0_LCD_PIN					MXC_GPIO_PIN_5
-#define GPIO_LCD_INT_PIN						MXC_GPIO_PIN_6
-// GPIO_I2C0_SDA								MXC_GPIO_PIN_7
-// GPIO_I2C0_SCL								MXC_GPIO_PIN_8
-#define GPIO_SENSOR_CHECK_ENABLE_PIN			MXC_GPIO_PIN_9
-#define GPIO_SENSOR_CHECK_PIN					MXC_GPIO_PIN_10
-// GPIO_LTE_UART_TXD							MXC_GPIO_PIN_11
-// GPIO_LTE_UART_RXD							MXC_GPIO_PIN_12
-#define GPIO_LTE_RESET_PIN						MXC_GPIO_PIN_13
-// GPIO_BLE_UART_TXD							MXC_GPIO_PIN_14
-#define GPIO_BLE_RESET_PIN						MXC_GPIO_PIN_15
-// GPIO_BLE_UART_RXD							MXC_GPIO_PIN_16
-// GPIO_I2C1_SDA								MXC_GPIO_PIN_17
-// GPIO_I2C1_SCL								MXC_GPIO_PIN_18
+#define GPIO_LCD_POWER_ENABLE_PIN				MXC_GPIO_PIN_0			// Power domain: Main
+#define GPIO_LCD_POWER_DOWN_PIN					MXC_GPIO_PIN_1			// Power domain: LCD
+#define GPIO_LCD_SPI2_SCK_PIN					MXC_GPIO_PIN_2			// Power domain: LCD
+#define GPIO_LCD_SPI2_MISO_PIN					MXC_GPIO_PIN_3			// Power domain: LCD
+#define GPIO_LCD_SPI2_MOSI_PIN					MXC_GPIO_PIN_4			// Power domain: LCD
+#define GPIO_LCD_SPI2_SS0_PIN					MXC_GPIO_PIN_5			// Power domain: LCD
+#define GPIO_LCD_INT_PIN						MXC_GPIO_PIN_6			// Power domain: LCD
+#define GPIO_I2C0_SDA_PIN						MXC_GPIO_PIN_7			// Power domain: Main, Analog 5V
+#define GPIO_I2C0_SCL_PIN						MXC_GPIO_PIN_8			// Power domain: Main, Analog 5V
+#define GPIO_SENSOR_CHECK_ENABLE_PIN			MXC_GPIO_PIN_9			// Power domain: Analog 5V
+#define GPIO_SENSOR_CHECK_PIN					MXC_GPIO_PIN_10			// Power domain: Analog 5V
+#define GPIO_LTE_UART0_TXD_PIN					MXC_GPIO_PIN_11			// Power domain: Cell/LTE
+#define GPIO_LTE_UART0_RXD_PIN					MXC_GPIO_PIN_12			// Power domain: Cell/LTE
+#define GPIO_LTE_RESET_PIN						MXC_GPIO_PIN_13			// Power domain: Cell/LTE
+#define GPIO_BLE_UART1_TXD_PIN					MXC_GPIO_PIN_14			// Power domain: Cell/LTE
+#define GPIO_BLE_RESET_PIN						MXC_GPIO_PIN_15			// Power domain: Cell/LTE
+#define GPIO_BLE_UART1_RXD_PIN					MXC_GPIO_PIN_16			// Power domain: Cell/LTE
+#define GPIO_I2C1_SDA_PIN						MXC_GPIO_PIN_17			// Power domain: Main, Analog 5V
+#define GPIO_I2C1_SCL_PIN						MXC_GPIO_PIN_18			// Power domain: Main, Analog 5V, Expansion
 // GAP											MXC_GPIO_PIN_19
 // GAP											MXC_GPIO_PIN_20
 // GAP											MXC_GPIO_PIN_21
 // GAP											MXC_GPIO_PIN_22
-#define GPIO_SMART_SENSOR_MUX_A0_PIN			MXC_GPIO_PIN_23
+#define GPIO_SMART_SENSOR_MUX_A0_PIN			MXC_GPIO_PIN_23			// Power domain: Analog 5V
 // GAP											MXC_GPIO_PIN_24
-#define GPIO_SMART_SENSOR_MUX_A1_PIN			MXC_GPIO_PIN_25
-#define GPIO_NYQUIST_0_A0_PIN					MXC_GPIO_PIN_26
+#define GPIO_SMART_SENSOR_MUX_A1_PIN			MXC_GPIO_PIN_25			// Power domain: Analog 5V
+#define GPIO_NYQUIST_0_A0_PIN					MXC_GPIO_PIN_26			// Power domain: Analog 5V
 // GAP											MXC_GPIO_PIN_27
-#define GPIO_NYQUIST_1_A1_PIN					MXC_GPIO_PIN_28
+#define GPIO_NYQUIST_1_A1_PIN					MXC_GPIO_PIN_28			// Power domain: Analog 5V
 // GAP											MXC_GPIO_PIN_29
-#define GPIO_NYQUIST_2_ENABLE_PIN				MXC_GPIO_PIN_30
+#define GPIO_NYQUIST_2_ENABLE_PIN				MXC_GPIO_PIN_30			// Power domain: Analog 5V
 
 //--------------------------------------------------------------------------------
 // GPIO3 Port, Pin defines
 //--------------------------------------------------------------------------------
-#define GPIO_CELL_ENABLE_PIN					MXC_GPIO_PIN_0
-#define GPIO_SENSOR_ENABLE_GEO1_PIN				MXC_GPIO_PIN_1
-#define GPIO_SENSOR_ENABLE_AOP1_PIN				MXC_GPIO_PIN_2
-#define GPIO_SENSOR_ENABLE_GEO2_PIN				MXC_GPIO_PIN_3
-#define GPIO_SENSOR_ENABLE_AOP2_PIN				MXC_GPIO_PIN_4
-#define GPIO_GAIN_SELECT_GEO1_PIN				MXC_GPIO_PIN_5
-#define GPIO_PATH_SELECT_AOP1_PIN				MXC_GPIO_PIN_6
-#define GPIO_GAIN_SELECT_GEO2_PIN				MXC_GPIO_PIN_7
-#define GPIO_PATH_SELECT_AOP2_PIN				MXC_GPIO_PIN_8
-#define GPIO_RTC_CLOCK_PIN						MXC_GPIO_PIN_9
+#define GPIO_CELL_ENABLE_PIN					MXC_GPIO_PIN_0			// Power domain: Main
+#define GPIO_SENSOR_ENABLE_GEO1_PIN				MXC_GPIO_PIN_1			// Power domain: Analog 5V
+#define GPIO_SENSOR_ENABLE_AOP1_PIN				MXC_GPIO_PIN_2			// Power domain: Analog 5V
+#define GPIO_SENSOR_ENABLE_GEO2_PIN				MXC_GPIO_PIN_3			// Power domain: Analog 5V
+#define GPIO_SENSOR_ENABLE_AOP2_PIN				MXC_GPIO_PIN_4			// Power domain: Analog 5V
+#define GPIO_GAIN_SELECT_GEO1_PIN				MXC_GPIO_PIN_5			// Power domain: Analog 5V
+#define GPIO_PATH_SELECT_AOP1_PIN				MXC_GPIO_PIN_6			// Power domain: Analog 5V
+#define GPIO_GAIN_SELECT_GEO2_PIN				MXC_GPIO_PIN_7			// Power domain: Analog 5V
+#define GPIO_PATH_SELECT_AOP2_PIN				MXC_GPIO_PIN_8			// Power domain: Analog 5V
+#define GPIO_RTC_CLOCK_PIN						MXC_GPIO_PIN_9			// Power domain: Main
 
 //--------------------------------------------------------------------------------
 // GPIO Buttons group defines
@@ -926,6 +946,7 @@ void Fuel_gauge_alert_irq(void);
 void Battery_charger_irq(void);
 void Expansion_irq(void);
 void Usbc_port_controller_i2c_irq(void);
+void Power_good_battery_charger_irq(void);
 void Accelerometer_irq_1(void);
 void Accelerometer_irq_2(void);
 void Lcd_irq(void);
@@ -980,5 +1001,9 @@ int WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* write
 
 // Wrapper to help SPI transactions
 void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeassert, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method);
+
+// SPI Init wrappers
+void SetupSPI3_ExternalADC(void);
+void SetupSPI2_LCD(void);
 
 #endif // _COMMON_H_
