@@ -345,7 +345,7 @@ Write map to LCD replacement
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 1 /* Empty call until LCD connector fixed or hardware modded */
+#if 0 /* Empty call until LCD connector fixed or hardware modded */
 void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, int ln_type) {}
 #else
 void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, int ln_type)
@@ -547,7 +547,8 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 		ft81x_bgcolor_rgb32(~0xff0000);
 		ft81x_fgcolor_rgb32(~0x0000ff);
 #else /* Datasheet says fg and bg color don't affect CMD_TEXT */
-		ft81x_color_rgb32(0x00ff00);
+		ft81x_cmd_button((int16_t)(wnd_layout->curr_col * 25 / 4), (int16_t)(wnd_layout->curr_row * 25 / 4), (strlen((char*)buff) * 16.2), 32, 30, 0, "");
+		ft81x_color_rgb32(0xffffff);
 #endif
 	}
 	else { ft81x_color_rgb32(0x0000ff); }
@@ -938,7 +939,7 @@ void MessageChoiceActiveSwap(MB_CHOICE_TYPE choiceType)
 ///	Function Break
 ///----------------------------------------------------------------------------
 extern const char sign_on_logo_l2_top_left[2064];
-#if 1 /* Empty call until LCD connector fixed or hardware modded */
+#if 0 /* Empty call until LCD connector fixed or hardware modded */
 void DisplayLogoToLcd(void) {}
 #else
 void DisplayLogoToLcd(void)
@@ -971,7 +972,7 @@ void DisplayLogoToLcd(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 1 /* Empty call until LCD connector fixed or hardware modded */
+#if 0 /* Empty call until LCD connector fixed or hardware modded */
 void BitmapDisplayToLcd(void) {}
 #else
 void BitmapDisplayToLcd(void)

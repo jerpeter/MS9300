@@ -280,7 +280,7 @@ void WriteStringToLcd(uint8* p, uint8 x, uint8 y, uint8 (*table_ptr)[2][10])
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 1 /* Empty call until LCD connector fixed or hardware modded */
+#if 0 /* Empty call until LCD connector fixed or hardware modded */
 void WriteMapToLcd(uint8 (*g_mmap_ptr)[128]) {}
 #else
 void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
@@ -374,17 +374,26 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 	*/
 	// Option parameter: By default, the button is drawn with a 3D effect (value is zero), OPT_FLAT removes the 3D effect (value of OPT_FLAT is 256)
 	// Todo: Load the dynamic key label
+
+	//if(LcdControllerActive())
+
+	// Swap to white text
+	ft81x_color_rgb32(0xffffff);
+
 #if 0 /* 480x272 screen size */
 	ft81x_cmd_button(12, 240, 70, 32, 18, 0, "OK");
 	ft81x_cmd_button(140, 240, 70, 32, 18, 0, "ESCAPE");
 	ft81x_cmd_button(264, 240, 70, 32, 18, 0, "MENU");
 	ft81x_cmd_button(394, 240, 70, 32, 18, 0, "HELP");
 #else /* 800x480 screen size */
-	ft81x_cmd_button(20, 420, 117, 55, 18, 0, "OK");
-	ft81x_cmd_button(233, 420, 117, 55, 18, 0, "ESCAPE");
-	ft81x_cmd_button(440, 420, 117, 55, 18, 0, "MENU");
-	ft81x_cmd_button(657, 420, 117, 55, 18, 0, "HELP");
+	ft81x_cmd_button(20, 420, 117, 55, 29, 0, "OK");
+	ft81x_cmd_button(233, 420, 117, 55, 29, 0, "ESCAPE");
+	ft81x_cmd_button(440, 420, 117, 55, 29, 0, "MENU");
+	ft81x_cmd_button(657, 420, 117, 55, 29, 0, "HELP");
 #endif
+
+	// Swap back to default blue text
+	ft81x_color_rgb32(0x0000ff);
 
 	ft81x_display(); // End the display list started with the ClearLcdMap function
 	ft81x_getfree(0); // Trigger FT81x to read the command buffer
@@ -398,7 +407,7 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 1 /* Empty call until LCD connector fixed or hardware modded */
+#if 0 /* Empty call until LCD connector fixed or hardware modded */
 void ClearLcdMap(void) {}
 #else
 void ClearLcdMap(void)
@@ -511,7 +520,7 @@ void SetNextLcdBacklightState(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 1 /* Empty call until LCD connector fixed or hardware modded */
+#if 0 /* Empty call until LCD connector fixed or hardware modded */
 LCD_BACKLIGHT_STATES GetLcdBacklightState(void) { return (BACKLIGHT_OFF); }
 #else
 LCD_BACKLIGHT_STATES GetLcdBacklightState(void)
@@ -537,7 +546,7 @@ LCD_BACKLIGHT_STATES GetLcdBacklightState(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 1 /* Empty call until LCD connector fixed or hardware modded */
+#if 0 /* Empty call until LCD connector fixed or hardware modded */
 void SetLcdBacklightState(LCD_BACKLIGHT_STATES state) {}
 #else
 void SetLcdBacklightState(LCD_BACKLIGHT_STATES state)
