@@ -540,6 +540,7 @@ void BuildLanguageLinkTable(uint8 languageSelection)
 	}
 #endif
 
+#if 0 /* Normal */
 	// Attempt to find the file on the SD file system
     if ((f_stat((const TCHAR*)&languageFilename[0], &fno)) != FR_OK)
 	{
@@ -572,6 +573,13 @@ void BuildLanguageLinkTable(uint8 languageSelection)
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 		f_close(&file);
 	}
+#else /* Skip until eMMC Flash access is stable */
+	// Todo: Remove when filesystem is ready
+	UNUSED(sizeCheck);
+	UNUSED(file);
+	UNUSED(fno);
+	UNUSED(readSize);
+#endif
 
 	// Loop and convert all line feeds and carriage returns to nulls, and leaving the last char element as a null
 	for (i = 1; i < (LANGUAGE_TABLE_MAX_SIZE - 1); i++)
