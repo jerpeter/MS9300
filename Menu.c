@@ -31,6 +31,8 @@
 //#include "host_mass_storage_task.h"
 #include "lcd.h"
 
+#include "mxc_delay.h"
+
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
@@ -977,6 +979,9 @@ void BitmapDisplayToLcd(void) {}
 #else
 void BitmapDisplayToLcd(void)
 {
+#if 1 /* Test method to re-power the LCD */
+	if (GetPowerControlState(LCD_POWER_ENABLE) == OFF) { ft81x_init(); }
+#endif
 	LcdMapTranslationToBitMap();
 	ft81x_cmd_memwrite(0x8000, sizeof(g_bitmap));
 	ft81x_cSPOOL(g_bitmap, sizeof(g_bitmap));
@@ -1000,6 +1005,11 @@ void BitmapDisplayToLcd(void)
 	ft81x_getfree(0);
 	ft81x_stream_stop();
 	ft81x_wait_finish();
+#if 1 /* Test disable of LCD for now */
+	MXC_Delay(MXC_DELAY_SEC(3));
+	PowerControl(LCD_POWER_ENABLE, OFF);
+	PowerControl(LCD_POWER_DOWN, ON);
+#endif
 }
 #endif
 

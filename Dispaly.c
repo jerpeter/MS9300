@@ -19,6 +19,8 @@
 #include "Record.h"
 #include "lcd.h"
 
+#include "mxc_delay.h"
+
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
@@ -401,6 +403,11 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 
 	ft81x_wait_finish(); // Wait till the GPU is finished? (or delay at start of next display interaction?)
 #endif
+#if 1 /* Test disable of LCD for now */
+	MXC_Delay(MXC_DELAY_SEC(3));
+	PowerControl(LCD_POWER_ENABLE, OFF);
+	PowerControl(LCD_POWER_DOWN, ON);
+#endif
 }
 #endif
 
@@ -425,6 +432,9 @@ void ClearLcdMap(void)
 		Set foreground color -- ft81x_fgcolor_rgb32();
 		Set background color -- ft81x_bgcolor_rgb32();
 	*/
+#if 1 /* Test method to re-power the LCD */
+		if (GetPowerControlState(LCD_POWER_ENABLE) == OFF) { ft81x_init(); }
+#endif
 		ft81x_stream_start(); // Start streaming
 		ft81x_cmd_dlstart(); // Set REG_CMD_DL when done?
 		ft81x_cmd_swap(); // Set AUTO swap at end of display list?
