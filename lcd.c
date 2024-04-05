@@ -1476,7 +1476,7 @@ void ft81x_init_display_settings()
 	// Screen specific settings
 	// Pulling from: NHD-4.3-800480FT-CSXP-CTP reference, but different package/options (display settings should be the same)
 	// NHD-4.3-800480CF-ASXP
-#if 1 /* Test */
+#if 0 /* Test */
 	uint16_t rData;
 	rData = ft81x_rd16(REG_HCYCLE); debug("LCD Controller: Hcycle is 0x%x\r\n", rData);
 	rData = ft81x_rd16(REG_HOFFSET); debug("LCD Controller: Hoffset is 0x%x\r\n", rData);
@@ -1528,7 +1528,7 @@ void ft81x_init_display_settings()
 	ft81x_wr(REG_SWIZZLE, 0);
 #endif
 
-#if 1 /* Test */
+#if 0 /* Test */
 	rData = ft81x_rd16(REG_HCYCLE); debug("LCD Controller: Hcycle is 0x%x\r\n", rData);
 	rData = ft81x_rd16(REG_HOFFSET); debug("LCD Controller: Hoffset is 0x%x\r\n", rData);
 	rData = ft81x_rd16(REG_HSIZE); debug("LCD Controller: Hsize is 0x%x\r\n", rData);
@@ -1972,10 +1972,12 @@ uint8_t ft81x_init(void)
 	}
 #endif
 
+#if 0 /* Test reading of the LCD Controller before going active, which fails */
 	if (!read_chip_id()) { debugErr("LCD Controller: Failed to read chip ID\r\n"); }
 	else { debug("LCD Controller: Chip ID verified\r\n"); }
+#endif
 
-	// Bring LCD Controller active, done by issuing two read commands of address 0, and possibly waiting up to 300ms
+	// Bring LCD Controller active, done by issuing two read commands of address 0, per datasheet "The boot-up may take up to 300ms to complete"
 	debug("LCD Controller: Going Active...\r\n");
 	ft81x_rd(CMD_ACTIVE);
 	ft81x_rd(CMD_ACTIVE);
@@ -2008,15 +2010,15 @@ uint8_t ft81x_init(void)
 	r8Data = ft81x_rd(0x302080);
 	debug("LCD Controller: Playback volume after write is (x8) 0x%x (Attempted setting to 0x55)\r\n", r8Data);
 
-	debug("LCD Controller: Seting backlight level to half\r\n");
-	ft81x_set_backlight_level(64);
+	debug("LCD Controller: Seting backlight level to 25%%\r\n");
+	ft81x_set_backlight_level(32);
 #endif
 	ft81x_fifo_reset();
 	ft81x_init_display_settings();
 	test_black_screen();
 	ft81x_init_gpio();
 
-	ft81x_wake(64);
+	ft81x_wake(32);
 
 #if 1 /* Test */
 	test_memory_ops();
