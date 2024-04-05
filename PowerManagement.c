@@ -1905,7 +1905,7 @@ void FuelGaugeInit(void)
 	}
 	else { debug("Fuel Gauge: Prescaler set for Double Pack\r\n"); Ltc2944_device.prescaler = LTC2944_PRESCALER_1024; } // Double pack
 
-	Ltc2944_device.Qlsb = (((((340 * 1000) * 50) / Ltc2944_device.r_sense) * LTC2944_M_256) / LTC2944_MAX_PRESCALER); // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
+	Ltc2944_device.Qlsb = (((((340 * 1000) * 50) / Ltc2944_device.r_sense) * Ltc2944_device.prescaler) / LTC2944_MAX_PRESCALER); // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
 	//debug("Fuel Gauge: Qlsb = %d (size: %d)\r\n", Ltc2944_device.Qlsb, sizeof(Ltc2944_device.Qlsb));
 
 	// Check if the Fuel Gauge has not been configured already (First time power applied by battery or battery replaced), otherwise bypass config if reset values have been changed
