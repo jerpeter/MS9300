@@ -126,7 +126,7 @@ EVT_RECORD g_pendingBargraphRecord;
 EVT_RECORD g_resultsEventCache[50];
 uint16 g_resultsCacheIndex = 0;
 FACTORY_SETUP_STRUCT g_factorySetupRecord;
-FACTORY_SETUP_STRUCT g_shadowFactorySetupRecord;
+FACTORY_SETUP_STRUCT g_shadowFactorySetupRecord = {0xFFFF};
 REC_EVENT_MN_STRUCT g_triggerRecord;
 uint8 g_externalTriggerMenuActiveForSetup;
 uint8 g_activeMenu;
