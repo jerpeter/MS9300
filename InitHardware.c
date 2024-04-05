@@ -36,7 +36,6 @@
 //#include "usb_protocol.h"
 // SDHC includes
 #include "mxc_device.h"
-#include "mxc_sys.h"
 #include "sdhc_regs.h"
 #include "tmr.h"
 #include "sdhc_lib.h"
@@ -3646,7 +3645,6 @@ void TestFlashAndFatFilesystem(void)
 	getSize();
 
 	mxc_sdhc_csd_regs_t* csd = NULL;
-	uint32_t csdArray[4];
 	if ((err = MXC_SDHC_Lib_GetCSD(csd)) == E_NO_ERROR) { debug("SDHC Lib Get Capacity: Flash is %lld\r\n", MXC_SDHC_Lib_GetCapacity(csd)); }
 	else { debug("SDHC Lib Get CSD: error (%d)\r\n"); }
 
@@ -3686,8 +3684,10 @@ void TestFlashAndFatFilesystem(void)
 	debug("Flash CSD: <End>\r\n");
 	debug("Flash CSD: Raw 0x%x 0x%x 0x%x 0x%x\r\n", csd->array[0], csd->array[1], csd->array[2], csd->array[3]);
 
+#if 0 /* Test second reading of the Flash CSD, which doesn't seem to work and likely why the driver caches the structure */
 extern bool g_csd_is_cached;
 	g_csd_is_cached = false;
+	uint32_t csdArray[4];
 	memcpy(csdArray, (void*)csd->array, sizeof(csdArray)); memset((void*)csd->array, 0, sizeof(csd->array));
 	if ((err = MXC_SDHC_Lib_GetCSD(csd)) == E_NO_ERROR)
 	{
@@ -3696,6 +3696,7 @@ extern bool g_csd_is_cached;
 		else { debug("SDHC Lib Get CSD: Verify error\r\n"); }
 	}
 	else { debug("SDHC Lib Get CSD: error\r\n"); }
+#endif
 #endif
 
 #if 0 /* Test CID, doesn't seem to work */
