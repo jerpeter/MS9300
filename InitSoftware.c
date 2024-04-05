@@ -219,6 +219,15 @@ void LoadFactorySetupRecord(void)
 
 		// Check if the Shadow Factory setup is valid
 		GetFlashUserPageFactorySetup(&g_shadowFactorySetupRecord);
+#if 0 /* Test */
+		uint8_t i = sizeof(g_shadowFactorySetupRecord);
+		debugRaw("Factory setup shadow copy: ");
+		while (i--)
+		{
+			debugRaw("%x ", ((uint8_t*)&g_shadowFactorySetupRecord)[i]);
+		}
+		debugRaw("\r\n");
+#endif
 		if (!g_shadowFactorySetupRecord.invalid)
 		{
 			// Warn the user
