@@ -382,17 +382,10 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 	// Swap to white text
 	ft81x_color_rgb32(0xffffff);
 
-#if 0 /* 480x272 screen size */
-	ft81x_cmd_button(12, 240, 70, 32, 18, 0, "OK");
-	ft81x_cmd_button(140, 240, 70, 32, 18, 0, "ESCAPE");
-	ft81x_cmd_button(264, 240, 70, 32, 18, 0, "MENU");
-	ft81x_cmd_button(394, 240, 70, 32, 18, 0, "HELP");
-#else /* 800x480 screen size */
 	ft81x_cmd_button(20, 420, 117, 55, 29, 0, "OK");
 	ft81x_cmd_button(233, 420, 117, 55, 29, 0, "ESCAPE");
 	ft81x_cmd_button(440, 420, 117, 55, 29, 0, "MENU");
 	ft81x_cmd_button(657, 420, 117, 55, 29, 0, "HELP");
-#endif
 
 	// Swap back to default blue text
 	ft81x_color_rgb32(0x0000ff);

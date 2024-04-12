@@ -573,13 +573,8 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 	// Command the display controller to draw some text
 	// Todo: Update to handle text wrapping and any other special abilities previously handled by this function
 
-#if 0 /* For 480x272 screen size */
-	// Scale old row by 15/4 (30 pixels instead of 8 per row), scale old column by 15/4 (480/128)
-	ft81x_cmd_text((int16_t)(wnd_layout->curr_col * 15 / 4), (int16_t)(wnd_layout->curr_row * 15 / 4), 30, 0, (char*)buff);
-#else /* 800x480 */
 	// Scale old row by 25/4 (50 pixels instead of 8 per row), scale old column by 25/4 (800/128)
 	ft81x_cmd_text((int16_t)(wnd_layout->curr_col * 25 / 4), (int16_t)(wnd_layout->curr_row * 25 / 4), 30, 0, (char*)buff);
-#endif
 
 	if ((ln_type == CURSOR_LN) || (ln_type == CURSOR_CHAR))
 	{
@@ -1016,11 +1011,91 @@ void BitmapDisplayToLcd(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#define MESSAGE_TEXT_LINE_LENGTH	40
+void MessageDisplayToLcd(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
+{
+	char firstChoiceText[30];
+	char secondChoiceText[30];
+
+	ClearLcdMap();
+
+	ft81x_fgcolor_rgb32(0x0000ff); // Blue foreground
+	ft81x_cmd_button(20, 20, (800-40), (400-40), 29, 0, "");
+
+	ft81x_fgcolor_rgb32(0xffffff); // White foreground
+	ft81x_cmd_button(30, 30, (800-60), (400-60), 29, 0, "");
+
+	ft81x_fgcolor_rgb32(0x0000ff); // Blue foreground
+	ft81x_color_rgb32(0xffffff); // White text
+	//ft81x_cmd_button((int16_t)(400 - ((strlen(titleString) * 18) / 2)), 50, (strlen(titleString) * 18), 32, 30, 0, titleString);
+	ft81x_cmd_button(40, 40, (800-80), 32, 30, 0, titleString);
+
+	ft81x_color_rgb32(0x0000ff); // Blue text
+	uint8_t i = 0;
+	uint8_t j;
+	uint16_t row = 80;
+	while (strlen((char*)&textString[i]) > MESSAGE_TEXT_LINE_LENGTH)
+	{
+		for (j = i + (MESSAGE_TEXT_LINE_LENGTH - 1); j > i; j--)
+		{
+			if (textString[j] == ' ')
+			{
+				memset(g_spareBuffer, 0, (MESSAGE_TEXT_LINE_LENGTH + 1));
+				strncpy((char*)g_spareBuffer, (char*)&textString[i], (j - i + 1));
+				ft81x_cmd_text(60, row, 30, 0, (char*)g_spareBuffer);
+				i = (j + 1);
+				row += 40;
+				break;
+			}
+		}
+	}
+	ft81x_cmd_text(60, row, 30, 0, (char*)&textString[i]);
+
+	if (choiceType != MB_TOTAL_CHOICES)
+	{
+		strcpy((char*)firstChoiceText, getLangText(s_MessageChoices[choiceType].firstTextEntry));
+		strcpy((char*)secondChoiceText, getLangText(s_MessageChoices[choiceType].secondTextEntry));
+
+		ft81x_color_rgb32(0xffffff); // White text
+		ft81x_cmd_button(320, 280, 160, 32, 30, 0, firstChoiceText);
+
+		if (choiceType != MB_OK)
+		{
+			ft81x_fgcolor_rgb32(0x525252); // Grey foreground
+			ft81x_cmd_button(320, 320, 160, 32, 30, 0, secondChoiceText);
+		}
+	}
+
+	ft81x_fgcolor_rgb32(0x525252); // Grey foreground
+	ft81x_color_rgb32(0xffffff); // White text
+	ft81x_cmd_button(20, 420, 117, 55, 29, 0, "OK");
+	ft81x_cmd_button(233, 420, 117, 55, 29, 0, "ESCAPE");
+	ft81x_cmd_button(440, 420, 117, 55, 29, 0, "MENU");
+	ft81x_cmd_button(657, 420, 117, 55, 29, 0, "HELP");
+
+	//WriteMapToLcd(NULL);
+	ft81x_display(); // End the display list started with the ClearLcdMap function
+	ft81x_getfree(0); // Trigger FT81x to read the command buffer
+	ft81x_stream_stop(); // Finish streaming to command buffer
+	ft81x_wait_finish(); // Wait till the GPU is finished? (or delay at start of next display interaction?)
+
+#if 1 /* Test with short display delay */
+	MXC_Delay(MXC_DELAY_SEC(5));
+#else /* Use the On key as a trigger */
+extern uint8_t onKeyCount;
+	while (1) { if (onKeyCount) { onKeyCount = 0; break; } }
+#endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 {
 	uint8 activeChoice = MB_FIRST_CHOICE;
 	volatile uint16 key = 0;
 
+#if 0 /* Original */
 	// Build MessageBox into g_mmap with the following calls
 	MessageBorder();
 	MessageTitle(titleString);
@@ -1032,6 +1107,12 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 #else /* New display controller */
 	// Write bitmap to LCD controller
 	BitmapDisplayToLcd();
+#endif
+#else
+	MessageDisplayToLcd(titleString, textString, choiceType);
+
+	//return (MB_NO_ACTION);
+	return (MB_FIRST_CHOICE);
 #endif
 
 	debug("MB: Look for a key\r\n");
@@ -1100,6 +1181,7 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 ///----------------------------------------------------------------------------
 void OverlayMessage(char* titleString, char* textString, uint32 displayTime)
 {
+#if 0 /* Original */
 	MessageBorder();
 	MessageTitle(titleString);
 	MessageText(textString);
@@ -1109,6 +1191,11 @@ void OverlayMessage(char* titleString, char* textString, uint32 displayTime)
 #else /* New display controller */
 	// Write bitmap to LCD controller
 	BitmapDisplayToLcd();
+#endif
+#else /* Bitmap 1st pass didn't work, trying LCD built in tools */
+	MessageDisplayToLcd(titleString, textString, MB_TOTAL_CHOICES); // Using MB_TOTAL_CHOICES as a skip
+
+	return;
 #endif
 
 #if EXTERNAL_SAMPLING_SOURCE
