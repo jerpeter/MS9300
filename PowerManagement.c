@@ -181,6 +181,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			debug("Expansion Reset: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON) { MXC_GPIO_OutClr(GPIO_EXPANSION_RESET_PORT, GPIO_EXPANSION_RESET_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutSet(GPIO_EXPANSION_RESET_PORT, GPIO_EXPANSION_RESET_PIN); }
+			ExpansionI2CBridgeGpioSetup(!mode); // Swap mode to Active high
 			break;
 
 		//----------------------------------------------------------------------------
@@ -189,6 +190,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			debug("LCD Power Down: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON) { MXC_GPIO_OutClr(GPIO_LCD_POWER_DOWN_PORT, GPIO_LCD_POWER_DOWN_PIN); /* 20ms delay needed before FT810Q ready */ }
 			else /* (mode == OFF) */ { MXC_GPIO_OutSet(GPIO_LCD_POWER_DOWN_PORT, GPIO_LCD_POWER_DOWN_PIN); }
+			LcdControllerGpioSetup(!mode); // Swap mode to Active high
 			break;
 
 		//----------------------------------------------------------------------------
@@ -342,6 +344,21 @@ void LcdPowerGpioSetup(uint8_t mode)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void LcdControllerGpioSetup(uint8_t mode)
+{
+	if (mode == ON)
+	{
+		MXC_GPIO_EnableInt(GPIO_LCD_INT_PORT, GPIO_LCD_INT_PIN);
+	}
+	else // (mode == OFF)
+	{
+		MXC_GPIO_DisableInt(GPIO_LCD_INT_PORT, GPIO_LCD_INT_PIN);
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void ExpansionPowerGpioSetup(uint8_t mode)
 {
 	if (mode == ON)
@@ -357,12 +374,30 @@ void ExpansionPowerGpioSetup(uint8_t mode)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void ExpansionI2CBridgeGpioSetup(uint8_t mode)
+{
+	if (mode == ON)
+	{
+		MXC_GPIO_EnableInt(GPIO_EXPANSION_IRQ_PORT, GPIO_EXPANSION_IRQ_PIN);
+	}
+	else // (mode == OFF)
+	{
+		MXC_GPIO_DisableInt(GPIO_EXPANSION_IRQ_PORT, GPIO_EXPANSION_IRQ_PIN);
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void CellPowerGpioSetup(uint8_t mode)
 {
 	if (mode == ON)
 	{
+#if 1 /* Normal */
 		MXC_GPIO_OutSet(GPIO_LTE_RESET_PORT, GPIO_LTE_RESET_PIN); // Disable (Active low)
 		MXC_GPIO_OutSet(GPIO_BLE_RESET_PORT, GPIO_BLE_RESET_PIN); // Disable (Active low)
+#else /* Test without setting these immediately */
+#endif
 	}
 	else // (mode == OFF)
 	{

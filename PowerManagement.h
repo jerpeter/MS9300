@@ -113,7 +113,9 @@ void PowerUnitOff(uint8 powerOffMode);
 
 void Analog5vPowerGpioSetup(uint8_t mode);
 void LcdPowerGpioSetup(uint8_t mode);
+void LcdControllerGpioSetup(uint8_t mode);
 void ExpansionPowerGpioSetup(uint8_t mode);
+void ExpansionI2CBridgeGpioSetup(uint8_t mode);
 void CellPowerGpioSetup(uint8_t mode);
 
 void GetBattChargerRegister(uint8_t registerAddress, uint16_t* registerContents);
