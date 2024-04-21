@@ -528,6 +528,9 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 			Reset foreground color
 			Reset background color
 	*/
+
+	if (g_lcdPowerFlag == DISABLED) { return; }
+
 	uint8 cbit_size;
 	uint8 crow_size;
 	uint8 ccol_size;
@@ -549,7 +552,7 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 		ft81x_bgcolor_rgb32(~0xff0000);
 		ft81x_fgcolor_rgb32(~0x0000ff);
 #else /* Datasheet says fg and bg color don't affect CMD_TEXT */
-		ft81x_cmd_button((int16_t)(wnd_layout->curr_col * 25 / 4), (int16_t)(wnd_layout->curr_row * 25 / 4), (strlen((char*)buff) * 16.2), 32, 30, 0, "");
+		ft81x_cmd_button((int16_t)(wnd_layout->curr_col * 25 / 4), (int16_t)(wnd_layout->curr_row * 25 / 4), (strlen((char*)buff) * 18), 32, 30, 0, "");
 		ft81x_color_rgb32(0xffffff);
 #endif
 	}
@@ -941,6 +944,8 @@ void DisplayLogoToLcd(void) {}
 #else
 void DisplayLogoToLcd(void)
 {
+	if (g_lcdPowerFlag == DISABLED) { return; }
+
 	ft81x_cmd_memwrite(0x9000, (sizeof(sign_on_logo_l2_top_left) - 16));
 	ft81x_cSPOOL((uint8_t*)&sign_on_logo_l2_top_left[16], (sizeof(sign_on_logo_l2_top_left) - 16));
 
@@ -974,9 +979,12 @@ void BitmapDisplayToLcd(void) {}
 #else
 void BitmapDisplayToLcd(void)
 {
-#if 1 /* Test method to re-power the LCD */
+#if 0 /* Test method to re-power the LCD */
 	if (GetPowerControlState(LCD_POWER_ENABLE) == OFF) { ft81x_init(); }
+#else
+	if (g_lcdPowerFlag == DISABLED) { return; }
 #endif
+
 	LcdMapTranslationToBitMap();
 	ft81x_cmd_memwrite(0x8000, sizeof(g_bitmap));
 	ft81x_cSPOOL(g_bitmap, sizeof(g_bitmap));
@@ -1000,7 +1008,8 @@ void BitmapDisplayToLcd(void)
 	ft81x_getfree(0);
 	ft81x_stream_stop();
 	ft81x_wait_finish();
-#if 1 /* Test disable of LCD for now */
+
+#if 0 /* Test disable of LCD for now */
 	MXC_Delay(MXC_DELAY_SEC(3));
 	PowerControl(LCD_POWER_ENABLE, OFF);
 	PowerControl(LCD_POWER_DOWN, ON);
@@ -1012,10 +1021,11 @@ void BitmapDisplayToLcd(void)
 ///	Function Break
 ///----------------------------------------------------------------------------
 #define MESSAGE_TEXT_LINE_LENGTH	40
-void MessageDisplayToLcd(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
+void MessageDisplayToLcd(char* titleString, char* textString, MB_CHOICE_TYPE choiceType, uint8_t activeChoice)
 {
 	char firstChoiceText[30];
 	char secondChoiceText[30];
+	char messageText[MESSAGE_TEXT_LINE_LENGTH + 1];
 
 	ClearLcdMap();
 
@@ -1040,9 +1050,9 @@ void MessageDisplayToLcd(char* titleString, char* textString, MB_CHOICE_TYPE cho
 		{
 			if (textString[j] == ' ')
 			{
-				memset(g_spareBuffer, 0, (MESSAGE_TEXT_LINE_LENGTH + 1));
-				strncpy((char*)g_spareBuffer, (char*)&textString[i], (j - i + 1));
-				ft81x_cmd_text(60, row, 30, 0, (char*)g_spareBuffer);
+				memset(messageText, 0, (MESSAGE_TEXT_LINE_LENGTH + 1));
+				strncpy((char*)messageText, (char*)&textString[i], (j - i + 1));
+				ft81x_cmd_text(60, row, 30, 0, (char*)messageText);
 				i = (j + 1);
 				row += 40;
 				break;
@@ -1051,27 +1061,36 @@ void MessageDisplayToLcd(char* titleString, char* textString, MB_CHOICE_TYPE cho
 	}
 	ft81x_cmd_text(60, row, 30, 0, (char*)&textString[i]);
 
+	// Display choices
 	if (choiceType != MB_TOTAL_CHOICES)
 	{
 		strcpy((char*)firstChoiceText, getLangText(s_MessageChoices[choiceType].firstTextEntry));
 		strcpy((char*)secondChoiceText, getLangText(s_MessageChoices[choiceType].secondTextEntry));
 
 		ft81x_color_rgb32(0xffffff); // White text
+
+		// Check if the second choice is active, making the first choice inactive
+		if (activeChoice == MB_SECOND_CHOICE) { ft81x_fgcolor_rgb32(0x525252); } // Grey foreground for inactive
+
 		ft81x_cmd_button(320, 280, 160, 32, 30, 0, firstChoiceText);
 
-		if (choiceType != MB_OK)
+		if (s_MessageChoices[choiceType].numChoices == MB_TWO_CHOICES)
 		{
-			ft81x_fgcolor_rgb32(0x525252); // Grey foreground
+			// Check if the second choice is active, making it active
+			if (activeChoice == MB_FIRST_CHOICE) { ft81x_fgcolor_rgb32(0x525252); } // Grey foreground for inactive
+			else { ft81x_fgcolor_rgb32(0x0000ff); } // Blue foreground
+
 			ft81x_cmd_button(320, 320, 160, 32, 30, 0, secondChoiceText);
 		}
 	}
 
 	ft81x_fgcolor_rgb32(0x525252); // Grey foreground
 	ft81x_color_rgb32(0xffffff); // White text
-	ft81x_cmd_button(20, 420, 117, 55, 29, 0, "OK");
-	ft81x_cmd_button(233, 420, 117, 55, 29, 0, "ESCAPE");
-	ft81x_cmd_button(440, 420, 117, 55, 29, 0, "MENU");
-	ft81x_cmd_button(657, 420, 117, 55, 29, 0, "HELP");
+
+	ft81x_cmd_button(12, 420, 132, 55, 29, 0, "LCD OFF");
+	ft81x_cmd_button(225, 420, 132, 55, 29, 0, "BACKLIGHT");
+	ft81x_cmd_button(432, 420, 132, 55, 29, 0, "CONFIG");
+	ft81x_cmd_button(650, 420, 132, 55, 29, 0, "ESCAPE");
 
 	//WriteMapToLcd(NULL);
 	ft81x_display(); // End the display list started with the ClearLcdMap function
@@ -1079,12 +1098,51 @@ void MessageDisplayToLcd(char* titleString, char* textString, MB_CHOICE_TYPE cho
 	ft81x_stream_stop(); // Finish streaming to command buffer
 	ft81x_wait_finish(); // Wait till the GPU is finished? (or delay at start of next display interaction?)
 
-#if 1 /* Test with short display delay */
+#if 0 /* Test with short display delay */
 	MXC_Delay(MXC_DELAY_SEC(5));
-#else /* Use the On key as a trigger */
-extern uint8_t onKeyCount;
-	while (1) { if (onKeyCount) { onKeyCount = 0; break; } }
 #endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MessageChoiceSwapToLcd(MB_CHOICE_TYPE choiceType, uint8_t activeChoice)
+{
+	char firstChoiceText[30];
+	char secondChoiceText[30];
+
+	ft81x_stream_start(); // Start streaming
+	ft81x_cmd_dlstart(); // Set REG_CMD_DL when done?
+	ft81x_cmd_swap(); // Set AUTO swap at end of display list?
+
+	ft81x_color_rgb32(0xffffff); // White text
+	ft81x_fgcolor_rgb32(0x0000ff); // Blue foreground
+
+	ft81x_tag_mask(0); // Turn off tagging
+
+	strcpy((char*)firstChoiceText, getLangText(s_MessageChoices[choiceType].firstTextEntry));
+	strcpy((char*)secondChoiceText, getLangText(s_MessageChoices[choiceType].secondTextEntry));
+
+	if (activeChoice == MB_FIRST_CHOICE)
+	{
+		ft81x_cmd_button(320, 280, 160, 32, 30, 0, firstChoiceText);
+
+		ft81x_fgcolor_rgb32(0x525252); // Grey foreground
+		ft81x_cmd_button(320, 320, 160, 32, 30, 0, secondChoiceText);
+	}
+	else // (activeChoice == MB_SECOND_CHOICE)
+	{
+		ft81x_fgcolor_rgb32(0x525252); // Grey foreground
+		ft81x_cmd_button(320, 280, 160, 32, 30, 0, firstChoiceText);
+
+		ft81x_fgcolor_rgb32(0x0000ff); // Blue foreground
+		ft81x_cmd_button(320, 320, 160, 32, 30, 0, secondChoiceText);
+	}
+
+	ft81x_display(); // End the display list started with the ClearLcdMap function
+	ft81x_getfree(0); // Trigger FT81x to read the command buffer
+	ft81x_stream_stop(); // Finish streaming to command buffer
+	ft81x_wait_finish(); // Wait till the GPU is finished? (or delay at start of next display interaction?)
 }
 
 ///----------------------------------------------------------------------------
@@ -1109,10 +1167,9 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 	BitmapDisplayToLcd();
 #endif
 #else
-	MessageDisplayToLcd(titleString, textString, choiceType);
+	MessageDisplayToLcd(titleString, textString, choiceType, activeChoice);
 
-	//return (MB_NO_ACTION);
-	return (MB_FIRST_CHOICE);
+	//return (MB_FIRST_CHOICE); // Used until hardware mod for keys
 #endif
 
 	debug("MB: Look for a key\r\n");
@@ -1132,32 +1189,34 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 					// Check if the active choice is the second/bottom choice
 					if (activeChoice == MB_SECOND_CHOICE)
 					{
+						activeChoice = MB_FIRST_CHOICE;
+
 						// Swap the active choice
-						MessageChoiceActiveSwap(choiceType);
 #if 0 /* Original */
+						MessageChoiceActiveSwap(choiceType);
 						WriteMapToLcd(g_mmap);
 #else /* New display controller */
-						// Write bitmap to LCD controller
-						BitmapDisplayToLcd();
+						//MessageChoiceSwapToLcd(choiceType, activeChoice);
+						debug("MB: Up key\r\n");
+						MessageDisplayToLcd(titleString, textString, choiceType, activeChoice);
 #endif
-
-						activeChoice = MB_FIRST_CHOICE;
 					}
 					break;
 				case DOWN_ARROW_KEY:
 					// Check if the active choice is the first/top choice
 					if (activeChoice == MB_FIRST_CHOICE)
 					{
+						activeChoice = MB_SECOND_CHOICE;
+
 						// Swap the active choice
-						MessageChoiceActiveSwap(choiceType);
 #if 0 /* Original */
+						MessageChoiceActiveSwap(choiceType);
 						WriteMapToLcd(g_mmap);
 #else /* New display controller */
-						// Write bitmap to LCD controller
-						BitmapDisplayToLcd();
+						//MessageChoiceSwapToLcd(choiceType, activeChoice);
+						debug("MB: Down key\r\n");
+						MessageDisplayToLcd(titleString, textString, choiceType, activeChoice);
 #endif
-
-						activeChoice = MB_SECOND_CHOICE;
 					}
 					break;
 			}
@@ -1179,7 +1238,7 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void OverlayMessage(char* titleString, char* textString, uint32 displayTime)
+void OverlayMessage(char* titleString, char* textString, uint32 usDisplayTime)
 {
 #if 0 /* Original */
 	MessageBorder();
@@ -1193,29 +1252,29 @@ void OverlayMessage(char* titleString, char* textString, uint32 displayTime)
 	BitmapDisplayToLcd();
 #endif
 #else /* Bitmap 1st pass didn't work, trying LCD built in tools */
-	MessageDisplayToLcd(titleString, textString, MB_TOTAL_CHOICES); // Using MB_TOTAL_CHOICES as a skip
+	MessageDisplayToLcd(titleString, textString, MB_TOTAL_CHOICES, MB_FIRST_CHOICE); // Using MB_TOTAL_CHOICES as a skip
 
-	return;
+	//return; // Used until hardware mod for keys
 #endif
 
 #if EXTERNAL_SAMPLING_SOURCE
-	volatile uint32 msDisplayTime = (displayTime / SOFT_MSECS);
+	volatile uint32 msDisplayTime = (usDisplayTime / SOFT_MSECS);
 
 	// Check if the display time is less than 5 ms
-	if (displayTime < (5 * SOFT_MSECS))
+	if (usDisplayTime < (5 * SOFT_MSECS))
 	{
-		SoftUsecWait(displayTime);
+		SoftUsecWait(usDisplayTime);
 	}
 	// Check for exception handling key
-	else if ((displayTime & EXCEPTION_HANDLING_USE_SOFT_DELAY_KEY) == EXCEPTION_HANDLING_USE_SOFT_DELAY_KEY)
+	else if ((usDisplayTime & EXCEPTION_HANDLING_USE_SOFT_DELAY_KEY) == EXCEPTION_HANDLING_USE_SOFT_DELAY_KEY)
 	{
 		// Remove the key
-		displayTime &= ~EXCEPTION_HANDLING_USE_SOFT_DELAY_KEY;
+		usDisplayTime &= ~EXCEPTION_HANDLING_USE_SOFT_DELAY_KEY;
 
 		// Convert exception time to seconds
-		displayTime *= SOFT_SECS;
+		usDisplayTime *= SOFT_SECS;
 
-		SoftUsecWait(displayTime);
+		SoftUsecWait(usDisplayTime);
 	}
 	else // Use the millisecond timer to handle the display time and call USB Manager to handle USB requests in the meantime
 	{
@@ -1235,7 +1294,7 @@ void OverlayMessage(char* titleString, char* textString, uint32 displayTime)
 		StopInteralPITTimer(MILLISECOND_TIMER);
 	}
 #else /* INTERNAL_SAMPLING_SOURCE */
-	SoftUsecWait(displayTime);
+	SoftUsecWait(usDisplayTime);
 #endif
 }
 
