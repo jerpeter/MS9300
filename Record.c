@@ -20,6 +20,7 @@
 #include "spi.h"
 
 #include "i2c.h"
+#include "mxc_delay.h"
 //#include "flashc.h"
 
 /* Specific M24128 EEPROM details
@@ -36,6 +37,7 @@ ID read: 0xB1
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
+#define EEPROM_PAGE_SIZE	64
 
 ///----------------------------------------------------------------------------
 ///	Externs
@@ -608,6 +610,7 @@ void ValidateModemSetupParameters(void)
 ///----------------------------------------------------------------------------
 void GetParameterMemory(uint8* dataDest, uint16 startAddr, uint16 dataLength)
 {
+#if 0 /* Normal */
 	uint8 address[2];
 
 	//debugRaw("\nGPM: Addr: %x -> ", startAddr);
@@ -616,14 +619,67 @@ void GetParameterMemory(uint8* dataDest, uint16 startAddr, uint16 dataLength)
 	address[0] = startAddr >> 8;
 	address[1] = startAddr & 0x00FF;
 	WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM, address, sizeof(address), dataDest, dataLength);
+#elif 1
+	uint16 readLength;
+	uint8 checkForPartialFirstPage = YES;
+	uint8 lengthToPageBoundary = 0;
+
+	while(dataLength)
+	{
+		//debug("SPM: Addr: %x Len: %04d -> ", startAddr, dataLength);
+
+		// Address transfered as Big endian
+		g_spareBuffer[0] = ((startAddr >> 8) & 0xFF);
+		g_spareBuffer[1] = (startAddr & 0xFF);
+
+		// Adjust for page boundaries
+		if (checkForPartialFirstPage == YES)
+		{
+			checkForPartialFirstPage = NO;
+
+			lengthToPageBoundary = (EEPROM_PAGE_SIZE - (startAddr % EEPROM_PAGE_SIZE));
+
+			// Check data length against remaining length of 64 page boundary
+			if (dataLength <= lengthToPageBoundary)
+			{
+				// Complete data storage within first/partial page
+				readLength = dataLength;
+				dataLength = 0;
+			}
+			else // Data length goes beyond first page boundary
+			{
+				readLength = lengthToPageBoundary;
+				dataLength -= lengthToPageBoundary;
+				startAddr += lengthToPageBoundary;
+			}
+		}
+		else if (dataLength <= EEPROM_PAGE_SIZE) // Check if the rest of the data fits into the next page
+		{
+			readLength = dataLength;
+			dataLength = 0;
+		}
+		else // Already aligned to a page boundary, and more than 1 page of data to write
+		{
+			readLength = EEPROM_PAGE_SIZE;
+			dataLength -= EEPROM_PAGE_SIZE;
+			startAddr += EEPROM_PAGE_SIZE;
+		}
+
+		WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM, &g_spareBuffer[0], 2, dataDest, readLength);
+		dataDest += readLength;
+	}
+#else /* Test bypass since reads seem to cause the I2C to hang */
+	// Todo: swap back to normal
+	memset(dataDest, 0xFF, dataLength);
+#endif
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#define EEPROM_PAGE_SIZE	64
 void SaveParameterMemory(uint8* dataSrc, uint16 startAddr, uint16 dataLength)
 {
+#if 1 /* Normal */
 	uint16 writeLength;
 	uint8 checkForPartialFirstPage = YES;
 	uint8 lengthToPageBoundary = 0;
@@ -671,11 +727,16 @@ void SaveParameterMemory(uint8* dataSrc, uint16 startAddr, uint16 dataLength)
 			
 		memcpy(&g_spareBuffer[2], dataSrc, writeLength);
 		//debug("EEPROM SPM: Addr 0x%x 0x%x with Data 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_spareBuffer[0], g_spareBuffer[1], g_spareBuffer[2], g_spareBuffer[3], g_spareBuffer[4], g_spareBuffer[5], g_spareBuffer[6], g_spareBuffer[7], g_spareBuffer[8], g_spareBuffer[9]);
+		//debug("EEPROM SPM: Addr 0x%x 0x%x with Data 0x%x\r\n", g_spareBuffer[0], g_spareBuffer[1], g_spareBuffer[2]);
 		WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM, &g_spareBuffer[0], (writeLength + 2), NULL, 0);
 		dataSrc += writeLength;
 
-		// Old system used delay, needed?
+		// Old system used delay, new part datasheet is similar, lists 5ms write time if not able to special no ack write loop
+		MXC_Delay(MXC_DELAY_MSEC(5));
 	}
+#else /* Test bypass since reads seem to cause the I2C to hang */
+	// Todo: swap back to normal
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -707,7 +768,8 @@ void EraseParameterMemory(uint16 startAddr, uint16 dataLength)
 		memset(&g_spareBuffer[2], 0xFF, pageSize);
 		WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM, g_spareBuffer, (pageSize + 2), NULL, 0);
 
-		// Old system used delay, needed?
+		// Old system used delay, new part datasheet is similar, lists 5ms write time if not able to special no ack write loop
+		MXC_Delay(MXC_DELAY_MSEC(5));
 	}
 }
 
@@ -755,6 +817,9 @@ void TestEEPROM(void)
 
     debug("EEPROM: Test device access...\r\n");
 
+	memset(testMem, 0, sizeof(testMem));
+
+#if 1 /* Test 8-byte operation */
 	GetParameterMemory(&testMem[0], 0, sizeof(testMem));
 	debug("EEPROM: Mem @ Addr 0 is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", testMem[0], testMem[1], testMem[2], testMem[3], testMem[4], testMem[5], testMem[6], testMem[7]);
 
@@ -773,9 +838,26 @@ void TestEEPROM(void)
 	GetParameterMemory(&testMem[0], 0, sizeof(testMem));
 	debug("EEPROM: Verify Mem @ Addr 0 is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", testMem[0], testMem[1], testMem[2], testMem[3], testMem[4], testMem[5], testMem[6], testMem[7]);
 
-	debug("EEPROM: Erasing %d bytes @ Addr 0...\r\n");
+	debug("EEPROM: Erasing %d bytes @ Addr 0...\r\n", sizeof(testMem));
 	EraseParameterMemory(0, sizeof(testMem));
 
 	GetParameterMemory(&testMem[0], 0, sizeof(testMem));
 	debug("EEPROM: Verify erase @ Addr 0 is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", testMem[0], testMem[1], testMem[2], testMem[3], testMem[4], testMem[5], testMem[6], testMem[7]);
+#else /* Test 1-byte operation */
+	GetParameterMemory(&testMem[0], 0, 1);
+	debug("EEPROM: Mem @ Addr 0 is 0x%x\r\n", testMem[0]);
+
+	testMem[0] = 0xAA;
+	debug("EEPROM: Write Mem @ Addr 0 with 0x%x\r\n", testMem[0]);
+	SaveParameterMemory(&testMem[0], 0, 1);
+
+	GetParameterMemory(&testMem[0], 0, 1);
+	debug("EEPROM: Verify Mem @ Addr 0 is 0x%x\r\n", testMem[0]);
+
+	debug("EEPROM: Erasing %d bytes @ Addr 0...\r\n", 1);
+	EraseParameterMemory(0, 1);
+
+	GetParameterMemory(&testMem[0], 0, 1);
+	debug("EEPROM: Verify erase @ Addr 0 is 0x%x\r\n", testMem[0]);
+#endif
 }
