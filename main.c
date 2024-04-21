@@ -592,6 +592,10 @@ extern Bool ushell_cmd_syncevents(uint8, uint16_t*, uint16_t*, uint16_t*, uint16
 
 void UsbDeviceManager(void)
 {
+#if 1 /* Skip with immedaite return for now */
+	return;
+#endif
+
 	INPUT_MSG_STRUCT mn_msg;
 #if 0 /* temp remove while unused */
 	uint16 totalFilesCopied;
@@ -1965,11 +1969,11 @@ int main(void)
 	InitSoftwareSettings_MS9300();
 	EnableGlobalException();
 
-#if 1 /* test */
+#if 0 /* test */
 	TestExternalDeviceAccessAndComms();
 #endif
 
-#if 1 /* Hardware test phase */
+#if 0 /* Hardware test phase */
 	// End execution here for now until hardware passes testing
 	while (1) {}
 #else /* Normal operation */
@@ -2000,8 +2004,9 @@ int main(void)
 		FactorySetupManager();
 
 		// Check if able to go to sleep
+#if 0 /* Can't run PowerManager while using JTAG */
 		PowerManager();
-
+#endif
 		// Count Exec cycles
 		g_execCycles++;
 
