@@ -134,11 +134,35 @@ void DebugUartInitBanner(void)
 ///----------------------------------------------------------------------------
 void InitExternalKeypad(void)
 {
-	uint8 keyScan = MXC_GPIO_InGet(REGULAR_BUTTONS_GPIO_PORT, REGULAR_BUTTONS_GPIO_MASK);
+	uint16 keyScan = READ_KEY_BUTTON_MAP;
 	if (keyScan)
 	{
 		debugWarn("Keypad button being pressed (likely a bug), Key: %x\r\n", keyScan);
 	}
+
+#if 0 /* Test */
+	debug("Keypad: Looking for keys... (Press Power key to stop)\r\n");
+	while (1)
+	{
+		keyScan = READ_KEY_BUTTON_MAP;
+
+		if (keyScan) { debug("Keys:"); }
+		if (keyScan & 0x001) { debugRaw(" <Soft Key 4>"); }
+		if (keyScan & 0x002) { debugRaw(" <Soft Key 3>"); }
+		if (keyScan & 0x004) { debugRaw(" <Soft Key 2>"); }
+		if (keyScan & 0x008) { debugRaw(" <Soft Key 1>"); }
+		if (keyScan & 0x010) { debugRaw(" <Enter>"); }
+		if (keyScan & 0x020) { debugRaw(" <Right>"); }
+		if (keyScan & 0x040) { debugRaw(" <Left>"); }
+		if (keyScan & 0x080) { debugRaw(" <Down>"); }
+		if (keyScan & 0x100) { debugRaw(" <Up>"); }
+		if (keyScan) { debug("\r\n"); }
+
+		MXC_Delay(MXC_DELAY_MSEC(5));
+
+		if (GetPowerOnButtonState() == ON) { debug("Keypad: Loop break\r\n");break; }
+	}
+#endif
 
 	// Todo: Find the right LED to light (1&2=Red?, 3&4=Green?)
 	//PowerControl(LED_1, ON);
@@ -240,6 +264,13 @@ extern uint16_t dataTemperature;
 	}
 #endif
 
+#if 0 /* Test */
+	debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
+	GetChannelOffsets(SAMPLE_RATE_DEFAULT);
+	debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
+	GetChannelOffsets(SAMPLE_RATE_DEFAULT);
+	debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
+#endif
 	// Read a few test samples
 	GetChannelOffsets(SAMPLE_RATE_DEFAULT);
 	debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
@@ -280,20 +311,107 @@ void InitLCD(void)
 	// Power up and init the display controller
 	ft81x_init();
 
+#if 0 /* Bitmap display to LCD not currently working */
 	// Load the logo bitmap into the display controller and send to LCD
 	DisplayLogoToLcd();
+#else
+extern void test_logo(void);
+	test_logo();
+#endif
 
+#if 0 /* Test displaying the Main menu */
 	BuildLanguageLinkTable(ENGLISH_LANG);
 	INPUT_MSG_STRUCT mn_msg;
 	debug("Jumping to Main Menu\r\n");
 	SETUP_MENU_MSG(MAIN_MENU);
 	JUMP_TO_ACTIVE_MENU();
-#if 1 /* Test disable of LCD for now */
+#endif
+
+#if 0 /* Test disable of LCD for now */
 	MXC_Delay(MXC_DELAY_SEC(3));
 	PowerControl(LCD_POWER_ENABLE, OFF);
 	PowerControl(LCD_POWER_DOWN, ON);
 	MXC_Delay(MXC_DELAY_SEC(1));
 #endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void InitCellLTE(void)
+{
+#if 0 /* Test */
+	debug("Cell/LTE: Init delay (5 secs)...\r\n");
+	MXC_Delay(MXC_DELAY_SEC(5));
+#endif
+
+#if 0 /* Test */
+	while (1)
+	{
+		debug("Cell/LTE: Powering on...\r\n");
+		PowerControl(CELL_ENABLE, ON);
+		MXC_Delay(MXC_DELAY_SEC(2));
+		debug("Cell/LTE: Powering off...\r\n");
+		PowerControl(CELL_ENABLE, OFF);
+		MXC_Delay(MXC_DELAY_SEC(2));
+	}
+#endif
+
+	if(GetPowerControlState(CELL_ENABLE) == OFF)
+	{
+		debug("Cell/LTE: Powering section...\r\n");
+		PowerControl(CELL_ENABLE, ON);
+		MXC_Delay(MXC_DELAY_SEC(3));
+		//debug("Cell/LTE: Disabling LTE reset...\r\n");
+		//PowerControl(LTE_RESET, OFF);
+	}
+
+	debug("Cell/LTE: Powered...\r\n");
+
+#if 0 /* Test */
+	debug("Cell/LTE: Waiting on device to send info... (Press Power or any key to stop)\r\n");
+	while (1)
+	{
+extern uint8_t uart0bufferFull;
+extern uint32_t uart0BufferCount;
+		if (uart0bufferFull)
+		{
+			debug("Cell/LTE data receive: <%s> (%d chars)\r\n", (char*)g_spareBuffer, uart0BufferCount);
+			uart0bufferFull = NO;
+		}
+
+		if (GetPowerOnButtonState() == ON) { debug("Cell/LTE: Loop break\r\n"); break; }
+		if (READ_KEY_BUTTON_MAP) { debug("Cell/LTE: Loop break\r\n"); break; }
+	}
+#endif
+
+	MXC_Delay(MXC_DELAY_SEC(3));
+
+	int status = 0; int strLen;
+	sprintf((char*)g_spareBuffer, "AT+CGMI\r\n"); debug("Cell/LTE: Issuing <AT+CGMI>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
+	status = MXC_UART_Write(MXC_UART0, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	debug("Cell/LTE: Status is 0x%x, Flags are 0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0));
+
+	sprintf((char*)g_spareBuffer, "AT+CGMM\r\n"); debug("Cell/LTE: Issuing <AT+CGMM>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
+	status = MXC_UART_Write(MXC_UART0, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	debug("Cell/LTE: Status is 0x%x, Flags are 0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0));
+
+	sprintf((char*)g_spareBuffer, "AT+CGMR\r\n"); debug("Cell/LTE: Issuing <AT+CGMR>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
+	status = MXC_UART_Write(MXC_UART0, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	debug("Cell/LTE: Status is 0x%x, Flags are 0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0));
+
+	sprintf((char*)g_spareBuffer, "AT+CEMODE\r\n"); debug("Cell/LTE: Issuing <AT+CEMODE>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
+	status = MXC_UART_Write(MXC_UART0, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	debug("Cell/LTE: Status is 0x%x, Flags are 0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0));
+
+
+	sprintf((char*)g_spareBuffer, "AT+CFUN?\r\n"); debug("Cell/LTE: Issuing <AT+CFUN?>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
+	status = MXC_UART_Write(MXC_UART0, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	debug("Cell/LTE: Status is 0x%x, Flags are 0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0));
+
+	sprintf((char*)g_spareBuffer, "AT+CGMI\r\n"); debug("Cell/LTE: Issuing <AT+CGMI>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
+	status = MXC_UART_Write(MXC_UART0, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }	MXC_Delay(MXC_DELAY_MSEC(500));
+	debug("Cell/LTE: Status is 0x%x, Flags are 0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0));
 }
 
 ///----------------------------------------------------------------------------
@@ -493,7 +611,10 @@ void SetupAllGPIO(void)
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Expansion_irq, NULL);
     MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+#if 0 /* Original */
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#else /* Wait until Expansion I2C Bridge is powered to enable */
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// USB Source Enable: Port 0, Pin 9, Output, External pulldown, Active high, 1.8V (minimum 1.2V)
@@ -1101,7 +1222,10 @@ extern void External_rtc_periodic_timer(void);
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Lcd_irq, NULL);
     MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+#if 0 /* Original */
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#else /* Wait until LCD Controller is powered to enable */
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Sensor Check Enable: Port 2, Pin 9, Output, External pulldown, Active high, 1.8V (minimum 0.65 * Vin)
@@ -1358,12 +1482,47 @@ extern void External_rtc_periodic_timer(void);
 #endif
 }
 
+#define UART_BUFFER_SIZE 512
+uint8_t g_Uart0_RxBuffer[UART_BUFFER_SIZE];
+uint8_t g_Uart0_TxBuffer[UART_BUFFER_SIZE];
+uint8_t g_Uart1_RxBuffer[UART_BUFFER_SIZE];
+uint8_t g_Uart1_TxBuffer[UART_BUFFER_SIZE];
+uint8_t g_Uart2_RxBuffer[UART_BUFFER_SIZE];
+uint8_t g_Uart2_TxBuffer[UART_BUFFER_SIZE];
+
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint8_t uart0bufferFull = NO;
+uint32_t uart0BufferCount = 0;
 void UART0_Read_Callback(mxc_uart_req_t *req, int error)
 {
     // UART0 receive processing
+#if 1 /* Test */
+	if(req->rxLen)
+	{
+#if 1 /* Copy to spare buffer */
+		memcpy(g_spareBuffer, req->rxData, req->rxLen);
+		uart0BufferCount = req->rxLen;
+#if 0 /* Print buffer immediately */
+		debug("Cell/LTE data receive: <%s> (%d chars)\r\n", (char*)g_spareBuffer, req->rxLen);
+#else
+		uart0bufferFull = YES;
+#endif
+#else /* Use Uart buffer */
+		debug("Cell/LTE data receive: <%s> (%d chars)\r\n", (char*)g_Uart0_RxBuffer, req->rxLen);
+#endif
+
+#if 0 /* Clearing of flags should be handled by the driver */
+		// Clear flags
+		MXC_UART0->int_fl = 0x0000003F;
+#else /* Async handler only seems to run once and shuts down, so need to re-register */
+extern mxc_uart_req_t uart0ReadRequest;
+		uint8_t status = MXC_UART_TransactionAsync(&uart0ReadRequest);
+		if (status != E_SUCCESS) { debugErr("Uart0 Read setup (async) failed with code: %d\r\n", status); }
+#endif
+	}
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -1381,14 +1540,6 @@ void UART2_Read_Callback(mxc_uart_req_t *req, int error)
 {
     // UART2 receive processing
 }
-
-#define UART_BUFFER_SIZE 512
-uint8_t g_Uart0_RxBuffer[UART_BUFFER_SIZE];
-uint8_t g_Uart0_TxBuffer[UART_BUFFER_SIZE];
-uint8_t g_Uart1_RxBuffer[UART_BUFFER_SIZE];
-uint8_t g_Uart1_TxBuffer[UART_BUFFER_SIZE];
-uint8_t g_Uart2_RxBuffer[UART_BUFFER_SIZE];
-uint8_t g_Uart2_TxBuffer[UART_BUFFER_SIZE];
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -1444,7 +1595,8 @@ void SetupUART(void)
     // Setup the asynchronous request
     uart0ReadRequest.uart = MXC_UART0;
     uart0ReadRequest.rxData = g_Uart0_RxBuffer;
-    uart0ReadRequest.rxLen = UART_BUFFER_SIZE;
+    //uart0ReadRequest.rxLen = UART_BUFFER_SIZE;
+	uart0ReadRequest.rxLen = (UART_BUFFER_SIZE / 8);
     uart0ReadRequest.txLen = 0;
     uart0ReadRequest.callback = UART0_Read_Callback;
 
@@ -1460,6 +1612,11 @@ void SetupUART(void)
 
     status = MXC_UART_TransactionAsync(&uart1ReadRequest);
     if (status != E_SUCCESS) { debugErr("Uart1 Read setup (async) failed with code: %d\r\n", status); }
+
+#if 1 /* Test to check interrupt flags set */
+	debug("Uart0: Interrupt enables are 0x%0x, Int flags are 0x%0x, Status is 0x%0x\r\n", MXC_UART0->int_en, MXC_UART0->int_fl, MXC_UART0->stat);
+	debug("Uart1: Interrupt enables are 0x%0x, Int flags are 0x%0x, Status is 0x%0x\r\n", MXC_UART1->int_en, MXC_UART1->int_fl, MXC_UART1->stat);
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -1585,6 +1742,10 @@ int WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* write
     masterRequest.restart = 0;
     masterRequest.callback = NULL;
 
+#if 0 /* Test special case for EEPROM ID */
+	if (slaveAddr == I2C_ADDR_EEPROM_ID) { masterRequest.restart = 1; }
+#endif
+
     status = MXC_I2C_MasterTransaction(&masterRequest);
 	if (status != E_SUCCESS) { debugErr("I2C%d Master transaction to Slave (%02x) failed with code: %d\r\n", ((i2cChannel == MXC_I2C0) ? 0 : 1), slaveAddr, status); }
 
@@ -1634,7 +1795,7 @@ void SetupI2C(void)
 #endif
 
 	// Set I2C speed, either Standard (MXC_I2C_STD_MODE = 100000) or Fast (MXC_I2C_FAST_SPEED = 400000)
-#if 0 /* Fast Speed */
+#if 1 /* Fast Speed */
     MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_FAST_SPEED);
     MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_FAST_SPEED);
 #elif 1 /* Standard */
@@ -2833,18 +2994,18 @@ void SetupSDHCeMMC(void)
 
     MXC_GPIO_Config(&gpio_cfg_sdhc_1);
     gpio_cfg_sdhc_1.port->vssel &= ~(gpio_cfg_sdhc_1.mask); // Set voltage select to MXC_GPIO_VSSEL_VDDIO, since it seems digital interface is at 1.8V
-#if 1 /* Normal */
+#if 0 /* Normal set to 2x borrowing from example */
 	debug("SDHC: Setting GPIO drive strength to 2x\r\n");
     gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 2x (borrowing from internal driver)
-#else /* Test inc drive strength */
+#elif 0 /* Test drive strength 4x */
 	debug("SDHC: Setting GPIO drive strength to 4x\r\n");
     gpio_cfg_sdhc_1.port->ds_sel1 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 4x
-
-	//debug("SDHC: Setting GPIO drive strength to 8x\r\n");
-    //gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 8x
-    //gpio_cfg_sdhc_1.port->ds_sel1 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 8x
-
-	//debug("SDHC: Setting GPIO drive strength to 1x\r\n");
+#elif 0 /* Test drive strength 8x */
+	debug("SDHC: Setting GPIO drive strength to 8x\r\n");
+    gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 8x
+    gpio_cfg_sdhc_1.port->ds_sel1 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 8x
+#else /* Test drive strength 1x (MCU default) */
+	debug("SDHC: Setting GPIO drive strength to 1x\r\n");
 #endif
 
 	// Setup the 1.8V Signaling Enable
@@ -3458,6 +3619,10 @@ void TestI2CDeviceAddresses(void)
 	SetSmartSensorSleepState(ON);
 	PowerControl(EXPANSION_RESET, ON);
 	PowerControl(EXPANSION_ENABLE, OFF);
+
+#if 1 /* Test delay for Expanion interupt that shows up shortly after power down */
+	MXC_Delay(MXC_DELAY_MSEC(500));
+#endif
 #endif
 
 #if 0 /* Test */
@@ -3488,6 +3653,20 @@ void TestI2CDeviceAddresses(void)
 ///----------------------------------------------------------------------------
 void TestGPIO(void)
 {
+#if 0 /* Test 12V external power for alarms */
+	PowerControl(ENABLE_12V, ON);
+	PowerControl(ENABLE_12V, OFF);
+
+	PowerControl(TRIGGER_OUT, ON);
+	PowerControl(TRIGGER_OUT, OFF);
+
+	MXC_GPIO_OutSet(GPIO_ALERT_1_PORT, GPIO_ALERT_1_PIN);
+	MXC_GPIO_OutClr(GPIO_ALERT_1_PORT, GPIO_ALERT_1_PIN);
+
+	MXC_GPIO_OutSet(GPIO_ALERT_2_PORT, GPIO_ALERT_2_PIN);
+	MXC_GPIO_OutClr(GPIO_ALERT_2_PORT, GPIO_ALERT_2_PIN);
+#endif
+
 #if 0 /* Test Alarm states */
 	debug("Forever: Toggling Alarm Pins, Alarm1 twice Alarm 2...\r\n");
 	while (1)
@@ -3682,7 +3861,13 @@ void TestFlashAndFatFilesystem(void)
 	debug("Flash CSD: csd_structure (2b) is 0x%x\r\n", csd->csd.csd_structure);
 	debug("Flash CSD: rsv7 (8b) is 0x%x\r\n", csd->csd.rsv7);
 	debug("Flash CSD: <End>\r\n");
-	debug("Flash CSD: Raw 0x%x 0x%x 0x%x 0x%x\r\n", csd->array[0], csd->array[1], csd->array[2], csd->array[3]);
+	debug("Flash CSD: Raw 0x%08x 0x%08x 0x%08x 0x%08x\r\n", csd->array[0], csd->array[1], csd->array[2], csd->array[3]);
+	uint8_t* trashPtr = (uint8_t*)&csd->array[0];
+	debug("Flash CSD: Raw %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\r\n",
+			trashPtr[0], trashPtr[1], trashPtr[2], trashPtr[3], trashPtr[4], trashPtr[5], trashPtr[6], trashPtr[7], trashPtr[8], trashPtr[9], trashPtr[10], trashPtr[11], trashPtr[12], trashPtr[13], trashPtr[14], trashPtr[15]);
+	trashPtr = (uint8_t*)&csd->csd;
+	debug("Flash CSD: Raw %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\r\n",
+			trashPtr[0], trashPtr[1], trashPtr[2], trashPtr[3], trashPtr[4], trashPtr[5], trashPtr[6], trashPtr[7], trashPtr[8], trashPtr[9], trashPtr[10], trashPtr[11], trashPtr[12], trashPtr[13], trashPtr[14], trashPtr[15]);
 
 #if 0 /* Test second reading of the Flash CSD, which doesn't seem to work and likely why the driver caches the structure */
 extern bool g_csd_is_cached;
@@ -4047,6 +4232,14 @@ void InitSystemHardware_MS9300(void)
 	SetupDebugUART();
 
 	//-------------------------------------------------------------------------
+	// Setup all GPIO
+	//-------------------------------------------------------------------------
+	SetupAllGPIO();
+#if 1 /* Test */
+	TestGPIO();
+#endif
+
+	//-------------------------------------------------------------------------
 	// Check power on source and validate for system startup
 	//-------------------------------------------------------------------------
 	ValidatePowerOn();
@@ -4094,15 +4287,6 @@ void InitSystemHardware_MS9300(void)
 	SetupSPI2_LCD();
 #endif
 
-	//-------------------------------------------------------------------------
-	// Setup all GPIO
-	//-------------------------------------------------------------------------
-	// Must init after SPI to correct for a wrong GPIO pin config in the library (and allow this project to work with an unmodified framework)
-	SetupAllGPIO();
-#if 1 /* Test */
-	TestGPIO();
-#endif
-
 #if 1 /* Test */
 	TestI2CDeviceAddresses();
 #endif
@@ -4111,6 +4295,13 @@ void InitSystemHardware_MS9300(void)
 	// Setup SDHC/eMMC
 	//-------------------------------------------------------------------------
 	SetupSDHCeMMC();
+#if 1 /* Test Re-init for modded board */
+	SetupSDHCeMMC();
+
+	// Try one mnore time adfter a delay
+	MXC_Delay(MXC_DELAY_SEC(5));
+	SetupSDHCeMMC();
+#endif
 #if 1 /* Test */
 	TestSDHCeMMC();
 #endif
@@ -4221,7 +4412,10 @@ extern void GoSleepState(uint32_t mode);
 	//-------------------------------------------------------------------------
 	// Initalize the Accelerometer
 	//-------------------------------------------------------------------------
+#if 1 /* Normal */
 	AccelerometerInit(); debug("Accelerometer: Init complete\r\n");
+#else /* Skip while device isn't responding to device address */
+#endif
 
 	//-------------------------------------------------------------------------
 	// Initalize the Expansion I2C UART Bridge
@@ -4257,9 +4451,30 @@ extern void GoSleepState(uint32_t mode);
 #if 1 /* Only enable if LCD connector fixed or hardware modded */
 	InitLCD(); debug("LCD Display: Init complete\r\n");
 #endif
+#if 0 /* Test MessageBox and OverlayMessage */
+	OverlayMessage(getLangText(STATUS_TEXT), "THIS IS A TEST OF THE EMERGENCY BROACDCAST SYSTEM. EVERYTHING IS FINE, PLEASE RETURN TO YOUR NORMAL FUNCTIONS", (3 * SOFT_SECS));
+	MessageBox(getLangText(WARNING_TEXT), "DO YOU WANT TO CHANGE THIS SETTING TO A NON_DEFAULT VALUE? THIS SETTING WILL BE SAVED FOR FUTURE RUNS", MB_YESNO);
+	PowerControl(LCD_POWER_ENABLE, OFF);
+	PowerControl(LCD_POWER_DOWN, ON);
+
+#if 0
+	INPUT_MSG_STRUCT mn_msg;
+	g_factorySetupSequence = PROCESS_FACTORY_SETUP;
+	MessageBox(getLangText(STATUS_TEXT), getLangText(YOU_HAVE_ENTERED_THE_FACTORY_SETUP_TEXT), MB_OK);
+	SETUP_MENU_MSG(DATE_TIME_MENU);
+	JUMP_TO_ACTIVE_MENU();
+	PowerControl(LCD_POWER_ENABLE, OFF);
+	PowerControl(LCD_POWER_DOWN, ON);
+#endif
+#endif
 #if 1 /* Test */
 	TestLCDController();
 #endif
+
+	//-------------------------------------------------------------------------
+	// Init Cell/LTE
+	//-------------------------------------------------------------------------
+	InitCellLTE();
 
 	//-------------------------------------------------------------------------
 	// Init Keypad
