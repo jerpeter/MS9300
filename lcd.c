@@ -1945,6 +1945,7 @@ void test_dots(
  */
 uint8_t ft81x_init(void)
 {
+#if 0 /* LCD Slave Select 0 Setup moved to LCD Power GPIO init */
 	mxc_gpio_cfg_t setupGPIO;
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL)
 	{
@@ -1956,6 +1957,7 @@ uint8_t ft81x_init(void)
 		MXC_GPIO_Config(&setupGPIO);
 		MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as disabled
 	}
+#endif
 
     if (GetPowerControlState(LCD_POWER_ENABLE) == OFF) { PowerControl(LCD_POWER_ENABLE, ON); }
     if (GetPowerControlState(LCD_POWER_DOWN) == ON)
@@ -1965,7 +1967,7 @@ uint8_t ft81x_init(void)
 		g_lcdPowerFlag = ENABLED;
 	}
 
-#if 1 /* Test power draw after LCD power block enabled */
+#if 0 /* Test power draw after LCD power block enabled */
 	for (uint8_t j = 0; j < 5; j++)
 	{
 		MXC_Delay(MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
@@ -1990,7 +1992,7 @@ uint8_t ft81x_init(void)
 	if (!read_chip_id()) { debugErr("LCD Controller: Failed to read chip ID\r\n"); return false; }
 	else { debug("LCD Controller: Chip ID verified\r\n"); }
 	select_spi_byte_width();
-#if 0 /* Normal */
+#if 1 /* Normal */
 	ft81x_backlight_off();
 #else /* Test register access */
 	uint16_t rData;
@@ -2040,6 +2042,10 @@ uint8_t ft81x_init(void)
 		debug("LCD Controller: Flags are 0x%x\r\n", ft81x_rd(REG_INT_FLAGS));
 		MXC_Delay(MXC_DELAY_SEC(1));
 	}
+#elif 0 /* Test disable interrupts for now */
+	debug("LCD Controller: Disabling interrupts\r\n");
+	ft81x_wr(REG_INT_EN, 0x00);
+	ft81x_wr(REG_INT_MASK, 0x00);
 #endif
 
 	return true;
