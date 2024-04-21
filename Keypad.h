@@ -77,7 +77,15 @@ Button 1 = Soft key 4
 #define ESC_KEY 		KB_SK_1
 #define HELP_KEY 		KB_SK_4
 #define DELETE_KEY 		KB_SK_3
+#define BACKLIGHT_KEY	0xB0
+#define LCD_OFF_KEY		0xD0
 #define ON_ESC_KEY		0x200	// Make a unique value from the other keys
+
+// Soft key translation
+#define SOFT_KEY_1	3 // Index 3 in global keypad table
+#define SOFT_KEY_2	2 // Index 2 in global keypad table
+#define SOFT_KEY_3	1 // Index 1 in global keypad table
+#define SOFT_KEY_4	0 // Index 0 in global keypad table
 
 #define WAIT_FOR_KEY			0
 #define CHECK_ONCE_FOR_KEY		1

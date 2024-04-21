@@ -36,8 +36,6 @@
 #define REPEAT_DELAY 				100		// 100 ms
 #define KEY_DONE_DEBOUNCE_DELAY		25		// 25 ms
 
-#define READ_KEY_BUTTON_MAP	(((REGULAR_BUTTONS_GPIO_PORT->in) & REGULAR_BUTTONS_GPIO_MASK) >> 16)
-
 ///----------------------------------------------------------------------------
 ///	Externs
 ///----------------------------------------------------------------------------
@@ -69,7 +67,11 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 	if ((keySource == KEY_SOURCE_IRQ) && (g_tcTypematicTimerActive == NO))
 	{
 		// Read the buttons/keys
+#if 0 /* Original */
 		keyMapRead = READ_KEY_BUTTON_MAP;
+#else /* Pull key map from ISR reading */
+		keyMapRead = g_kpadIsrKeymap;
+#endif
 #if 0 /* Multiple reads to try to pick up the key */
 		SoftUsecWait(1 * SOFT_MSECS);
 		keyMapRead |= READ_KEY_BUTTON_MAP;
@@ -85,7 +87,11 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 	else //((keySource == KEY_SOURCE_IRQ) && (g_tcTypematicTimerActive == YES)) // Either multi-key or key release processing
 	{
 		// Read the key that is being released (couple reads to filter any bouncing contact)
+#if 0 /* Original */
 		keyMapRead = READ_KEY_BUTTON_MAP;
+#else /* Pull key map from ISR reading */
+		keyMapRead = g_kpadIsrKeymap;
+#endif
 #if 0 /* Multiple reads to filter any bouncing contact */
 		SoftUsecWait(3 * SOFT_MSECS);
 		keyMapRead |= READ_KEY_BUTTON_MAP;
@@ -245,9 +251,23 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 #else /* Temporary hard translation */
 			// Setup in the header defines
 #endif
-			mn_msg.length = 1;
-			mn_msg.data[0] = keyPressed;
-			mn_msg.cmd = KEYPRESS_MENU_CMD;
+			if (keyPressed == BACKLIGHT_KEY)
+			{
+				mn_msg.cmd = BACK_LIGHT_CMD;
+				mn_msg.length = 0;
+			}
+			else if (keyPressed == LCD_OFF_KEY)
+			{
+				ClearSoftTimer(LCD_BACKLIGHT_ON_OFF_TIMER_NUM);
+				ClearSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM);
+				LcdPwTimerCallBack();
+			}
+			else // All other keys
+			{
+				mn_msg.length = 1;
+				mn_msg.data[0] = keyPressed;
+				mn_msg.cmd = KEYPRESS_MENU_CMD;
+			}
 
 			//---------------------------------------------------------------------------------
 			// Factory setup staging
@@ -302,7 +322,7 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 			else
 			{
 				// Check if the On key is being pressed
-				if (!MXC_GPIO_InGet(GPIO_POWER_BUTTON_IRQ_PORT, GPIO_POWER_BUTTON_IRQ_PIN))
+				if (GetPowerOnButtonState() == ON)
 				{
 					// Reset the factory setup process
 					g_factorySetupSequence = SEQ_NOT_STARTED;
@@ -347,8 +367,16 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 					g_factorySetupSequence = SEQ_NOT_STARTED;
 				}
 
+#if 0 /* Orignal */
 				// Enqueue the message
 				SendInputMsg(&mn_msg);
+#else
+				if (keyPressed != LCD_OFF_KEY)
+				{
+					// Enqueue the message
+					SendInputMsg(&mn_msg);
+				}
+#endif
 			}
 		}
 	}
@@ -586,7 +614,7 @@ uint16 GetKeypadKey(uint8 mode)
 ///----------------------------------------------------------------------------
 uint16 ScanKeypad(void)
 {
-	uint8 rowMask = 0;
+	uint16 rowMask = 0;
 	uint16 keyPressed = KEY_NONE;
 	uint16 keyMapRead;
 	uint8 i = 0;

@@ -217,6 +217,7 @@ void LoadFactorySetupRecord(void)
 		debugWarn("Factory setup record not found.\r\n");
 		OverlayMessage(getLangText(ERROR_TEXT), getLangText(FACTORY_SETUP_DATA_COULD_NOT_BE_FOUND_TEXT), (2 * SOFT_SECS));
 
+#if 0 /* Normal */
 		// Check if the Shadow Factory setup is valid
 		GetFlashUserPageFactorySetup(&g_shadowFactorySetupRecord);
 #if 0 /* Test */
@@ -238,6 +239,9 @@ void LoadFactorySetupRecord(void)
 				SaveRecordData(&g_factorySetupRecord, DEFAULT_RECORD, REC_FACTORY_SETUP_TYPE);
 			}
 		}
+#else /* Test skipping since EEPROM Device isn't responding with EEPROM ID as a slave address*/
+	// Todo: Swap back to normal
+#endif
 	}
 
 	// Check if the Factory Setup Record is valid (in case shadow factory setup was copied over)
@@ -313,6 +317,17 @@ void InitSensorParameters(uint16 seismicSensorType, uint8 sensitivity)
 		g_sensorInfo.sensorValue = (uint16)(g_factorySetupRecord.seismicSensorType * ACC_832M1_SCALER / gainFactor); // sensor value X 100.
 	}
 	else g_sensorInfo.sensorValue = (uint16)(g_factorySetupRecord.seismicSensorType / gainFactor); // sensor value X 100.
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void InitSoftKeyTranslations(void)
+{
+	g_keypadTable[SOFT_KEY_1] = LCD_OFF_KEY;
+	g_keypadTable[SOFT_KEY_2] = BACKLIGHT_KEY;
+	g_keypadTable[SOFT_KEY_3] = HELP_KEY;
+	g_keypadTable[SOFT_KEY_4] = ESC_KEY;
 }
 
 ///----------------------------------------------------------------------------
@@ -484,9 +499,17 @@ void InitSoftwareSettings_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Jump to the true main menu
 	//-------------------------------------------------------------------------
+#if 1 /* Test clearing any keypad event flagged during startup */
+	clearSystemEventFlag(KEYPAD_EVENT);
+#endif
 	debug("Jumping to Main Menu\r\n");
 	SETUP_MENU_MSG(MAIN_MENU);
 	JUMP_TO_ACTIVE_MENU();
+
+	//-------------------------------------------------------------------------
+	// Init the soft key translations
+	//-------------------------------------------------------------------------
+	InitSoftKeyTranslations();
 
 	//-------------------------------------------------------------------------
 	// Enable Craft input (delayed to prevent serial input from locking unit)
