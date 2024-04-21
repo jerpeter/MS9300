@@ -378,14 +378,15 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 	// Todo: Load the dynamic key label
 
 	//if(LcdControllerActive())
+	if (g_lcdPowerFlag == DISABLED) { return; }
 
 	// Swap to white text
 	ft81x_color_rgb32(0xffffff);
 
-	ft81x_cmd_button(20, 420, 117, 55, 29, 0, "OK");
-	ft81x_cmd_button(233, 420, 117, 55, 29, 0, "ESCAPE");
-	ft81x_cmd_button(440, 420, 117, 55, 29, 0, "MENU");
-	ft81x_cmd_button(657, 420, 117, 55, 29, 0, "HELP");
+	ft81x_cmd_button(12, 420, 132, 55, 29, 0, "LCD OFF");
+	ft81x_cmd_button(225, 420, 132, 55, 29, 0, "BACKLIGHT");
+	ft81x_cmd_button(432, 420, 132, 55, 29, 0, "CONFIG");
+	ft81x_cmd_button(650, 420, 132, 55, 29, 0, "ESCAPE");
 
 	// Swap back to default blue text
 	ft81x_color_rgb32(0x0000ff);
@@ -396,7 +397,8 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 
 	ft81x_wait_finish(); // Wait till the GPU is finished? (or delay at start of next display interaction?)
 #endif
-#if 1 /* Test disable of LCD for now */
+
+#if 0 /* Test disable of LCD for now */
 	MXC_Delay(MXC_DELAY_SEC(3));
 	PowerControl(LCD_POWER_ENABLE, OFF);
 	PowerControl(LCD_POWER_DOWN, ON);
@@ -425,8 +427,10 @@ void ClearLcdMap(void)
 		Set foreground color -- ft81x_fgcolor_rgb32();
 		Set background color -- ft81x_bgcolor_rgb32();
 	*/
-#if 1 /* Test method to re-power the LCD */
+#if 0 /* Test method to re-power the LCD */
 		if (GetPowerControlState(LCD_POWER_ENABLE) == OFF) { ft81x_init(); }
+#else
+		if (g_lcdPowerFlag == DISABLED) { return; }
 #endif
 		ft81x_stream_start(); // Start streaming
 		ft81x_cmd_dlstart(); // Set REG_CMD_DL when done?
@@ -512,7 +516,9 @@ void SetNextLcdBacklightState(void)
 	// Advance to next backlight state
 	switch (backlightState)
 	{
-		case BACKLIGHT_OFF		: SetLcdBacklightState(BACKLIGHT_DIM);		break;
+		case BACKLIGHT_OFF		: SetLcdBacklightState(BACKLIGHT_SUPER_LOW);break;
+		case BACKLIGHT_SUPER_LOW: SetLcdBacklightState(BACKLIGHT_LOW);		break;
+		case BACKLIGHT_LOW		: SetLcdBacklightState(BACKLIGHT_DIM);		break;
 		case BACKLIGHT_DIM		: SetLcdBacklightState(BACKLIGHT_MID);		break;
 		case BACKLIGHT_MID		: SetLcdBacklightState(BACKLIGHT_BRIGHT);	break;
 		case BACKLIGHT_BRIGHT	: SetLcdBacklightState(BACKLIGHT_FULL);		break;
@@ -535,6 +541,8 @@ LCD_BACKLIGHT_STATES GetLcdBacklightState(void)
 	switch (backlightLevel)
 	{
 		case FT81X_BACKLIGHT_OFF: backlightState = BACKLIGHT_OFF; break;
+		case FT81X_BACKLIGHT_SUPER_LOW: backlightState = BACKLIGHT_SUPER_LOW; break;
+		case FT81X_BACKLIGHT_LOW: backlightState = BACKLIGHT_LOW; break;
 		case FT81X_BACKLIGHT_DIM: backlightState = BACKLIGHT_DIM; break;
 		case FT81X_BACKLIGHT_MID: backlightState = BACKLIGHT_MID; break;
 		case FT81X_BACKLIGHT_BRIGHT: backlightState = BACKLIGHT_BRIGHT; break;
@@ -557,6 +565,8 @@ void SetLcdBacklightState(LCD_BACKLIGHT_STATES state)
 	switch (state)
 	{
 		case BACKLIGHT_OFF: ft81x_backlight_off(); break;
+		case BACKLIGHT_SUPER_LOW: ft81x_set_backlight_level(FT81X_BACKLIGHT_SUPER_LOW); break;
+		case BACKLIGHT_LOW: ft81x_set_backlight_level(FT81X_BACKLIGHT_LOW); break;
 		case BACKLIGHT_DIM: ft81x_set_backlight_level(FT81X_BACKLIGHT_DIM); break;
 		case BACKLIGHT_MID: ft81x_set_backlight_level(FT81X_BACKLIGHT_MID); break;
 		case BACKLIGHT_BRIGHT: ft81x_set_backlight_level(FT81X_BACKLIGHT_BRIGHT); break;
