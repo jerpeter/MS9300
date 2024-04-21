@@ -398,9 +398,9 @@ void Keypad_irq(void)
 	//debugRaw("^");
 
 	// Read the keymap
-	g_kpadIsrKeymap = (((REGULAR_BUTTONS_GPIO_PORT->in) & REGULAR_BUTTONS_GPIO_MASK) >> 16);
+	g_kpadIsrKeymap = READ_KEY_BUTTON_MAP;
 
-#if 1 /* Test */
+#if 0 /* Test */
 	// KB_SK_4, KB_SK_3, KB_SK_2, KB_SK_1, KB_ENTER, KB_RIGHT, KB_LEFT, KB_DOWN, KB_UP
 	char keyName[25]; sprintf(keyName, "None");
 	if (g_kpadIsrKeymap & 0x0001) { sprintf(keyName, "Soft Key 4"); }
@@ -438,10 +438,11 @@ void System_power_button_irq(void)
 	uint16 onKeyFlag;
 
 	// Print test for verification of operation
-	debugRaw("&");
+	//debugRaw("&");
+	debugRaw("-<P>-");
 
 	onKeyFlag = ((GPIO_POWER_BUTTON_IRQ_PORT->in) & GPIO_POWER_BUTTON_IRQ_PIN); // Power button interrupt on GPIO port 1, pin 15
-	//keyScan = (((REGULAR_BUTTONS_GPIO_PORT->in) & REGULAR_BUTTONS_GPIO_MASK) >> 16); // If needed to check for Combo keys
+	//keyScan = READ_KEY_BUTTON_MAP; // If needed to check for Combo keys
 
 	//-----------------------------------------------------------------------------------
 	// Check if the On key was pressed
