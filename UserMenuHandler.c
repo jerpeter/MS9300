@@ -233,7 +233,7 @@ void UserMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 					if ((USER_MENU_TYPE(g_userMenuCachePtr) == SELECT_TYPE) || ((USER_MENU_TYPE(g_userMenuCachePtr) == SELECT_SPECIAL_TYPE)))
 					{
 						// Scroll the highlighted menu item up or down based on the key used
-						UserMenuScroll((uint8)input, SELECT_MN_WND_LNS, mn_layout_ptr);
+						UserMenuScroll(input, SELECT_MN_WND_LNS, mn_layout_ptr);
 
 						// Make sure Select Special doesn't show the first line as an active item
 						if ((USER_MENU_TYPE(g_userMenuCachePtr) == SELECT_SPECIAL_TYPE) && (mn_layout_ptr->curr_ln == 1))
