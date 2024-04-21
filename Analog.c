@@ -76,6 +76,7 @@ uint8_t GetAnalogConfigReadback(void)
 ///	Function Break
 ///----------------------------------------------------------------------------
 uint16_t dataTemperature;
+static uint8_t chanActive[8];
 void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 {
 	uint8_t chanDataRaw[3];
@@ -87,33 +88,61 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 	{
 		// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
 
-		// Chan 0
-		SetAdcConversionState(ON);
-		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
-		SetAdcConversionState(OFF);
-		dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-		if (chanDataRaw[2] != 0) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 0, chanDataRaw[2]); }
+		// Chan 0 - Geo1
+		if (chanActive[0])
+		{
+			SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+			dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 0) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 0, chanDataRaw[2]); }
+		}
 
-		// Chan 1
-		SetAdcConversionState(ON);
-		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
-		SetAdcConversionState(OFF);
-		dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-		if (chanDataRaw[2] != 1) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 1, chanDataRaw[2]); }
+		// Chan 1 - Geo1
+		if (chanActive[1])
+		{
+			SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+			dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 1) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 1, chanDataRaw[2]); }
+		}
 
-		// Chan 2
-		SetAdcConversionState(ON);
-		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
-		SetAdcConversionState(OFF);
-		dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-		if (chanDataRaw[2] != 2) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 2, chanDataRaw[2]); }
+		// Chan 2 - Geo1
+		if (chanActive[2])
+		{
+			SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+			dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 2) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 2, chanDataRaw[2]); }
+		}
 
-		// Chan 3
-		SetAdcConversionState(ON);
-		SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
-		SetAdcConversionState(OFF);
-		dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-		if (chanDataRaw[2] != 3) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 3, chanDataRaw[2]); }
+		// Chan 3 - AOP1
+		if (chanActive[3])
+		{
+			SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+			dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 3) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 3, chanDataRaw[2]); }
+		}
+
+		// Chan 4 - Geo2
+		if (chanActive[4])
+		{
+			SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+			dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 4) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 4, chanDataRaw[2]); }
+		}
+
+		// Chan 5 - Geo2
+		if (chanActive[5])
+		{
+			SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+			dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 5) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 5, chanDataRaw[2]); }
+		}
+
+		// Chan 6 - Geo2
+		if (chanActive[6])
+		{
+			SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+			dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 6) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 6, chanDataRaw[2]); }
+		}
+
+		// Chan 7 - AOP2
+		if (chanActive[7])
+		{
+			SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+			dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 7) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 7, chanDataRaw[2]); }
+		}
 
 		// Temp
 		SetAdcConversionState(ON);
@@ -217,11 +246,19 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 #if 0 /* Normal */
 	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
 	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
+#elif 1 /* Test other sensor group */
+	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
+	//MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
 #else /* Test skipping sensor enables until current fixed */
 #endif
 
 	// Setup the stantard sequence channels to be monitored
+#if 0 /* Normal */
 	AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_AOP_1));
+#else /* Test other sensor group */
+	//AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_2 | ANALOG_AOP_2));
+	AD4695_SetStandardSequenceActiveChannels(ANALOG_GEO_2);
+#endif
 
 	// For any sample rate 16K and below
 	if (sampleRate <= SAMPLE_RATE_16K)
@@ -1015,7 +1052,21 @@ void AD4695_SetStandardSequenceActiveChannels(uint8_t channels)
 	AD4695_SpiReadRegister(AD4695_REG_STD_SEQ_CONFIG, &verify);
 
 	if(channels != verify) { debugErr("External ADC: Set standard sequence active channels error\r\n"); }
-	else { debug("External ADC: Standard sequence active channels set\r\n"); }
+	else { debug("External ADC: Standard sequence active channels set (0x%x)\r\n", channels); }
+
+#if 1 /* Temp method to dynamically change the channel verify, but fixed to either Geo1+AOP1 or Geo2+AOP2 (static 4 channels) */
+	// Todo: Update to handle dynamic number of channels
+	memset(chanActive, 0, sizeof(chanActive));
+	for (uint8_t i = 0; i < 8; i++)
+	{
+		if (channels & (1 << i))
+		{
+			chanActive[i] = ON;
+		}
+	}
+
+	debug("External ADC: Active channels are 0x%x\r\n");
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -1102,7 +1153,12 @@ void AD4695_Init()
 
 	// Some combination of the following: ANALOG_GEO_1, ANALOG_AOP_1, ANALOG_GEO_2, ANALOG_AOP_2
 	// Set default Geo1 + AOP1
+#if 0 /* Normal */
 	AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_AOP_1)); // Enable selected channels
+#else /* Test other sensor group */
+	//AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_2 | ANALOG_AOP_2));
+	AD4695_SetStandardSequenceActiveChannels(ANALOG_GEO_2);
+#endif
 
 #if 0 /* Not ready to enter conversion mode at this time */
 	AD4695_EnterConversionMode(NO); /*Enters conversion mode*/
