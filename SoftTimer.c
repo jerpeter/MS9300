@@ -194,7 +194,11 @@ void DisplayTimerCallBack(void)
 	debug("LCD Backlight Timer callback: activated.\r\n");
 
 	g_lcdBacklightFlag = DISABLED;
+#if 0 /* Original */
 	SetLcdBacklightState(BACKLIGHT_OFF);
+#else
+	SetLcdBacklightState(BACKLIGHT_SUPER_LOW);
+#endif
 }
 
 ///----------------------------------------------------------------------------
