@@ -98,17 +98,17 @@ enum {
 #define CURRENT_TEXT_INDEX		2
 #define MAX_TEXT_CHARS			1
 #define MENU_INFO				0
-#define MENU_TYPE				0
-#define TOTAL_MENU_ITEMS		1
-#define MENU_TITLE_POSITION		2
-#define DEFAULT_ITEM			3
-#define DEFAULT_ROW				3
+#define MENU_TYPE				3 // Was 0 originally on Big Endian
+#define TOTAL_MENU_ITEMS		2 // Was 1 originally on Big Endian
+#define MENU_TITLE_POSITION		1 // Was 2 originally on Big Endian
+#define DEFAULT_ITEM			0 // Was 3 originally on Big Endian
+#define DEFAULT_ROW				0 // Was 3 originally on Big Endian
 #define INTEGER_RANGE			1
 #define FLOAT_RANGE				1
 #define FLOAT_INCREMENT			2
 #define UNIT_TYPE				1
-#define DEFAULT_TYPE			0
-#define ALT_TYPE				1
+#define DEFAULT_TYPE			1 // Was 0 originally on Big Endian
+#define ALT_TYPE				0 // Was 1 originally on Big Endian
 
 // User Menu message indicies
 #define CURRENT_USER_MENU		0
@@ -1067,7 +1067,7 @@ void MessageText(char* textString);
 void MessageChoice(MB_CHOICE_TYPE choiceType);
 void MessageChoiceActiveSwap(MB_CHOICE_TYPE choiceType);
 uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE messageType);
-void OverlayMessage(char* titleString, char* textString, uint32 displayTime);
+void OverlayMessage(char* titleString, char* textString, uint32 usDisplayTime);
 void DisplayLogoToLcd(void);
 
 // Prototypes needed across menus
