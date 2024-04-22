@@ -811,11 +811,6 @@ void StopMonitoringForLowPowerState(void)
 ///----------------------------------------------------------------------------
 void StartADDataCollectionForCalibration(uint16 sampleRate)
 {
-	// Setup Analog controls
-	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K);
-	SetSeismicGainSelect(SEISMIC_GAIN_NORMAL);
-	SetAcousticPathSelect(ACOUSTIC_PATH_AOP);
-
 	// Enable the Analog section
 	if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
 	{
@@ -829,6 +824,11 @@ void StartADDataCollectionForCalibration(uint16 sampleRate)
 		// Configure External ADC
 		AD4695_Init();
 	}
+
+	// Setup Analog controls
+	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K);
+	SetSeismicGainSelect(SEISMIC_GAIN_NORMAL);
+	SetAcousticPathSelect(ACOUSTIC_PATH_AOP);
 
 	// Delay to allow AD to power up/stabilize
 	SoftUsecWait(50 * SOFT_MSECS);
