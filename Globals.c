@@ -279,7 +279,7 @@ uint8 g_derCache[DER_CACHE_SIZE];
 uint16 g_derCacheIndex = 0;
 EVENT_TIMESTAMP_STRUCT g_eventDateTimeStampBuffer[MAX_EVENT_TIMESTAMP_BUFFERS];
 //uint16 g_eventDataBuffer[EVENT_BUFF_SIZE_IN_WORDS_PLUS_EVT_RECORD_PLUS_EVENT_LIST];
-uint16 g_eventDataBuffer[65536];
+uint16 g_eventDataBuffer[65536 * 4];
 uint8 g_serialNumberCache[SERIAL_NUMBER_CACHE_ENTRIES][SERIAL_NUMBER_STRING_SIZE];
 uint32 g_execCycles = 0;
 FLASH_USAGE_STRUCT g_sdCardUsageStats;
