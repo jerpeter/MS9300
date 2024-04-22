@@ -187,6 +187,9 @@ void StartExternalRtcClock(uint16 sampleRate)
 	// Enable the clock pin (active low)
 	pinIOControlReg &= (~PCF85263_CTL_CLKPM);
 
+	// Enabling the sampling interrupt
+	MXC_GPIO_EnableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+
 	debug("Starting External RTC Interrupt (SR: %d)\r\n", sampleRate);
 #if 1 /* Test */
 	debug("External RTC: Pin I/O is 0x%x, Function is 0x%x\r\n", pinIOControlReg, controlReg);
@@ -214,6 +217,9 @@ void StopExternalRtcClock(void)
 
 	SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&controlReg, sizeof(controlReg));
 	SetRtcRegisters(PCF85263_CTL_PIN_IO, (uint8_t*)&pinIOControlReg, sizeof(pinIOControlReg));
+
+	// Disabling the sampling interrupt
+	MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 
 	debug("Stoping External RTC Interrupt\r\n");
 }
