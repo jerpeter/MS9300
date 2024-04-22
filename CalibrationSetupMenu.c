@@ -310,8 +310,10 @@ void CalSetupMn(INPUT_MSG_STRUCT msg)
 		if (clearedFSRecord == NO)
 		{
 			SaveRecordData(&g_factorySetupRecord, DEFAULT_RECORD, REC_FACTORY_SETUP_TYPE);
+#if 0 /* Original */
 			SaveFlashUserPageFactorySetup(&g_factorySetupRecord);
-
+#else /* EEPROM user page currently not accessible */
+#endif
 			UpdateUnitSensorsWithSmartSensorTypes();
 
 			LoadTrigRecordDefaults(&g_triggerRecord, WAVEFORM_MODE);
