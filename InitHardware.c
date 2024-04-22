@@ -1464,7 +1464,10 @@ extern void External_rtc_periodic_timer(void);
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Sample_irq, NULL);
     MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_RISING);
+#if 0 /* Original */
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#else /* Only enabling when the Analog 5V section is powered and the RTC clock is enabled to prevent an early trigger */
+#endif
 
 #if 0 /* Moved to Init Interrupts section */
 	//----------------------------------------------------------------------------------------------------------------------
@@ -4432,7 +4435,10 @@ extern void GoSleepState(uint32_t mode);
 	//-------------------------------------------------------------------------
 	// Initialize the AD Control
 	//-------------------------------------------------------------------------
+#if 0 /* Original */
 	AnalogControlInit(); debug("Analog Control: Init complete\r\n");
+#else /* No longer want to set GPIO when Analog 5V is disabled, only back powers, moved to Power management */
+#endif
 #if 1 /* Test */
 	TestAnalog5V();
 #endif
