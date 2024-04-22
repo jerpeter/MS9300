@@ -300,23 +300,28 @@ void Analog5vPowerGpioSetup(uint8_t mode)
 {
 	if (mode == ON)
 	{
+		// Analog 5V Gpio pins initial state (since all set low on disable to prevent back powering)
 		MXC_GPIO_OutSet(GPIO_CAL_MUX_PRE_AD_ENABLE_PORT, GPIO_CAL_MUX_PRE_AD_ENABLE_PIN); // Disable (Active low)
 		MXC_GPIO_OutSet(GPIO_NYQUIST_2_ENABLE_PORT, GPIO_NYQUIST_2_ENABLE_PIN); // Disable (Active low)
-		MXC_GPIO_OutSet(GPIO_GAIN_SELECT_GEO1_PORT, GPIO_GAIN_SELECT_GEO1_PIN); // Enable (Active high)
-		MXC_GPIO_OutSet(GPIO_GAIN_SELECT_GEO2_PORT, GPIO_GAIN_SELECT_GEO2_PIN); // Enable (Active high)
-		MXC_GPIO_OutSet(GPIO_PATH_SELECT_AOP1_PORT, GPIO_PATH_SELECT_AOP1_PIN); // Enable (Active high)
-		MXC_GPIO_OutSet(GPIO_PATH_SELECT_AOP2_PORT, GPIO_PATH_SELECT_AOP2_PIN); // Enable (Active high)
+		MXC_GPIO_OutSet(GPIO_GAIN_SELECT_GEO1_PORT, GPIO_GAIN_SELECT_GEO1_PIN); // Enable Normal gain (Active high)
+		MXC_GPIO_OutSet(GPIO_GAIN_SELECT_GEO2_PORT, GPIO_GAIN_SELECT_GEO2_PIN); // Enable Normal gain (Active high)
+		MXC_GPIO_OutSet(GPIO_PATH_SELECT_AOP1_PORT, GPIO_PATH_SELECT_AOP1_PIN); // Enable AOP path (Active high)
+		MXC_GPIO_OutSet(GPIO_PATH_SELECT_AOP2_PORT, GPIO_PATH_SELECT_AOP2_PIN); // Enable AOP path (Active high)
 
 		SetupSPI3_ExternalADC();
 	}
 	else // (mode == OFF)
 	{
-		MXC_GPIO_OutClr(GPIO_CAL_MUX_PRE_AD_ENABLE_PORT, GPIO_CAL_MUX_PRE_AD_ENABLE_PIN); // Set low to prevent back powering
-		MXC_GPIO_OutClr(GPIO_NYQUIST_2_ENABLE_PORT, GPIO_NYQUIST_2_ENABLE_PIN); // Set low to prevent back powering
-		MXC_GPIO_OutClr(GPIO_GAIN_SELECT_GEO1_PORT, GPIO_GAIN_SELECT_GEO1_PIN); // Set low to prevent back powering
-		MXC_GPIO_OutClr(GPIO_GAIN_SELECT_GEO2_PORT, GPIO_GAIN_SELECT_GEO2_PIN); // Set low to prevent back powering
-		MXC_GPIO_OutClr(GPIO_PATH_SELECT_AOP1_PORT, GPIO_PATH_SELECT_AOP1_PIN); // Set low to prevent back powering
-		MXC_GPIO_OutClr(GPIO_PATH_SELECT_AOP2_PORT, GPIO_PATH_SELECT_AOP2_PIN); // Set low to prevent back powering
+		// Analog 5V Gpio pins that need to be set low or turned into inputs to prevent back powering
+		// GPIO 0 pins: SS sleep, SS mux enable, ADC Conversion, Cal Mux enable, Cal Mux select
+		// GPIO 2 pins: Sensor Check enable, Sensor Check state, SS Mux A0, SS Mux A1, Nyquist 0, Nyquist 1, Nyquist 2
+		// GPIO 3 pins: Sensor Enable 1-4, Gain/Path select 1-4
+
+		MXC_GPIO_OutClr(MXC_GPIO0, (GPIO_SMART_SENSOR_SLEEP_PIN | GPIO_SMART_SENSOR_MUX_ENABLE_PIN | GPIO_ADC_CONVERSION_PIN | GPIO_CAL_MUX_PRE_AD_ENABLE_PIN | GPIO_CAL_MUX_PRE_AD_SELECT_PIN)); // Set low to prevent back powering
+		MXC_GPIO_OutClr(MXC_GPIO2, (GPIO_SENSOR_CHECK_ENABLE_PIN | GPIO_SENSOR_CHECK_PIN | GPIO_SMART_SENSOR_MUX_A0_PIN | GPIO_SMART_SENSOR_MUX_A1_PIN |
+						GPIO_NYQUIST_0_A0_PIN | GPIO_NYQUIST_1_A1_PIN | GPIO_NYQUIST_2_ENABLE_PIN)); // Set low to prevent back powering
+		MXC_GPIO_OutClr(MXC_GPIO3, (GPIO_SENSOR_ENABLE_GEO1_PIN | GPIO_SENSOR_ENABLE_AOP1_PIN | GPIO_SENSOR_ENABLE_GEO2_PIN | GPIO_SENSOR_ENABLE_AOP2_PIN |
+						GPIO_GAIN_SELECT_GEO1_PIN | GPIO_PATH_SELECT_AOP1_PIN | GPIO_GAIN_SELECT_GEO2_PIN | GPIO_PATH_SELECT_AOP2_PIN)); // Set low to prevent back powering
 
 		MXC_SPI_Shutdown(MXC_SPI3);
 		mxc_gpio_cfg_t gpio_cfg_spi3 = { MXC_GPIO0, (GPIO_ADC_SPI3_SCK_PIN | GPIO_ADC_SPI3_SS0_PIN | GPIO_ADC_SPI3_SDO1_PIN | GPIO_ADC_SPI3_SDI_PIN), MXC_GPIO_FUNC_IN, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
