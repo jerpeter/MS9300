@@ -127,6 +127,7 @@ void CalSetupMn(INPUT_MSG_STRUCT msg)
 #if 1 /* Test */
 static uint8_t aCutoffState = ANALOG_CUTOFF_FREQ_1K;
 static uint8_t gpState = ON;
+char filterText[16];
 #endif
 				switch (key)
 				{
@@ -224,8 +225,9 @@ static uint8_t gpState = ON;
 						if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { g_calDisplayAlternateResultState = DEFAULT_ALTERNATE_RESULTS; }
 						else { g_calDisplayAlternateResultState = DEFAULT_RESULTS; }
 #else
-						SoftUsecWait(150 * SOFT_MSECS);
-						debug("CS: Geo2 Sensor disabled\r\n");
+						sprintf((char*)g_debugBuffer, "Cal Setup: Geo2 Sensor disabled");
+						debug("%s\r\n", (char*)g_debugBuffer);
+						OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
 						MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
 #endif
 						break;
@@ -236,8 +238,9 @@ static uint8_t gpState = ON;
 						if (g_displayAlternateResultState == DEFAULT_ALTERNATE_RESULTS) { g_displayAlternateResultState = DEFAULT_RESULTS; }
 						else { g_displayAlternateResultState = DEFAULT_ALTERNATE_RESULTS; }
 #else
-						SoftUsecWait(150 * SOFT_MSECS);
-						debug("CS: AOP2 Sensor disabled\r\n");
+						sprintf((char*)g_debugBuffer, "Cal Setup: AOP2 Sensor disabled");
+						debug("%s\r\n", (char*)g_debugBuffer);
+						OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
 						MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
 #endif
 						break;
@@ -248,8 +251,9 @@ static uint8_t gpState = ON;
 						if (s_pauseDisplay == NO) { s_pauseDisplay = YES; }
 						else { s_pauseDisplay = NO; }
 #else
-						SoftUsecWait(150 * SOFT_MSECS);
-						debug("CS: Geo2 + AOP2 Sensors enabled\r\n");
+						sprintf((char*)g_debugBuffer, "Cal Setup: Geo2 + AOP2 Sensors enabled");
+						debug("%s\r\n", (char*)g_debugBuffer);
+						OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
 						MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
 						MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
 #endif
@@ -258,13 +262,14 @@ static uint8_t gpState = ON;
 					case KB_SK_1:
 						SoftUsecWait(150 * SOFT_MSECS);
 #if 1 /* Test */
-						SoftUsecWait(150 * SOFT_MSECS);
-						if (aCutoffState == ANALOG_CUTOFF_FREQ_1K) { aCutoffState = ANALOG_CUTOFF_FREQ_2K; }
-						else if (aCutoffState == ANALOG_CUTOFF_FREQ_2K) { aCutoffState = ANALOG_CUTOFF_FREQ_4K; }
-						else if (aCutoffState == ANALOG_CUTOFF_FREQ_4K) { aCutoffState = ANALOG_CUTOFF_FREQ_8K; }
-						else if (aCutoffState == ANALOG_CUTOFF_FREQ_8K) { aCutoffState = ANALOG_CUTOFF_FREQ_16K; }
-						else if (aCutoffState == ANALOG_CUTOFF_FREQ_16K) { aCutoffState = ANALOG_CUTOFF_FREQ_1K; }
-						debug("CS: Changing Nyquist filter (%d)\r\n", aCutoffState);
+						if (aCutoffState == ANALOG_CUTOFF_FREQ_1K) { aCutoffState = ANALOG_CUTOFF_FREQ_2K; strcpy(filterText, "2K"); }
+						else if (aCutoffState == ANALOG_CUTOFF_FREQ_2K) { aCutoffState = ANALOG_CUTOFF_FREQ_4K; strcpy(filterText, "4K"); }
+						else if (aCutoffState == ANALOG_CUTOFF_FREQ_4K) { aCutoffState = ANALOG_CUTOFF_FREQ_8K; strcpy(filterText, "8K"); }
+						else if (aCutoffState == ANALOG_CUTOFF_FREQ_8K) { aCutoffState = ANALOG_CUTOFF_FREQ_16K; strcpy(filterText, "16K"); }
+						else if (aCutoffState == ANALOG_CUTOFF_FREQ_16K) { aCutoffState = ANALOG_CUTOFF_FREQ_1K; strcpy(filterText, "1K"); }
+						sprintf((char*)g_debugBuffer, "Cal Setup: Changing Nyquist filter (%s)", filterText);
+						debug("%s\r\n", (char*)g_debugBuffer);
+						OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
 						SetAnalogCutoffFrequency(aCutoffState);
 #endif
 						break;
@@ -272,18 +277,20 @@ static uint8_t gpState = ON;
 					case KB_SK_2:
 						SoftUsecWait(150 * SOFT_MSECS);
 #if 1 /* Test */
-						SoftUsecWait(150 * SOFT_MSECS);
 						if (gpState == ON) { gpState = OFF; } else { gpState = ON; }
 						if (gpState)
 						{
-							debug("CS: Geo2 normal gain + AOP2 path AOP\r\n");
+							strcpy(filterText, "Normal/AOP");
 							SetGainGeo2State(HIGH); SetPathSelectAop2State(HIGH);
 						}
 						else
 						{
-							debug("CS: Geo2 high gain + AOP2 path A-weighting\r\n");
+							strcpy(filterText, "High/A-weight");
 							SetGainGeo2State(LOW); SetPathSelectAop2State(LOW);
 						}
+						sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo2/AOP2 gain/path (%s)", filterText);
+						debug("%s\r\n", (char*)g_debugBuffer);
+						OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
 #endif
 						break;
 
