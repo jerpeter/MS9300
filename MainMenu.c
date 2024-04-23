@@ -46,6 +46,9 @@ static TEMP_MENU_DATA_STRUCT s_mainMenuTable[MAIN_MN_TABLE_SIZE] = {
 {ITEM_2, BAR_GRAPH_TEXT, NO_TAG},
 {ITEM_3, COMBO_TEXT, NO_TAG},
 {ITEM_4, SAVED_SETTINGS_TEXT, NO_TAG},
+#if 1 /* Test shortcut to Cal Setup menu */
+{ITEM_5, SENSOR_CALIBRATION_TEXT, NO_TAG},
+#endif
 {NO_TAG, TOTAL_TEXT_STRINGS, NO_TAG}
 };
 
@@ -162,6 +165,15 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 							SETUP_MENU_MSG(LOAD_REC_MENU);
 							JUMP_TO_ACTIVE_MENU();
 							break;
+#if 1 /* Test sohrtcut to Cal Setup menu */
+						case (DEFAULT_ROW_7): // Load Saved Record
+							ClearSoftTimer(MENU_UPDATE_TIMER_NUM);
+							g_keypadTable[SOFT_KEY_1] = KB_SK_1;
+							g_keypadTable[SOFT_KEY_2] = KB_SK_2;
+							SETUP_MENU_MSG(CAL_SETUP_MENU);
+							JUMP_TO_ACTIVE_MENU();
+							break;
+#endif
 						default:
 							break;
 					}
