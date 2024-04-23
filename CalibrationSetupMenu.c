@@ -124,6 +124,10 @@ void CalSetupMn(INPUT_MSG_STRUCT msg)
 
 				SoftUsecWait(1 * SOFT_MSECS);
 
+#if 1 /* Test */
+static uint8_t aCutoffState = ANALOG_CUTOFF_FREQ_1K;
+static uint8_t gpState = ON;
+#endif
 				switch (key)
 				{
 					case UP_ARROW_KEY:
@@ -216,20 +220,71 @@ void CalSetupMn(INPUT_MSG_STRUCT msg)
 
 					case (RIGHT_ARROW_KEY):
 						SoftUsecWait(150 * SOFT_MSECS);
+#if 0 /* Normal */
 						if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { g_calDisplayAlternateResultState = DEFAULT_ALTERNATE_RESULTS; }
 						else { g_calDisplayAlternateResultState = DEFAULT_RESULTS; }
-					break;
+#else
+						SoftUsecWait(150 * SOFT_MSECS);
+						debug("CS: Geo2 Sensor disabled\r\n");
+						MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
+#endif
+						break;
 
 					case (LEFT_ARROW_KEY):
 						SoftUsecWait(150 * SOFT_MSECS);
+#if 0 /* Normal */
 						if (g_displayAlternateResultState == DEFAULT_ALTERNATE_RESULTS) { g_displayAlternateResultState = DEFAULT_RESULTS; }
 						else { g_displayAlternateResultState = DEFAULT_ALTERNATE_RESULTS; }
-					break;
+#else
+						SoftUsecWait(150 * SOFT_MSECS);
+						debug("CS: AOP2 Sensor disabled\r\n");
+						MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+#endif
+						break;
 
 					case HELP_KEY:
 						SoftUsecWait(150 * SOFT_MSECS);
+#if 0 /* Normal */
 						if (s_pauseDisplay == NO) { s_pauseDisplay = YES; }
 						else { s_pauseDisplay = NO; }
+#else
+						SoftUsecWait(150 * SOFT_MSECS);
+						debug("CS: Geo2 + AOP2 Sensors enabled\r\n");
+						MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
+						MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+#endif
+						break;
+
+					case KB_SK_1:
+						SoftUsecWait(150 * SOFT_MSECS);
+#if 1 /* Test */
+						SoftUsecWait(150 * SOFT_MSECS);
+						if (aCutoffState == ANALOG_CUTOFF_FREQ_1K) { aCutoffState = ANALOG_CUTOFF_FREQ_2K; }
+						else if (aCutoffState == ANALOG_CUTOFF_FREQ_2K) { aCutoffState = ANALOG_CUTOFF_FREQ_4K; }
+						else if (aCutoffState == ANALOG_CUTOFF_FREQ_4K) { aCutoffState = ANALOG_CUTOFF_FREQ_8K; }
+						else if (aCutoffState == ANALOG_CUTOFF_FREQ_8K) { aCutoffState = ANALOG_CUTOFF_FREQ_16K; }
+						else if (aCutoffState == ANALOG_CUTOFF_FREQ_16K) { aCutoffState = ANALOG_CUTOFF_FREQ_1K; }
+						debug("CS: Changing Nyquist filter (%d)\r\n", aCutoffState);
+						SetAnalogCutoffFrequency(aCutoffState);
+#endif
+						break;
+
+					case KB_SK_2:
+						SoftUsecWait(150 * SOFT_MSECS);
+#if 1 /* Test */
+						SoftUsecWait(150 * SOFT_MSECS);
+						if (gpState == ON) { gpState = OFF; } else { gpState = ON; }
+						if (gpState)
+						{
+							debug("CS: Geo2 normal gain + AOP2 path AOP\r\n");
+							SetGainGeo2State(HIGH); SetPathSelectAop2State(HIGH);
+						}
+						else
+						{
+							debug("CS: Geo2 high gain + AOP2 path A-weighting\r\n");
+							SetGainGeo2State(LOW); SetPathSelectAop2State(LOW);
+						}
+#endif
 						break;
 
 #if 0 /* Fill in with correct control, maybe a soft key named swap */
@@ -340,6 +395,10 @@ void CalSetupMn(INPUT_MSG_STRUCT msg)
 		//debug("Cal Menu Screen 1 selected\r\n");
 		s_calDisplayScreen = CAL_MENU_DEFAULT_NON_CALIBRATED_DISPLAY;
 
+#if 1 /* Test revert soft keys */
+		g_keypadTable[SOFT_KEY_1] = LCD_OFF_KEY;
+		g_keypadTable[SOFT_KEY_2] = BACKLIGHT_KEY;
+#endif
 		SETUP_MENU_MSG(MAIN_MENU);
 		JUMP_TO_ACTIVE_MENU();
 	}
