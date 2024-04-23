@@ -74,7 +74,7 @@ Button 1 = Soft key 4
 
 // Other keys
 #define ENTER_KEY 		KB_ENTER
-#define ESC_KEY 		KB_SK_1
+#define ESC_KEY 		0xE0
 #define HELP_KEY 		KB_SK_4
 #define DELETE_KEY 		KB_SK_3
 #define BACKLIGHT_KEY	0xB0
