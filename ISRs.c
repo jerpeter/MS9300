@@ -84,7 +84,6 @@ static int16 s_temperatureDelta = 0;
 
 static uint8 s_pretriggerFull = NO;
 static uint8 s_checkForTempDrift = NO;
-static uint8 s_channelConfig = CHANNELS_R_AND_V_SWAPPED;
 static uint8 s_seismicTriggerSample = NO;
 static uint8 s_airTriggerSample = NO;
 static uint8 s_recordingEvent = NO;
@@ -2128,6 +2127,10 @@ static inline void applyOffsetAndCacheSampleData_ISR_Inline(void)
 static inline void getChannelDataWithReadbackWithTemp_ISR_Inline(void)
 {
 	uint8_t chanDataRaw[3];
+#if 1 /* Test */
+	uint8_t overVoltageAlert = NO;
+	uint8_t ovAlertChannels = 0;
+#endif
 
 	// Todo: need variable channel config for selectable dynamic channels
 	// Todo: verify channel inputs on which channel data lines
@@ -2135,44 +2138,65 @@ static inline void getChannelDataWithReadbackWithTemp_ISR_Inline(void)
 	// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
 
 #if 0 /* Original */
-	// Chan 0 - R?
+	// Chan 0 - R
 	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 	s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-	if (chanDataRaw[2] != 0) { s_channelSyncError = YES; }
+	if ((chanDataRaw[2] & 0x0F) != 0) { s_channelSyncError = YES; }
 
-	// Chan 1 - T?
+	// Chan 1 - T
 	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 	s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-	if (chanDataRaw[2] != 1) { s_channelSyncError = YES; }
+	if ((chanDataRaw[2] & 0x0F) != 1) { s_channelSyncError = YES; }
 
-	// Chan 2 - V?
+	// Chan 2 - V
 	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-	if (chanDataRaw[2] != 2) { s_channelSyncError = YES; }
+	if ((chanDataRaw[2] & 0x0F) != 2) { s_channelSyncError = YES; }
 
 	// Chan 3 - A
 	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 	s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-	if (chanDataRaw[2] != 3) { s_channelSyncError = YES; }
-#else /* Try active channels */
+	if ((chanDataRaw[2] & 0x0F) != 3) { s_channelSyncError = YES; }
+#elif 0 /* Try active channels */
 extern uint8_t chanActive[8];
 	if (chanActive[0]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 0) { s_channelSyncError = YES; } }
+		s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 0) { s_channelSyncError = YES; } }
 	if (chanActive[1]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 1) { s_channelSyncError = YES; } }
+		s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 1) { s_channelSyncError = YES; } }
 	if (chanActive[2]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 2) { s_channelSyncError = YES; } }
+		s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 2) { s_channelSyncError = YES; } }
 	if (chanActive[3]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 3) { s_channelSyncError = YES; } }
+		s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 3) { s_channelSyncError = YES; } }
 
 	if (chanActive[4]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 4) { s_channelSyncError = YES; } }
+		s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 4) { s_channelSyncError = YES; } }
 	if (chanActive[5]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 5) { s_channelSyncError = YES; } }
+		s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 5) { s_channelSyncError = YES; } }
 	if (chanActive[6]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 6) { s_channelSyncError = YES; } }
+		s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 6) { s_channelSyncError = YES; } }
 	if (chanActive[7]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 7) { s_channelSyncError = YES; } }
+		s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 7) { s_channelSyncError = YES; } }
+#else /* Try active channels and monitor Over voltage Alert */
+extern uint8_t chanActive[8];
+	if (chanActive[0]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 0) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+	if (chanActive[1]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 1) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+	if (chanActive[2]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 2) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+	if (chanActive[3]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 3) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+
+	if (chanActive[4]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 4) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+	if (chanActive[5]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 5) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+	if (chanActive[6]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 6) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+	if (chanActive[7]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 7) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+
+	if (overVoltageAlert) { debugErr("AD Over Voltage Alert: Channel bit mask 0x%x\r\n", ovAlertChannels); }
 #endif
 
 	// Temperature
@@ -2180,7 +2204,7 @@ extern uint8_t chanActive[8];
 	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
 	SetAdcConversionState(OFF);
 	g_currentTempReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-	if (chanDataRaw[2] != 15) { s_channelSyncError = YES; } // An INx value of 15 corresponds to either IN15 or the temperature sensor
+	if ((chanDataRaw[2] & 0x0F) != 15) { s_channelSyncError = YES; } // An INx value of 15 corresponds to either IN15 or the temperature sensor
 }
 
 ///----------------------------------------------------------------------------
@@ -2287,9 +2311,6 @@ void DataIsrInit(uint16 sampleRate)
 		s_consecutiveEventsWithoutCalThreshold = (g_maxEventBuffers - 1);
 	}
 	else { s_consecutiveEventsWithoutCalThreshold = CONSEC_EVENTS_WITHOUT_CAL_THRESHOLD; }
-
-	if (g_factorySetupRecord.analogChannelConfig == CHANNELS_R_AND_V_SWAPPED) { s_channelConfig = CHANNELS_R_AND_V_SWAPPED; }
-	else { s_channelConfig = CHANNELS_R_AND_V_SCHEMATIC; }
 
 #if (!VT_FEATURE_DISABLED)
 	memset(&s_variableTriggerFreqCalcBuffer, 0, sizeof(s_variableTriggerFreqCalcBuffer));

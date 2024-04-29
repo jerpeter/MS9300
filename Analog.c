@@ -88,44 +88,52 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 	{
 		// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
 
-		// Chan 0 - Geo1
+		// Chan 0 - Geo1/R
 		if (chanActive[0]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-			dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 0) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 0, chanDataRaw[2]); } }
+			dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 0) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 0, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
-		// Chan 1 - Geo1
+		// Chan 1 - Geo1/T
 		if (chanActive[1]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-			dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 1) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 1, chanDataRaw[2]); } }
+			dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 1) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 1, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
-		// Chan 2 - Geo1
+		// Chan 2 - Geo1/V
 		if (chanActive[2]){ SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-			dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 2) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 2, chanDataRaw[2]); } }
+			dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 2) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 2, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
-		// Chan 3 - AOP1
+		// Chan 3 - AOP1/A
 		if (chanActive[3]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-			dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 3) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 3, chanDataRaw[2]); } }
+			dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 3) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 3, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
-		// Chan 4 - Geo2
+		// Chan 4 - Geo2/R
 		if (chanActive[4]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-			dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 4) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 4, chanDataRaw[2]); } }
+			dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 4) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 4, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
-		// Chan 5 - Geo2
+		// Chan 5 - Geo2/T
 		if (chanActive[5]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-			dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 5) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 5, chanDataRaw[2]); } }
+			dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 5) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 5, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
-		// Chan 6 - Geo2
+		// Chan 6 - Geo2/V
 		if (chanActive[6]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-			dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 6) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 6, chanDataRaw[2]); } }
+			dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 6) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 6, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
-		// Chan 7 - AOP2
+		// Chan 7 - AOP2/A
 		if (chanActive[7]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-			dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if (chanDataRaw[2] != 7) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 7, chanDataRaw[2]); } }
+			dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 7) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 7, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
 		// Temp
 		SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 #if 1 /* Test */
 		dataTemperature = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 #endif
-		if (chanDataRaw[2] != 15) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 15, chanDataRaw[2]); } // An INx value of 15 corresponds to either IN15 or the temperature sensor
+		if ((chanDataRaw[2] & 0x0F) != 15) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 15, (chanDataRaw[2] & 0x0F)); } // An INx value of 15 corresponds to either IN15 or the temperature sensor
 
 		if (configError == YES)
 		{
