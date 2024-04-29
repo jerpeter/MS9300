@@ -1316,6 +1316,42 @@ void TestUSBCPortController(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint32_t USBCPortControllerStatus(void)
+{
+	struct tps25750 tps;
+	uint32_t status;
+
+	tps25750_read32(&tps, TPS_REG_STATUS, &status);
+	return ((uint16_t)status);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t USBCPortControllerPStatus(void)
+{
+	struct tps25750 tps;
+	uint16_t status;
+
+	tps25750_read16(&tps, TPS_REG_POWER_STATUS, &status);
+	return (status);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint32_t USBCPortControllerPDStatus(void)
+{
+	struct tps25750 tps;
+	uint32_t status;
+
+	tps25750_read32(&tps, TPS_REG_PD_STATUS, &status);
+	return (status);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void USBCPortControllerInit(void)
 {
 	// Todo: Initial setup?
