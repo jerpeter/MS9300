@@ -2165,6 +2165,8 @@ void echoUSB(void)
 ///----------------------------------------------------------------------------
 int usbStartupCallback()
 {
+	debugRaw("<U-sc>");
+
     // Startup the HIRC96M clock if it's not on already
     if (!(MXC_GCR->clk_ctrl & MXC_F_GCR_CLK_CTRL_HIRC96_EN)) {
         MXC_GCR->clk_ctrl |= MXC_F_GCR_CLK_CTRL_HIRC96_EN;
@@ -2184,6 +2186,8 @@ int usbStartupCallback()
 ///----------------------------------------------------------------------------
 int usbShutdownCallback()
 {
+	debugRaw("<U-xc>");
+
     MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_USB);
 
     return E_NO_ERROR;
@@ -2194,6 +2198,8 @@ int usbShutdownCallback()
 ///----------------------------------------------------------------------------
 static int setconfigCallback(MXC_USB_SetupPkt *sud, void *cbdata)
 {
+	debugRaw("<U-cc>");
+
     /* Confirm the configuration value */
     if (sud->wValue == composite_config_descriptor.config_descriptor.bConfigurationValue)
 	{
@@ -2291,6 +2297,8 @@ static void usbAppWakeup(void)
 ///----------------------------------------------------------------------------
 static int usbEventCallback(maxusb_event_t evt, void *data)
 {
+	debugRaw("<U-ec:%d>", evt);
+
     /* Set event flag */
     MXC_SETBIT(&event_flags, evt);
 
@@ -2361,6 +2369,8 @@ void USB_IRQHandler(void)
 ///----------------------------------------------------------------------------
 static int usbReadCallback(void)
 {
+	debugRaw("<U-rc>");
+
 	uint16_t numChars = acm_canread();
 	uint8 recieveData;
 
@@ -4320,7 +4330,10 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Setup USB Composite (MSC + CDC/ACM)
 	//-------------------------------------------------------------------------
+#if 1 /* Normal */
 	SetupUSBComposite();
+#else /* Test wihtout setting up MCU USBC for Port Controller and power delivery */
+#endif
 
 	//-------------------------------------------------------------------------
 	// Disable all interrupts
