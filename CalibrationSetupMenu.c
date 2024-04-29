@@ -122,17 +122,21 @@ void CalSetupMn(INPUT_MSG_STRUCT msg)
 
 				key = GetKeypadKey(CHECK_ONCE_FOR_KEY);
 
-				SoftUsecWait(1 * SOFT_MSECS);
+				if (key == KEY_NONE) { SoftUsecWait(1 * SOFT_MSECS); } // Delay 1ms between key checks
+				else /* Key press found */ { SoftUsecWait(250 * SOFT_MSECS); } // Generic delay to prevent processing the same key twice
 
 #if 1 /* Test */
 static uint8_t aCutoffState = ANALOG_CUTOFF_FREQ_1K;
 static uint8_t gpState = ON;
+static uint8_t cmState = 2;
+static uint8_t scState = 0;
+static uint8_t scEnable = 0;
 char filterText[16];
 #endif
 				switch (key)
 				{
 					case UP_ARROW_KEY:
-						SoftUsecWait(150 * SOFT_MSECS);
+#if 0 /* Normal */
 						if (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE)
 						{
 							s_pauseDisplay = NO;
@@ -166,10 +170,17 @@ char filterText[16];
 						}
 
 						key = 0;
+#else /* Test */
+						if (scEnable == ON) { scEnable = OFF; } else { scEnable = ON; }
+						if (scEnable) { PowerControl(SENSOR_CHECK_ENABLE, ON); sprintf((char*)g_debugBuffer, "Cal Setup: Sensor Check Enabled"); }
+						else{ PowerControl(SENSOR_CHECK_ENABLE, OFF); sprintf((char*)g_debugBuffer, "Cal Setup: Sensor Check Disabled"); }
+						debug("%s\r\n", (char*)g_debugBuffer);
+						OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+#endif
 						break;
 
 					case DOWN_ARROW_KEY:
-						SoftUsecWait(150 * SOFT_MSECS);
+#if 0 /* Normal */
 						if (s_calDisplayScreen == CAL_MENU_DEFAULT_NON_CALIBRATED_DISPLAY)
 						{
 							// Stop A/D data collection clock
@@ -217,10 +228,16 @@ char filterText[16];
 						}
 
 						key = 0;
+#else /* Test */
+						if (scState == ON) { scState = OFF; } else { scState = ON; }
+						if (scState) { SetSensorCheckState(ON); sprintf((char*)g_debugBuffer, "Cal Setup: Sensor Check state High"); }
+						else { SetSensorCheckState(OFF); sprintf((char*)g_debugBuffer, "Cal Setup: Sensor Check state Low"); }
+						debug("%s\r\n", (char*)g_debugBuffer);
+						OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+#endif
 						break;
 
 					case (RIGHT_ARROW_KEY):
-						SoftUsecWait(150 * SOFT_MSECS);
 #if 0 /* Normal */
 						if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { g_calDisplayAlternateResultState = DEFAULT_ALTERNATE_RESULTS; }
 						else { g_calDisplayAlternateResultState = DEFAULT_RESULTS; }
@@ -233,7 +250,6 @@ char filterText[16];
 						break;
 
 					case (LEFT_ARROW_KEY):
-						SoftUsecWait(150 * SOFT_MSECS);
 #if 0 /* Normal */
 						if (g_displayAlternateResultState == DEFAULT_ALTERNATE_RESULTS) { g_displayAlternateResultState = DEFAULT_RESULTS; }
 						else { g_displayAlternateResultState = DEFAULT_ALTERNATE_RESULTS; }
@@ -246,7 +262,6 @@ char filterText[16];
 						break;
 
 					case HELP_KEY:
-						SoftUsecWait(150 * SOFT_MSECS);
 #if 0 /* Normal */
 						if (s_pauseDisplay == NO) { s_pauseDisplay = YES; }
 						else { s_pauseDisplay = NO; }
@@ -260,7 +275,6 @@ char filterText[16];
 						break;
 
 					case KB_SK_1:
-						SoftUsecWait(150 * SOFT_MSECS);
 #if 1 /* Test */
 						if (aCutoffState == ANALOG_CUTOFF_FREQ_1K) { aCutoffState = ANALOG_CUTOFF_FREQ_2K; strcpy(filterText, "2K"); }
 						else if (aCutoffState == ANALOG_CUTOFF_FREQ_2K) { aCutoffState = ANALOG_CUTOFF_FREQ_4K; strcpy(filterText, "4K"); }
@@ -275,19 +289,10 @@ char filterText[16];
 						break;
 
 					case KB_SK_2:
-						SoftUsecWait(150 * SOFT_MSECS);
 #if 1 /* Test */
 						if (gpState == ON) { gpState = OFF; } else { gpState = ON; }
-						if (gpState)
-						{
-							strcpy(filterText, "Normal/AOP");
-							SetGainGeo2State(HIGH); SetPathSelectAop2State(HIGH);
-						}
-						else
-						{
-							strcpy(filterText, "High/A-weight");
-							SetGainGeo2State(LOW); SetPathSelectAop2State(LOW);
-						}
+						if (gpState) { strcpy(filterText, "Normal/AOP"); SetGainGeo2State(HIGH); SetPathSelectAop2State(HIGH); }
+						else { strcpy(filterText, "High/A-weight"); SetGainGeo2State(LOW); SetPathSelectAop2State(LOW); }
 						sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo2/AOP2 gain/path (%s)", filterText);
 						debug("%s\r\n", (char*)g_debugBuffer);
 						OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
@@ -295,7 +300,7 @@ char filterText[16];
 						break;
 
 #if 0 /* Fill in with correct control, maybe a soft key named swap */
-					case DELETE_KEY:
+					case /* Which key? */:
 						if (GetCalMuxPreADSelectState() == CAL_MUX_SELECT_SENSOR_GROUP_A)
 						{
 							SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B);
@@ -309,9 +314,34 @@ char filterText[16];
 						break;
 #endif
 
+					case KB_SK_4:
+#if 1 /* Test */
+						if (cmState == 0)
+						{
+							cmState = 1; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); SetCalMuxPreADEnableState(ON);
+							sprintf((char*)g_debugBuffer, "Cal Setup: Enabling Cal Mux Sensor Group A/1");
+							debug("%s\r\n", (char*)g_debugBuffer);
+							OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+						}
+						else if (cmState == 1)
+						{
+							cmState = 2; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B); SetCalMuxPreADEnableState(ON);
+							sprintf((char*)g_debugBuffer, "Cal Setup: Enabling Cal Mux Sensor Group B/2");
+							debug("%s\r\n", (char*)g_debugBuffer);
+							OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+						}
+						else // (cmState == 2)
+						{
+							cmState = OFF; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); SetCalMuxPreADEnableState(OFF);
+							sprintf((char*)g_debugBuffer, "Cal Setup: Turning Cal Mux Enable Off");
+							debug("%s\r\n", (char*)g_debugBuffer);
+							OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+						}
+#endif
+						break;
+
 					case ENTER_KEY:
 					case ESC_KEY:
-						SoftUsecWait(150 * SOFT_MSECS);
 						// Not really used, keys are grabbed in CalSetupMn
 						mbChoice = MessageBox(getLangText(STATUS_TEXT), getLangText(ARE_YOU_DONE_WITH_CAL_SETUP_Q_TEXT), MB_YESNO);
 						if (mbChoice != MB_FIRST_CHOICE)
@@ -405,6 +435,7 @@ char filterText[16];
 #if 1 /* Test revert soft keys */
 		g_keypadTable[SOFT_KEY_1] = LCD_OFF_KEY;
 		g_keypadTable[SOFT_KEY_2] = BACKLIGHT_KEY;
+		g_keypadTable[SOFT_KEY_4] = ESC_KEY;
 #endif
 		SETUP_MENU_MSG(MAIN_MENU);
 		JUMP_TO_ACTIVE_MENU();
@@ -437,7 +468,8 @@ void CalSetupMnProc(INPUT_MSG_STRUCT msg,
 			{ SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); }
 			else { SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B); }
 #else /* Always start with Sensor Group A */
-			SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A);
+			//SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A);
+			SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B);
 #endif
 			SetCalMuxPreADEnableState(ON);
 
