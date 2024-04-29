@@ -1072,15 +1072,20 @@ void MessageDisplayToLcd(char* titleString, char* textString, MB_CHOICE_TYPE cho
 		// Check if the second choice is active, making the first choice inactive
 		if (activeChoice == MB_SECOND_CHOICE) { ft81x_fgcolor_rgb32(0x525252); } // Grey foreground for inactive
 
-		ft81x_cmd_button(320, 280, 160, 32, 30, 0, firstChoiceText);
-
 		if (s_MessageChoices[choiceType].numChoices == MB_TWO_CHOICES)
 		{
+			ft81x_cmd_button(320, 280, 160, 32, 30, 0, firstChoiceText);
+
 			// Check if the second choice is active, making it active
 			if (activeChoice == MB_FIRST_CHOICE) { ft81x_fgcolor_rgb32(0x525252); } // Grey foreground for inactive
 			else { ft81x_fgcolor_rgb32(0x0000ff); } // Blue foreground
 
 			ft81x_cmd_button(320, 320, 160, 32, 30, 0, secondChoiceText);
+		}
+		else // (s_MessageChoices[choiceType].numChoices == MB_ONE_CHOICE)
+		{
+			// Place only choice in the 2nd slot (looks better)
+			ft81x_cmd_button(320, 320, 160, 32, 30, 0, firstChoiceText);
 		}
 	}
 
