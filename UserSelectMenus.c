@@ -835,6 +835,7 @@ void AlarmOutputMenuHandler(uint8 keyPressed, void* data)
 	JUMP_TO_ACTIVE_MENU();
 }
 
+#if 0 /* Removed since this has no bearing on the new hardware */
 //*****************************************************************************
 //=============================================================================
 // Analog Channel Config Menu
@@ -872,6 +873,7 @@ void AnalogChannelConfigMenuHandler(uint8 keyPressed, void* data)
 
 	JUMP_TO_ACTIVE_MENU();
 }
+#endif
 
 //*****************************************************************************
 //=============================================================================
@@ -1253,7 +1255,7 @@ void CalibratonDateSourceMenuHandler(uint8 keyPressed, void* data)
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_MSG(&analogChannelConfigMenu, g_factorySetupRecord.analogChannelConfig);
+		SETUP_USER_MENU_MSG(&acousticSensorTypeMenu, g_factorySetupRecord.acousticSensorType);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
@@ -3419,7 +3421,7 @@ void AcousticSensorTypeMenuHandler(uint8 keyPressed, void* data)
 	{
 		g_factorySetupRecord.acousticSensorType = (uint8)acousticSensorTypeMenu[newItemIndex].data;
 
-		SETUP_USER_MENU_MSG(&analogChannelConfigMenu, g_factorySetupRecord.analogChannelConfig);
+		SETUP_USER_MENU_MSG(&calibratonDateSourceMenu, g_factorySetupRecord.calibrationDateSource);
 	}
 	else if (keyPressed == ESC_KEY)
 	{

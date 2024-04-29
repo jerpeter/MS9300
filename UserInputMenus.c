@@ -39,7 +39,6 @@ extern USER_MENU_STRUCT alarmOneTimeMenu[];
 extern USER_MENU_STRUCT alarmTwoTimeMenu[];
 extern USER_MENU_STRUCT alarmOneMenu[];
 extern USER_MENU_STRUCT alarmTwoMenu[];
-extern USER_MENU_STRUCT analogChannelConfigMenu[];
 extern USER_MENU_STRUCT airScaleMenu[];
 extern USER_MENU_STRUCT barChannelMenu[];
 extern USER_MENU_STRUCT barResultMenu[];

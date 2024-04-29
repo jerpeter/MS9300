@@ -313,7 +313,7 @@ typedef struct
 	uint16 seismicSensorType;			// 0x0E
 	char unitSerialNumber[16];			// 0x10
 	uint8 aWeightOption;				// 0x20
-	uint8 analogChannelConfig;			// 0x21
+	uint8 unused1;						// 0x21
 } FACTORY_SETUP_STRUCT;
 
 typedef struct

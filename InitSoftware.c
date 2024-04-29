@@ -259,18 +259,10 @@ void LoadFactorySetupRecord(void)
 		if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER) { strcpy((char*)&g_spareBuffer, "Acc"); }
 		else { sprintf((char*)&g_spareBuffer, "%3.1f in", (double)((float)g_factorySetupRecord.seismicSensorType / (float)204.8)); }
 
-		// Check if an older unit doesn't have the Analog Channel Config set
-		if ((g_factorySetupRecord.analogChannelConfig != CHANNELS_R_AND_V_SCHEMATIC) && (g_factorySetupRecord.analogChannelConfig != CHANNELS_R_AND_V_SWAPPED))
-		{
-			// Set the default
-			g_factorySetupRecord.analogChannelConfig = CHANNELS_R_AND_V_SWAPPED;
-		}
-
 		debug("Factory Setup: Serial #: %s\r\n", g_factorySetupRecord.unitSerialNumber);
 		debug("Factory Setup: Cal Date: %s\r\n", buff);
 		debug("Factory Setup: Sensor Type: %s\r\n", (char*)g_spareBuffer);
 		debug("Factory Setup: A-Weighting: %s\r\n", (g_factorySetupRecord.aWeightOption == YES) ? "Enabled" : "Disabled");
-		debug("Factory Setup: Analog Channel Config: %s\r\n", (g_factorySetupRecord.analogChannelConfig == CHANNELS_R_AND_V_SCHEMATIC) ? "Schematic" : "Swapped");
 	}
 }
 
