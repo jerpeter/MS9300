@@ -75,10 +75,10 @@ Button 1 = Soft key 4
 // Other keys
 #define ENTER_KEY 		KB_ENTER
 #define ESC_KEY 		0xE0
-#define HELP_KEY 		KB_SK_4
-#define DELETE_KEY 		KB_SK_3
+#define HELP_KEY 		0xC0
+#define DELETE_KEY 		0xD0
 #define BACKLIGHT_KEY	0xB0
-#define LCD_OFF_KEY		0xD0
+#define LCD_OFF_KEY		0xF0
 #define ON_ESC_KEY		0x200	// Make a unique value from the other keys
 
 // Soft key translation

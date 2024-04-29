@@ -170,6 +170,7 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 							ClearSoftTimer(MENU_UPDATE_TIMER_NUM);
 							g_keypadTable[SOFT_KEY_1] = KB_SK_1;
 							g_keypadTable[SOFT_KEY_2] = KB_SK_2;
+							g_keypadTable[SOFT_KEY_4] = KB_SK_4;
 							SETUP_MENU_MSG(CAL_SETUP_MENU);
 							JUMP_TO_ACTIVE_MENU();
 							break;
