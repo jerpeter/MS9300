@@ -139,6 +139,9 @@ void Ltc2944_i2c_shutdown(void);
 
 void FuelGaugeDebugInfo(void);
 char* FuelGaugeDebugString(void);
+int FuelGaugeGetVoltage(void);
 int FuelGaugeGetCurrent(void);
+int FuelGaugeGetCurrentAbs(void);
+int FuelGaugeGetTemperature(void);
 
 #endif //_POWER_MANAGEMENT_H_

@@ -391,6 +391,19 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 	// Swap back to default blue text
 	ft81x_color_rgb32(0x0000ff);
 
+#if 1 /* Test display of Battery information */
+	char debugInfo[32];
+	sprintf(debugInfo, "Battery: %0.3fV", (double)((float)FuelGaugeGetVoltage() / 1000));
+	ft81x_cmd_text(580, 40, 28, 0, debugInfo);
+
+	sprintf(debugInfo, "Current: %0.3fmA", (double)((float)FuelGaugeGetCurrent() / 1000));
+	if (FuelGaugeGetCurrent() > 0) { ft81x_color_rgb32(0x068c3b); ft81x_cmd_text(580, 60, 28, 0, debugInfo); ft81x_color_rgb32(0x0000ff); }
+	else { ft81x_cmd_text(580, 60, 28, 0, debugInfo); }
+
+	sprintf(debugInfo, "Temperature: %dF", FuelGaugeGetTemperature());
+	ft81x_cmd_text(580, 80, 28, 0, debugInfo);
+#endif
+
 	ft81x_display(); // End the display list started with the ClearLcdMap function
 	ft81x_getfree(0); // Trigger FT81x to read the command buffer
 	ft81x_stream_stop(); // Finish streaming to command buffer

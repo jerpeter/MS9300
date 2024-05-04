@@ -1843,11 +1843,41 @@ char* FuelGaugeDebugString(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+int FuelGaugeGetVoltage(void)
+{
+	int vVal;
+	Ltc2944_get_voltage(&vVal);
+	return (vVal);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 int FuelGaugeGetCurrent(void)
 {
 	int cVal;
 	Ltc2944_get_current(Ltc2944_device.r_sense, &cVal);
+	return (cVal);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int FuelGaugeGetCurrentAbs(void)
+{
+	int cVal;
+	Ltc2944_get_current(Ltc2944_device.r_sense, &cVal);
 	return (abs(cVal));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int FuelGaugeGetTemperature(void)
+{
+	int tVal;
+	Ltc2944_get_temperature_farenheit(&tVal);
+	return (tVal);
 }
 
 ///----------------------------------------------------------------------------
