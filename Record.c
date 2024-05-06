@@ -610,16 +610,7 @@ void ValidateModemSetupParameters(void)
 ///----------------------------------------------------------------------------
 void GetParameterMemory(uint8* dataDest, uint16 startAddr, uint16 dataLength)
 {
-#if 0 /* Normal */
-	uint8 address[2];
-
-	//debugRaw("\nGPM: Addr: %x -> ", startAddr);
-
-	// Address transfered as Big endian
-	address[0] = startAddr >> 8;
-	address[1] = startAddr & 0x00FF;
-	WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM, address, sizeof(address), dataDest, dataLength);
-#elif 1
+#if 1 /* Normal */
 	uint16 readLength;
 	uint8 checkForPartialFirstPage = YES;
 	uint8 lengthToPageBoundary = 0;
@@ -744,6 +735,7 @@ void SaveParameterMemory(uint8* dataSrc, uint16 startAddr, uint16 dataLength)
 ///----------------------------------------------------------------------------
 void EraseParameterMemory(uint16 startAddr, uint16 dataLength)
 {
+#if 1 /* Normal */
 	uint16 pageSize;
 
 	while(dataLength)
@@ -771,6 +763,9 @@ void EraseParameterMemory(uint16 startAddr, uint16 dataLength)
 		// Old system used delay, new part datasheet is similar, lists 5ms write time if not able to special no ack write loop
 		MXC_Delay(MXC_DELAY_MSEC(5));
 	}
+#else /* Test bypass since reads seem to cause the I2C to hang */
+	// Todo: swap back to normal
+#endif
 }
 
 ///----------------------------------------------------------------------------
