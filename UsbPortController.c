@@ -504,6 +504,63 @@ static int tps25750_abort_patch_process(struct tps25750 *tps)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void tps25750_int_status_and_clear(void)
+{
+	struct tps25750 tps;
+
+	tps25750_block_read(&tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11); debug("USB Port Controller: Int Event1 Register is %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+	memset(g_debugBuffer, 0xFF, 11); tps25750_block_write(&tps, TPS_REG_INT_CLEAR1, g_debugBuffer, 11);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void tps25750_disable_all_int(void)
+{
+	struct tps25750 tps;
+
+	memset(g_debugBuffer, 0x00, 11); tps25750_block_write(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
+	debug("USB Port Controller: Disable all Interrupts\r\n");
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void tps25750_enable_all_int(void)
+{
+	struct tps25750 tps;
+
+	memset(g_debugBuffer, 0xFF, 11); tps25750_block_write(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
+	debug("USB Port Controller: Enable all Interrupts\r\n");
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int tps25750_issue_get_sink_cap(void)
+{
+	struct tps25750 tps;
+	int ret;
+
+	ret = tps25750_exec_normal_cmd(&tps, TPS_4CC_GSKC);
+
+	return (ret);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t* tps25750_get_rx_sink_cap(void)
+{
+	struct tps25750 tps;
+
+	tps25750_block_read(&tps, TPS_REG_RX_SINK_CAPS, &g_spareBuffer, 31);
+	return (g_spareBuffer);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void tps25750_set_data_role(struct tps25750 *tps, enum typec_data_role role, bool connected)
 {
 	if (role == TYPEC_HOST)
@@ -1352,6 +1409,34 @@ uint32_t USBCPortControllerPDStatus(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void USBCPortControllerClearIntFlags(void)
+{
+	struct tps25750 tps;
+	uint8_t clearIntFlags[11];
+
+	memset(clearIntFlags, 0xFF, 11);
+	tps25750_block_write(&tps, TPS_REG_INT_CLEAR1, clearIntFlags, 11);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void USBCPortControllerReadAndClearInt(void)
+{
+	struct tps25750 tps;
+
+extern uint8_t usbIsrActive;
+	if (usbIsrActive)
+	{
+		usbIsrActive = NO;
+		tps25750_block_read(&tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11); debug("USB Port Controller: Int Event1 Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+		memset(g_debugBuffer, 0xFF, 11); tps25750_block_write(&tps, TPS_REG_INT_CLEAR1, g_debugBuffer, 11);
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void USBCPortControllerInit(void)
 {
 	// Todo: Initial setup?
@@ -1499,6 +1584,11 @@ void USBCPortControllerInit(void)
 	//tps25750_block_read(&tps, TPS_REG_GPIO_STATUS, g_debugBuffer, 8);
 	//debug("USB Port Controller: GPIO Status Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7]);
 
+	tps25750_block_read(&tps, TPS_REG_TX_SOURCE_CAPS, g_debugBuffer, 7);
+	debug("USB Port Controller: TX Source caps is %02x %02x %02x %02x %02x %02x %02x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6]);
+	tps25750_block_read(&tps, TPS_REG_TX_SINK_CAPS, g_debugBuffer, 5);
+	debug("USB Port Controller: TX Sink caps is %02x %02x %02x %02x %02x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4]);
+
 	tps25750_block_read(&tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11);
 	debug("USB Port Controller: Int Event1 Register is %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
 	tps25750_block_read(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
@@ -1511,4 +1601,6 @@ void USBCPortControllerInit(void)
 	tps25750_block_read(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
 	debug("USB Port Controller: Int Mask1 aft Write is %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
 #endif
+
+	USBCPortControllerClearIntFlags();
 }
