@@ -63,6 +63,7 @@ typedef struct
 ///----------------------------------------------------------------------------
 ///	Local Scope Globals
 ///----------------------------------------------------------------------------
+uint8_t accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER;
 
 ///----------------------------------------------------------------------------
 ///	Device Info - KX134-1211
@@ -148,7 +149,11 @@ Address	Register Name	R/W
 ///----------------------------------------------------------------------------
 void GetAccRegister(uint8_t registerAddress, uint8_t* registerData)
 {
+#if 0 /* Original */
     WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddress, sizeof(uint8_t), registerData, sizeof(uint8_t));
+#else /* Use variable address since the Acc slave address sometimes changes */
+    WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddress, sizeof(uint8_t), registerData, sizeof(uint8_t));
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -161,7 +166,11 @@ void SetAccRegister(uint8_t registerAddress, uint8_t registerData)
     writeData[0] = registerAddress;
     writeData[1] = registerData;
 
+#if 0 /* Original */
     WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, writeData, sizeof(writeData), NULL, 0);
+#else /* Use variable address since the Acc slave address sometimes changes */
+    WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, writeData, sizeof(writeData), NULL, 0);
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -173,16 +182,20 @@ uint8_t VerifyAccManuIDAndPartID(void)
     uint8_t registerAddress = ACC_MAN_ID_REGISTER;
     uint8_t status = FAILED;
 
-   	WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddress, sizeof(uint8_t), manuIDAndPartID, sizeof(manuIDAndPartID));
+#if 0 /* Original */
+    WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddress, sizeof(uint8_t), manuIDAndPartID, sizeof(manuIDAndPartID));
+#else /* Use variable address since the Acc slave address sometimes changes */
+    WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddress, sizeof(uint8_t), manuIDAndPartID, sizeof(manuIDAndPartID));
+#endif
 
     if ((manuIDAndPartID[0] == 'K') && (manuIDAndPartID[1] == 'i') && (manuIDAndPartID[2] == 'o') && (manuIDAndPartID[3] == 'n'))
     {
         status = PASSED;
-        debug("Accelerometer Man ID verified, Part ID: 0x%x 0x%x\r\n", manuIDAndPartID[4], manuIDAndPartID[5]);
+        debug("Accelerometer Man ID verified, Part ID: 0x%x 0x%x (Slave Addr: %02x)\r\n", manuIDAndPartID[4], manuIDAndPartID[5], accelerometerI2CAddr);
     }
     else
     {
-        debugErr("Accelerometer Man ID failed verified, 0x%x, 0x%x 0x%x 0x%x\r\n", manuIDAndPartID[0], manuIDAndPartID[1], manuIDAndPartID[2], manuIDAndPartID[3]);
+        debugErr("Accelerometer Man ID failed verified, 0x%x 0x%x 0x%x 0x%x (Slave Addr: %02x)\r\n", manuIDAndPartID[0], manuIDAndPartID[1], manuIDAndPartID[2], manuIDAndPartID[3], accelerometerI2CAddr);
     }
 
     return (status);
@@ -197,7 +210,11 @@ void GetAccChannelData(ACC_DATA_STRUCT* channelData)
     uint8_t* chanDataBytePtr = (uint8_t*)channelData;
 
    	// Data read in LSB/MSB (little endian), so no conversion necessary
+#if 0 /* Original */
     WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddress, sizeof(uint8_t), chanDataBytePtr, ACC_CHANNEL_DATA_SIZE);
+#else /* Use variable address since the Acc slave address sometimes changes */
+    WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddress, sizeof(uint8_t), chanDataBytePtr, ACC_CHANNEL_DATA_SIZE);
+#endif
 
     channelData->x = (chanDataBytePtr[0] | (chanDataBytePtr[1] << 8));
     channelData->y = (chanDataBytePtr[2] | (chanDataBytePtr[3] << 8));
@@ -219,7 +236,6 @@ uint8_t VerifyAccCommandTestResponse(void)
     uint8_t registerData;
 
     // Read CTR register
-    //WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddress, sizeof(uint8_t), &ctrData, sizeof(ctrData));
     GetAccRegister(ACC_COMMAND_TEST_RESPONSE_REGISTER, &ctrData);
 
     if (ctrData == 0x55)
@@ -230,13 +246,11 @@ uint8_t VerifyAccCommandTestResponse(void)
         SetAccRegister(ACC_CONTROL_2_REGISTER, registerData);
 
         // Read CTR register again
-        //WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddress, sizeof(uint8_t), &ctrData, sizeof(ctrData));
         GetAccRegister(ACC_COMMAND_TEST_RESPONSE_REGISTER, &ctrData);
 
         if (ctrData == 0xAA)
         {
             // Read CTR register again
-            //WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddress, sizeof(uint8_t), &ctrData, sizeof(ctrData));
             GetAccRegister(ACC_COMMAND_TEST_RESPONSE_REGISTER, &ctrData);
 
             if (ctrData == 0x55)

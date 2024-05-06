@@ -269,10 +269,16 @@ enum {
 };
 
 // I2C0 @ 1.8V
-#if 1 /* Original */
-#define I2C_ADDR_ACCELEROMETER			(0x3C >> 1) // 0x1E /* Per datasheet */ - Read x2 return success, Read x1 return success (Needs Analog 5V powered to start)
-#else /* Test device response on unrecognized address on modded board, Accelerometer has responded on the following 7-bit addresses: 0x1e, 0x1c, 0x7e, 0x0c */
-#define I2C_ADDR_ACCELEROMETER			(0x18 >> 1) // 0x0C /* Per datasheet */
+#if 0 /* Original */
+#define I2C_ADDR_ACCELEROMETER			(0x3C >> 1) // 0x1E /* Per datasheet */
+#else /* Test device response on unrecognized address on modded board, Accelerometer has responded on the following 7-bit addresses: 0x1e, 0x1c, 0x7e, 0x0c, 0x7e, 0x08, 0x48, 0x3e */
+#define I2C_ADDR_ACCELEROMETER			(0x3C >> 1) // 0x1E /* Per datasheet */
+#define I2C_ADDR_ACCELEROMETER_ALT_1	(0x38 >> 1) // 0x1C
+#define I2C_ADDR_ACCELEROMETER_ALT_2	(0x18 >> 1) // 0x0C
+#define I2C_ADDR_ACCELEROMETER_ALT_3	(0xFC >> 1) // 0x7E
+#define I2C_ADDR_ACCELEROMETER_ALT_4	(0x10 >> 1) // 0x08
+#define I2C_ADDR_ACCELEROMETER_ALT_5	(0x90 >> 1) // 0x48
+#define I2C_ADDR_ACCELEROMETER_ALT_6	(0x7C >> 1) // 0x3E
 #endif
 #define I2C_ADDR_1_WIRE					(0x30 >> 1) // 0x18 /* Per datasheet */
 #define I2C_ADDR_EEPROM					(0xA0 >> 1) // 0x50 /* Per datasheet */

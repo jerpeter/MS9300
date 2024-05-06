@@ -219,14 +219,14 @@ extern uint16_t dataTemperature;
 		ReadAnalogData(&tempData);
 		//debug("Ext ADC (Batt: %1.3f): R:%04x T:%04x V:%04x A:%04x TempF:%d\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE), tempData.r, tempData.t, tempData.v, tempData.a, AD4695_TemperatureConversionCtoF(dataTemperature));
 		debug("Ext ADC (%s): R:%04x T:%04x V:%04x A:%04x TempF:%d\r\n", FuelGaugeDebugString(), tempData.r, tempData.t, tempData.v, tempData.a, AD4695_TemperatureConversionCtoF(dataTemperature));
-		if (FuelGaugeGetCurrent() > 500000) { debug("Fuel Gauge: Current over 500 (%d)\r\n", FuelGaugeGetCurrent()); break; }
+		if (FuelGaugeGetCurrentAbs() > 500000) { debug("Fuel Gauge: Current over 500 (%d)\r\n", FuelGaugeGetCurrentAbs()); break; }
 		MXC_Delay(MXC_DELAY_MSEC(100));
 		//if (i++ % 100 == 0) { debugRaw("."); }
 		//if (i++ % 10000 == 0) { debugRaw("."); }
 #else
 		debug("Monitor Sensor Enables: %s\r\n", FuelGaugeDebugString());
 		MXC_Delay(MXC_DELAY_SEC(1)); tempData.a++; dataTemperature++;
-		if (FuelGaugeGetCurrent() > 500000) { debug("Fuel Gauge: Current over 500 (%d)\r\n", FuelGaugeGetCurrent()); break; }
+		if (FuelGaugeGetCurrentAbs() > 500000) { debug("Fuel Gauge: Current over 500 (%d)\r\n", FuelGaugeGetCurrentAbs()); break; }
 #endif
 	}
 	AD4695_ExitConversionMode();
@@ -244,7 +244,7 @@ extern uint16_t dataTemperature;
 		if (i++ > 20) { break; }
 	}
 
-	while (FuelGaugeGetCurrent() > 500000)
+	while (FuelGaugeGetCurrentAbs() > 500000)
 	{
 		MXC_Delay(MXC_DELAY_SEC(1));
 		debug("Fuel Gauge: Current high, %s\r\n", FuelGaugeDebugString());
@@ -283,7 +283,7 @@ extern uint16_t dataTemperature;
 	debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
 
 #if 0 /* Test */
-	while (FuelGaugeGetCurrent() > 500000)
+	while (FuelGaugeGetCurrentAbs() > 500000)
 	{
 		MXC_Delay(MXC_DELAY_SEC(1));
 		debug("Fuel Gauge: Current high, %s\r\n", FuelGaugeDebugString());
@@ -295,7 +295,7 @@ extern uint16_t dataTemperature;
 	PowerControl(ANALOG_5V_ENABLE, OFF);
 
 #if 0 /* Test */
-	while (FuelGaugeGetCurrent() > 500000)
+	while (FuelGaugeGetCurrentAbs() > 500000)
 	{
 		MXC_Delay(MXC_DELAY_SEC(1));
 		debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
@@ -3098,6 +3098,8 @@ void SetupSDHCeMMC(void)
 ///----------------------------------------------------------------------------
 void SetupDriveAndFilesystem(void)
 {
+	FILINFO fileInfo;
+
 #if 0 /* Version FF13 */
 	debug("Drive(eMMC): Using FF13 version\r\n");
 #else /* Version FF15 */
@@ -3139,16 +3141,17 @@ void SetupDriveAndFilesystem(void)
 				if ((err = f_mount(&fs_obj, "", 1)) != FR_OK)
 				{
 					debugErr("Drive(eMMC): filed to mount after formatting, with error %s\r\n", FF_ERRORS[err]);
+					f_mount(NULL, "", 0);
 				}
-
-				if ((err = f_setlabel("NOMIS")) != FR_OK)
+				else if ((err = f_setlabel("NOMIS")) != FR_OK)
 				{
 					debugErr("Drive(eMMC): Setting label failed with error %s\r\n", FF_ERRORS[err]);
 					f_mount(NULL, "", 0);
 				}
+				else { mounted = 1; }
 			}
 		}
-		else
+		else // Mount error was other than no filesystem
 		{
 			debugErr("Drive(eMMC): filed to mount with error %s\r\n", FF_ERRORS[err]);
 			f_mount(NULL, "", 0);
@@ -3172,24 +3175,36 @@ void SetupDriveAndFilesystem(void)
 				if ((err = f_mount(&fs_obj, "", 1)) != FR_OK)
 				{
 					debugErr("Drive(eMMC): filed to mount after formatting, with error %s\r\n", FF_ERRORS[err]);
+					f_mount(NULL, "", 0);
 				}
-
-				if ((err = f_setlabel("NOMIS")) != FR_OK)
+				else if ((err = f_setlabel("NOMIS")) != FR_OK)
 				{
 					debugErr("Drive(eMMC): Setting label failed with error %s\r\n", FF_ERRORS[err]);
 					f_mount(NULL, "", 0);
 				}
+				else { mounted = 1; }
 			}
 #endif
 		}
     }
-	else
+	else // Mount successful
 	{
         debug("Drive(eMMC): mounted successfully\r\n");
 #if 1 /* Test */
         mounted = 1;
 #endif
     }
+
+	// Check if filesystem available
+	if (mounted)
+	{
+		// Need to make sure directory structure is created and available
+		if (f_stat(SYSTEM_PATH, &fileInfo) != FR_OK) { if (f_mkdir(SYSTEM_PATH) != FR_OK) { debugErr("Filesystem: Unable to create %s directory\r\n", SYSTEM_PATH); } }
+		if (f_stat(EVENTS_PATH, &fileInfo) != FR_OK) { if (f_mkdir(EVENTS_PATH) != FR_OK) { debugErr("Filesystem: Unable to create %s directory\r\n", EVENTS_PATH); } }
+		if (f_stat(ER_DATA_PATH, &fileInfo) != FR_OK) { if (f_mkdir(ER_DATA_PATH) != FR_OK) { debugErr("Filesystem: Unable to create %s directory\r\n", ER_DATA_PATH); } }
+		if (f_stat(LANGUAGE_PATH, &fileInfo) != FR_OK) { if (f_mkdir(LANGUAGE_PATH) != FR_OK) { debugErr("Filesystem: Unable to create %s directory\r\n", LANGUAGE_PATH); } }
+		if (f_stat(LOGS_PATH, &fileInfo) != FR_OK) { if (f_mkdir(LOGS_PATH) != FR_OK) { debugErr("Filesystem: Unable to create %s directory\r\n", LOGS_PATH); } }
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -3501,10 +3516,17 @@ uint8_t IdentiifyI2C(uint8_t i2cNum, uint8_t readBytes, uint8_t regAddr)
 {
 	char deviceName[50];
 	uint8_t identified = NO;
+extern uint8_t accelerometerI2CAddr;
 
 	switch (regAddr)
 	{
 		case I2C_ADDR_ACCELEROMETER: sprintf(deviceName, "Accelerometer"); identified = YES; break;
+		case I2C_ADDR_ACCELEROMETER_ALT_1: sprintf(deviceName, "Accelerometer Alt 1"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_1; break;
+		case I2C_ADDR_ACCELEROMETER_ALT_2: sprintf(deviceName, "Accelerometer Alt 2"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_2; break;
+		case I2C_ADDR_ACCELEROMETER_ALT_3: sprintf(deviceName, "Accelerometer Alt 3"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_3; break;
+		case I2C_ADDR_ACCELEROMETER_ALT_4: sprintf(deviceName, "Accelerometer Alt 4"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_4; break;
+		case I2C_ADDR_ACCELEROMETER_ALT_5: sprintf(deviceName, "Accelerometer Alt 5"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_5; break;
+		case I2C_ADDR_ACCELEROMETER_ALT_6: sprintf(deviceName, "Accelerometer Alt 6"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_6; break;
 		case I2C_ADDR_1_WIRE: sprintf(deviceName, "1-Wire"); identified = YES; break;
 		case I2C_ADDR_EEPROM: sprintf(deviceName, "EEPROM"); identified = YES; break;
 		case I2C_ADDR_EEPROM_ID: sprintf(deviceName, "EEPROM ID"); identified = YES; break;
@@ -4431,6 +4453,24 @@ extern void GoSleepState(uint32_t mode);
 #if 1 /* Normal */
 	AccelerometerInit(); debug("Accelerometer: Init complete\r\n");
 #else /* Skip while device isn't responding to device address */
+#endif
+#if 0 /* Test */
+extern void VerifyAccManuIDAndPartID(void);
+extern uint8_t accelerometerI2CAddr;
+	//while (1)
+	{
+		MXC_Delay(MXC_DELAY_SEC(1));
+#if 0 /* Double check other addresses, but they fail as expected if not the identified one */
+		if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_1; }
+		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_1) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_2; }
+		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_2) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_3; }
+		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_3) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_4; }
+		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_4) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_5; }
+		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_5) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_6; }
+		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_6) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER; }
+#endif
+		VerifyAccManuIDAndPartID();
+	}
 #endif
 
 	//-------------------------------------------------------------------------
