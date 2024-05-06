@@ -158,7 +158,7 @@ void DisplaySmartSensorSerialNumber(SMART_SENSOR_TYPE sensor);
 uint8 CheckIfBothSmartSensorsPresent(void);
 uint8 CheckIfNoSmartSensorsPresent(void);
 void UpdateWorkingCalibrationDate(void);
-void SmartSensorMuxSelectAndDriverEnable(SMART_SENSOR_TYPE sensor);
+uint8_t SmartSensorMuxSelectAndDriverEnable(SMART_SENSOR_TYPE sensor);
 void SmartSensorDisableMuxAndDriver(void);
 
 ///----------------------------------------------------------------------------

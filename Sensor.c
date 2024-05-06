@@ -744,7 +744,9 @@ void SmartSensorDebug(void)
 ///----------------------------------------------------------------------------
 void SmartSensorTest(void)
 {
-	SmartSensorMuxSelectAndDriverEnable(SEISMIC_SENSOR);
+	uint8_t powerDownAnalogWhenFinished = NO;
+
+	powerDownAnalogWhenFinished = SmartSensorMuxSelectAndDriverEnable(SEISMIC_SENSOR);
 	if (OneWireReset() == YES) { debug("Seismic Smart Sensor discovered\r\n"); }
 	else { debug("Seismic Smart Sensor not found\r\n"); }
 
@@ -752,7 +754,7 @@ void SmartSensorTest(void)
 	OneWireTest();
 	SmartSensorDebug();
 
-	SmartSensorMuxSelectAndDriverEnable(ACOUSTIC_SENSOR);
+	powerDownAnalogWhenFinished |= SmartSensorMuxSelectAndDriverEnable(ACOUSTIC_SENSOR);
 	if (OneWireReset() == YES) { debug("Acoustic Smart Sensor discovered\r\n"); }
 	else { debug("Acoustic Smart Sensor not found\r\n"); }
 
@@ -765,12 +767,13 @@ void SmartSensorTest(void)
 	debugRaw("\r\n----------End----------\r\n");
 
 	SmartSensorDisableMuxAndDriver();
+	if (powerDownAnalogWhenFinished) { PowerControl(ANALOG_5V_ENABLE, OFF); }
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SmartSensorMuxSelectAndDriverEnable(SMART_SENSOR_TYPE sensor)
+uint8_t SmartSensorMuxSelectAndDriverEnable(SMART_SENSOR_TYPE sensor)
 {
 	uint8_t MuxA0, MuxA1;
 	uint8_t analog5vPoweredUp = NO;
@@ -808,10 +811,7 @@ void SmartSensorMuxSelectAndDriverEnable(SMART_SENSOR_TYPE sensor)
 	// Reconfigure 1-Wire driver since it's possible that the analog 5V was removed since setup
 	OneWireResetAndConfigure();
 
-	if(analog5vPoweredUp)
-	{
-		PowerControl(ANALOG_5V_ENABLE, OFF);
-	}
+	return (analog5vPoweredUp);
 }
 
 ///----------------------------------------------------------------------------
@@ -834,8 +834,9 @@ void SmartSensorReadRomAndMemory(SMART_SENSOR_TYPE sensor)
 	SMART_SENSOR_ROM* smartSensorRom = ((sensor == SEISMIC_SENSOR) ? &g_seismicSmartSensorRom : &g_acousticSmartSensorRom);
 	SMART_SENSOR_STRUCT* smartSensorData = ((sensor == SEISMIC_SENSOR) ? &g_seismicSmartSensorMemory : &g_acousticSmartSensorMemory);
 	uint8 status = FAILED;
+	uint8_t powerDownAnalogWhenFinished = NO;
 
-	SmartSensorMuxSelectAndDriverEnable(sensor);
+	powerDownAnalogWhenFinished = SmartSensorMuxSelectAndDriverEnable(sensor);
 
 	if (OneWireReadROM(smartSensorRom) == PASSED)
 	{
@@ -870,6 +871,7 @@ void SmartSensorReadRomAndMemory(SMART_SENSOR_TYPE sensor)
 	}
 
 	SmartSensorDisableMuxAndDriver();
+	if (powerDownAnalogWhenFinished) { PowerControl(ANALOG_5V_ENABLE, OFF); }
 }
 
 ///----------------------------------------------------------------------------
