@@ -302,7 +302,7 @@ void AlarmOneAirLevelMenuHandler(uint8 keyPressed, void* data)
 		}
 		else
 		{
-			SETUP_USER_MENU_MSG(&alarmOneMenu, &g_unitConfig.alarmOneMode);
+			SETUP_USER_MENU_MSG(&alarmOneMenu, g_unitConfig.alarmOneMode);
 		}
 	}
 
@@ -356,7 +356,7 @@ void AlarmOneTimeMenuHandler(uint8 keyPressed, void* data)
 		}
 		else // g_unitConfig.alarmOneMode == ALARM_MODE_OFF
 		{
-			SETUP_USER_MENU_MSG(&alarmOneMenu, &g_unitConfig.alarmOneMode);
+			SETUP_USER_MENU_MSG(&alarmOneMenu, g_unitConfig.alarmOneMode);
 		}
 	}
 
@@ -463,7 +463,7 @@ void AlarmTwoAirLevelMenuHandler(uint8 keyPressed, void* data)
 		}
 		else
 		{
-			SETUP_USER_MENU_MSG(&alarmTwoMenu, &g_unitConfig.alarmTwoMode);
+			SETUP_USER_MENU_MSG(&alarmTwoMenu, g_unitConfig.alarmTwoMode);
 		}
 	}
 
@@ -519,7 +519,7 @@ void AlarmTwoTimeMenuHandler(uint8 keyPressed, void* data)
 		}
 		else // g_unitConfig.alarmTwoMode == ALARM_MODE_OFF
 		{
-			SETUP_USER_MENU_MSG(&alarmTwoMenu, &g_unitConfig.alarmTwoMode);
+			SETUP_USER_MENU_MSG(&alarmTwoMenu, g_unitConfig.alarmTwoMode);
 		}
 	}
 
@@ -911,7 +911,7 @@ void ModemDialMenuHandler(uint8 keyPressed, void* data)
 #else /* New AutoDialOut for Config/Status */
 		if (strlen((char*)g_modemSetupRecord.dial))
 		{
-			SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, &g_modemSetupRecord.dialOutType);
+			SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, g_modemSetupRecord.dialOutType);
 		}
 		else
 		{
@@ -956,7 +956,7 @@ void ModemDialOutCycleTimeMenuHandler(uint8 keyPressed, void* data)
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, &g_modemSetupRecord.dialOutType);
+		SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, g_modemSetupRecord.dialOutType);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
