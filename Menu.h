@@ -363,7 +363,11 @@ enum {
 
 // LCD Timeout stuff
 #define LCD_TIMEOUT_DEFAULT_VALUE	2
+#if 0 /* Normal */
 #define LCD_TIMEOUT_MIN_VALUE		2
+#else /* Test allowing a 0 value which will leave the LCD on for testing */
+#define LCD_TIMEOUT_MIN_VALUE		0
+#endif
 #define LCD_TIMEOUT_MAX_VALUE		60
 
 // Cycle End Time Hour (24hr)
