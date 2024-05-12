@@ -3527,6 +3527,7 @@ extern uint8_t accelerometerI2CAddr;
 		case I2C_ADDR_ACCELEROMETER_ALT_4: sprintf(deviceName, "Accelerometer Alt 4"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_4; break;
 		case I2C_ADDR_ACCELEROMETER_ALT_5: sprintf(deviceName, "Accelerometer Alt 5"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_5; break;
 		case I2C_ADDR_ACCELEROMETER_ALT_6: sprintf(deviceName, "Accelerometer Alt 6"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_6; break;
+		case I2C_ADDR_ACCELEROMETER_ALT_7: sprintf(deviceName, "Accelerometer Alt 7"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_7; break;
 		case I2C_ADDR_1_WIRE: sprintf(deviceName, "1-Wire"); identified = YES; break;
 		case I2C_ADDR_EEPROM: sprintf(deviceName, "EEPROM"); identified = YES; break;
 		case I2C_ADDR_EEPROM_ID: sprintf(deviceName, "EEPROM ID"); identified = YES; break;
@@ -4467,7 +4468,8 @@ extern uint8_t accelerometerI2CAddr;
 		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_3) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_4; }
 		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_4) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_5; }
 		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_5) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_6; }
-		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_6) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER; }
+		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_6) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_7; }
+		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_7) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER; }
 #endif
 		VerifyAccManuIDAndPartID();
 	}

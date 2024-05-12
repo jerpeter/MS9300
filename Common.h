@@ -279,6 +279,7 @@ enum {
 #define I2C_ADDR_ACCELEROMETER_ALT_4	(0x10 >> 1) // 0x08
 #define I2C_ADDR_ACCELEROMETER_ALT_5	(0x90 >> 1) // 0x48
 #define I2C_ADDR_ACCELEROMETER_ALT_6	(0x7C >> 1) // 0x3E
+#define I2C_ADDR_ACCELEROMETER_ALT_7	(0xA8 >> 1) // 0x54
 #endif
 #define I2C_ADDR_1_WIRE					(0x30 >> 1) // 0x18 /* Per datasheet */
 #define I2C_ADDR_EEPROM					(0xA0 >> 1) // 0x50 /* Per datasheet */
