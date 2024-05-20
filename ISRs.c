@@ -40,6 +40,7 @@
 #include "tmr.h"
 #include "ff.h"
 #include "wdt.h"
+#include "usb.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -251,11 +252,14 @@ void Fuel_gauge_alert_irq(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint8_t batteryChargerInterruptActive = NO;
 __attribute__((__interrupt__))
 void Battery_charger_irq(void)
 {
 	//debugRaw("+");
 	debugWarn("-(ISR) Batt Charger-\r\n");
+
+	batteryChargerInterruptActive = YES;
 
 	// Clear Battery Charger interrupt flag (Port 0, Pin 5)
 	GPIO_BATTERY_CHARGER_IRQ_PORT->int_clr = GPIO_BATTERY_CHARGER_IRQ_PIN;
@@ -484,6 +488,16 @@ void System_power_button_irq(void)
 
 			// Put Fuel Gauge ADC to sleep while off (device is battery powered and not placed into reset)
 			Ltc2944_i2c_shutdown();
+
+			// Disable USB
+			MXC_USB_Shutdown();
+
+			// Disable power blocks
+			PowerControl(ANALOG_5V_ENABLE, OFF);
+			PowerControl(LCD_POWER_ENABLE, OFF);
+			PowerControl(ENABLE_12V, OFF);
+			PowerControl(CELL_ENABLE, OFF);
+			PowerControl(EXPANSION_ENABLE, OFF);
 
 			SoftUsecWait(1 * SOFT_SECS);
 			PowerControl(MCU_POWER_LATCH, OFF);
