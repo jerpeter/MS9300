@@ -692,7 +692,7 @@ void InitBattChargerRegisters(void)
 	else { debug("Battery Charger: Batt discharge in source validate for Dual pack\r\n"); GetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, &regResults); if (regResults != 0x3078) { errStatus = YES; debugErr("Battery Charger Read failed: Batt discharge source, 0x%x/0x%x\r\n", 0x3078, regResults); } }
 	GetBattChargerRegister(BATT_CHARGER_JEITA_ACTION_SETTING, &regResults); if (regResults != 0x7C10) { errStatus = YES; debugErr("Battery Charger Read failed: JEITA, 0x%x/0x%x\r\n", 0x7C10, regResults); }
 	GetBattChargerRegister(BATT_CHARGER_TEMPERATURE_PROTECTION_SETTING, &regResults); if (regResults != 0xBF99) { errStatus = YES; debugErr("Battery Charger Read failed: Temp protect, 0x%x/0x%x\r\n", 0xBF99, regResults); }
-	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, &regResults); if (regResults != 0x0010) { errStatus = YES; debugErr("Battery Charger Read failed: config reg 0, 0x%x/0x%x\r\n", 0x0010, (regResults & 0x00FF)); } // Filter for ADC conversion flag in case Continuous conversion mode enabled from prior run
+	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, &regResults); if ((regResults & 0x00FF) != 0x0010) { errStatus = YES; debugErr("Battery Charger Read failed: config reg 0, 0x%x/0x%x\r\n", 0x0010, (regResults & 0x00FF)); } // Filter for ADC conversion flag in case Continuous conversion mode enabled from prior run
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
 		GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF264) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 1, 0x%x/0x%x\r\n", 0xF264, regResults); }
@@ -1068,6 +1068,8 @@ void BatteryChargerInit(void)
 
 	// Set Continuous mode for ADC_CONV
 	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0090);
+
+	debug("Battery Charger: Status 0 is %04x, Status 1 is %04x\r\n", GetBattChargerStatusReg0(), GetBattChargerStatusReg1());
 
 #if 0 /* Test PG BC line with interrupt */
 	debug("Testing BC PG line...\r\n");
