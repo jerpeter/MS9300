@@ -1172,6 +1172,8 @@ uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE choiceType)
 	BitmapDisplayToLcd();
 #endif
 #else
+	if (g_lcdPowerFlag == DISABLED) { return (MB_NO_ACTION); }
+
 	MessageDisplayToLcd(titleString, textString, choiceType, activeChoice);
 
 	//return (MB_FIRST_CHOICE); // Used until hardware mod for keys
@@ -1257,6 +1259,8 @@ void OverlayMessage(char* titleString, char* textString, uint32 usDisplayTime)
 	BitmapDisplayToLcd();
 #endif
 #else /* Bitmap 1st pass didn't work, trying LCD built in tools */
+	if (g_lcdPowerFlag == DISABLED) { return; }
+
 	MessageDisplayToLcd(titleString, textString, MB_TOTAL_CHOICES, MB_FIRST_CHOICE); // Using MB_TOTAL_CHOICES as a skip
 
 	//return; // Used until hardware mod for keys
