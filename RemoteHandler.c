@@ -174,6 +174,9 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 
 						WaitForBargraphLiveMonitoringDataToFinishSendingWithTimeout();
 
+#if 1 /* Test */
+						debug("Remote: Processing <%c%c%c> Command\r\n", cmdMsg->msg[0], cmdMsg->msg[1], cmdMsg->msg[2]);
+#endif
 						s_cmdMessageTable[ cmdIndex ].cmdFunction(cmdMsg);
 						break;
 					}
