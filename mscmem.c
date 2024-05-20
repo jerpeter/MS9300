@@ -266,7 +266,7 @@ static int cachedSectorDirty = 0;
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-extern void SetupSDHCeMMC(void);
+extern uint8_t SetupSDHCeMMC(void);
 int mscmem_Init(void)
 {
     if (MXC_SDHC_Lib_Get_Card_Type() == CARD_MMC)

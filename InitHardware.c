@@ -822,7 +822,11 @@ void SetupAllGPIO(void)
 	setupGPIO.port = GPIO_EMMC_RESET_PORT;
 	setupGPIO.mask = GPIO_EMMC_RESET_PIN;
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+#if 1 /* Normal */
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+#else /* Test strong internal pullup to combat external pulldown */
+	setupGPIO.pad = MXC_GPIO_PAD_STRONG_PULL_UP;
+#endif
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
     MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start by removing from reset
@@ -2018,10 +2022,12 @@ volatile unsigned int event_flags;
 int remote_wake_en;
 
 // USB Function Prototypes
-static int setconfigCallback(MXC_USB_SetupPkt *sud, void *cbdata);
+/* static removed while testing CDC-ACM only */ int setconfigCallback(MXC_USB_SetupPkt *sud, void *cbdata);
+/* static removed while testing CDC-ACM only */ int setconfigCallback_CDCACM(MXC_USB_SetupPkt *sud, void *cbdata);
 static int setfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata);
 static int clrfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata);
-static int usbEventCallback(maxusb_event_t evt, void *data);
+/* static removed while testing CDC-ACM only */ int usbEventCallback(maxusb_event_t evt, void *data);
+/* static removed while testing CDC-ACM only */ int usbEventCallback_CDCACM(maxusb_event_t evt, void *data);
 static void usbAppSleep(void);
 static void usbAppWakeup(void);
 static int usbReadCallback(void);
@@ -2037,7 +2043,7 @@ static msc_cfg_t msc_cfg = {
     MXC_USBHS_MAX_PACKET, /* IN max packet size */
 };
 
-static const msc_idstrings_t ids = {
+/* static const removed while testing CDC-ACM only */ msc_idstrings_t ids = {
     "NOMIS", /* Vendor string.  Maximum of 8 bytes */
     "MSC FLASH DRIVE", /* Product string.  Maximum of 16 bytes */
     "1.0" /* Version string.  Maximum of 4 bytes */
@@ -2054,7 +2060,7 @@ static acm_cfg_t acm_cfg = {
 };
 
 // Functions to control "disk" memory. See msc.h for definitions
-static const msc_mem_t mem = { mscmem_Init, mscmem_Start, mscmem_Stop, mscmem_Ready, mscmem_Size, mscmem_Read, mscmem_Write };
+/* static const removed while testing CDC-ACM only */ msc_mem_t mem = { mscmem_Init, mscmem_Start, mscmem_Stop, mscmem_Ready, mscmem_Size, mscmem_Read, mscmem_Write };
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -2092,6 +2098,7 @@ void SetupUSBComposite(void)
     // Initialize the enumeration module
     if (enum_init() != 0) { debugErr("Enumeration Init failed\r\n"); }
 
+#if 0 /* Original - Composite MSC + CDC-ACM */
     // Register enumeration data
     enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&composite_device_descriptor, 0);
     enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&composite_config_descriptor, 0);
@@ -2118,10 +2125,45 @@ void SetupUSBComposite(void)
     // Initialize the class driver
     if (msc_init(&composite_config_descriptor.msc_interface_descriptor, &ids, &mem) != 0) { debugErr("MSC Init failed\r\n"); }
     if (acm_init(&composite_config_descriptor.comm_interface_descriptor) != 0) { debugErr("CDC/ACM Init failed\r\n"); }
+#else /* CDC-ACM only since SDHC eMMC Flash isn't working to connect MSC */
+    /* Register enumeration data */
+    enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&device_descriptor, 0);
+    enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
+
+    if (usb_opts.enable_hs) {
+        /* Two additional descriptors needed for high-speed operation */
+        enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
+        enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&device_qualifier_descriptor, 0);
+    }
+
+    enum_register_descriptor(ENUM_DESC_STRING, lang_id_desc, 0);
+    enum_register_descriptor(ENUM_DESC_STRING, mfg_id_desc, 1);
+    enum_register_descriptor(ENUM_DESC_STRING, prod_id_desc, 2);
+    enum_register_descriptor(ENUM_DESC_STRING, serial_id_desc, 3);
+    enum_register_descriptor(ENUM_DESC_STRING, cdcacm_func_desc, 4);
+
+    /* Handle configuration */
+    enum_register_callback(ENUM_SETCONFIG, setconfigCallback_CDCACM, NULL);
+
+    /* Handle feature set/clear */
+    enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
+    enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
+
+    /* Initialize the class driver */
+    if (acm_init(&config_descriptor.comm_interface_descriptor) != 0) {
+        printf("acm_init() failed\n");
+        while (1) {}
+    }
+#endif
 
     // Register callbacks
+#if 0 /* Original - Composite MSC + CDC-ACM */
     MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback, NULL);
     MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback, NULL);
+#else /* CDC-ACM only since SDHC eMMC Flash isn't working to connect MSC */
+    MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_CDCACM, NULL);
+    MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_CDCACM, NULL);
+#endif
     acm_register_callback(ACM_CB_READ_READY, usbReadCallback);
 
     // Start with USB in low power mode
@@ -2196,7 +2238,7 @@ int usbShutdownCallback()
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-static int setconfigCallback(MXC_USB_SetupPkt *sud, void *cbdata)
+/* static removed while testing CDC-ACM only */ int setconfigCallback(MXC_USB_SetupPkt *sud, void *cbdata)
 {
 	debugRaw("<U-cc>");
 
@@ -2236,6 +2278,32 @@ static int setconfigCallback(MXC_USB_SetupPkt *sud, void *cbdata)
 	{
         configured = 0;
         msc_deconfigure();
+        return acm_deconfigure();
+    }
+
+    return -1;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+/* static removed while testing CDC-ACM only */ int setconfigCallback_CDCACM(MXC_USB_SetupPkt *sud, void *cbdata)
+{
+    /* Confirm the configuration value */
+    if (sud->wValue == config_descriptor.config_descriptor.bConfigurationValue) {
+        configured = 1;
+        MXC_SETBIT(&event_flags, EVENT_ENUM_COMP);
+
+        acm_cfg.out_ep = config_descriptor.endpoint_descriptor_4.bEndpointAddress & 0x7;
+        acm_cfg.out_maxpacket = config_descriptor.endpoint_descriptor_4.wMaxPacketSize;
+        acm_cfg.in_ep = config_descriptor.endpoint_descriptor_5.bEndpointAddress & 0x7;
+        acm_cfg.in_maxpacket = config_descriptor.endpoint_descriptor_5.wMaxPacketSize;
+        acm_cfg.notify_ep = config_descriptor.endpoint_descriptor_3.bEndpointAddress & 0x7;
+        acm_cfg.notify_maxpacket = config_descriptor.endpoint_descriptor_3.wMaxPacketSize;
+
+        return acm_configure(&acm_cfg); /* Configure the device class */
+    } else if (sud->wValue == 0) {
+        configured = 0;
         return acm_deconfigure();
     }
 
@@ -2295,7 +2363,7 @@ static void usbAppWakeup(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-static int usbEventCallback(maxusb_event_t evt, void *data)
+/* static removed while testing CDC-ACM only */ int usbEventCallback(maxusb_event_t evt, void *data)
 {
 	debugRaw("<U-ec:%d>", evt);
 
@@ -2341,6 +2409,66 @@ static int usbEventCallback(maxusb_event_t evt, void *data)
             enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&composite_config_descriptor, 0);
             enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&composite_config_descriptor_hs,
                                      0);
+        }
+        break;
+    case MAXUSB_EVENT_SUSP:
+        usbAppSleep();
+        break;
+    case MAXUSB_EVENT_DPACT:
+        usbAppWakeup();
+        break;
+    default:
+        break;
+    }
+
+    return 0;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+/* static removed while testing CDC-ACM only */ int usbEventCallback_CDCACM(maxusb_event_t evt, void *data)
+{
+	debugRaw("<U-ec:%d>", evt);
+
+    /* Set event flag */
+    MXC_SETBIT(&event_flags, evt);
+
+    switch (evt) {
+    case MAXUSB_EVENT_NOVBUS:
+        MXC_USB_EventDisable(MAXUSB_EVENT_BRST);
+        MXC_USB_EventDisable(MAXUSB_EVENT_SUSP);
+        MXC_USB_EventDisable(MAXUSB_EVENT_DPACT);
+        MXC_USB_Disconnect();
+        configured = 0;
+        enum_clearconfig();
+        acm_deconfigure();
+        usbAppSleep();
+        break;
+    case MAXUSB_EVENT_VBUS:
+        MXC_USB_EventClear(MAXUSB_EVENT_BRST);
+        MXC_USB_EventEnable(MAXUSB_EVENT_BRST, usbEventCallback_CDCACM, NULL);
+        MXC_USB_EventClear(MAXUSB_EVENT_BRSTDN);
+        MXC_USB_EventEnable(MAXUSB_EVENT_BRSTDN, usbEventCallback_CDCACM, NULL);
+        MXC_USB_EventClear(MAXUSB_EVENT_SUSP);
+        MXC_USB_EventEnable(MAXUSB_EVENT_SUSP, usbEventCallback_CDCACM, NULL);
+        MXC_USB_Connect();
+        usbAppSleep();
+        break;
+    case MAXUSB_EVENT_BRST:
+        usbAppWakeup();
+        enum_clearconfig();
+        acm_deconfigure();
+        configured = 0;
+        suspended = 0;
+        break;
+    case MAXUSB_EVENT_BRSTDN:
+        if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
+            enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor_hs, 0);
+            enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor, 0);
+        } else {
+            enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
+            enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
         }
         break;
     case MAXUSB_EVENT_SUSP:
@@ -2504,7 +2632,7 @@ int formatSDHC(void)
 
     debug("Formatting flash drive...\n");
 
-#if 0 /* For versions FF13 and FF14 */
+#if 0 /* For version FF13 and FF14 */
 	if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) != FR_OK)
 #else /* Version FF15 */
 	MKFS_PARM setupFS = { FM_ANY, 0, 0, 0, 0 };
@@ -2981,7 +3109,7 @@ int MXC_SDHC_Lib_SetHighSpeedTiming(mxc_sdhc_hs_timing highSpeedTiming)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SetupSDHCeMMC(void)
+uint8_t SetupSDHCeMMC(void)
 {
     mxc_sdhc_cfg_t cfg;
 	mxc_sdhc_hs_timing timingMode;
@@ -2992,8 +3120,9 @@ void SetupSDHCeMMC(void)
     cfg.block_gap = 0;
 #if 1 /* Normal */
     cfg.clk_div = 0x96; // Large divide ratio, setting frequency to 400 kHz during Card Identification phase
-#else /* Test full speed init */
+#elif 0 /* Test full speed init */
     //cfg.clk_div = 0; // Full speed
+#else /* Test slowest speed */
 	cfg.clk_div = 0x12C; // Large divide ratio for testing formatting
 #endif
 
@@ -3007,7 +3136,7 @@ void SetupSDHCeMMC(void)
 
     MXC_GPIO_Config(&gpio_cfg_sdhc_1);
     gpio_cfg_sdhc_1.port->vssel &= ~(gpio_cfg_sdhc_1.mask); // Set voltage select to MXC_GPIO_VSSEL_VDDIO, since it seems digital interface is at 1.8V
-#if 0 /* Normal set to 2x borrowing from example */
+#if 1 /* Normal set to 2x borrowing from example */
 	debug("SDHC: Setting GPIO drive strength to 2x\r\n");
     gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 2x (borrowing from internal driver)
 #elif 0 /* Test drive strength 4x */
@@ -3034,7 +3163,7 @@ void SetupSDHCeMMC(void)
     cardType = MXC_SDHC_Lib_Get_Card_Type();
 	if (cardType == CARD_MMC) { debug("SDHC: Card type discovered is MMC/eMMC\r\n"); }
 	else if (cardType == CARD_SDHC) { debug("SDHC: Card type discovered is SD/SDHC\r\n"); }
-	else { debugErr("SDHC: No card type found\r\n"); }
+	else { cardType = CARD_NONE; debugErr("SDHC: No card type found\r\n"); }
 
 	/*
 		Note: The 0-52 MHz eMMC devices supported the legacy SDR mode as well as a newer transfer mode introduced by JEDEC version 4.4 called Dual Data Rate (DDR)
@@ -3054,10 +3183,14 @@ void SetupSDHCeMMC(void)
 	timingMode = MXC_SDHC_LIB_LEGACY_TIMING;
 #endif
 
+#if 0 /* Doesn't work */
 	// Enable high speed timing when sorted out
 	if (MXC_SDHC_Lib_SetHighSpeedTiming(timingMode) != E_NO_ERROR) { debugErr("SDHC: Failed to set flash device timing via CMD\r\n"); }
+#else
+	UNUSED(timingMode);
+#endif
 
-#if 0 /* Test early setting of width */
+#if 0 /* Test early setting of width, doesn't work */
 	// Swap over to quad data mode, although it looks like every transaction proceeds with setting the bus width again
 	if (MXC_SDHC_Lib_SetBusWidth(MXC_SDHC_LIB_QUAD_DATA) != E_NO_ERROR) { debugErr("SDHC: Failed to set Bus width to Quad\r\n"); }
 #endif
@@ -3087,10 +3220,13 @@ void SetupSDHCeMMC(void)
 	MXC_SDHC_Set_Clock_Config(0);
 #endif
 
-#if 1 /* Moved earlier in setup */
+#if 0 /* Moved earlier in setup, doesn't work */
 	// Swap over to quad data mode, although it looks like every transaction proceeds with setting the bus width again
 	if (MXC_SDHC_Lib_SetBusWidth(MXC_SDHC_LIB_QUAD_DATA) != E_NO_ERROR) { debugErr("SDHC: Failed to set Bus width to Quad\r\n"); }
 #endif
+
+	// Return 0/E_NO_ERROR if the card is MMC
+	return (!(cardType == CARD_MMC));
 }
 
 ///----------------------------------------------------------------------------
@@ -3157,7 +3293,7 @@ void SetupDriveAndFilesystem(void)
 			f_mount(NULL, "", 0);
 
 #if 1 /* Test */
-#if 0 /* For versions FF13 and FF14 */
+#if 0 /* For version FF13 and FF14 */
 			if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) != FR_OK)
 #else /* Version FF15 */
 			MKFS_PARM setupFS = { FM_ANY, 0, 0, 0, 0 };
@@ -3857,13 +3993,14 @@ void TestSDHCeMMC(void)
 ///----------------------------------------------------------------------------
 void TestFlashAndFatFilesystem(void)
 {
+#if 0 /* Test size and CSD */
 	getSize();
 
 	mxc_sdhc_csd_regs_t* csd = NULL;
 	if ((err = MXC_SDHC_Lib_GetCSD(csd)) == E_NO_ERROR) { debug("SDHC Lib Get Capacity: Flash is %lld\r\n", MXC_SDHC_Lib_GetCapacity(csd)); }
 	else { debug("SDHC Lib Get CSD: error (%d)\r\n"); }
 
-#if 1 /* Test CSD Structure read, seems to differ from Flash CSD */
+#if 0 /* Test CSD Structure read, seems to differ from Flash CSD */
 	debug("Flash CSD: <Start>\r\n");
 	debug("Flash CSD: rsv0 (2b) is 0x%x\r\n", csd->csd.rsv0);
 	debug("Flash CSD: file_format (2b) is 0x%x\r\n", csd->csd.file_format);
@@ -3919,6 +4056,7 @@ extern bool g_csd_is_cached;
 	else { debug("SDHC Lib Get CSD: error\r\n"); }
 #endif
 #endif
+#endif
 
 #if 0 /* Test CID, doesn't seem to work */
 	//uint32_t cid[4];
@@ -3931,8 +4069,10 @@ extern bool g_csd_is_cached;
 	uint32_t cycles;
 	volatile uint32_t hsTime;
 extern volatile uint8_t hsChange;
-	for (j = 0x94; j >= 0; j--)
+	//for (j = 0x94; j >= 0; j--)
+	for (j = 0x12C; j >= 0; j--)
 	{
+#if 0 /* Test FS abilities */
 		debug("SDHC Clock Config: Changed to %d (0x%x)\r\n", j, j);
 		MXC_SDHC_Set_Clock_Config(j);
 
@@ -3965,6 +4105,19 @@ extern volatile uint8_t hsChange;
 			cycles++;
 		}
 		debug("Filesystem read cycles: %ld (clock divider: %d)\r\n", cycles, j);
+#else /* Test FS mount/format */
+		UNUSED(cycles); UNUSED(hsTime); UNUSED(hsChange);
+		MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_SDHC);
+		if (j % 4 == 0) { 	MXC_GPIO_OutClr(GPIO_EMMC_RESET_PORT, GPIO_EMMC_RESET_PIN); }
+		else { MXC_GPIO_OutSet(GPIO_EMMC_RESET_PORT, GPIO_EMMC_RESET_PIN); }
+
+		MXC_Delay(MXC_DELAY_MSEC(250));
+		SetupSDHCeMMC();
+		debug("SDHC Clock Config: Changed to %d (0x%x)\r\n", j, j);
+		MXC_SDHC_Set_Clock_Config(j);
+		MXC_Delay(MXC_DELAY_MSEC(5));
+		SetupDriveAndFilesystem();
+#endif
 		j--;
 	}
 #endif
@@ -4330,14 +4483,21 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Setup SDHC/eMMC
 	//-------------------------------------------------------------------------
+#if 0 /* Normal */
 	SetupSDHCeMMC();
-#if 1 /* Test Re-init for modded board */
-	SetupSDHCeMMC();
+#else /* Test Re-init for modded board */
+	if (SetupSDHCeMMC() != E_NO_ERROR)
+	{
+		// Run the setup again
+		SetupSDHCeMMC();
+	}
 
-	// Try one mnore time adfter a delay
-	MXC_Delay(MXC_DELAY_SEC(5));
-	SetupSDHCeMMC();
+	// Delay
+	//MXC_Delay(MXC_DELAY_SEC(5));
+	// Attempt one more time after delay, never seemed to work
+	//SetupSDHCeMMC();
 #endif
+
 #if 1 /* Test */
 	TestSDHCeMMC();
 #endif
@@ -4353,7 +4513,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Setup USB Composite (MSC + CDC/ACM)
 	//-------------------------------------------------------------------------
-#if 1 /* Normal */
+#if 0 /* Normal */
 	SetupUSBComposite();
 #else /* Test wihtout setting up MCU USBC for Port Controller and power delivery */
 #endif
@@ -4441,7 +4601,9 @@ extern void GoSleepState(uint32_t mode);
 	//-------------------------------------------------------------------------
 	// Initalize the USB-C Port Controller
 	//-------------------------------------------------------------------------
+#if 1 /* Test skipping init */
 	USBCPortControllerInit(); debug("USB Port Controller: Init complete\r\n");
+#endif
 
 	//-------------------------------------------------------------------------
 	// Initalize the Battery Charger
