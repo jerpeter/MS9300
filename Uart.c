@@ -70,6 +70,8 @@ uint8 ModemPutc(uint8 byteData, uint8 convertAsciiFlag)
 	uint8 status = MODEM_SEND_FAILED;
 	uint8 hexData;
 	uint8 asciiData;
+
+#if 0 /* Original for Modem UART */
 	volatile uint32 timeout = g_lifetimeHalfSecondTickCount + (25 * 2); //Set timeout to 25 secs
 
 	// Make sure a modem is connected
@@ -115,6 +117,34 @@ uint8 ModemPutc(uint8 byteData, uint8 convertAsciiFlag)
 			status = MODEM_SEND_SUCCESS;
 		}
 	}
+#else /* Updated for CDC-ACM */
+	// Add check to make sure CDC-ACM comm port is available
+
+	if (convertAsciiFlag == CONVERT_DATA_TO_ASCII)
+	{
+		// Convert the top nibble to hex
+		hexData = (uint8)((0xF0 & byteData) >> 4);
+		asciiData = NibbleToA(hexData);
+
+		// Send the top nibble
+		UartPutc(asciiData, CRAFT_COM_PORT);
+
+		// Convert the bottom nibble to hex
+		hexData = (uint8)(0x0F & byteData);
+		asciiData = NibbleToA(hexData);
+
+		// Send the bottom nibble
+		UartPutc(asciiData, CRAFT_COM_PORT);
+	}
+	else
+	{
+		// Send the byte of data
+		UartPutc(byteData, CRAFT_COM_PORT);
+	}
+
+	// Set status to success because data has been sent
+	status = MODEM_SEND_SUCCESS;
+#endif
 
 	return (status);
 }
@@ -390,6 +420,9 @@ short Craft(char* fmt, ...)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 1 /* Test not putting a large buffer on the stack */
+char buf[(2048 + 256)];
+#endif
 short DebugPrint(uint8_t mode, char* fmt, ...)
 {
 	va_list arg_ptr;
@@ -397,7 +430,8 @@ short DebugPrint(uint8_t mode, char* fmt, ...)
 #if 0 /* Original */
 	char buf[256];
 #else /* Make sure there is enough buffer space for printing remote command 1K message sizes */
-	char buf[(1024 + 256)];
+	//char buf[(1024 + 256)];
+	// Using global for the time being while testing the Cell/LTE
 #endif
 	static uint32 repeatingBuf = 0;
 	static uint8 strippedNewline = 0;
@@ -837,4 +871,8 @@ void ExpansionBridgeInit(void)
 		debug("Power Control: Expansion I2C UART bridge being turned off\n");
 		PowerControl(EXPANSION_ENABLE, OFF);
 	}
+
+#if 1 /* Test delay after power down for Expansion interrupt which is firing */
+	MXC_Delay(MXC_DELAY_MSEC(500));
+#endif
 }
