@@ -79,6 +79,11 @@ void MainMenu(INPUT_MSG_STRUCT msg)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 1 /* Test */
+#include "usb.h"
+extern void SetupUSBComposite(void);
+extern void USBCPortControllerInit(void);
+#endif
 void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LAYOUT_STRUCT *mn_layout_ptr)
 {
 	INPUT_MSG_STRUCT mn_msg;
@@ -184,13 +189,25 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 					MainMenuScroll(DOWN, SELECT_MN_WND_LNS, mn_layout_ptr);
 					break;
 				case (UP_ARROW_KEY):
+#if 1 /* Original */
 					MainMenuScroll(UP, SELECT_MN_WND_LNS, mn_layout_ptr);
+#else /* Test */
+					//USBCPortControllerInit();
+#endif
 					break;
 				case (LEFT_ARROW_KEY):
+#if 0 /* Original */
 					AdjustLcdContrast(DARKER);
+#else /* Test */
+					MXC_USB_Shutdown();
+#endif
 					break;
 				case (RIGHT_ARROW_KEY):
+#if 0 /* Original */
 					AdjustLcdContrast(LIGHTER);
+#else /* Test */
+					SetupUSBComposite();
+#endif
 					break;
 				case (ESC_KEY):
 					// Reset the current line to tbe the top line	
