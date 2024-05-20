@@ -157,6 +157,9 @@ void SystemEventManager(void)
 		g_lowBatteryState = YES;
 	}
 
+uint32_t USBCPortControllerReadAndClearInt(void);
+	USBCPortControllerReadAndClearInt();
+
 	//___________________________________________________________________________________________
 	if (getSystemEventState(CYCLIC_EVENT))
 	{
@@ -168,8 +171,45 @@ void SystemEventManager(void)
 		if ((g_execCycles / 4) > 10000) { strcpy((char*)g_spareBuffer, ">10K"); }
 		else { sprintf((char*)g_spareBuffer, "%d", (uint16)(g_execCycles / 4)); }
 
+#if 0 /* Original */
 		debug("(Cyclic Event) ISR Ticks/sec: %d (E:%s), Exec/sec: %s, SPT: %dus\r\n", (g_sampleCountHold / 4), ((g_channelSyncError == YES) ? "YES" : "NO"), (char*)g_spareBuffer, CycleCountToMicroseconds(sampleProcessTiming, SYS_CLK));
+#else /* Added Fuel Gauge info */
+extern uint32_t USBCPortControllerStatus(void);
+extern uint16_t USBCPortControllerPStatus(void);
+extern uint32_t USBCPortControllerPDStatus(void);
+extern int32_t testLifetimeCurrentAvg;
+extern uint32_t testLifetimeCurrentAvgCount;
+		UNUSED(sampleProcessTiming);
+		//debug("(Cyclic Event) (%s) (USB: %08x %04x %08x) Exe/s: %s\r\n", FuelGaugeDebugString(), USBCPortControllerStatus(), USBCPortControllerPStatus(), USBCPortControllerPDStatus(), (char*)g_spareBuffer);
+		testLifetimeCurrentAvg += FuelGaugeGetCurrent();
+		testLifetimeCurrentAvgCount++;
+		debug("(Cyclic Event) (%s) (%.0fmA avg) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg / 1000) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer);
+#if 0 /* Test 1 */
+extern void tps25750_int_status_and_clear(void);
+		tps25750_int_status_and_clear();
+#elif 0 /* Test 2 */
+extern void VerifyAccManuIDAndPartID(void);
+		VerifyAccManuIDAndPartID();
+#endif
 
+#if 0 /* Not correct */
+int tps25750_issue_get_sink_cap(void);
+uint8_t* tps25750_get_rx_sink_cap(void);
+		if (USBCPortControllerPDStatus() == 0x00090004)
+		{
+			if (tps25750_issue_get_sink_cap() == 0) { debug("Port Controller: Get Sink Capabilities command successful\r\n"); }
+			else /* Command failed */ { debugErr("Port Controller: Get Sink Capabilities command failed\r\n"); }
+			tps25750_get_rx_sink_cap();
+			debugRaw("\r\nPort Controller: Rx Sink Caps is ");
+			for (uint8_t i = 0; i < 31; i++)
+			{
+				debugRaw("%02x", g_spareBuffer[i]);
+			}
+			debugRaw("\r\n");
+		}
+#endif
+
+#endif
 		g_sampleCountHold = 0;
 		g_execCycles = 0;
 		g_channelSyncError = NO;
@@ -204,6 +244,16 @@ void SystemEventManager(void)
 
 		CheckForCycleChange();
 	}
+
+#if 1 /* Test */
+	//___________________________________________________________________________________________
+extern uint8_t batteryChargerInterruptActive;
+	if (batteryChargerInterruptActive)
+	{
+		debug("BC Int: Reg0: %04x, Reg1: %04x\r\n", GetBattChargerStatusReg0(), GetBattChargerStatusReg1());
+		batteryChargerInterruptActive = NO;
+	}
+#endif
 
 	//___________________________________________________________________________________________
 	if (getSystemEventState(CYCLE_CHANGE_EVENT))
@@ -1969,7 +2019,12 @@ int main(void)
 	InitSoftwareSettings_MS9300();
 	EnableGlobalException();
 
-#if 0 /* test */
+#if 0 /* Test */
+extern void SetupUSBComposite(void);
+	SetupUSBComposite();
+#endif
+
+#if 0 /* Test */
 	TestExternalDeviceAccessAndComms();
 #endif
 
