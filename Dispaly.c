@@ -285,6 +285,8 @@ void WriteStringToLcd(uint8* p, uint8 x, uint8 y, uint8 (*table_ptr)[2][10])
 #if 0 /* Empty call until LCD connector fixed or hardware modded */
 void WriteMapToLcd(uint8 (*g_mmap_ptr)[128]) {}
 #else
+int32_t testLifetimeCurrentAvg = -18;
+uint32_t testLifetimeCurrentAvgCount = 1;
 void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 {
 #if 0 /* original function */
@@ -402,6 +404,15 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 
 	sprintf(debugInfo, "Temperature: %dF", FuelGaugeGetTemperature());
 	ft81x_cmd_text(580, 80, 28, 0, debugInfo);
+
+	sprintf(debugInfo, "Avg Current: %.0fmA", (double)(((float)testLifetimeCurrentAvg / 1000) / (float)testLifetimeCurrentAvgCount));
+	ft81x_cmd_text(580, 120, 28, 0, debugInfo);
+
+	uint32_t runTime = g_lifetimeHalfSecondTickCount >> 1;
+	if (runTime < (60 * 60)) { sprintf(debugInfo, "Run Time: %dm %ds", ((runTime) / 60), (runTime % 60)); }
+	else if (runTime < (60 * 60 * 24)) { sprintf(debugInfo, "Run Time: %dh %dm %ds", ((runTime) / 3600), ((runTime % 3600) / 60), (runTime % 60)); }
+	else { sprintf(debugInfo, "Run Time: %dd %dh %dm", ((runTime) / (3600 * 24)), ((runTime % (3600 * 24)) / 3600), ((runTime % 3600) / 60)); }
+	ft81x_cmd_text(580, 140, 28, 0, debugInfo);
 #endif
 
 	ft81x_display(); // End the display list started with the ClearLcdMap function
