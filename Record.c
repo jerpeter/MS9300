@@ -428,7 +428,7 @@ void LoadTrigRecordDefaults(REC_EVENT_MN_STRUCT* triggerRecordPtr, uint8 opMode)
 	triggerRecordPtr->trec.record_time = 3;
 	triggerRecordPtr->trec.airTriggerLevel = NO_TRIGGER_CHAR;
 	triggerRecordPtr->trec.adjustForTempDrift = YES;
-	triggerRecordPtr->trec.bitAccuracy = ACCURACY_12_BIT;
+	triggerRecordPtr->trec.bitAccuracy = ACCURACY_16_BIT;
 	triggerRecordPtr->trec.variableTriggerEnable = NO;
 	triggerRecordPtr->trec.variableTriggerVibrationStandard = OSM_REGULATIONS_STANDARD;
 	triggerRecordPtr->bgrec.barInterval = SIXTY_SEC_PRD;
