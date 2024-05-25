@@ -181,9 +181,9 @@ extern int32_t testLifetimeCurrentAvg;
 extern uint32_t testLifetimeCurrentAvgCount;
 		UNUSED(sampleProcessTiming);
 		//debug("(Cyclic Event) (%s) (USB: %08x %04x %08x) Exe/s: %s\r\n", FuelGaugeDebugString(), USBCPortControllerStatus(), USBCPortControllerPStatus(), USBCPortControllerPDStatus(), (char*)g_spareBuffer);
-		testLifetimeCurrentAvg += FuelGaugeGetCurrent();
+		testLifetimeCurrentAvg += (FuelGaugeGetCurrent() / 1000);
 		testLifetimeCurrentAvgCount++;
-		debug("(Cyclic Event) (%s) (%.0fmA avg) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg / 1000) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer);
+		debug("(Cyclic Event) (%s) (%.0fmA avg) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer);
 #if 0 /* Test 1 */
 extern void tps25750_int_status_and_clear(void);
 		tps25750_int_status_and_clear();
@@ -1538,6 +1538,9 @@ void PowerManager(void)
 			sleepStateNeeded = SLEEP_MODE;
 		}
 
+#if 0 /* Test not going so deep to sleep due to lack of a wake up source at the moment */
+		if (g_sleepModeState > SLEEP_MODE) { g_sleepModeState = SLEEP_MODE; }
+#endif
 		// Check if sleep mode changed
 		if (g_sleepModeState != sleepStateNeeded)
 		{

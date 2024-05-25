@@ -405,7 +405,7 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 	sprintf(debugInfo, "Temperature: %dF", FuelGaugeGetTemperature());
 	ft81x_cmd_text(580, 80, 28, 0, debugInfo);
 
-	sprintf(debugInfo, "Avg Current: %.0fmA", (double)(((float)testLifetimeCurrentAvg / 1000) / (float)testLifetimeCurrentAvgCount));
+	sprintf(debugInfo, "Avg Current: %.0fmA", (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount));
 	ft81x_cmd_text(580, 120, 28, 0, debugInfo);
 
 	uint32_t runTime = g_lifetimeHalfSecondTickCount >> 1;
