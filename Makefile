@@ -243,6 +243,7 @@ MXC_OPTIMIZE_CFLAGS ?= -Og
 # Set compiler flags
 PROJ_CFLAGS += -Wall # Enable warnings
 PROJ_CFLAGS += -DMXC_ASSERT_ENABLE
+PROJ_CFLAGS += -D_USE_LONG_TIME_T
 
 # Set hardware floating point acceleration.
 # Options are:
