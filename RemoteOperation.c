@@ -116,7 +116,12 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 
 	// Scan for major and minor version from the app version string and store in the config
 	sscanf(&g_buildVersion[0], "%d.%d.%c", &majorVer, &minorVer, &buildVer);
-	
+
+#if 1 /* Test spoofing an 8100 firmware version so SGx2 can handle the seismic trigger correctly */
+	// Per Dave, any 3.xx.x should satisfy SGx2 using the latest seismic trigger setting logic
+	majorVer = 3;
+#endif
+
 	cfg.eventCfg.appMajorVersion = (uint8)majorVer;
 	cfg.eventCfg.appMinorVersion = (uint8)minorVer;
 	cfg.appBuildVersion = buildVer;
@@ -356,7 +361,7 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 	cfg.unused[0] = 0x0A;
 	cfg.unused[1] = 0x0B;
 	cfg.unused[2] = 0x0C;
-	cfg.unused[3] = 0x0D;
+	//cfg.unused[3] = 0x0D;
 	//cfg.unused[4] = 0x0E;
 	//cfg.unused[5] = 0x0F;
 
@@ -433,9 +438,10 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 
 		// Check if the SuperGraphics version is non-zero suggesting that it's a version that supports sending back CRC
 #if ENDIAN_CONVERSION
-		cfg.sgVersion = __builtin_bswap16(cfg.sgVersion);
-#endif
+		if (__builtin_bswap16(cfg.sgVersion))
+#else /* Normal, no conversion */
 		if (cfg.sgVersion)
+#endif
 		{
 			// Get the CRC value from the data stream
 			while ((buffDex < inCmd->size) && (buffDex < CMD_BUFFER_SIZE) && (j < 4))
@@ -448,7 +454,10 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 			// Calcualte the CRC on the transmitted header and the converted binary data
 			msgCRC = CalcCCITT32((uint8*)&(inCmd->msg[0]), MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 			msgCRC = CalcCCITT32((uint8*)&cfg, sizeof(cfg), msgCRC);
-
+#if ENDIAN_CONVERSION
+			msgCRC = __builtin_bswap32(msgCRC);
+			debug("UCM CRC compare: In %08x, Msg %08x\r\n", inCRC, msgCRC);
+#endif
 			// Check if the incoming CRC value matches the calucalted message CRC
 			if (inCRC != msgCRC)
 			{
@@ -1418,6 +1427,9 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		// Check if the Supergraphics
 		//---------------------------------------------------------------------------
 		// Endian conversion happens in first reference above (if enabled)
+#if ENDIAN_CONVERSION
+		cfg.sgVersion = __builtin_bswap16(cfg.sgVersion);
+#endif
 		if (cfg.sgVersion)
 		{
 			if ((cfg.flashWrapping == NO) || (cfg.flashWrapping == YES))
@@ -1466,7 +1478,7 @@ SEND_UCM_ERROR_CODE:
 	// -------------------------------------
 	// Return codes
 #if ENDIAN_CONVERSION
-	returnCode = __builtin_bswap32(returnCode);
+	//returnCode = __builtin_bswap32(returnCode);
 #endif
 	sprintf((char*)msgTypeStr, "%02lu", returnCode);
 	BuildOutgoingSimpleHeaderBuffer((uint8*)ucmHdr, (uint8*)"UCMx",
