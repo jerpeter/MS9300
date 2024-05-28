@@ -718,6 +718,17 @@ void handleGFS(CMD_BUFFER_STRUCT* inCmd)
 
 	UNUSED(inCmd);
 
+#if 1 /* Test populating with crap data until Flash is working */
+	tempUsageStats.sizeUsed = 1000;
+	tempUsageStats.sizeFree = 1000000;
+	tempUsageStats.waveEventsLeft = 1000;
+	tempUsageStats.barHoursLeft = 1000;
+	tempUsageStats.manualCalsLeft = 10000;
+	tempUsageStats.percentUsed = 1;
+	tempUsageStats.percentFree = 99;
+	tempUsageStats.clusterSizeInBytes = 512;
+#endif
+
 	// Transmit a carrige return line feed
 	if (ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION) == MODEM_SEND_FAILED)
 	{
@@ -877,7 +888,7 @@ uint8 sendDQMData(void)
 {
 	uint8 idex;
 	uint8 xferState = DQMx_CMD;
-	EVENT_LIST_ENTRY_STRUCT* eventListCache = (EVENT_LIST_ENTRY_STRUCT*)&g_eventDataBuffer[EVENT_LIST_CACHE_OFFSET];
+	EVENT_LIST_ENTRY_STRUCT tempEventListCacheEntry;
 
 	// If the beginning of sending data, send the crlf.
 	if (HEADER_XFER_STATE == g_dqmXferStructPtr->xferStateFlag)
@@ -939,12 +950,13 @@ uint8 sendDQMData(void)
 				// Check if the current index is a valid event entry
 				if (g_eventNumberCache[g_dqmXferStructPtr->ramTableIndex] == EVENT_REFERENCE_VALID)
 				{
+					GetEventListCacheEntry(g_dqmXferStructPtr->ramTableIndex, &tempEventListCacheEntry);
 					g_dqmXferStructPtr->dqmData[idex].dqmxFlag = 0xCC;
-					g_dqmXferStructPtr->dqmData[idex].mode = eventListCache[g_dqmXferStructPtr->ramTableIndex].mode;
+					g_dqmXferStructPtr->dqmData[idex].mode = (tempEventListCacheEntry.modeAndSub & 0x0F);
 					g_dqmXferStructPtr->dqmData[idex].eventNumber = g_dqmXferStructPtr->ramTableIndex;
-					memcpy(g_dqmXferStructPtr->dqmData[idex].serialNumber, &g_serialNumberCache[eventListCache[g_dqmXferStructPtr->ramTableIndex].serialNumberCacheIndex], FACTORY_SERIAL_NUMBER_SIZE);
-					g_dqmXferStructPtr->dqmData[idex].eventTime = ConvertEpochTimeToDateTime(eventListCache[g_dqmXferStructPtr->ramTableIndex].epochEventTime);
-					g_dqmXferStructPtr->dqmData[idex].subMode = eventListCache[g_dqmXferStructPtr->ramTableIndex].subMode;
+					memcpy(g_dqmXferStructPtr->dqmData[idex].serialNumber, &g_serialNumberCache[tempEventListCacheEntry.serialNumberCacheIndex], FACTORY_SERIAL_NUMBER_SIZE);
+					g_dqmXferStructPtr->dqmData[idex].eventTime = ConvertEpochTimeToDateTime(tempEventListCacheEntry.epochEventTime);
+					g_dqmXferStructPtr->dqmData[idex].subMode = ((tempEventListCacheEntry.modeAndSub & 0xF0) >> 4);
 					g_dqmXferStructPtr->dqmData[idex].endFlag = 0xEE;
 #if ENDIAN_CONVERSION
 					g_dqmXferStructPtr->dqmData[idex].eventNumber = __builtin_bswap16(g_dqmXferStructPtr->dqmData[idex].eventNumber);
@@ -2355,7 +2367,10 @@ void HandleDEM(CMD_BUFFER_STRUCT* inCmd)
 		// Validate the CRC
 		msgCRC = CalcCCITT32((uint8*)&(inCmd->msg[0]), MESSAGE_HEADER_LENGTH, SEED_32);
 		msgCRC = CalcCCITT32((uint8*)&(rawData[0]), sizeof(rawData), msgCRC);
-
+#if ENDIAN_CONVERSION
+			msgCRC = __builtin_bswap32(msgCRC);
+			debug("DEM CRC compare: In %08x, Msg %08x\r\n", inCRC, msgCRC);
+#endif
 		// The CRC's don't match
 		if (inCRC != msgCRC)
 		{
@@ -2670,10 +2685,31 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 			g_demXferStructPtr->xmitSize = 0;
 		}
 	}
+#if 0 /* Missing data on send, assuming transmission might be too fast for remote side */
+	else if ((g_demXferStructPtr->downloadMethod == COMPRESS_NONE) && (g_sampleProcessing == IDLE_STATE) && (g_activeMenu != SUMMARY_MENU))
+	{
+#if ENDIAN_CONVERSION
+		// Event Record in Big Endian, need to process in Little Endian
+		EndianSwapEventRecord(&(g_demXferStructPtr->dloadEventRec.eventRecord));
+		// If coming from CacheEventToRam (Idle and Not Summary menu), data is already Big Endian
+#endif
+		g_transferCount += g_demXferStructPtr->dloadEventRec.eventRecord.header.dataLength;
+
+		g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->startDataPtr, g_demXferStructPtr->dloadEventRec.eventRecord.header.dataLength, g_transmitCRC);
+
+		if (ModemPuts((uint8*)g_demXferStructPtr->startDataPtr, g_demXferStructPtr->dloadEventRec.eventRecord.header.dataLength, NO_CONVERSION) == MODEM_SEND_FAILED)
+		{
+			g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
+		}
+	}
+#endif
 	else // (g_demXferStructPtr->downloadMethod == COMPRESS_NONE)
 	{
 #if ENDIAN_CONVERSION
-		EndianSwapEventData(&g_demXferStructPtr->dloadEventRec.eventRecord, g_demXferStructPtr->startDataPtr);
+		// Event Record in Big Endian, would need conversion back to Little Endian
+		// If coming from CacheEventToRam (Idle and Not Summary menu), data is already Big Endian
+		EndianSwapEventRecord(&(g_demXferStructPtr->dloadEventRec.eventRecord));
+		//EndianSwapEventData(&g_demXferStructPtr->dloadEventRec.eventRecord, g_demXferStructPtr->startDataPtr);
 #endif
 		// Actively monitoring, can't use event data buffer to cache the event
 		dataSizeRemaining = g_demXferStructPtr->dloadEventRec.eventRecord.header.dataLength;
