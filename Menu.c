@@ -1044,8 +1044,11 @@ void MessageDisplayToLcd(char* titleString, char* textString, MB_CHOICE_TYPE cho
 	uint8_t i = 0;
 	uint8_t j;
 	uint16_t row = 80;
+
+	// Check if the message text is too long for one line
 	while (strlen((char*)&textString[i]) > MESSAGE_TEXT_LINE_LENGTH)
 	{
+		// Search backwards for a space to truncate the line cleanly
 		for (j = i + (MESSAGE_TEXT_LINE_LENGTH - 1); j > i; j--)
 		{
 			if (textString[j] == ' ')
@@ -1057,6 +1060,17 @@ void MessageDisplayToLcd(char* titleString, char* textString, MB_CHOICE_TYPE cho
 				row += 40;
 				break;
 			}
+		}
+
+		// Check if a space was not found for a clean break
+		if (j == i)
+		{
+			j = i + (MESSAGE_TEXT_LINE_LENGTH - 1);
+			memset(messageText, 0, (MESSAGE_TEXT_LINE_LENGTH + 1));
+			strncpy((char*)messageText, (char*)&textString[i], (j - i + 1));
+			ft81x_cmd_text(60, row, 30, 0, (char*)messageText);
+			i = (j + 1);
+			row += 40;
 		}
 	}
 	ft81x_cmd_text(60, row, 30, 0, (char*)&textString[i]);
