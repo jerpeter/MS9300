@@ -107,10 +107,9 @@ typedef struct
 //-------------------------------------------------------------------------------------
 typedef struct
 {
-	uint8 mode;
-	uint8 subMode;
+	uint16 eventNumber;
 	uint8 serialNumberCacheIndex;
-	uint8 spare; // Needed to make structure even and keep time long bounded
+	uint8 modeAndSub; // Mode in lower nibble, Sub in upper nibble
 	time_t epochEventTime; // 4 bytes
 } EVENT_LIST_ENTRY_STRUCT; // 8 bytes
 
