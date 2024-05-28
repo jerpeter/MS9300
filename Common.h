@@ -90,6 +90,8 @@ enum {
 
 #define ENDIAN_CONVERSION	1
 
+#define TEST_SENSOR_GROUP_1_A	1 // Disable will test Sensor Group 2/B
+
 typedef struct
 {
 	uint8 year;

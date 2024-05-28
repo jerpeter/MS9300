@@ -207,21 +207,19 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 	// Todo: make channel config dynamic
 	
 	// Enabled the specific sensor blocks (defaulting to Geo1+AOP1)
-#if 0 /* Normal */
+#if TEST_SENSOR_GROUP_1_A /* Normal */
 	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
 	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
-#elif 1 /* Test other sensor group */
+#else /* Test other sensor group */
 	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
 	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
-#else /* Test skipping sensor enables until current fixed */
 #endif
 
 	// Setup the stantard sequence channels to be monitored
-#if 0 /* Normal */
+#if TEST_SENSOR_GROUP_1_A /* Normal */
 	AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_AOP_1));
 #else /* Test other sensor group */
 	AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_2 | ANALOG_AOP_2));
-	//AD4695_SetStandardSequenceActiveChannels(ANALOG_GEO_2);
 #endif
 
 	// For any sample rate 16K and below
@@ -688,11 +686,11 @@ void ZeroSensors(void)
 		// Check if the comparison structure is empty (unfilled)
 		if (s_compareChannelOffset.rTotal == 0)
 		{
-			debug("Resume Offset adjustment for temp drift (0x%x), First Pass...\r\n", g_storedTempReading);
+			debug("Resume Offset adjustment for zero/temp drift (0x%x), First Pass...\r\n", g_storedTempReading);
 		}
 		else
 		{
-			debug("Resume Offset adjustment for temp drift (0x%x), Second Pass...\r\n", g_storedTempReading);
+			debug("Resume Offset adjustment for zero/temp drift (0x%x), Second Pass...\r\n", g_storedTempReading);
 		}
 			
 		// Initialize the counter for checking samples
@@ -724,12 +722,20 @@ void ZeroingSensorCalibration(void)
 	uint32 startZeroSensorTime;
 	uint32 lastHalfSecondTime;
 	uint16 rDiff, vDiff, tDiff, aDiff;
+#if 1 /* Test stack string buffer since spare buffer looks to be stepped on while zeroing */
+	char spareBuffer[128];
+#endif
 
 	//=========================================================================
 	// Zero Sensor Calibration
 	//-------------------------------------------------------------------------
+#if 0 /* Normal */
 	sprintf((char*)g_spareBuffer, "%s (%s %d %s) ", getLangText(ZEROING_SENSORS_TEXT), getLangText(MAX_TEXT), ZERO_SENSOR_MAX_TIME_IN_SECONDS, getLangText(SEC_TEXT));
 	OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
+#else /* Test stack string buffer */
+	sprintf(spareBuffer, "%s (%s %d %s) ", getLangText(ZEROING_SENSORS_TEXT), getLangText(MAX_TEXT), ZERO_SENSOR_MAX_TIME_IN_SECONDS, getLangText(SEC_TEXT));
+	OverlayMessage(getLangText(STATUS_TEXT), spareBuffer, 0);
+#endif
 
 	// Fool system and initialize buffers and pointers as if a waveform
 	InitDataBuffs(WAVEFORM_MODE);
@@ -751,8 +757,13 @@ void ZeroingSensorCalibration(void)
 
 			if (lastHalfSecondTime % 4 == 0)
 			{
+#if 0 /* Normal */
 				strcat((char*)g_spareBuffer, ".");
 				OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
+#else /* Test stack string buffer */
+				strcat(spareBuffer, ".");
+				OverlayMessage(getLangText(STATUS_TEXT), spareBuffer, 0);
+#endif
 			}
 		}
 
@@ -790,6 +801,10 @@ void ZeroingSensorCalibration(void)
 			raiseSystemEventFlag(UPDATE_OFFSET_EVENT);
 		}
 	}
+
+#if 1 /* Test */
+	if (g_lifetimeHalfSecondTickCount >= (startZeroSensorTime + (ZERO_SENSOR_MAX_TIME_IN_SECONDS * 2))) { debugWarn("Zero Sensors: Timed out finding stable offset\r\n"); }
+#endif
 
 	StopADDataCollectionForCalibration();
 
@@ -1115,11 +1130,10 @@ void AD4695_Init()
 
 	// Some combination of the following: ANALOG_GEO_1, ANALOG_AOP_1, ANALOG_GEO_2, ANALOG_AOP_2
 	// Set default Geo1 + AOP1
-#if 0 /* Normal */
+#if TEST_SENSOR_GROUP_1_A /* Normal */
 	AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_AOP_1)); // Enable selected channels
 #else /* Test other sensor group */
 	AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_2 | ANALOG_AOP_2));
-	//AD4695_SetStandardSequenceActiveChannels(ANALOG_GEO_2);
 #endif
 
 #if 0 /* Not ready to enter conversion mode at this time */
