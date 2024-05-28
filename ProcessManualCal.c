@@ -161,6 +161,7 @@ void MoveManualCalToFile(void)
 		// Get new event file name
 		CheckStoredEventsCapEventsLimit();
 		GetEventFilename(g_pendingEventRecord.summary.eventNumber);
+		MakeDirectoryIfNotPresent(EVENTS_PATH, g_pendingEventRecord.summary.eventNumber);
 
 		if (f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
 		{
@@ -204,6 +205,8 @@ void MoveManualCalToFile(void)
 			{
 				// Get new ERData compressed event file name
 				GetERDataFilename(g_pendingEventRecord.summary.eventNumber);
+				MakeDirectoryIfNotPresent(ER_DATA_PATH, g_pendingEventRecord.summary.eventNumber);
+
 				if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
 				{
 					debugErr("Unable to create ERdata event file: %s\r\n", g_spareFileName);

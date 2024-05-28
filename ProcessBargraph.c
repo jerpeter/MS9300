@@ -1091,6 +1091,7 @@ void MoveStartOfBargraphEventRecordToFile(void)
 	// Create new Bargraph event name
 	CheckStoredEventsCapEventsLimit();
 	GetEventFilename(g_pendingBargraphRecord.summary.eventNumber);
+	MakeDirectoryIfNotPresent(EVENTS_PATH, g_pendingBargraphRecord.summary.eventNumber);
 
 	if (f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
 	{
@@ -1222,6 +1223,7 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 			{
 				// Get new compressed event filename and path
 				GetERDataFilename(g_pendingBargraphRecord.summary.eventNumber);
+				MakeDirectoryIfNotPresent(ER_DATA_PATH, g_pendingBargraphRecord.summary.eventNumber);
 
 				if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
 				{

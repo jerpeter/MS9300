@@ -125,6 +125,7 @@ int WriteWithSizeFix(int file, void* bufferPtr, uint32 length);
 void CheckStoredEventsCapEventsLimit(void);
 void GetEventFilename(uint16 newFileEventNumber);
 void GetERDataFilename(uint16 newFileEventNumber);
+void MakeDirectoryIfNotPresent(char* path, uint16 newFileEventNumber);
 
 void CacheResultsEventInfo(EVT_RECORD* eventRecordToCache);
 
@@ -139,6 +140,8 @@ void SaveRemoteEventDownloadStreamToFile(uint16 eventNumber);
 uint8 CacheSerialNumberAndReturnIndex(char* serialNumberString);
 void CacheSummaryListEntryToEventList(uint8 entryType);
 void ClearEventListCache(void);
+void GetEventListCacheEntry(uint16_t eventNumber, EVENT_LIST_ENTRY_STRUCT* entry);
+uint16_t GetEventListCacheAvailableIndex(void);
 
 // Custom function to set the file timestamp
 uint32_t SetFileTimestamp(char* filename);

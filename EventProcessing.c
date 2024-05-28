@@ -166,9 +166,12 @@ FRESULT RecursiveManageEventsDirectory(char* path)
 	UINT i;
 	static FILINFO fno;
 	uint16_t eventNumber;
+	char workingPath[80];
+
+	strcpy(workingPath, path);
 
 	// Open directory
-	res = f_opendir(&dir, path);
+	res = f_opendir(&dir, workingPath);
 
 	if (res == FR_OK)
 	{
@@ -184,23 +187,25 @@ FRESULT RecursiveManageEventsDirectory(char* path)
 			if (fno.fattrib & AM_DIR)
 			{
 				// Mark current path
-				i = strlen(path);
+				i = strlen(workingPath);
 
 				// Add sub-directory to path
-				sprintf(&path[i], "/%s", fno.fname);
+				sprintf(&workingPath[i], "/%s", fno.fname);
+				//strcat(workingPath, "/");
+				//strcat(workingPath, fno.fname);
 
-				sprintf((char*)g_debugBuffer, "%s %s (%s %s)", getLangText(EVENT_TEXT), getLangText(SYNC_IN_PROGRESS_TEXT), getLangText(DIR_TEXT), path);
+				sprintf((char*)g_debugBuffer, "%s %s (%s %s)", getLangText(EVENT_TEXT), getLangText(SYNC_IN_PROGRESS_TEXT), getLangText(DIR_TEXT), workingPath);
 				OverlayMessage(getLangText(SUMMARY_LIST_TEXT), (char*)g_debugBuffer, 0);
 
 				// Enter sub-directory to repeat process
-				res = RecursiveManageEventsDirectory(path);
+				res = RecursiveManageEventsDirectory(workingPath);
 				if (res != FR_OK) { break; }
 
 				// Cheap way to remove empty sub-directory by attempt to delete it which will only succeed if empty
-				f_unlink(path);
+				f_unlink(workingPath);
 				
 				// Cut off added sub-directory to path
-				path[i] = 0;
+				workingPath[i] = '\0';
 			}
 			else // File
 			{
@@ -611,29 +616,29 @@ uint8 CacheSerialNumberAndReturnIndex(char* serialNumberString)
 ///----------------------------------------------------------------------------
 void CacheSummaryListEntryToEventList(uint8 entryType)
 {
-	EVENT_LIST_ENTRY_STRUCT* eventListCache = (EVENT_LIST_ENTRY_STRUCT*)&g_eventDataBuffer[EVENT_LIST_CACHE_OFFSET];
+	uint16_t index = GetEventListCacheAvailableIndex();
 
-	eventListCache[g_summaryList.cachedEntry.eventNumber].mode = g_summaryList.cachedEntry.mode;
-	eventListCache[g_summaryList.cachedEntry.eventNumber].subMode = g_summaryList.cachedEntry.subMode;
-	eventListCache[g_summaryList.cachedEntry.eventNumber].serialNumberCacheIndex = CacheSerialNumberAndReturnIndex((char*)&g_summaryList.cachedEntry.serialNumber[0]);
-	eventListCache[g_summaryList.cachedEntry.eventNumber].epochEventTime = ConvertDateTimeToEpochTime(g_summaryList.cachedEntry.eventTime);
+	g_eventListCache[index].eventNumber = g_summaryList.cachedEntry.eventNumber;
+	g_eventListCache[index].modeAndSub = (g_summaryList.cachedEntry.mode | ((g_summaryList.cachedEntry.subMode << 4) & 0xF0));
+	g_eventListCache[index].serialNumberCacheIndex = CacheSerialNumberAndReturnIndex((char*)&g_summaryList.cachedEntry.serialNumber[0]);
+	g_eventListCache[index].epochEventTime = ConvertDateTimeToEpochTime(g_summaryList.cachedEntry.eventTime);
 
 	if (entryType == INIT_LIST)
 	{
 		// Check if oldest epoch reference is valid (non-zero, stored in index 0 which is not a valid event number)
-		if (eventListCache[0].epochEventTime)
+		if (g_eventListCache[0].epochEventTime)
 		{
 			// Check if an older event time was found
-			if (eventListCache[g_summaryList.cachedEntry.eventNumber].epochEventTime < eventListCache[0].epochEventTime)
+			if (g_eventListCache[g_summaryList.cachedEntry.eventNumber].epochEventTime < g_eventListCache[0].epochEventTime)
 			{
 				// Save the older time and index of the oldest event
-				eventListCache[0].epochEventTime = eventListCache[g_summaryList.cachedEntry.eventNumber].epochEventTime;
+				g_eventListCache[0].epochEventTime = g_eventListCache[g_summaryList.cachedEntry.eventNumber].epochEventTime;
 				g_eventNumberCacheOldestIndex = g_summaryList.cachedEntry.eventNumber;
 			}
 		}
 		else // Initial condition
 		{
-			eventListCache[0].epochEventTime = eventListCache[g_summaryList.cachedEntry.eventNumber].epochEventTime;
+			g_eventListCache[0].epochEventTime = g_eventListCache[g_summaryList.cachedEntry.eventNumber].epochEventTime;
 			g_eventNumberCacheOldestIndex = g_summaryList.cachedEntry.eventNumber;
 		}
 	}
@@ -642,10 +647,52 @@ void CacheSummaryListEntryToEventList(uint8 entryType)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void GetEventListCacheEntry(uint16_t eventNumber, EVENT_LIST_ENTRY_STRUCT* entry)
+{
+	memset(entry, 0, sizeof(EVENT_LIST_ENTRY_STRUCT));
+
+	for (uint16_t i = 1; i < EVENT_LIST_CACHE_ENTRIES_LIMIT; i++)
+	{
+		if (g_eventListCache[i].eventNumber == eventNumber)
+		{
+			*entry = g_eventListCache[i];
+			break;
+		}
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t GetEventListCacheAvailableIndex(void)
+{
+	time_t oldestEpochEventTime = 0xffffffff;
+	uint16_t oldestEpochEventTimeIndex;
+
+	for (uint16_t i = 1; i < EVENT_LIST_CACHE_ENTRIES_LIMIT; i++)
+	{
+		if (g_eventListCache[i].eventNumber == 0)
+		{
+			return (i);
+		}
+
+		if (g_eventListCache[i].epochEventTime < oldestEpochEventTime)
+		{
+			oldestEpochEventTime = g_eventListCache[i].epochEventTime;
+			oldestEpochEventTimeIndex = i;
+		}
+	}
+
+	return (oldestEpochEventTimeIndex);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void ClearEventListCache(void)
 {
 	// Clear out the event list cache
-	memset(&g_eventDataBuffer[EVENT_LIST_CACHE_OFFSET], 0, (EVENT_LIST_CACHE_ENTRIES_LIMIT * sizeof(EVENT_LIST_ENTRY_STRUCT)));
+	memset(g_eventListCache, 0, sizeof(g_eventListCache));
 
 	// Clear out the serial number cache
 	memset(&g_serialNumberCache[0], 0, (SERIAL_NUMBER_CACHE_ENTRIES * SERIAL_NUMBER_STRING_SIZE));
@@ -684,6 +731,9 @@ void ParseAndCountSummaryListEntriesWithRewrite(void)
 
 	while (f_read(&file, (uint8*)&g_summaryList.cachedEntry, sizeof(SUMMARY_LIST_ENTRY_STRUCT), (UINT*)&rwSize) == FR_OK)
 	{
+		// Check if no data was read signaling EOF
+		if (rwSize == 0) { break; }
+
 #if ENDIAN_CONVERSION
 		// Swap summary list entry to Little Endian for processing
 		EndianSwapSummaryListStruct(&g_summaryList.cachedEntry);
@@ -1190,7 +1240,7 @@ uint8 CheckCompressedEventDataFileExists(uint16 eventNumber)
 
 	GetSubDirLowerAndUpperBounds(eventNumber, &lowerBounds, &upperBounds);
 
-	sprintf(g_spareFileName, "%s%s %d-%d\\%s%d.nsD", ER_DATA_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, eventNumber);
+	sprintf(g_spareFileName, "%s%s %d-%d/%s%d.nsD", ER_DATA_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, eventNumber);
 
 	if (f_stat((const TCHAR*)g_spareFileName, &fno) == FR_OK)
 	{
@@ -1256,7 +1306,7 @@ void DeleteEventFileRecord(uint16 eventNumber)
 
 	GetSubDirLowerAndUpperBounds(eventNumber, &lowerBounds, &upperBounds);
 
-	sprintf(g_spareFileName, "%s%s %d-%d\\%s%d.ns8", EVENTS_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, eventNumber);
+	sprintf(g_spareFileName, "%s%s %d-%d/%s%d.ns8", EVENTS_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, eventNumber);
 
 	if (f_stat((const TCHAR*)g_spareFileName, NULL) == FR_OK)
 	{
@@ -1810,7 +1860,7 @@ void RemoveEventFile(uint16 eventNumber)
 	//-------------------------------------------------------------------------
 	// Remove Event data file (should exist)
 	//-------------------------------------------------------------------------
-	sprintf(g_spareFileName, "%s%s %d-%d\\%s%d.ns8", EVENTS_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, eventNumber);
+	sprintf(g_spareFileName, "%s%s %d-%d/%s%d.ns8", EVENTS_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, eventNumber);
 
 	// Check if the Event data file is in the normal location
 	if ((f_stat((const TCHAR*)g_spareFileName, NULL)) == FR_OK)
@@ -1840,7 +1890,7 @@ void RemoveEventFile(uint16 eventNumber)
 	//-------------------------------------------------------------------------
 	// Remove compressed data file (if it exists)
 	//-------------------------------------------------------------------------
-	sprintf(g_spareFileName, "%s%s %d-%d\\%s%d.nsD", ER_DATA_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, eventNumber);
+	sprintf(g_spareFileName, "%s%s %d-%d/%s%d.nsD", ER_DATA_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, eventNumber);
 
 	// Check if the Compressed Event data file is in the normal location
 	if ((f_stat((const TCHAR*)g_spareFileName, NULL)) == FR_OK)
@@ -1919,7 +1969,7 @@ void GetEventFilename(uint16 newFileEventNumber)
 	uint16 lowerBounds, upperBounds;
 
 	GetSubDirLowerAndUpperBounds(newFileEventNumber, &lowerBounds, &upperBounds);
-	sprintf(g_spareFileName, "%s%s %d-%d\\%s%d.ns8", EVENTS_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, newFileEventNumber);
+	sprintf(g_spareFileName, "%s%s %d-%d/%s%d.ns8", EVENTS_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, newFileEventNumber);
 }
 
 ///----------------------------------------------------------------------------
@@ -1930,7 +1980,27 @@ void GetERDataFilename(uint16 newFileEventNumber)
 	uint16 lowerBounds, upperBounds;
 
 	GetSubDirLowerAndUpperBounds(newFileEventNumber, &lowerBounds, &upperBounds);
-	sprintf(g_spareFileName, "%s%s %d-%d\\%s%d.nsD", ER_DATA_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, newFileEventNumber);
+	sprintf(g_spareFileName, "%s%s %d-%d/%s%d.nsD", ER_DATA_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, newFileEventNumber);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MakeDirectoryIfNotPresent(char* path, uint16 newFileEventNumber)
+{
+	uint16 lowerBounds, upperBounds;
+	char directoryPath[64];
+
+	GetSubDirLowerAndUpperBounds(newFileEventNumber, &lowerBounds, &upperBounds);
+	sprintf(directoryPath, "%s%s %d-%d", EVENTS_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds);
+
+extern FRESULT err; //FFat Result (Struct)
+extern FILINFO fno; //FFat File Information Object
+    err = f_stat(directoryPath, &fno);
+    if (err == FR_NO_FILE) {
+        debug("Creating directory...\n");
+        if ((err = f_mkdir(directoryPath)) != FR_OK) { debugErr("Unable to create directory: %s\r\n", directoryPath); }
+    }
 }
 
 ///----------------------------------------------------------------------------
