@@ -1116,8 +1116,13 @@ uint8_t GetBleOtaState(void)
 ///----------------------------------------------------------------------------
 uint8_t GetSmartSensorMuxEnableState(void)
 {
+#if 0 /* Original */
 	// Get Smart Sensor Mux Enable state, Active high (Port 0, Pin 14)
 	if (MXC_GPIO_OutGet(GPIO_SMART_SENSOR_MUX_ENABLE_PORT, GPIO_SMART_SENSOR_MUX_ENABLE_PIN)) { return (ON); }
+#else /* Fix for the SS Mux Enable hardware error swapped with SS Mux A1 */
+	// Get Smart Sensor Mux Enable state, Active high (Port 0, Pin 14)
+	if (MXC_GPIO_OutGet(GPIO_SMART_SENSOR_MUX_A1_PORT, GPIO_SMART_SENSOR_MUX_A1_PIN)) { return (ON); }
+#endif
 	else return (OFF);
 }
 
@@ -1146,9 +1151,15 @@ void SetSmartSensorSleepState(uint8_t state)
 ///----------------------------------------------------------------------------
 void SetSmartSensorMuxEnableState(uint8_t state)
 {
+#if 0 /* Original */
 	// Set Smart Sensor Mux Enable state, Active high (Port 0, Pin 14)
 	if (state == ON) { GPIO_SMART_SENSOR_MUX_ENABLE_PORT->out_set = GPIO_SMART_SENSOR_MUX_ENABLE_PIN; }
 	else /* (state == OFF) */ { GPIO_SMART_SENSOR_MUX_ENABLE_PORT->out_clr = GPIO_SMART_SENSOR_MUX_ENABLE_PIN; }
+#else /* Fix for the SS Mux Enable hardware error swapped with SS Mux A1 */
+	// Set Smart Sensor Mux Enable state, Active high (Port 0, Pin 14)
+	if (state == ON) { GPIO_SMART_SENSOR_MUX_A1_PORT->out_set = GPIO_SMART_SENSOR_MUX_A1_PIN; }
+	else /* (state == OFF) */ { GPIO_SMART_SENSOR_MUX_A1_PORT->out_clr = GPIO_SMART_SENSOR_MUX_A1_PIN; }
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -1216,9 +1227,15 @@ void SetSmartSensorMuxA0State(uint8_t state)
 ///----------------------------------------------------------------------------
 void SetSmartSensorMuxA1State(uint8_t state)
 {
+#if 0 /* Original */
 	// Set Smart Sensor Mux A1 state, Select (Port 2, Pin 25)
 	if (state == ON) { GPIO_SMART_SENSOR_MUX_A1_PORT->out_set = GPIO_SMART_SENSOR_MUX_A1_PIN; }
 	else /* (state == OFF) */ { GPIO_SMART_SENSOR_MUX_A1_PORT->out_clr = GPIO_SMART_SENSOR_MUX_A1_PIN; }
+#else /* Fix for the SS Mux Enable hardware error swapped with SS Mux A1 */
+	// Set Smart Sensor Mux A1 state, Select (Port 2, Pin 25)
+	if (state == ON) { GPIO_SMART_SENSOR_MUX_ENABLE_PORT->out_set = GPIO_SMART_SENSOR_MUX_ENABLE_PIN; }
+	else /* (state == OFF) */ { GPIO_SMART_SENSOR_MUX_ENABLE_PORT->out_clr = GPIO_SMART_SENSOR_MUX_ENABLE_PIN; }
+#endif
 }
 
 ///----------------------------------------------------------------------------
