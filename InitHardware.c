@@ -2289,6 +2289,8 @@ int usbShutdownCallback()
 ///----------------------------------------------------------------------------
 /* static removed while testing CDC-ACM only */ int setconfigCallback_CDCACM(MXC_USB_SetupPkt *sud, void *cbdata)
 {
+	debugRaw("<U-cc>");
+
     /* Confirm the configuration value */
     if (sud->wValue == config_descriptor.config_descriptor.bConfigurationValue) {
         configured = 1;
@@ -3118,7 +3120,7 @@ uint8_t SetupSDHCeMMC(void)
     // Initialize SDHC peripheral
     cfg.bus_voltage = MXC_SDHC_Bus_Voltage_1_8;
     cfg.block_gap = 0;
-#if 1 /* Normal */
+#if 0 /* Normal */
     cfg.clk_div = 0x96; // Large divide ratio, setting frequency to 400 kHz during Card Identification phase
 #elif 0 /* Test full speed init */
     //cfg.clk_div = 0; // Full speed
@@ -3133,6 +3135,13 @@ uint8_t SetupSDHCeMMC(void)
 										MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
 
     MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_SDHC);
+
+#if 1 /* Test */
+	mxc_gpio_cfg_t gpio_sdhc_cmd = { GPIO_SDHC_PORT, GPIO_SDHC_CMD_PIN, MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
+    MXC_GPIO_Config(&gpio_sdhc_cmd);
+	MXC_GPIO_OutClr(GPIO_SDHC_PORT, GPIO_SDHC_CMD_PIN);
+	MXC_Delay(MXC_DELAY_MSEC(74)); // Delay 74 clock cycles, but unsure of clock, going with 74ms to be sure
+#endif
 
     MXC_GPIO_Config(&gpio_cfg_sdhc_1);
     gpio_cfg_sdhc_1.port->vssel &= ~(gpio_cfg_sdhc_1.mask); // Set voltage select to MXC_GPIO_VSSEL_VDDIO, since it seems digital interface is at 1.8V
@@ -3205,10 +3214,10 @@ uint8_t SetupSDHCeMMC(void)
 	{
         //debug("SD clock ratio (at card/device) is 4:1, %dMHz, (eMMC not to exceed 52 MHz for legacy or high speed modes)\r\n", (SystemCoreClock / 4));
         //MXC_SDHC_Set_Clock_Config(1);
-        debug("SD clock ratio: Super slow (%dHz)\r\n", (SystemCoreClock / (2 * 0x96)));
-        MXC_SDHC_Set_Clock_Config(0x96);
-        //debug("SD clock ratio: Extermely slow (%dHz)\r\n", (SystemCoreClock / (2 * 0x12C)));
-        //MXC_SDHC_Set_Clock_Config(0x12C);
+        //debug("SD clock ratio: Super slow (%dHz)\r\n", (SystemCoreClock / (2 * 0x96)));
+        //MXC_SDHC_Set_Clock_Config(0x96);
+        debug("SD clock ratio: Extermely slow (%dHz)\r\n", (SystemCoreClock / (2 * 0x12C)));
+        MXC_SDHC_Set_Clock_Config(0x12C);
     }
 	else // Use smallest clock divider for fastest clock rate (max 60MHz)
 	{
@@ -3243,11 +3252,24 @@ void SetupDriveAndFilesystem(void)
 #endif
 
 #if 0 /* Test Re-formatting to start */
-	if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) != FR_OK)	{ debugErr("Drive(eMMC): Formatting failed with error %s\r\n", FF_ERRORS[err]); }
-	else { debug("Drive(eMMC): Formatted successfully\r\n"); }
-	//MKFS_PARM setupFS = { FM_FAT32, 0, 0, 0, 0 };
-	//if ((err = f_mkfs("", &setupFS, work, sizeof(work))) != FR_OK) { debugErr("Drive(eMMC): Formatting failed with error %s\r\n", FF_ERRORS[err]); }
+	// FF13
+	//if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) != FR_OK)	{ debugErr("Drive(eMMC): Formatting failed with error %s\r\n", FF_ERRORS[err]); }
 	//else { debug("Drive(eMMC): Formatted successfully\r\n"); }
+
+	// FF15
+	MKFS_PARM setupFS = { FM_FAT32, 0, 0, 0, 0 };
+	if ((err = f_mkfs("", &setupFS, work, sizeof(work))) != FR_OK) { debugErr("Drive(eMMC): Formatting failed with error %s\r\n", FF_ERRORS[err]); }
+	else { debug("Drive(eMMC): Formatted successfully\r\n"); }
+#endif
+
+#if 0 /* Test making FS immedaitely to exercise formatting flash */
+	MKFS_PARM setupFS = { FM_ANY, 0, 0, 0, 0 };
+	debug("Drive(eMMC): Formatting...\r\n");
+	if ((err = f_mkfs("", &setupFS, work, sizeof(work))) != FR_OK)
+	{
+		debugErr("Drive(eMMC): Formatting failed with error %s\r\n", FF_ERRORS[err]);
+	}
+	else { debug("Drive(eMMC): Formatted successfully\r\n"); }
 #endif
 
     // Mount the default drive to determine if the filesystem is created
@@ -3696,7 +3718,7 @@ void TestI2CDeviceAddresses(void)
 		MXC_Delay(MXC_DELAY_SEC(1));
 		debug("-- I2C Test, Cycle %d --\r\n", i);
 
-		if (i == 0)
+		if (i == -1) //0)
 		{
 			debug("-- Power up SS, Exp --\r\n");
 			//SetSmartSensorSleepState(OFF);
@@ -3706,7 +3728,7 @@ void TestI2CDeviceAddresses(void)
 			PowerControl(EXPANSION_RESET, OFF);
 		}
 
-		if (i == 0)
+		if (i == -1)//0)
 		{
 			debug("-- Power up 5V --\r\n");
 			// Bring up Analog 5V
@@ -3714,7 +3736,7 @@ void TestI2CDeviceAddresses(void)
 			WaitAnalogPower5vGood();
 		}
 
-		if (i == 1)
+		if (i == -1) //1)
 		{
 			debug("-- Power down 5V --\r\n");
 			PowerControl(ANALOG_5V_ENABLE, OFF);
@@ -3750,10 +3772,12 @@ void TestI2CDeviceAddresses(void)
 			//else if (status == E_COMM_ERR) { debug("(R2) No I2C0 device @ 0x%x (Comm error)\r\n", regAddr); }
 			else if (status != E_COMM_ERR) { debug("(R2) Possible I2C0 device @ 0x%x, status: %d, data: 0x%x 0x%x\r\n", regAddr, status, regData[0], regData[1]); }
 			memset(&regData[0], 0, sizeof(regData));
+#if 1
 			masterRequest.i2c = MXC_I2C1;
 			status = MXC_I2C_MasterTransaction(&masterRequest); if (status == E_SUCCESS) { numDevices++; if (IdentiifyI2C(1, 2, regAddr) == NO) debug("(R2) I2C1 device @ 0x%x, status: %d, data: 0x%x 0x%x\r\n", regAddr, status, regData[0], regData[1]); }
 			//else if (status == E_COMM_ERR) { debug("(R2) No I2C1 device @ 0x%x (Comm error)\r\n", regAddr); }
 			else if (status != E_COMM_ERR) { debug("(R2) Possible I2C1 device @ 0x%x, status: %d, data: 0x%x 0x%x\r\n", regAddr, status, regData[0], regData[1]); }
+#endif
 		}
 		debug("(R2) I2C devices found: %d\r\n", numDevices);
 
@@ -3816,6 +3840,99 @@ void TestI2CDeviceAddresses(void)
 		MXC_Delay(MXC_DELAY_MSEC(1));
 		//if (j++ % 1000 == 0) { debugRaw("."); }
 		if (j++ % 1000 == 0) { FuelGaugeDebugInfo(); }
+	}
+#endif
+
+#if 0 /* Test */
+	//-------------------------------------------------------------------------
+	// Test I2C
+	//-------------------------------------------------------------------------
+	debug("I2C Test Loop (forever)\r\n");
+
+	while (1)
+	{
+#if 0 /* Test 1 */
+extern uint8_t VerifyAccManuIDAndPartID(void);
+		VerifyAccManuIDAndPartID();
+		MXC_Delay(MXC_DELAY_SEC(1));
+#elif 1 /* Test 2 */
+	// Write 0x00 to register 0x7F, primary or flipped address (I2C_ADDR_ACCELEROMETER or I2C_ADDR_ACCELEROMETER_ALT_1)
+	uint8_t registerAddrAndData[2];
+	uint8_t readVal;
+
+	registerAddrAndData[0] = 0x7F;
+	registerAddrAndData[1] = 0x00;
+
+	// Write 0x00 to addr 0x7F for ack/nack
+	if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) == E_SUCCESS)
+	{
+		// Write 0x00 to addr 0x1C looking for nack
+		registerAddrAndData[0] = 0x1C;
+		registerAddrAndData[1] = 0x00;
+		if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) != E_SUCCESS) { debugErr("Acc (P:%02x) Addr: Device needs to be power cycled\r\n", I2C_ADDR_ACCELEROMETER); }
+
+		// Write 0x80 to addr 0x1C looking for ack
+		registerAddrAndData[0] = 0x1C;
+		registerAddrAndData[1] = 0x80;
+		if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) != E_SUCCESS) { debugErr("Acc (P:%02x) Addr: Device needs to be power cycled\r\n", I2C_ADDR_ACCELEROMETER); }
+
+		// Wait for device reset
+		MXC_Delay(MXC_DELAY_MSEC(50));
+
+		// Read addr 0x13
+		registerAddrAndData[0] = 0x13;
+		WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddrAndData[0], sizeof(uint8_t), &readVal, sizeof(uint8_t));
+		if (readVal == 0x46) { debug("Acc (P:%02x) Addr: 'Who am I' verified\r\n", I2C_ADDR_ACCELEROMETER); }
+		else { debugErr("Acc (P:%02x) Addr: 'Who am I' not valid\r\n", I2C_ADDR_ACCELEROMETER); }
+	}
+	else if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER_ALT_1, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) == E_SUCCESS) // Try flipped address I2C_ADDR_ACCELEROMETER_ALT_1
+	{
+		registerAddrAndData[0] = 0x1C;
+		registerAddrAndData[1] = 0x00;
+		if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER_ALT_1, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) != E_SUCCESS) { debugErr("Acc (F:%02x) Addr: Device needs to be power cycled\r\n", I2C_ADDR_ACCELEROMETER_ALT_1); }
+
+		registerAddrAndData[0] = 0x1C;
+		registerAddrAndData[1] = 0x80;
+		if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER_ALT_1, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) != E_SUCCESS) { debugErr("Acc (F:%02x) Addr: Device needs to be power cycled\r\n", I2C_ADDR_ACCELEROMETER_ALT_1); }
+
+		// Wait for device reset
+		MXC_Delay(MXC_DELAY_MSEC(50));
+
+		registerAddrAndData[0] = 0x13;
+		WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER_ALT_1, &registerAddrAndData[0], sizeof(uint8_t), &readVal, sizeof(uint8_t));
+		if (readVal == 0x46) { debug("Acc (F:%02x) Addr: 'Who am I' verified\r\n", I2C_ADDR_ACCELEROMETER_ALT_1); }
+		else { debugErr("Acc (F:%02x) Addr: 'Who am I' not valid\r\n", I2C_ADDR_ACCELEROMETER_ALT_1); }
+	}
+	else
+	{
+		debugWarn("Acc: Did not respond to primary or flipped address\r\n");
+
+extern uint8_t accelerometerI2CAddr;
+		debug("Acc: Trying dynamic addr %02x\r\n", accelerometerI2CAddr);
+		if (WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) == E_SUCCESS)
+		{
+			// Write 0x00 to addr 0x1C looking for nack
+			registerAddrAndData[0] = 0x1C;
+			registerAddrAndData[1] = 0x00;
+			if (WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) != E_SUCCESS) { debugErr("Acc (D:%02x) Addr: Device needs to be power cycled\r\n", accelerometerI2CAddr); }
+
+			// Write 0x80 to addr 0x1C looking for ack
+			registerAddrAndData[0] = 0x1C;
+			registerAddrAndData[1] = 0x80;
+			if (WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) != E_SUCCESS) { debugErr("Acc (D:%02x) Addr: Device needs to be power cycled\r\n", accelerometerI2CAddr); }
+
+			// Wait for device reset
+			MXC_Delay(MXC_DELAY_MSEC(50));
+
+			// Read addr 0x13
+			registerAddrAndData[0] = 0x13;
+			WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddrAndData[0], sizeof(uint8_t), &readVal, sizeof(uint8_t));
+			if (readVal == 0x46) { debug("Acc (D:%02x) Addr: 'Who am I' verified\r\n", accelerometerI2CAddr); }
+			else { debugErr("Acc (D:%02x) Addr: 'Who am I' not valid\r\n", accelerometerI2CAddr); }
+		}
+	}
+	MXC_Delay(MXC_DELAY_SEC(1));
+#endif
 	}
 #endif
 }
@@ -3993,6 +4110,25 @@ void TestSDHCeMMC(void)
 ///----------------------------------------------------------------------------
 void TestFlashAndFatFilesystem(void)
 {
+#if 1 /* Test reporting the CSD c_size and c_size_mult */
+	mxc_sdhc_csd_regs_t* csd = NULL;
+
+	debug("SDHC Lib OCR: 0x%04x\r\n", g_processingCal);
+	MXC_SDHC_Lib_GetCSD(csd);
+	debug("SDHC Lib CSD: c_size is 0x%03x (should be 0xFFF), c_size_mult is 0x%01x (should be 0x7)\r\n", csd->csd.c_size, csd->csd.c_size_mult);
+	uint8_t* trashPtr = (uint8_t*)&csd->array[0];
+	debug("Flash CSD: Raw %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\r\n",
+			trashPtr[0], trashPtr[1], trashPtr[2], trashPtr[3], trashPtr[4], trashPtr[5], trashPtr[6], trashPtr[7], trashPtr[8], trashPtr[9], trashPtr[10], trashPtr[11], trashPtr[12], trashPtr[13], trashPtr[14], trashPtr[15]);
+#endif
+#if 1 /* Test reporting the CID */
+	uint32_t* cid = NULL;
+
+	MXC_SDHC_Lib_GetCID(cid);
+	trashPtr = (uint8_t*)cid;
+	debug("Flash CID: Raw %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\r\n",
+			trashPtr[0], trashPtr[1], trashPtr[2], trashPtr[3], trashPtr[4], trashPtr[5], trashPtr[6], trashPtr[7], trashPtr[8], trashPtr[9], trashPtr[10], trashPtr[11], trashPtr[12], trashPtr[13], trashPtr[14], trashPtr[15]);
+#endif
+
 #if 0 /* Test size and CSD */
 	getSize();
 
@@ -4640,7 +4776,9 @@ extern uint8_t accelerometerI2CAddr;
 	//-------------------------------------------------------------------------
 	// Initalize the Expansion I2C UART Bridge
 	//-------------------------------------------------------------------------
+#if 0 /* New modded board I2C doesn't work if epxansion powered */
 	ExpansionBridgeInit(); debug("Expansion I2C Uart Bridge: Init complete\r\n");
+#endif
 
 #if 1 /* Test */
 	//-------------------------------------------------------------------------
@@ -4697,8 +4835,10 @@ extern uint8_t accelerometerI2CAddr;
 	//-------------------------------------------------------------------------
 	// Init Cell/LTE
 	//-------------------------------------------------------------------------
+#if 0 /* Normal */
 	InitCellLTE();
-
+#else /* Skip for now */
+#endif
 	//-------------------------------------------------------------------------
 	// Init Keypad
 	//-------------------------------------------------------------------------
@@ -4730,6 +4870,11 @@ extern uint8_t accelerometerI2CAddr;
 	//-------------------------------------------------------------------------
 	SmartSensorReadRomAndMemory(SEISMIC_SENSOR); debug("Smart Sensor check for Seismic sensor\r\n");
 	SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR); debug("Smart Sensor check for Acoustic sensor\r\n");
+
+#if 0 /* Test */
+	SmartSensorReadRomAndMemory(SEISMIC_SENSOR_2); debug("Smart Sensor check for Seismic sensor\r\n");
+	SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR_2); debug("Smart Sensor check for Acoustic sensor\r\n");
+#endif
 
 	//-------------------------------------------------------------------------
 	// Hardware initialization complete
