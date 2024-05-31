@@ -330,8 +330,79 @@ void TestAccelerometer(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void IssueAccSoftwareReset(void)
+{
+    uint8_t registerAddrAndData[2];
+    uint8_t readVal;
+
+    registerAddrAndData[0] = 0x7F;
+    registerAddrAndData[1] = 0x00;
+
+    debug("Accelerometer: Attempting software reset to get slave address back to it's default...\r\n");
+
+    // Write 0x00 to addr 0x7F for ack/nack
+    if (WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) == E_SUCCESS)
+    {
+        // Write 0x00 to addr 0x1C looking for ack
+        registerAddrAndData[0] = 0x1C;
+        registerAddrAndData[1] = 0x00;
+
+        if (WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) == E_SUCCESS)
+        {
+            // Write 0x80 to addr 0x1C looking for ack
+            registerAddrAndData[0] = 0x1C;
+            registerAddrAndData[1] = 0x80;
+
+            if (WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) == E_SUCCESS)
+            {
+                // Wait for device reset
+                MXC_Delay(MXC_DELAY_MSEC(50));
+
+                // Read addr 0x13
+                registerAddrAndData[0] = 0x13;
+
+                if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddrAndData[0], sizeof(uint8_t), &readVal, sizeof(uint8_t)) == E_SUCCESS)
+                {
+                    if (readVal == 0x46)
+                    {
+                        debug("Accelerometer: Slave address changed to default\r\n");
+                        accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER;
+
+                        registerAddrAndData[0] = 0x12;
+
+                        if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddrAndData[0], sizeof(uint8_t), &readVal, sizeof(uint8_t)) == E_SUCCESS)
+                        {
+                            if (readVal == 0x55)
+                            {
+                               debug("Accelerometer: Device operation can be started\r\n");
+                            }
+                            else { debugErr("Accelerometer: Failed software reset step 7r\n"); }
+                        }
+                        else { debugErr("Accelerometer: Failed software reset step 6r\n"); }
+                    }
+                    else { debugErr("Accelerometer: Failed software reset step 5r\n"); }
+                }
+                else { debugErr("Accelerometer: Failed software reset step 4r\n"); }
+            }
+            else { debugErr("Accelerometer: Failed software reset step 3\r\n"); }
+        }
+        else { debugErr("Accelerometer: Failed software reset step 2\r\n"); }
+    }
+    else { debugErr("Accelerometer: Failed software reset step 1\r\n"); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void AccelerometerInit(void)
 {
+#if 1 /* Test issuing software reset if the Acc slave address is anything other than the primary defualt 0x1E */
+    if (accelerometerI2CAddr != I2C_ADDR_ACCELEROMETER)
+    {
+        IssueAccSoftwareReset();
+    }
+#endif
+
     // Attempt to verify the part is present
     if (VerifyAccManuIDAndPartID() == PASSED)
     {
