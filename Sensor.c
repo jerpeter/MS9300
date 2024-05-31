@@ -59,6 +59,9 @@ uint8 OneWireReset(void)
 ///----------------------------------------------------------------------------
 void OneWireWriteByte(uint8 data)
 {
+#if 1 /* Test delay for repeat commands */
+	MXC_Delay(MXC_DELAY_MSEC(1));
+#endif
 	ds2484_w1_write_byte(data);
 }
 
@@ -67,6 +70,9 @@ void OneWireWriteByte(uint8 data)
 ///----------------------------------------------------------------------------
 uint8 OneWireReadByte(void)
 {
+#if 1 /* Test delay for repeat commands */
+	MXC_Delay(MXC_DELAY_MSEC(1));
+#endif
 	uint8 data = ds2484_w1_read_byte();
 
 	return (data);
@@ -1049,18 +1055,35 @@ void EnableAndSelectSmartSensorMux(SMART_SENSOR_TYPE sensor)
 {
 	if (sensor < TOTAL_SENSOR_TYPES)
 	{
-		MXC_GPIO_OutSet(GPIO_SMART_SENSOR_MUX_ENABLE_PORT, GPIO_SMART_SENSOR_MUX_ENABLE_PIN);
+		//MXC_GPIO_OutSet(GPIO_SMART_SENSOR_MUX_ENABLE_PORT, GPIO_SMART_SENSOR_MUX_ENABLE_PIN);
+		SetSmartSensorMuxEnableState(ON);
 		
 		// Delay 480ns @ 5V after enabling
 		MXC_Delay(1); // 1us
 
 		// Set the upper address bit, logic 0 for either seismic or logic 1 for either acoustic 
-		if ((sensor == SEISMIC_SENSOR) || (sensor == SEISMIC_SENSOR_2)) { MXC_GPIO_OutClr(GPIO_SMART_SENSOR_MUX_A1_PORT, GPIO_SMART_SENSOR_MUX_A1_PIN); }
-		else /* ACOUSTIC_SENSOR or ACOUSTIC_SENSOR_2 */ { MXC_GPIO_OutSet(GPIO_SMART_SENSOR_MUX_A1_PORT, GPIO_SMART_SENSOR_MUX_A1_PIN); }
+		if ((sensor == SEISMIC_SENSOR) || (sensor == SEISMIC_SENSOR_2))
+		{
+			//MXC_GPIO_OutClr(GPIO_SMART_SENSOR_MUX_A1_PORT, GPIO_SMART_SENSOR_MUX_A1_PIN);
+			SetSmartSensorMuxA1State(OFF);
+		}
+		else /* ACOUSTIC_SENSOR or ACOUSTIC_SENSOR_2 */
+		{
+			//MXC_GPIO_OutSet(GPIO_SMART_SENSOR_MUX_A1_PORT, GPIO_SMART_SENSOR_MUX_A1_PIN);
+			SetSmartSensorMuxA1State(ON);
+		}
 
 		// Set the lower address bit, logic 0 for first sensor group or logic 1 for second sensor group
-		if ((sensor == SEISMIC_SENSOR) || (sensor == ACOUSTIC_SENSOR)) { MXC_GPIO_OutClr(GPIO_SMART_SENSOR_MUX_A0_PORT, GPIO_SMART_SENSOR_MUX_A0_PIN); }
-		else /* SEISMIC_SENSOR_2 or ACOUSTIC_SENSOR_2 */ { MXC_GPIO_OutSet(GPIO_SMART_SENSOR_MUX_A0_PORT, GPIO_SMART_SENSOR_MUX_A0_PIN); }
+		if ((sensor == SEISMIC_SENSOR) || (sensor == ACOUSTIC_SENSOR))
+		{
+			//MXC_GPIO_OutClr(GPIO_SMART_SENSOR_MUX_A0_PORT, GPIO_SMART_SENSOR_MUX_A0_PIN);
+			SetSmartSensorMuxA0State(OFF);
+		}
+		else /* SEISMIC_SENSOR_2 or ACOUSTIC_SENSOR_2 */
+		{
+			//MXC_GPIO_OutSet(GPIO_SMART_SENSOR_MUX_A0_PORT, GPIO_SMART_SENSOR_MUX_A0_PIN);
+			SetSmartSensorMuxA0State(ON);
+		}
 	}
 }
 
@@ -1069,7 +1092,8 @@ void EnableAndSelectSmartSensorMux(SMART_SENSOR_TYPE sensor)
 ///----------------------------------------------------------------------------
 void DisableSmartSensorMux(void)
 {
-	MXC_GPIO_OutClr(GPIO_SMART_SENSOR_MUX_ENABLE_PORT, GPIO_SMART_SENSOR_MUX_ENABLE_PIN);
+	//MXC_GPIO_OutClr(GPIO_SMART_SENSOR_MUX_ENABLE_PORT, GPIO_SMART_SENSOR_MUX_ENABLE_PIN);
+	SetSmartSensorMuxEnableState(OFF);
 
 	// Delay 400ns @ 5V after disabling
 	MXC_Delay(1); // 1us
