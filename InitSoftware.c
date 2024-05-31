@@ -346,8 +346,9 @@ void InitSoftwareSettings_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Get the function address passed by the bootloader
 	//-------------------------------------------------------------------------
+#if 0 /* Original but no bootloader for now */
 	CheckBootloaderAppPresent(); debug("Bootloader check complete\r\n");
-
+#endif
 	//-------------------------------------------------------------------------
 	// Load the Unit Config
 	//-------------------------------------------------------------------------
