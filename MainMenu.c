@@ -189,11 +189,7 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 					MainMenuScroll(DOWN, SELECT_MN_WND_LNS, mn_layout_ptr);
 					break;
 				case (UP_ARROW_KEY):
-#if 1 /* Original */
 					MainMenuScroll(UP, SELECT_MN_WND_LNS, mn_layout_ptr);
-#else /* Test */
-					//USBCPortControllerInit();
-#endif
 					break;
 				case (LEFT_ARROW_KEY):
 #if 0 /* Original */
