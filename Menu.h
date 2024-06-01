@@ -1099,7 +1099,7 @@ void DisplayAutoDialInfo(void);
 uint32 GetAirDefaultValue(void);
 uint32 GetAirMinValue(void);
 uint32 GetAirMaxValue(void);
-void GetAirSensorTypeName(char* airSensorTypeName);
+void GetAirSensorTypeName(char* airSensorTypeName, uint8_t acousticSensorType);
 void InitSensorParameters(uint16 seismicSensorType, uint8 sensitivity);
 void StopMonitoringForLowPowerState(void);
 uint8 CheckAndDisplayErrorThatPreventsMonitoring(uint8 messageType);

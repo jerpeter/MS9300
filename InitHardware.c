@@ -4868,12 +4868,12 @@ extern uint8_t accelerometerI2CAddr;
 	//-------------------------------------------------------------------------
 	// Read and cache Smart Sensor data
 	//-------------------------------------------------------------------------
-	SmartSensorReadRomAndMemory(SEISMIC_SENSOR); debug("Smart Sensor check for Seismic sensor\r\n");
-	SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR); debug("Smart Sensor check for Acoustic sensor\r\n");
+	SmartSensorReadRomAndMemory(SEISMIC_SENSOR); debug("Smart Sensor check for Seismic sensor complete\r\n");
+	SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR); debug("Smart Sensor check for Acoustic sensor complete\r\n");
 
-#if 0 /* Test */
-	SmartSensorReadRomAndMemory(SEISMIC_SENSOR_2); debug("Smart Sensor check for Seismic sensor\r\n");
-	SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR_2); debug("Smart Sensor check for Acoustic sensor\r\n");
+#if 1 /* Test */
+	SmartSensorReadRomAndMemory(SEISMIC_SENSOR_2); debug("Smart Sensor check for Seismic 2 sensor complete\r\n");
+	SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR_2); debug("Smart Sensor check for Acoustic 2 sensor complete\r\n");
 #endif
 
 	//-------------------------------------------------------------------------

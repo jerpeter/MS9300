@@ -1522,11 +1522,11 @@ uint32 GetAirMaxValue(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void GetAirSensorTypeName(char* airSensorTypeName)
+void GetAirSensorTypeName(char* airSensorTypeName, uint8_t acousticSensorType)
 {
-	if (g_acousticSmartSensorMemory.sensorType == SENSOR_MIC_160_DB) { strcpy(airSensorTypeName, "MIC 160 dB"); }
-	else if (g_acousticSmartSensorMemory.sensorType == SENSOR_MIC_5_PSI) { strcpy(airSensorTypeName, "MIC 5 PSI"); }
-	else if (g_acousticSmartSensorMemory.sensorType == SENSOR_MIC_10_PSI) { strcpy(airSensorTypeName, "MIC 10 PSI"); }
+	if (acousticSensorType == SENSOR_MIC_160_DB) { strcpy(airSensorTypeName, "MIC 160 dB"); }
+	else if (acousticSensorType == SENSOR_MIC_5_PSI) { strcpy(airSensorTypeName, "MIC 5 PSI"); }
+	else if (acousticSensorType == SENSOR_MIC_10_PSI) { strcpy(airSensorTypeName, "MIC 10 PSI"); }
 	else { strcpy(airSensorTypeName, "MIC 148 dB"); }
 }
 
@@ -1586,7 +1586,7 @@ void DisplaySensorType(void)
 			}
 		}
 
-		GetAirSensorTypeName(&airSensorTypeName[0]);
+		GetAirSensorTypeName(&airSensorTypeName[0], acousticSensorType);
 		sprintf((char*)g_spareBuffer, "%s: %s", "ACOUSTIC GAIN/TYPE", airSensorTypeName);
 		MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK);
 	}
