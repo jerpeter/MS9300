@@ -893,7 +893,8 @@ void SmartSensorReadRomAndMemory(SMART_SENSOR_TYPE sensor)
 	}
 	else
 	{
-		debugWarn("Smart Sensor: Missing ID or Failed ROM read on%s \r\n", sensorName);
+		if (OneWireReset() == NO) { debug("Smart Sensor: No device found on %s \r\n", sensorName); }
+		else { debugErr("Smart Sensor: Failed ROM read on %s \r\n", sensorName); }
 	}
 
 	if (status == FAILED)
