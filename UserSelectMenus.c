@@ -835,46 +835,6 @@ void AlarmOutputMenuHandler(uint8 keyPressed, void* data)
 	JUMP_TO_ACTIVE_MENU();
 }
 
-#if 0 /* Removed since this has no bearing on the new hardware */
-//*****************************************************************************
-//=============================================================================
-// Analog Channel Config Menu
-//=============================================================================
-//*****************************************************************************
-#define ANALOG_CHANNEL_CONFIG_MENU_ENTRIES 4
-USER_MENU_STRUCT analogChannelConfigMenu[ANALOG_CHANNEL_CONFIG_MENU_ENTRIES] = {
-{TITLE_PRE_TAG, 0, ANALOG_CHANNEL_CONFIG_TEXT, TITLE_POST_TAG,
-	{INSERT_USER_MENU_INFO(SELECT_TYPE, ANALOG_CHANNEL_CONFIG_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_2)}},
-{NO_TAG, 0, CHANNELS_R_AND_V_SCHEMATIC_TEXT,	NO_TAG, {CHANNELS_R_AND_V_SCHEMATIC}},
-{NO_TAG, 0, CHANNELS_R_AND_V_SWAPPED_TEXT,		NO_TAG, {CHANNELS_R_AND_V_SWAPPED}},
-{END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&AnalogChannelConfigMenuHandler}}
-};
-
-//-----------------------------------
-// Analog Channel Config Menu Handler
-//-----------------------------------
-void AnalogChannelConfigMenuHandler(uint8 keyPressed, void* data)
-{
-	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
-	uint16 newItemIndex = *((uint16*)data);
-
-	if (keyPressed == ENTER_KEY)
-	{
-		g_factorySetupRecord.analogChannelConfig = (uint8)analogChannelConfigMenu[newItemIndex].data;
-
-		debug("Factory Setup: Channel R & V %s option selected\r\n", (g_factorySetupRecord.analogChannelConfig == CHANNELS_R_AND_V_SCHEMATIC) ? "Schematic" : "Swapped");
-
-		SETUP_USER_MENU_MSG(&calibratonDateSourceMenu, g_factorySetupRecord.calibrationDateSource);
-	}
-	else if (keyPressed == ESC_KEY)
-	{
-		SETUP_USER_MENU_MSG(&acousticSensorTypeMenu, g_factorySetupRecord.acousticSensorType);
-	}
-
-	JUMP_TO_ACTIVE_MENU();
-}
-#endif
-
 //*****************************************************************************
 //=============================================================================
 // Auto Cal Menu
