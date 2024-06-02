@@ -95,7 +95,7 @@ BOOLEAN ExternalRtcInit(void)
 	interruptReg = (PCF85263_CTL_INTA_PIEA | PCF85263_CTL_INTA_A1IEA);
 	SetRtcRegisters(PCF85263_CTL_INTA_ENABLE, (uint8_t*)&interruptReg, sizeof(interruptReg));
 
-#if 0 /* Test 1 sec PI */
+#if 1 /* Test 1 sec PI */
 	// Turn on 1 second periodic interrupt
 	debug("External RTC: Setting up 1 sec Periodic Int\r\n");
 	controlReg = PCF85263_CTL_FUNC_PI_SEC;
