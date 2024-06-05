@@ -356,6 +356,7 @@ void AlarmTestingMenuHandler(uint8 keyPressed, void* data)
 			// Clear Alarm 1 and Alarm 2
 			PowerControl(ALARM_1_ENABLE, OFF);
 			PowerControl(ALARM_2_ENABLE, OFF);
+			PowerControl(ENABLE_12V, OFF);
 
 			SETUP_MENU_MSG(CAL_SETUP_MENU);
 
@@ -367,6 +368,7 @@ void AlarmTestingMenuHandler(uint8 keyPressed, void* data)
 			if ((uint8)alarmTestingMenu[newItemIndex].data == ALARM_1_TESTING_ENABLED)
 			{
 				// Start Alarm 1
+				PowerControl(ENABLE_12V, ON);
 				PowerControl(ALARM_1_ENABLE, ON);
 			}
 			else if ((uint8)alarmTestingMenu[newItemIndex].data == ALARM_1_TESTING_DISABLED)
@@ -377,6 +379,7 @@ void AlarmTestingMenuHandler(uint8 keyPressed, void* data)
 			else if ((uint8)alarmTestingMenu[newItemIndex].data == ALARM_2_TESTING_ENABLED)
 			{
 				// Start Alarm 2
+				PowerControl(ENABLE_12V, ON);
 				PowerControl(ALARM_2_ENABLE, ON);
 			}
 			else if ((uint8)alarmTestingMenu[newItemIndex].data == ALARM_2_TESTING_DISABLED)
