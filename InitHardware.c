@@ -361,23 +361,33 @@ void InitCellLTE(void)
 	{
 		debug("Cell/LTE: Powering section...\r\n");
 		PowerControl(CELL_ENABLE, ON);
-		MXC_Delay(MXC_DELAY_SEC(3));
+		//MXC_Delay(MXC_DELAY_SEC(3));
 		//debug("Cell/LTE: Disabling LTE reset...\r\n");
 		//PowerControl(LTE_RESET, OFF);
 	}
 
-	debug("Cell/LTE: Powered...\r\n");
+	//debug("Cell/LTE: Powered...\r\n");
 
-#if 0 /* Test */
+#if 1 /* Test */
 	debug("Cell/LTE: Waiting on device to send info... (Press Power or any key to stop)\r\n");
+	debugRaw("\r\n");
 	while (1)
 	{
-extern uint8_t uart0bufferFull;
+extern uint8_t uart0BufferFull;
 extern uint32_t uart0BufferCount;
-		if (uart0bufferFull)
+extern uint8_t uart1BufferFull;
+extern uint32_t uart1BufferCount;
+		if (uart0BufferFull)
 		{
-			debug("Cell/LTE data receive: <%s> (%d chars)\r\n", (char*)g_spareBuffer, uart0BufferCount);
-			uart0bufferFull = NO;
+			//debugRaw("<%s> (U0, %d chars)\r\n", (char*)&g_spareBuffer[2048], uart0BufferCount);
+			UNUSED(uart0BufferCount); debugRaw("%s", (char*)&g_spareBuffer[2048]);
+			uart0BufferFull = NO;
+		}
+
+		if (uart1BufferFull)
+		{
+			debugRaw("<%s> (U1, %d chars)\r\n", (char*)&g_spareBuffer[4096], uart1BufferCount);
+			uart0BufferFull = NO;
 		}
 
 		if (GetPowerOnButtonState() == ON) { debug("Cell/LTE: Loop break\r\n"); break; }
@@ -385,33 +395,55 @@ extern uint32_t uart0BufferCount;
 	}
 #endif
 
-	MXC_Delay(MXC_DELAY_SEC(3));
+#if 1 /* Test */
+	//MXC_Delay(MXC_DELAY_SEC(3));
 
 	int status = 0; int strLen;
+	sprintf((char*)g_spareBuffer, "+++\r\n"); debug("Cell/LTE: Issuing <+++>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
+
+	sprintf((char*)g_spareBuffer, "ATE1\r\n"); debug("Cell/LTE: Issuing <ATE1>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
+
 	sprintf((char*)g_spareBuffer, "AT+CGMI\r\n"); debug("Cell/LTE: Issuing <AT+CGMI>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART0, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
-	debug("Cell/LTE: Status is 0x%x, Flags are 0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0));
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
 
 	sprintf((char*)g_spareBuffer, "AT+CGMM\r\n"); debug("Cell/LTE: Issuing <AT+CGMM>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART0, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
-	debug("Cell/LTE: Status is 0x%x, Flags are 0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0));
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
 
 	sprintf((char*)g_spareBuffer, "AT+CGMR\r\n"); debug("Cell/LTE: Issuing <AT+CGMR>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART0, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
-	debug("Cell/LTE: Status is 0x%x, Flags are 0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0));
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
 
 	sprintf((char*)g_spareBuffer, "AT+CEMODE\r\n"); debug("Cell/LTE: Issuing <AT+CEMODE>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART0, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
-	debug("Cell/LTE: Status is 0x%x, Flags are 0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0));
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
 
 
 	sprintf((char*)g_spareBuffer, "AT+CFUN?\r\n"); debug("Cell/LTE: Issuing <AT+CFUN?>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART0, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
-	debug("Cell/LTE: Status is 0x%x, Flags are 0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0));
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
 
 	sprintf((char*)g_spareBuffer, "AT+CGMI\r\n"); debug("Cell/LTE: Issuing <AT+CGMI>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART0, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }	MXC_Delay(MXC_DELAY_MSEC(500));
-	debug("Cell/LTE: Status is 0x%x, Flags are 0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0));
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }	MXC_Delay(MXC_DELAY_MSEC(500));
+	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
+#endif
+
+#if 0 /* Test loop writing for Uart TX identificaiton */
+	while (1)
+	{
+		status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(50));
+	}
+#endif
+
+#if 0 /* Shut down power to cell module */
+	PowerControl(CELL_ENABLE, OFF);
+	debug("Cell/LTE: Power off\r\n");
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -1500,7 +1532,7 @@ uint8_t g_Uart2_TxBuffer[UART_BUFFER_SIZE];
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8_t uart0bufferFull = NO;
+uint8_t uart0BufferFull = NO;
 uint32_t uart0BufferCount = 0;
 void UART0_Read_Callback(mxc_uart_req_t *req, int error)
 {
@@ -1509,12 +1541,12 @@ void UART0_Read_Callback(mxc_uart_req_t *req, int error)
 	if(req->rxLen)
 	{
 #if 1 /* Copy to spare buffer */
-		memcpy(g_spareBuffer, req->rxData, req->rxLen);
+		memcpy(&g_spareBuffer[2048], req->rxData, req->rxLen);
 		uart0BufferCount = req->rxLen;
 #if 0 /* Print buffer immediately */
 		debug("Cell/LTE data receive: <%s> (%d chars)\r\n", (char*)g_spareBuffer, req->rxLen);
 #else
-		uart0bufferFull = YES;
+		uart0BufferFull = YES;
 #endif
 #else /* Use Uart buffer */
 		debug("Cell/LTE data receive: <%s> (%d chars)\r\n", (char*)g_Uart0_RxBuffer, req->rxLen);
@@ -1535,9 +1567,27 @@ extern mxc_uart_req_t uart0ReadRequest;
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint8_t uart1BufferFull = NO;
+uint32_t uart1BufferCount = 0;
 void UART1_Read_Callback(mxc_uart_req_t *req, int error)
 {
     // UART1 receive processing
+#if 1 /* Test */
+	if(req->rxLen)
+	{
+		memcpy(&g_spareBuffer[4096], req->rxData, req->rxLen);
+		uart1BufferCount = req->rxLen;
+
+		uart1BufferFull = YES;
+
+		// Clearing of flags should be handled by the driver
+
+		// Async handler only seems to run once and shuts down, so need to re-register
+extern mxc_uart_req_t uart1ReadRequest;
+		uint8_t status = MXC_UART_TransactionAsync(&uart1ReadRequest);
+		if (status != E_SUCCESS) { debugErr("Uart1 Read setup (async) failed with code: %d\r\n", status); }
+	}
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -2504,6 +2554,7 @@ static int usbReadCallback(void)
 	uint16_t numChars = acm_canread();
 	uint8 recieveData;
 
+#if 1 /* Normal */
 	// Loop through remaining chars to be read
 	while (numChars--)
 	{
@@ -2528,6 +2579,18 @@ static int usbReadCallback(void)
 			g_isrMessageBufferPtr->writePtr = g_isrMessageBufferPtr->msg;
 		}
 	}
+#else /* Redirect to the Cell/LTE module */
+	// Grab data from the USB CDC/ACM port and check if status is any error
+	UNUSED(recieveData);
+	memset(g_debugBuffer, 0, sizeof(g_debugBuffer));
+	if (acm_read(g_debugBuffer, numChars) != numChars) { debugErr("USB CDC/ACM: Read failure\r\n"); }
+	else // Successful read
+	{
+		debug("Passing along serial data: <%s>\r\n", (char*)g_debugBuffer);
+		int len = numChars;
+		uint8_t status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &len); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+	}
+#endif
 
     return 0;
 }
@@ -4115,7 +4178,7 @@ void TestFlashAndFatFilesystem(void)
 
 	debug("SDHC Lib OCR: 0x%04x\r\n", g_processingCal);
 	MXC_SDHC_Lib_GetCSD(csd);
-	debug("SDHC Lib CSD: c_size is 0x%03x (should be 0xFFF), c_size_mult is 0x%01x (should be 0x7)\r\n", csd->csd.c_size, csd->csd.c_size_mult);
+	//debug("SDHC Lib CSD: c_size is 0x%03x (should be 0xFFF), c_size_mult is 0x%01x (should be 0x7)\r\n", csd->csd.c_size, csd->csd.c_size_mult);
 	uint8_t* trashPtr = (uint8_t*)&csd->array[0];
 	debug("Flash CSD: Raw %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\r\n",
 			trashPtr[0], trashPtr[1], trashPtr[2], trashPtr[3], trashPtr[4], trashPtr[5], trashPtr[6], trashPtr[7], trashPtr[8], trashPtr[9], trashPtr[10], trashPtr[11], trashPtr[12], trashPtr[13], trashPtr[14], trashPtr[15]);
@@ -4837,8 +4900,20 @@ extern uint8_t accelerometerI2CAddr;
 	//-------------------------------------------------------------------------
 #if 0 /* Normal */
 	InitCellLTE();
+
+#if 1 /* Test re-init of SDHC since Cell/LTE power on seems to kill the eMMC Flash */
+	MXC_Delay(MXC_DELAY_SEC(1));
+	if (SetupSDHCeMMC() != E_NO_ERROR) { SetupSDHCeMMC(); } // Run the setup again if it fails the first time
+	SetupDriveAndFilesystem();
+	TestFlashAndFatFilesystem();
+	//MXC_Delay(MXC_DELAY_SEC(1));
+	//PowerControl(CELL_ENABLE, ON);
+	//MXC_Delay(MXC_DELAY_SEC(1));
+	//PowerControl(CELL_ENABLE, OFF);
+#endif
 #else /* Skip for now */
 #endif
+
 	//-------------------------------------------------------------------------
 	// Init Keypad
 	//-------------------------------------------------------------------------
