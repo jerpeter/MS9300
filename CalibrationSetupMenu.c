@@ -27,6 +27,7 @@
 #include "Analog.h"
 #include "RealTimeClock.h"
 #include "Sensor.h"
+#include "stdlib.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -62,6 +63,10 @@ static uint8 s_pauseDisplay = NO;
 typedef struct {
 	uint16 chan[4];
 } CALIBRATION_DATA;
+
+#if 1 /* Test */
+static uint8_t cmState = OFF;
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Prototypes
@@ -123,6 +128,21 @@ extern uint32_t testLifetimeCurrentAvgCount;
 					}
 #endif
 
+#if 1 /* Test to see A/D output */
+					if (g_lifetimeHalfSecondTickCount & 0x1)
+					{
+						//debug("CS A/D: R:%+5ld/%+5ld V:%+5ld/%+5ld T:%+5ld/%+5ld A:%+5ld/%+5ld\r\n", g_sensorCalChanMin[1], g_sensorCalChanMax[1], g_sensorCalChanMin[2], g_sensorCalChanMax[2], g_sensorCalChanMin[3], g_sensorCalChanMax[3], g_sensorCalChanMin[0], g_sensorCalChanMax[0]);
+						float rCalc, tCalc, vCalc, xCalc, yCalc, zCalc, aCalc;
+						rCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[1]) > g_sensorCalChanMax[1] ? abs(g_sensorCalChanMin[1]) : g_sensorCalChanMax[1]);
+						tCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3]);
+						vCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2]);
+						aCalc = (float)5.120 / (float)32768 * (float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]);
+						xCalc = (float)8.000 / (float)32768 * (float)(abs(g_sensorCalChanMin[4]) > g_sensorCalChanMax[4] ? abs(g_sensorCalChanMin[4]) : g_sensorCalChanMax[4]);
+						yCalc = (float)8.000 / (float)32768 * (float)(abs(g_sensorCalChanMin[5]) > g_sensorCalChanMax[5] ? abs(g_sensorCalChanMin[5]) : g_sensorCalChanMax[5]);
+						zCalc = (float)8.000 / (float)32768 * (float)(abs(g_sensorCalChanMin[6]) > g_sensorCalChanMax[6] ? abs(g_sensorCalChanMin[6]) : g_sensorCalChanMax[6]);
+						debug("CS A/D: R %2.3f T %2.3f V %2.3f (IPS), A %1.3f (mB), X %1.4f Y %1.4f Z %1.4f (G)\r\n", (double)(rCalc), (double)(tCalc), (double)(vCalc), (double)(aCalc), (double)(xCalc), (double)(yCalc), (double)(zCalc));
+					}
+#endif
 					WriteMapToLcd(g_mmap);
 
 #if 0 /* Exception testing (Prevent non-ISR soft loop watchdog from triggering) */
@@ -140,11 +160,6 @@ extern uint32_t testLifetimeCurrentAvgCount;
 #if 1 /* Test */
 static uint8_t aCutoffState = ANALOG_CUTOFF_FREQ_1K;
 static uint8_t gpState = ON;
-#if TEST_SENSOR_GROUP_1_A
-static uint8_t cmState = CAL_MUX_SELECT_SENSOR_GROUP_A;
-#else // TEST_SENSOR_GROUP_2_B
-static uint8_t cmState = CAL_MUX_SELECT_SENSOR_GROUP_B;
-#endif
 static uint8_t scState = 0;
 static uint8_t scEnable = 0;
 char filterText[16];
@@ -258,13 +273,17 @@ char filterText[16];
 						if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { g_calDisplayAlternateResultState = DEFAULT_ALTERNATE_RESULTS; }
 						else { g_calDisplayAlternateResultState = DEFAULT_RESULTS; }
 #else
-#if TEST_SENSOR_GROUP_1_A /* Sensor Group 1/A */
-						sprintf((char*)g_debugBuffer, "Cal Setup: Geo1 Sensor disabled");
-						MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
-#else /* Sensor Group 2/B */
-						sprintf((char*)g_debugBuffer, "Cal Setup: Geo2 Sensor disabled");
-						MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
-#endif
+						if (g_currentSensorGroup == SENSOR_GROUP_A_1)
+						{
+							sprintf((char*)g_debugBuffer, "Cal Setup: Geo1 Sensor disabled");
+							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
+						}
+						else // SENSOR_GROUP_B_2
+						{
+							sprintf((char*)g_debugBuffer, "Cal Setup: Geo2 Sensor disabled");
+							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
+						}
+
 						debug("%s\r\n", (char*)g_debugBuffer);
 						OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
 #endif
@@ -275,13 +294,17 @@ char filterText[16];
 						if (g_displayAlternateResultState == DEFAULT_ALTERNATE_RESULTS) { g_displayAlternateResultState = DEFAULT_RESULTS; }
 						else { g_displayAlternateResultState = DEFAULT_ALTERNATE_RESULTS; }
 #else
-#if TEST_SENSOR_GROUP_1_A /* Sensor Group 1/A */
-						sprintf((char*)g_debugBuffer, "Cal Setup: AOP1 Sensor disabled");
-						MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
-#else /* Sensor Group 2/B */
-						sprintf((char*)g_debugBuffer, "Cal Setup: AOP2 Sensor disabled");
-						MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
-#endif
+						if (g_currentSensorGroup == SENSOR_GROUP_A_1)
+						{
+							sprintf((char*)g_debugBuffer, "Cal Setup: AOP1 Sensor disabled");
+							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
+						}
+						else // SENSOR_GROUP_B_2
+						{
+							sprintf((char*)g_debugBuffer, "Cal Setup: AOP2 Sensor disabled");
+							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+						}
+
 						debug("%s\r\n", (char*)g_debugBuffer);
 						OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
 #endif
@@ -292,15 +315,19 @@ char filterText[16];
 						if (s_pauseDisplay == NO) { s_pauseDisplay = YES; }
 						else { s_pauseDisplay = NO; }
 #else
-#if TEST_SENSOR_GROUP_1_A /* Sensor Group 1/A */
-						sprintf((char*)g_debugBuffer, "Cal Setup: Geo1 + AOP1 Sensors enabled");
-						MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
-						MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
-#else /* Sensor Group 2/B */
-						sprintf((char*)g_debugBuffer, "Cal Setup: Geo2 + AOP2 Sensors enabled");
-						MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
-						MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
-#endif
+						if (g_currentSensorGroup == SENSOR_GROUP_A_1)
+						{
+							sprintf((char*)g_debugBuffer, "Cal Setup: Geo1 + AOP1 Sensors enabled");
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
+						}
+						else // SENSOR_GROUP_B_2
+						{
+							sprintf((char*)g_debugBuffer, "Cal Setup: Geo2 + AOP2 Sensors enabled");
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+						}
+
 						debug("%s\r\n", (char*)g_debugBuffer);
 						OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
 #endif
@@ -323,15 +350,19 @@ char filterText[16];
 					case KB_SK_2:
 #if 1 /* Test */
 						if (gpState == ON) { gpState = OFF; } else { gpState = ON; }
-#if TEST_SENSOR_GROUP_1_A /* Sensor Group 1/A */
-						if (gpState){ strcpy(filterText, "Normal/AOP"); SetGainGeo1State(HIGH); SetPathSelectAop1State(HIGH); }
-						else { strcpy(filterText, "High/A-weight"); SetGainGeo1State(LOW); SetPathSelectAop1State(LOW); }
-						sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo1/AOP1 gain/path (%s)", filterText);
-#else /* Sensor Group 2/B */
-						if (gpState){ strcpy(filterText, "Normal/AOP"); SetGainGeo2State(HIGH); SetPathSelectAop2State(HIGH); }
-						else { strcpy(filterText, "High/A-weight"); SetGainGeo2State(LOW); SetPathSelectAop2State(LOW); }
-						sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo2/AOP2 gain/path (%s)", filterText);
-#endif
+						if (g_currentSensorGroup == SENSOR_GROUP_A_1)
+						{
+							if (gpState){ strcpy(filterText, "Normal/AOP"); SetGainGeo1State(HIGH); SetPathSelectAop1State(HIGH); }
+							else { strcpy(filterText, "High/A-weight"); SetGainGeo1State(LOW); SetPathSelectAop1State(LOW); }
+							sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo1/AOP1 gain/path (%s)", filterText);
+						}
+						else // SENSOR_GROUP_B_2
+						{
+							if (gpState){ strcpy(filterText, "Normal/AOP"); SetGainGeo2State(HIGH); SetPathSelectAop2State(HIGH); }
+							else { strcpy(filterText, "High/A-weight"); SetGainGeo2State(LOW); SetPathSelectAop2State(LOW); }
+							sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo2/AOP2 gain/path (%s)", filterText);
+						}
+
 						debug("%s\r\n", (char*)g_debugBuffer);
 						OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
 #endif
@@ -354,26 +385,29 @@ char filterText[16];
 
 					case KB_SK_4:
 #if 1 /* Test */
-						if (cmState == 2) // Off
+						if (cmState) // Check if on
 						{
-							cmState = CAL_MUX_SELECT_SENSOR_GROUP_A; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); SetCalMuxPreADEnableState(ON);
-							sprintf((char*)g_debugBuffer, "Cal Setup: Enabling Cal Mux Sensor Group A/1");
-							debug("%s\r\n", (char*)g_debugBuffer);
-							OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
-						}
-						else if (cmState == CAL_MUX_SELECT_SENSOR_GROUP_A)
-						{
-							cmState = CAL_MUX_SELECT_SENSOR_GROUP_B; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B); SetCalMuxPreADEnableState(ON);
-							sprintf((char*)g_debugBuffer, "Cal Setup: Enabling Cal Mux Sensor Group B/2");
-							debug("%s\r\n", (char*)g_debugBuffer);
-							OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
-						}
-						else // (cmState == CAL_MUX_SELECT_SENSOR_GROUP_B)
-						{
-							cmState = 2; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); SetCalMuxPreADEnableState(OFF);
+							cmState = OFF; SetCalMuxPreADEnableState(OFF);
 							sprintf((char*)g_debugBuffer, "Cal Setup: Turning Cal Mux Enable Off");
 							debug("%s\r\n", (char*)g_debugBuffer);
 							OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+						}
+						else // Off, turn on the selected group
+						{
+							if (g_currentSensorGroup == SENSOR_GROUP_A_1)
+							{
+								cmState = CAL_MUX_SELECT_SENSOR_GROUP_A; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); SetCalMuxPreADEnableState(ON);
+								sprintf((char*)g_debugBuffer, "Cal Setup: Enabling Cal Mux Sensor Group A/1");
+								debug("%s\r\n", (char*)g_debugBuffer);
+								OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+							}
+							else // SENSOR_GROUP_B_2
+							{
+								cmState = CAL_MUX_SELECT_SENSOR_GROUP_B; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B); SetCalMuxPreADEnableState(ON);
+								sprintf((char*)g_debugBuffer, "Cal Setup: Enabling Cal Mux Sensor Group B/2");
+								debug("%s\r\n", (char*)g_debugBuffer);
+								OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+							}
 						}
 #endif
 						break;
@@ -392,7 +426,10 @@ char filterText[16];
 			}
 
 			StopADDataCollectionForCalibration();
-			
+#if 1 /* Test */
+extern void StopAccAquisition(void);
+			StopAccAquisition();
+#endif
 			// Reestablish the previously stored sample rate
 			g_triggerRecord.trec.sample_rate = s_calSavedSampleRate;
 
@@ -503,18 +540,11 @@ void CalSetupMnProc(INPUT_MSG_STRUCT msg,
 			mn_layout_ptr->top_ln = CAL_SETUP_MN_TBL_START_LINE;
 
 			// Enable the Cal Mux for Sensor group A (Geo1 + AOP1)
-#if 0 /* Prompt for Cal Mux choice */
-			if (MessageBox(getLangText(SELECT_TEXT), "CONTINUE WITH CAL MUX SET TO GROUP A? NO WILL SWAP TO GROUP B", MB_YESNO) == MB_FIRST_CHOICE)
-			{ SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); }
-			else { SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B); }
-#else /* Always start with Sensor Group A */
-#if TEST_SENSOR_GROUP_1_A /* Normal */
-			SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A);
-#else /* Test other sensor group */
-			SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B);
+#if 1 /* Prompt for Cal Mux choice */
+			if (MessageBox(getLangText(SELECT_TEXT), "TEST WITH SENSOR GROUP A/1? NO WILL SWAP TO SENSOR GROUP B/2", MB_YESNO) == MB_FIRST_CHOICE)
+			{ g_currentSensorGroup = SENSOR_GROUP_A_1; }
+			else { g_currentSensorGroup = SENSOR_GROUP_B_2; }
 #endif
-#endif
-			SetCalMuxPreADEnableState(ON);
 
 			OverlayMessage(getLangText(STATUS_TEXT), getLangText(PLEASE_BE_PATIENT_TEXT), 0);
 
@@ -524,6 +554,10 @@ void CalSetupMnProc(INPUT_MSG_STRUCT msg,
 			// Set the sample rate to a fixed 1K
 			g_triggerRecord.trec.sample_rate = SAMPLE_RATE_1K;
 
+#if 1 /* Test starting the Accelerometer */
+extern void StartAccAquisition(void);
+			StartAccAquisition();
+#endif
 			// Fool system and initialize buffers and pointers as if a waveform
 			InitDataBuffs(WAVEFORM_MODE);
 
@@ -532,6 +566,11 @@ void CalSetupMnProc(INPUT_MSG_STRUCT msg,
 
 			// Hand setup A/D data collection and start the data clock
 			StartADDataCollectionForCalibration(CALIBRATION_FIXED_SAMPLE_RATE);
+
+			// Set the Cal Mux to the correct sensor group
+			if (g_currentSensorGroup == SENSOR_GROUP_A_1) { SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); cmState = CAL_MUX_SELECT_SENSOR_GROUP_A; }
+			else /* SENSOR_GROUP_B_2 */ { SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B); cmState = CAL_MUX_SELECT_SENSOR_GROUP_B; }
+			SetCalMuxPreADEnableState(ON);
 
 			// Clear channel offsets since uncalibrated is the first menu
 			memset(&g_channelOffset, 0, sizeof(g_channelOffset));
@@ -832,12 +871,14 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 		{
 			// PRINT Table header
 			memset(&buff[0], 0, sizeof(buff));
-			sprintf((char*)buff, "C|  Min|  Max|  Avg|");
+			//sprintf((char*)buff, "C|  Min|  Max|  Avg|");
+			sprintf((char*)buff, "Chan   Min   Max   Units   Acc");
 			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_THREE;
 			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT,REG_LN);
 
 			// PRINT R,V,T,A Min, Max and Avg
 			memset(&buff[0], 0, sizeof(buff));
+#if 0 /* Normal */
 			sprintf((char*)buff, "R|%+5ld|%+5ld|%+5ld|", g_sensorCalChanMin[1], g_sensorCalChanMax[1], g_sensorCalChanAvg[1]);
 			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FOUR;
 			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
@@ -851,9 +892,55 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			sprintf((char*)buff, "T|%+5ld|%+5ld|%+5ld|", g_sensorCalChanMin[3], g_sensorCalChanMax[3], g_sensorCalChanAvg[3]);
 			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SIX;
 			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+#else /* Test adding in Acc results */
+			float rCalc, tCalc, vCalc, xCalc, yCalc, zCalc, aCalc;
+			rCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[1]) > g_sensorCalChanMax[1] ? abs(g_sensorCalChanMin[1]) : g_sensorCalChanMax[1]);
+			tCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3]);
+			vCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2]);
+			aCalc = (float)5.120 / (float)32768 * (float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]);
+			xCalc = (float)8.000 / (float)32768 * (float)(abs(g_sensorCalChanMin[4]) > g_sensorCalChanMax[4] ? abs(g_sensorCalChanMin[4]) : g_sensorCalChanMax[4]);
+			yCalc = (float)8.000 / (float)32768 * (float)(abs(g_sensorCalChanMin[5]) > g_sensorCalChanMax[5] ? abs(g_sensorCalChanMin[5]) : g_sensorCalChanMax[5]);
+			zCalc = (float)8.000 / (float)32768 * (float)(abs(g_sensorCalChanMin[6]) > g_sensorCalChanMax[6] ? abs(g_sensorCalChanMin[6]) : g_sensorCalChanMax[6]);
+			sprintf((char*)buff, "(R) %+5ld  %+5ld   (R) %2.3f IPS   (X) %1.4f G", g_sensorCalChanMin[1], g_sensorCalChanMax[1], (double)rCalc, (double)xCalc);
+/* 			sprintf((char*)buff, "R|%+1.4f|%+1.4f|%+5ld| X|%+1.4f|%+1.4f|%+5ld|",
+					(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMin[1]),
+					(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMax[1]),
+					g_sensorCalChanAvg[1],
+					(double)((float)8 / (float)32768 * (float)g_sensorCalChanMin[4]),
+					(double)((float)8 / (float)32768 * (float)g_sensorCalChanMax[4]),
+					g_sensorCalChanAvg[4]);
+ */
+			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FOUR;
+			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 
 			memset(&buff[0], 0, sizeof(buff));
-			sprintf((char*)buff, "A|%+5ld|%+5ld|%+5ld|", g_sensorCalChanMin[0], g_sensorCalChanMax[0], g_sensorCalChanAvg[0]);
+			sprintf((char*)buff, "(T) %+5ld  %+5ld   (T) %2.3f IPS   (Y) %1.4f G", g_sensorCalChanMin[3], g_sensorCalChanMax[3], (double)tCalc, (double)yCalc);
+/* 			sprintf((char*)buff, "V|%+1.4f|%+1.4f|%+5ld| Z|%+1.4f|%+1.4f|%+5ld|",
+					(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMin[2]),
+					(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMax[2]),
+					g_sensorCalChanAvg[2],
+					(double)((float)8 / (float)32768 * (float)g_sensorCalChanMin[6]),
+					(double)((float)8 / (float)32768 * (float)g_sensorCalChanMax[6]),
+					g_sensorCalChanAvg[6]);
+ */
+			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FIVE;
+			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+
+			memset(&buff[0], 0, sizeof(buff));
+			sprintf((char*)buff, "(V) %+5ld  %+5ld   (V) %2.3f IPS   (Z) %1.4f G", g_sensorCalChanMin[2], g_sensorCalChanMax[2], (double)vCalc, (double)zCalc);
+/* 			sprintf((char*)buff, "T|%+1.4f|%+1.4f|%+5ld| Y|%+1.4f|%+1.4f|%+5ld|",
+					(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMin[3]),
+					(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMax[3]),
+					g_sensorCalChanAvg[3],
+					(double)((float)8 / (float)32768 * (float)g_sensorCalChanMin[5]),
+					(double)((float)8 / (float)32768 * (float)g_sensorCalChanMax[5]),
+					g_sensorCalChanAvg[5]);
+ */
+			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SIX;
+			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+#endif
+			memset(&buff[0], 0, sizeof(buff));
+			sprintf((char*)buff, "(A) %+5ld  %+5ld   (A) %1.3f mB", g_sensorCalChanMin[0], g_sensorCalChanMax[0], (double)aCalc);
 			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SEVEN;
 			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 		}
