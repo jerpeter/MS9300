@@ -40,6 +40,7 @@
 #define ACC_CONTROL_4_REGISTER  0x1E
 #define ACC_CONTROL_5_REGISTER  0x1F
 #define ACC_CONTROL_6_REGISTER  0x20
+#define ACC_OUTPUT_DATA_CONTROL_REGISTER  0x21
 #define ACC_INTERRUPT_CONTROL_1_REGISTER  0x22
 #define ACC_INTERRUPT_CONTROL_2_REGISTER  0x23
 #define ACC_INTERRUPT_CONTROL_3_REGISTER  0x24
@@ -48,12 +49,24 @@
 #define ACC_INTERRUPT_CONTROL_6_REGISTER  0x27
 #define ACC_SELF_TEST_REGISTER  0x5D
 
-typedef struct
-{
-	uint16_t x;
-	uint16_t y;
-    uint16_t z;
-} ACC_DATA_STRUCT;
+enum {
+    ACC_ODR_0_781,
+    ACC_ODR_1_563,
+    ACC_ODR_3_125,
+    ACC_ODR_6_25,
+    ACC_ODR_12_5,
+    ACC_ODR_25,
+    ACC_ODR_50,
+    ACC_ODR_100,
+    ACC_ODR_200,
+    ACC_ODR_400,
+    ACC_ODR_800,
+    ACC_ODR_1600,
+    ACC_ODR_3200,
+    ACC_ODR_6400,
+    ACC_ODR_12800,
+    ACC_ODR_25600
+};
 
 ///----------------------------------------------------------------------------
 ///	Externs
@@ -216,14 +229,16 @@ void GetAccChannelData(ACC_DATA_STRUCT* channelData)
     WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddress, sizeof(uint8_t), chanDataBytePtr, ACC_CHANNEL_DATA_SIZE);
 #endif
 
+#if 0 /* Should be unnecessary since data comes across Little Endian */
     channelData->x = (chanDataBytePtr[0] | (chanDataBytePtr[1] << 8));
     channelData->y = (chanDataBytePtr[2] | (chanDataBytePtr[3] << 8));
     channelData->z = (chanDataBytePtr[4] | (chanDataBytePtr[5] << 8));
+#endif
 
     // Normalize around 0x8000
-    if (channelData->x & 0x8000) { channelData->x = (0x7FFF - ~channelData->x); } else { channelData->x += 0x8000; }
-    if (channelData->y & 0x8000) { channelData->y = (0x7FFF - ~channelData->y); } else { channelData->y += 0x8000; }
-    if (channelData->z & 0x8000) { channelData->z = (0x7FFF - ~channelData->z); } else { channelData->z += 0x8000; }
+    channelData->x = ((int16_t)channelData->x + 0x8000);
+    channelData->y = ((int16_t)channelData->y + 0x8000);
+    channelData->z = ((int16_t)channelData->z + 0x8000);
 }
 
 ///----------------------------------------------------------------------------
@@ -270,8 +285,15 @@ void StartAccAquisition(void)
 {
     uint8_t registerData;
 
+    // Set the ODR
+    GetAccRegister(ACC_OUTPUT_DATA_CONTROL_REGISTER, &registerData);
+    registerData &= 0xF0; // Clear out OSA bits
+    registerData |= ACC_ODR_1600; // Enable the output data rate
+    SetAccRegister(ACC_OUTPUT_DATA_CONTROL_REGISTER, registerData);
+
+    // Start operating mode and high performance
     GetAccRegister(ACC_CONTROL_1_REGISTER, &registerData);
-    registerData |= 0x80; // Enable PC1 bit
+    registerData |= 0xC0; // Enable PC1 and RES bits
     SetAccRegister(ACC_CONTROL_1_REGISTER, registerData);
 }
 
@@ -397,7 +419,7 @@ void IssueAccSoftwareReset(void)
 void AccelerometerInit(void)
 {
 #if 1 /* Test issuing software reset if the Acc slave address is anything other than the primary defualt 0x1E */
-    if (accelerometerI2CAddr != I2C_ADDR_ACCELEROMETER)
+    if (1) //(accelerometerI2CAddr != I2C_ADDR_ACCELEROMETER)
     {
         IssueAccSoftwareReset();
     }
