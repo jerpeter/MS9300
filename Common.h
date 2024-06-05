@@ -90,7 +90,17 @@ enum {
 
 #define ENDIAN_CONVERSION	1
 
-#define TEST_SENSOR_GROUP_1_A	1 // Disable will test Sensor Group 2/B
+enum {
+	SENSOR_GROUP_A_1 = 1,
+	SENSOR_GROUP_B_2
+};
+
+typedef struct
+{
+	uint16_t x;
+	uint16_t y;
+	uint16_t z;
+} ACC_DATA_STRUCT;
 
 typedef struct
 {
