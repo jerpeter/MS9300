@@ -27,11 +27,19 @@
 #define SAMPLE_RATE_32K		32768
 #define SAMPLE_RATE_DEFAULT	1024
 
+#if 0 /* Normal */
 #define MAX_NUM_OF_CHANNELS			4
+#else /* Add storage for Acc data testing */
+#define MAX_NUM_OF_CHANNELS			(4 + 3)
+#endif
 #define CHANNEL_DATA_IN_BYTES		2
 #define MAX_CAL_SAMPLES				100
 #define START_CAL_SIGNAL			(100 + 1)
+#if 0 /* Normal */
 #define MAX_DATA_PER_SAMPLE			(MAX_NUM_OF_CHANNELS * CHANNEL_DATA_IN_BYTES) // 8
+#else /* Use fixed number of channels due to testing storage for extra Acc data */
+#define MAX_DATA_PER_SAMPLE			(4 * CHANNEL_DATA_IN_BYTES) // 4 channels * 2 bytes = 8
+#endif
 #define MAX_DATA_PER_SECOND			(MAX_SAMPLE_RATE * MAX_DATA_PER_SAMPLE) // 131K
 
 #define LARGEST_PRETIRGGER_SIZE_IN_BYTES	(MAX_DATA_PER_SECOND)
