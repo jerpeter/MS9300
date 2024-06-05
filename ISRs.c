@@ -660,7 +660,7 @@ __attribute__((__interrupt__))
 void Tc_typematic_irq(void)
 {
 	// Test print to verify the interrupt is running
-	if ((g_keypadTimerTicks % 1000) == 0) {debugRaw("&"); }
+	//if ((g_keypadTimerTicks % 1000) == 0) {debugRaw("&"); }
 
 	// Increment the ms seconds counter
 	g_keypadTimerTicks++;
@@ -677,7 +677,7 @@ __attribute__((__interrupt__))
 void Tc_ms_timer_irq(void)
 {
 	// Test print to verify the interrupt is running
-	if ((g_msTimerTicks % 1000) == 0) { debugRaw("$"); }
+	//if ((g_msTimerTicks % 1000) == 0) { debugRaw("$"); }
 
 	// Increment the ms seconds counter
 	g_msTimerTicks++;
@@ -2098,6 +2098,24 @@ void ProcessSensorCalibrationData(void)
 	if (s_V_channelReading < 7) { s_tempChanMed[2][s_V_channelReading]++; } else { s_tempChanMed[2][7]++; }
 	if (s_T_channelReading < 7) { s_tempChanMed[3][s_T_channelReading]++; } else { s_tempChanMed[3][7]++; }
 	if (s_A_channelReading < 7)	{ s_tempChanMed[0][s_A_channelReading]++; } else { s_tempChanMed[0][7]++; }
+
+#if 1 /* Test */
+	ACC_DATA_STRUCT channelData;
+extern void GetAccChannelData(ACC_DATA_STRUCT* channelData);
+	GetAccChannelData(&channelData);
+
+	if (channelData.x < s_tempChanMin[4]) { s_tempChanMin[4] = channelData.x; }
+	if (channelData.x > s_tempChanMax[4]) { s_tempChanMax[4] = channelData.x; }
+	s_tempChanAvg[4] += channelData.x;
+
+	if (channelData.y < s_tempChanMin[5]) { s_tempChanMin[5] = channelData.y; }
+	if (channelData.y > s_tempChanMax[5]) { s_tempChanMax[5] = channelData.y; }
+	s_tempChanAvg[5] += channelData.y;
+
+	if (channelData.z < s_tempChanMin[6]) { s_tempChanMin[6] = channelData.z; }
+	if (channelData.z > s_tempChanMax[6]) { s_tempChanMax[6] = channelData.z; }
+	s_tempChanAvg[6] += channelData.z;
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -2538,14 +2556,6 @@ static uint32_t trash = 0;
 		// Isolate processing for just the sensor calibration
 		if (g_activeMenu == CAL_SETUP_MENU)
 		{
-#if 1 /* Test to see A/D output */
-static uint32_t halfSecCheck = 0;
-			if (halfSecCheck != g_lifetimeHalfSecondTickCount)
-			{
-				debug("CS A/D: R:%04x V:%04x T:%04x A:%04x\r\n", s_R_channelReading, s_V_channelReading, s_T_channelReading, s_A_channelReading);
-				halfSecCheck = g_lifetimeHalfSecondTickCount;
-			}
-#endif
 			ProcessSensorCalibrationData();
 		}
 	}
