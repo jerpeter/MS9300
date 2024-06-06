@@ -412,8 +412,12 @@ uint32 GetCurrentEpochTime(void)
 DATE_TIME_STRUCT ConvertEpochTimeToDateTime(time_t epochTime)
 {
 	struct tm *convertTime;
-
+#if 0 /* Original */
 	convertTime = localtime(&epochTime);
+#else /* Changing time_t to be a long with -D_USE_LONG_TIME_T define in Makefile causes localtime to mess up because it only handles time as a long long */
+	__int_least64_t epochTimeExpanded = epochTime;
+	convertTime = localtime((time_t*)&epochTimeExpanded);
+#endif
 
 	s_currentTime.year = (convertTime->tm_year - 100);
 	s_currentTime.month = (convertTime->tm_mon + 1);
