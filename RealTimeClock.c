@@ -345,7 +345,11 @@ DATE_TIME_STRUCT GetCurrentTime(void)
 	uint32 accumulatedSeconds = (g_rtcTickCountSinceLastExternalUpdate / 2);
 	struct tm currentTime;
 	struct tm *convertTime;
+#if 0 /* Original */
 	time_t epochTime;
+#else /* Changing time_t to be a long with -D_USE_LONG_TIME_T define in Makefile causes localtime to mess up because it only handles time as a long long */
+	__int_least64_t epochTime;
+#endif
 
 	s_currentTime = g_lastReadExternalRtcTime;
 
@@ -362,8 +366,11 @@ DATE_TIME_STRUCT GetCurrentTime(void)
 
 		epochTime += accumulatedSeconds;
 
+#if 0 /* Original */
 		convertTime = localtime(&epochTime);
-
+#else /* Changing time_t to be a long with -D_USE_LONG_TIME_T define in Makefile causes localtime to mess up because it only handles time as a long long */
+		convertTime = localtime((time_t*)&epochTime);
+#endif
 		s_currentTime.year = (convertTime->tm_year - 100);
 		s_currentTime.month = (convertTime->tm_mon + 1);
 		s_currentTime.day = convertTime->tm_mday;
