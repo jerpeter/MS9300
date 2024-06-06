@@ -742,7 +742,6 @@ void SmartSensorDebug(void)
 	for (i = 0; i < 16; i++) { zeroed += smartSensorData.reserved[i]; }
 	debugRaw("\tReserved Empty: %s\r\n", (zeroed == 0) ? "YES" : "NO");
 
-	//convertTime = *localtime((time_t*)&smartSensorData.currentCal.calibrationDate);
 	debugRaw("\tCurrent Calibration Date: %s/%d/%d (0x%08x)\r\n", (char*)g_monthTable[(smartSensorData.currentCal.calDate.month)].name,
 				smartSensorData.currentCal.calDate.day, smartSensorData.currentCal.calDate.year, ((CALIBRATION_DATE_UNIVERSAL_STRUCT)smartSensorData.currentCal.calDate).epochDate);
 	debugRaw("\tCurrent Calibration Facility: 0x%x\r\n", smartSensorData.currentCal.calFacility);
