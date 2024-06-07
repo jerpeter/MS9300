@@ -104,7 +104,11 @@ uint8 g_busyProcessingEvent = NO;
 uint8 g_sampleProcessing = IDLE_STATE;
 uint8 g_modemConnected = NO;
 uint8 g_lcdBacklightFlag = ENABLED;
+#if LCD_RESOURCE_UNAVAILABLE
+uint8 g_lcdPowerFlag = DISABLED;
+#else /* LCD available*/
 uint8 g_lcdPowerFlag = ENABLED;
+#endif
 uint8 g_kpadProcessingFlag = DEACTIVATED;
 uint8 g_kpadCheckForKeyFlag = DEACTIVATED;
 uint8 g_factorySetupSequence = SEQ_NOT_STARTED;

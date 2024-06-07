@@ -398,6 +398,10 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 ///----------------------------------------------------------------------------
 void KeypressEventMgr(void)
 {
+#if LCD_RESOURCE_UNAVAILABLE
+	return;
+#endif
+
 	// Check if the LCD Power was turned off
 	if (g_lcdPowerFlag == DISABLED)
 	{

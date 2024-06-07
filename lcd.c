@@ -1608,6 +1608,10 @@ void test_white_screen()
 // Display the built in FTDI logo animation and then calibrate
 void test_logo(void)
 {
+#if LCD_RESOURCE_UNAVAILABLE
+	return;
+#endif
+
 	ft81x_logo();
 
 	// Todo: look into calibrate further
@@ -1945,6 +1949,10 @@ void test_dots(
  */
 uint8_t ft81x_init(void)
 {
+#if LCD_RESOURCE_UNAVAILABLE
+	return false;
+#endif
+
 #if 0 /* LCD Slave Select 0 Setup moved to LCD Power GPIO init */
 	mxc_gpio_cfg_t setupGPIO;
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL)

@@ -672,6 +672,10 @@ void TurnDisplayOff(void)
 ///----------------------------------------------------------------------------
 void ActivateDisplayShortDuration(uint16 secondsToDisplay)
 {
+#if LCD_RESOURCE_UNAVAILABLE
+	return;
+#endif
+
 	// Check if the LCD Power was turned off
 	if (g_lcdPowerFlag == DISABLED)
 	{

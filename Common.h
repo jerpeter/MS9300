@@ -70,6 +70,8 @@ enum {
 
 #define VT_FEATURE_DISABLED			NO
 
+#define LCD_RESOURCE_UNAVAILABLE	NO
+
 #define FLASH_USER_PAGE_BASE_ADDRESS	(0x0000)
 #define GET_HARDWARE_ID					(g_shadowFactorySetupRecord.hardwareID) // Factory setup location of Hardware ID
 #define GET_BUILD_ID					(g_shadowFactorySetupRecord.buildID) // Factory setup location of Build ID
