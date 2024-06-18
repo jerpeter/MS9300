@@ -41,16 +41,108 @@
 #include "mscmem.h"
 #include <string.h>
 #include <stdio.h>
-#include "Ext_Flash.h"
-#include "spixf.h"
 
 #include "sdhc_lib.h"
 
 /***** Definitions *****/
-
-#define SPIXF_DISK 0
-
 #define LBA_SIZE 512 /* Size of "logical blocks" in bytes */
+
+/***** Global Data *****/
+
+/***** File Scope Variables *****/
+
+#if 0 /* Test RAM disk */
+/***** Global Data *****/
+
+/***** File Scope Variables *****/
+
+static int initialized = 0;
+static int running = 0;
+
+#define NUM_PAGES 0x100
+uint8_t ramDiskMem[NUM_PAGES][LBA_SIZE];
+
+/******************************************************************************/
+int mscmem_Init()
+{
+    if (!initialized) {
+        initialized = 1;
+#if (ERASE_MEMORY_ON_INIT)
+        memset(ramDiskMem, 0, sizeof(ramDiskMem));
+#endif
+    }
+
+    return 0;
+}
+
+/******************************************************************************/
+uint32_t mscmem_Size(void)
+{
+    return NUM_PAGES;
+}
+
+/******************************************************************************/
+int mscmem_Read(uint32_t lba, uint8_t *buffer)
+{
+    if (lba >= NUM_PAGES) {
+        return 1;
+    }
+
+    memcpy(buffer, ramDiskMem[lba], LBA_SIZE);
+    return 0;
+}
+
+/******************************************************************************/
+int mscmem_Write(uint32_t lba, uint8_t *buffer)
+{
+    if (lba >= NUM_PAGES) {
+        return 1;
+    }
+
+    memcpy(ramDiskMem[lba], buffer, LBA_SIZE);
+    return 0;
+}
+
+/******************************************************************************/
+int mscmem_Start()
+{
+    /* Not much to do for this implementation.  The RAM is always ready. */
+    if (!initialized) {
+        mscmem_Init();
+    }
+
+    /* Check if the RAM has been initialized. If it has, start running. */
+    if (initialized) {
+        running = 1;
+    }
+
+    /* Start should return fail (non-zero) if the memory cannot be initialized. */
+    return !initialized;
+}
+
+/******************************************************************************/
+int mscmem_Stop()
+{
+    /* Nothing to do for this implementation.  All data is written as it is */
+    /*   received so there are no pending writes that need to be flushed.   */
+    running = 0;
+    return 0;
+}
+
+/******************************************************************************/
+int mscmem_Ready()
+{
+    return running;
+}
+
+#if 0 /* External Flash reference */
+//==============================================================================
+// SPIXF Disk reference MSC interface functions
+//==============================================================================
+#include "Ext_Flash.h"
+#include "spixf.h"
+
+/***** Definitions *****/
 #define LBA_SIZE_SHIFT 9 /* The shift value used to convert between addresses and block numbers */
 
 /***** Global Data *****/
@@ -59,11 +151,6 @@
 
 //static int initialized = 0;
 //static int running = 0;
-
-#if SPIXF_DISK
-//==============================================================================
-// SPIXF Disk reference MSC interface functions
-//==============================================================================
 
 #undef EXT_FLASH_BAUD
 #define EXT_FLASH_BAUD 5000000 /* SPI clock rate to communicate with the external flash */
@@ -242,6 +329,7 @@ int mscmem_Ready()
 {
     return running;
 }
+#endif
 
 #else // Native SDHC disk
 //==============================================================================
@@ -366,7 +454,8 @@ int mscmem_Read(uint32_t lba, uint8_t *buffer)
     return (status);
 #else /* Raw access */
     // Read sector, lba directly translates to sector number, assume that also equals sector address for SDHC lib read (raw addres wouldn't fit in uint32)
-    int status = MXC_SDHC_Lib_Read(buffer, lba, LBA_SIZE, MXC_SDHC_LIB_QUAD_DATA);
+    //int status = MXC_SDHC_Lib_Read(buffer, lba, LBA_SIZE, MXC_SDHC_LIB_QUAD_DATA);
+    int status = MXC_SDHC_Lib_Read(buffer, lba, 1, MXC_SDHC_LIB_QUAD_DATA);
 
     return (status);
 #endif
@@ -396,7 +485,8 @@ int mscmem_Write(uint32_t lba, uint8_t *buffer)
     return (0);
 #else /* Raw access */
     // Write sector, lba directly translates to sector number, assume that also equals sector address for SDHC lib write (raw addres wouldn't fit in uint32)
-    int status = MXC_SDHC_Lib_Write(lba, (void *)buffer, LBA_SIZE, MXC_SDHC_LIB_QUAD_DATA);
+    //int status = MXC_SDHC_Lib_Write(lba, (void *)buffer, LBA_SIZE, MXC_SDHC_LIB_QUAD_DATA);
+    int status = MXC_SDHC_Lib_Write(lba, (void *)buffer, 1, MXC_SDHC_LIB_QUAD_DATA);
 
     return (status);
 #endif
