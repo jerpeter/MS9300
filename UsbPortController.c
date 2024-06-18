@@ -1438,6 +1438,17 @@ extern uint8_t usbIsrActive;
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void USBCPortControllerSwapToHost(void)
+{
+	struct tps25750 tps;
+
+	tps25750_pr_set(&tps, TYPEC_SOURCE);
+	tps25750_dr_set(&tps, TYPEC_HOST);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void USBCPortControllerInit(void)
 {
 	// Todo: Initial setup?
