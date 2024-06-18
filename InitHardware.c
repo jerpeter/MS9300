@@ -2092,21 +2092,21 @@ int usbShutdownCallback();
 void echoUSB(void);
 
 // This EP assignment must match the Configuration Descriptor
-static msc_cfg_t msc_cfg = {
+msc_cfg_t msc_cfg = {
     1, /* EP OUT */
     MXC_USBHS_MAX_PACKET, /* OUT max packet size */
     2, /* EP IN */
     MXC_USBHS_MAX_PACKET, /* IN max packet size */
 };
 
-/* static const removed while testing CDC-ACM only */ msc_idstrings_t ids = {
+msc_idstrings_t ids = {
     "NOMIS", /* Vendor string.  Maximum of 8 bytes */
     "MSC FLASH DRIVE", /* Product string.  Maximum of 16 bytes */
     "1.0" /* Version string.  Maximum of 4 bytes */
 };
 
 // This EP assignment must match the Configuration Descriptor
-static acm_cfg_t acm_cfg = {
+acm_cfg_t acm_cfg = {
     2, /* EP OUT */
     MXC_USBHS_MAX_PACKET, /* OUT max packet size */
     3, /* EP IN */
@@ -2116,7 +2116,7 @@ static acm_cfg_t acm_cfg = {
 };
 
 // Functions to control "disk" memory. See msc.h for definitions
-/* static const removed while testing CDC-ACM only */ msc_mem_t mem = { mscmem_Init, mscmem_Start, mscmem_Stop, mscmem_Ready, mscmem_Size, mscmem_Read, mscmem_Write };
+msc_mem_t mem = { mscmem_Init, mscmem_Start, mscmem_Stop, mscmem_Ready, mscmem_Size, mscmem_Read, mscmem_Write };
 
 ///----------------------------------------------------------------------------
 ///	Function Break
