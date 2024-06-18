@@ -112,6 +112,15 @@ BOOLEAN ExternalRtcInit(void)
 	DisableExternalRtcAlarm();
 #endif
 
+#if 1 /* Test setting Offset register to trim External RTC time */
+	// Time reads fast, +114.547 ppm, 114.547 / 2.170 (OFFM = 0) = 52.78 = ~53
+	uint8_t offsetReg = 0x53; // Two's complement of 53
+	SetRtcRegisters(PCF85263_CTL_OFFSET, &offsetReg, sizeof(offsetReg));
+	offsetReg = 0;
+	GetRtcRegisters(PCF85263_CTL_OFFSET, &offsetReg, sizeof(offsetReg));
+	debug("External RTC: Offset register set to %d\r\n", offsetReg);
+#endif
+
 	// Need to initialize the global Current Time
 	UpdateCurrentTime();
 
