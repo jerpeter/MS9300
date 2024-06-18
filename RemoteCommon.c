@@ -125,33 +125,6 @@ uint8 ParseIncommingMsgCmd(CMD_BUFFER_STRUCT* inCmd, COMMAND_MESSAGE_HEADER* inc
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 ParseIncommingDERRequestMsg(CMD_BUFFER_STRUCT* inCmd, DER_REQUEST* derRequest)
-{
-	char* msgRequestPtr = (char*)inCmd->msg;
-
-	// clear the incomming header data.
-	memset(derRequest, 0, sizeof(DER_REQUEST));
-
-	// Check if the DER request is of sufficient length and if the DER request passes a first check for errors
-	if ((strlen(msgRequestPtr) < MIN_DER_REQUEST_LENGTH) || (FirstPassValidateCommandString(msgRequestPtr) == FAILED))
-	{
-		// There is a problem
-		return (FAILED);
-	}
-
-	// Scan the DER request elements (non-populated elements will end up zero)
-	sscanf(msgRequestPtr, "%3s,%hu,%lu,%hu,%hu,%hu,%hu,%hu,%lu", derRequest->command, &derRequest->eventNumber, &derRequest->delayBeforeSend, &derRequest->enablePackets,
-			&derRequest->packetSize, &derRequest->startPacket, &derRequest->numberOfPackets, &derRequest->enableAck, &derRequest->responseTimeout);
-
-	debug("DER Request: %s E#:%d Delay:%lu EnPkt:%d PktSz:%d Start:%d #Pkts:%d EnAck:%d RspTmo:%lu\r\n", derRequest->command, &derRequest->eventNumber, &derRequest->delayBeforeSend,
-			&derRequest->enablePackets, &derRequest->packetSize, &derRequest->startPacket, &derRequest->numberOfPackets, &derRequest->enableAck, &derRequest->responseTimeout);
-
-	return (PASSED);
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 void BuildOutgoingHeaderBuffer(COMMAND_MESSAGE_HEADER* msgHdrData, uint8* msgHdrBuf)
 {
 	uint8* bufPtr = msgHdrBuf;

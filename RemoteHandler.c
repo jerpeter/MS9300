@@ -82,9 +82,6 @@ static const COMMAND_MESSAGE_STRUCT s_cmdMessageTable[ TOTAL_COMMAND_MESSAGES ] 
 	{ 'D', 'S', 'M', HandleDSM },		// Download summary memory.
 	{ 'D', 'E', 'M', HandleDEM },		// Download event memory.
 	{ 'D', 'E', 'T', HandleDET },		// Download event CSV text
-#if 0 /* Command not complete */
-	{ 'D', 'E', 'R', HandleDER },		// Download event resume.
-#endif
 	{ 'E', 'E', 'M', handleEEM },		// Erase event memory.
 	{ 'D', 'C', 'M', HandleDCM },		// Download configuration memory.
 	{ 'U', 'C', 'M', HandleUCM },		// Upload configuration memory.

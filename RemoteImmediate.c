@@ -1311,605 +1311,6 @@ void HandleCAN(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void HandleDER(CMD_BUFFER_STRUCT* inCmd)
-{
-#if 0 /* Incomplete, unfinished */
-	uint8 derHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
-	//DER_REQUEST derRequest;
-	char msgTypeStr[8];
-	uint8 derError = NO;
-
-	FIL file;
-	uint32_t bytesMoved;
-
-	debug("HandleDER: Entry\r\n");
-
-	// Check if the modem processing is busy
-	if (g_modemStatus.xferMutex == YES)
-	{
-		// Ignore request
-		return;
-	}
-
-	// Clear out the DER working structure
-	memset(&g_derXferStruct, 0, sizeof(DERx_XFER_STRUCT));
-
-	// Check to make sure the initial parse is correct
-	if (ParseIncommingDERRequestMsg(inCmd, &g_derXferStruct.derRequest) == FAILED) { derError = YES; }
-
-	// Check to make sure event number isn't larger than the max event number
-	if (g_derXferStruct.derRequest.eventNumber >= g_nextEventNumberToUse) { derError = YES; }
-	// Check to make sure the delay before sending isn't greater than 60 seconds
-	if (g_derXferStruct.derRequest.delayBeforeSend > 60000) { derError = YES; }
-	// Check to make sure the enable packets option is either 0 or 1
-	if (g_derXferStruct.derRequest.enablePackets > 1) { derError = YES; }
-	// Check to make sure the enable acknowledge option is either 0 or 1
-	if (g_derXferStruct.derRequest.enableAck > 1) { derError = YES; }
-	// Check to make sure the packet size is even
-	if (g_derXferStruct.derRequest.packetSize & 0x0001) { derError = YES; }
-
-	if (derError == YES)
-	{
-		debug("HandleDER: Request error\r\n");
-
-		sprintf((char*)msgTypeStr, "%02d", CFG_ERR_BAD_DER_REQUEST);
-		BuildOutgoingSimpleHeaderBuffer((uint8*)derHdr, (uint8*)"DERx",	(uint8*)msgTypeStr, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);
-
-		// Calculate the CRC on the header
-		g_transmitCRC = CalcCCITT32((uint8*)&derHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
-
-		// Send Starting CRLF
-		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
-		// Send Simple header
-		ModemPuts((uint8*)derHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
-		// Send Ending Footer
-#if ENDIAN_CONVERSION
-		g_transmitCRC = __builtin_bswap32(g_transmitCRC);
-#endif
-		ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
-
-		return;
-	}
-
-	// Further validation
-/*
-	uint16 eventNumber;
-	uint32 delayBeforeSend;
-	uint16 enablePackets;
-	uint16 packetSize;
-	uint16 startPacket;
-	uint16 numberOfPackets;
-	uint16 enableAck;
-	uint32 responseTimeout;
-*/
-/*
-	if delayBeforeSend < 3000 then soft delay
-	else setup soft timer for callback
-
-	if enablePackets = NO then run DEM
-	else run DER
-
-	Want to mimic DEM output (MESSAGE_HEADER_LENGTH with Msg header+footer_event size and flags)
-	Cache event summary to get compressed size
-
-*/
-
-	//debug("eventNumToSend = %d \r\n",eventNumToSend);
-
-	// Initialize the flag and time fields.
-	g_derXferStruct.xferStateFlag = NOP_XFER_STATE;
-	g_derXferStruct.dloadEventRec.structureFlag = START_DLOAD_FLAG;
-	g_derXferStruct.dloadEventRec.downloadDate = GetCurrentTime();
-	g_derXferStruct.dloadEventRec.endFlag = END_DLOAD_FLAG;
-	g_derXferStruct.errorStatus = MODEM_SEND_SUCCESS;
-
-	// Reset flag to always attempt compression
-	g_derXferStruct.downloadMethod = COMPRESS_MINILZO;
-	g_derXferStruct.compressedEventDataFilePresent = CheckCompressedEventDataFileExists(g_derXferStruct.derRequest.eventNumber);
-
-	// Get the event file record
-	GetEventFileRecord(g_derXferStruct.derRequest.eventNumber, &g_derXferStruct.dloadEventRec.eventRecord);
-
-	// Need total uncompressed data size
-	g_derXferStruct.uncompressedEventSizePlusMessage = (uint16)(MESSAGE_HEADER_LENGTH + MESSAGE_FOOTER_LENGTH + g_derXferStruct.dloadEventRec.eventRecord.header.headerLength +
-															g_derXferStruct.dloadEventRec.eventRecord.header.summaryLength + g_derXferStruct.dloadEventRec.eventRecord.header.dataLength);
-
-	// Make sure compressed data pointer is null (actually done with the memset initially)
-	g_derXferStruct.compressedDataPtr = NULL;
-
-	// Determine the necessary download method and setup/cache based on that decision
-	if (g_derXferStruct.compressedEventDataFilePresent == YES)
-	{
-		g_derXferStruct.compressedEventDataSize = GetERDataSize(g_derXferStruct.derRequest.eventNumber);
-	}
-	// No compressed data file exists but the system is idle so the event data buffer can be used to cache the event
-	else if (g_sampleProcessing == IDLE_STATE)
-	{
-		CacheEventDataToRam(g_derXferStruct.derRequest.eventNumber, (uint8*)&g_eventDataBuffer[0], 0, g_derXferStruct.dloadEventRec.eventRecord.header.dataLength);
-
-		// Need to compress the data portion
-		// Check if the data length is less than 1/2 the buffer size (safe guesstimate for data + compressed data size given compression is typically 3:1)
-		if (g_derXferStruct.dloadEventRec.eventRecord.header.dataLength < (EVENT_BUFF_SIZE_IN_BYTES / 2))
-		{
-			g_compressedDataOutletPtr = (uint8*)&g_eventDataBuffer[((g_derXferStruct.dloadEventRec.eventRecord.header.dataLength + 2) / 2)];
-			g_derXferStruct.compressedEventDataSize = lzo1x_1_compress((void*)&g_eventDataBuffer[0], g_derXferStruct.dloadEventRec.eventRecord.header.dataLength, OUT_BUFFER);
-
-			g_derXferStruct.compressedDataPtr = (uint8*)&g_eventDataBuffer[((g_derXferStruct.dloadEventRec.eventRecord.header.dataLength + 2) / 2)];
-		}
-		else // No memory space to work, must save compressed data as a file
-		{
-			// Get new compressed event filename and path
-			GetERDataFilename(g_derXferStruct.dloadEventRec.eventRecord.summary.eventNumber);
-
-			if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
-			{
-				debugErr("Unable to create ERdata event file: %s\r\n", g_spareFileName);
-			}
-			else // File created, write out the event
-			{
-				g_globalFileHandle = &file;
-				g_spareBufferIndex = 0;
-				g_derXferStruct.compressedEventDataSize = lzo1x_1_compress((void*)&g_eventDataBuffer[0], g_derXferStruct.dloadEventRec.eventRecord.header.dataLength, OUT_FILE);
-
-				// Check if any remaining compressed data is queued
-				if (g_spareBufferIndex)
-				{
-#if ENDIAN_CONVERSION
-					// No conversion for compressed data
-#endif
-					// Finish writing the remaining compressed data
-					f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesMoved);
-					g_spareBufferIndex = 0;
-				}
-
-				// Done writing the event file, close the file handle
-				g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-
-				f_close(&file);
-				SetFileTimestamp(g_spareFileName);
-
-				g_derXferStruct.compressedEventDataFilePresent = YES;
-			}
-		}
-	}
-	else // Actively monitoring, no compressed event data file and can't use event data buffer to cache the event
-	{
-		// Signal to send the event raw/uncompressed
-		g_derXferStruct.downloadMethod = COMPRESS_NONE;
-
-		// Possible to create temp file with compressed event data?
-	}
-
-	// Check if the download method is still compress
-	if (g_derXferStruct.downloadMethod == COMPRESS_MINILZO)
-	{
-		// Compress the event record
-		g_compressedDataOutletPtr = (uint8*)&g_derXferStruct.compressedEventRecord;
-		g_derXferStruct.compressedEventRecordSize = lzo1x_1_compress((void*)&g_derXferStruct.dloadEventRec.eventRecord, sizeof(EVT_RECORD), OUT_BUFFER);
-
-		g_derXferStruct.totalPackageSize = (MESSAGE_HEADER_LENGTH + g_derXferStruct.compressedEventRecordSize + g_derXferStruct.compressedEventDataSize + MESSAGE_FOOTER_LENGTH);
-		g_derXferStruct.headerPlusEventRecordBoundary = (MESSAGE_HEADER_LENGTH + g_derXferStruct.compressedEventRecordSize);
-	}
-	else // (g_derXferStruct.downloadMethod == COMPRESS_NONE)
-	{
-		g_derXferStruct.totalPackageSize = g_derXferStruct.uncompressedEventSizePlusMessage;
-		g_derXferStruct.headerPlusEventRecordBoundary = (MESSAGE_HEADER_LENGTH + sizeof(EVT_RECORD));
-	}
-
-	// Tally the total number of packets
-	g_derXferStruct.totalPackets = ((g_derXferStruct.totalPackageSize / g_derXferStruct.derRequest.packetSize) + 1);
-	g_derXferStruct.currentPacket = g_derXferStruct.derRequest.startPacket;
-
-	if ((g_derXferStruct.derRequest.numberOfPackets) && (g_derXferStruct.totalPackets > (g_derXferStruct.derRequest.startPacket + g_derXferStruct.derRequest.numberOfPackets - 1)))
-	{
-		g_derXferStruct.endPacket = (g_derXferStruct.derRequest.startPacket + g_derXferStruct.derRequest.numberOfPackets - 1);
-	}
-	else // Grab all packets from specified start to the end
-	{
-		g_derXferStruct.endPacket = g_derXferStruct.totalPackets;
-	}
-
-	g_dsmXferStructPtr->xferStateFlag = CACHE_PACKETS_STATE;
-	g_modemStatus.xferState = DERx_CMD;
-	g_modemStatus.xferMutex = YES;
-	g_modemStatus.remoteResponse = WAITING_FOR_STATUS;
-
-	// Main - Craft Manager will pick up from here without directly calling
-	//ManageDER();
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-uint8 ManageDER(void)
-{
-#if 0 /* Incomplete, unfinished */
-	uint32 startLocation;
-	uint32 cacheSize;
-
-	/*
-	==========
-	DER Packet
-	----------
-	<CRLF>
-	DER Command
-	Event Number
-	Packet Number
-	Packet Size
-	<Packet Data>
-	Packet CRC
-	<CRLF>
-
-	DEMx0100028142000000000000000032000000 (38)
-	*/
-
-	//==========================================================================
-	// DER State: Wait for Remote Status
-	//--------------------------------------------------------------------------
-	if (g_derXferStruct.xferStateFlag == WAIT_REMOTE_STATUS_STATE)
-	{
-		// Check if the still waiting for a response
-		if (g_modemStatus.remoteResponse == WAITING_FOR_STATUS)
-		{
-			// Check response timeout status (use half second tick)
-			// Fill in
-
-			return (DERx_CMD);
-		}
-		else if (g_modemStatus.remoteResponse == ACKNOWLEDGE_PACKET)
-		{
-			// Increment packet number
-			g_derXferStruct.currentPacket++;
-
-			// Check if finished sending
-			if (g_derXferStruct.currentPacket == g_derXferStruct.endPacket)
-			{
-				// Check if successfully completed the last packet of the event
-				if (g_derXferStruct.currentPacket == g_derXferStruct.totalPackets)
-				{
-					// Update last downloaded event
-					if (g_derXferStruct.derRequest.eventNumber > __autoDialoutTbl.lastDownloadedEvent) { __autoDialoutTbl.lastDownloadedEvent = g_derXferStruct.derRequest.eventNumber; }
-				}
-
-				// Done with the DER command, clear states and return
-				g_derXferStruct.xferStateFlag = NOP_XFER_STATE; g_modemStatus.xferMutex = NO; g_transferCount = 0; return (NOP_CMD);
-			}
-			// Check if the next packet to send is not cached yet
-			else if (g_derXferStruct.currentPacket > g_derXferStruct.cacheEndPacket)
-			{
-				g_derXferStruct.xferStateFlag = CACHE_PACKETS_STATE;
-			}
-			else // Next packed to send is already cached
-			{
-				g_derXferStruct.xferStateFlag = SEND_PACKETS_STATE;
-			}
-		}
-		else if (g_modemStatus.remoteResponse == NACK_PACKET)
-		{
-			// Resend same packet number
-			g_derXferStruct.retransmitPacket = YES;
-			g_derXferStruct.xferStateFlag = SEND_PACKETS_STATE;
-		}
-		else // (g_modemStatus.remoteResponse == CANCEL_COMMAND)
-		{
-			g_derXferStruct.xferStateFlag = NOP_XFER_STATE; g_modemStatus.xferMutex = NO; g_transferCount = 0; return (NOP_CMD);
-		}
-	}
-
-	//==========================================================================
-	// DER State: Cache Packets
-	//--------------------------------------------------------------------------
-	if (g_derXferStruct.xferStateFlag == CACHE_PACKETS_STATE)
-	{
-		startLocation = ((g_derXferStruct.currentPacket - 1) * g_derXferStruct.derRequest.packetSize);
-		//endLocation = g_derXferStruct.currentPacket * g_derXferStruct.derRequest.packetSize
-
-		g_derCacheIndex = 0;
-
-		// Check if caching the header and event summary
-		if (startLocation < g_derXferStruct.headerPlusEventRecordBoundary)
-		{
-			// Cache message header
-			memcpy(&g_derCache[g_derCacheIndex], &g_derXferStruct.msgHdr[0], MESSAGE_HEADER_LENGTH);
-			g_derCacheIndex += MESSAGE_HEADER_LENGTH;
-
-			// Cache compressed event record
-			if (g_derXferStruct.downloadMethod == COMPRESS_MINILZO)
-			{
-				memcpy(&g_derCache[g_derCacheIndex], &g_derXferStruct.compressedEventRecord, g_derXferStruct.compressedEventRecordSize);
-				g_derCacheIndex += g_derXferStruct.compressedEventRecordSize;
-			}
-			else // Cache uncompressed event record
-			{
-				memcpy(&g_derCache[g_derCacheIndex], &g_derXferStruct.dloadEventRec.eventRecord, sizeof(EVT_RECORD));
-				g_derCacheIndex += sizeof(EVT_RECORD);
-			}
-
-			// Cache compressed event data
-			if (g_derXferStruct.downloadMethod == COMPRESS_MINILZO)
-			{
-				// Check if the compressed data size is greater than the remaining cache size
-				if (g_derXferStruct.compressedEventDataSize > (uint32)(DER_CACHE_SIZE - g_derCacheIndex))
-				{
-					// Set cache size to remaining cache available
-					cacheSize = (DER_CACHE_SIZE - g_derCacheIndex);
-				}
-				else // Less compressed data than cache space
-				{
-					// Set cache size to the remaining compressed data available
-					cacheSize = g_derXferStruct.compressedEventDataSize;
-				}
-
-				// Check if compressed data is in the event data buffer
-				if (g_derXferStruct.compressedDataPtr)
-				{
-					memcpy(&g_derCache[g_derCacheIndex], g_derXferStruct.compressedDataPtr, cacheSize);
-				}
-				else // Compressed data is in a file
-				{
-					CacheERDataToBuffer(g_derXferStruct.derRequest.eventNumber, &g_derCache[g_derCacheIndex], 0, cacheSize);
-				}
-			}
-			else // Cache uncompressed event data
-			{
-				// Check if the uncompressed data size is greater than the remaining cache size
-				if (g_derXferStruct.dloadEventRec.eventRecord.header.dataLength > (uint32)(DER_CACHE_SIZE - g_derCacheIndex))
-				{
-					// Set cache size to remaining cache available
-					cacheSize = (DER_CACHE_SIZE - g_derCacheIndex);
-				}
-				else // Less compressed data than cache space
-				{
-					// Set cache size to the remaining compressed data available
-					cacheSize = g_derXferStruct.dloadEventRec.eventRecord.header.dataLength;
-				}
-
-				CacheEventDataToRam(g_derXferStruct.derRequest.eventNumber, &g_derCache[g_derCacheIndex], 0, cacheSize);
-			}
-
-			// Find the end packet cached
-			g_derXferStruct.cacheEndPacket = (g_derXferStruct.currentPacket + ((DER_CACHE_SIZE / g_derXferStruct.derRequest.packetSize) * g_derXferStruct.derRequest.packetSize) - 1);
-		}
-		else // Caching only event data
-		{
-			// Augment the data start location by the original header and event record
-			startLocation -= g_derXferStruct.headerPlusEventRecordBoundary;
-
-			// Cache compressed event data
-			if (g_derXferStruct.downloadMethod == COMPRESS_MINILZO)
-			{
-				// Check if the compressed data size is greater than the remaining cache size
-				if ((g_derXferStruct.compressedEventDataSize - startLocation) > DER_CACHE_SIZE)
-				{
-					// Set cache size to remaining cache available
-					cacheSize = DER_CACHE_SIZE;
-				}
-				else // Less compressed data than cache space
-				{
-					// Set cache size to the remaining compressed data available
-					cacheSize = (g_derXferStruct.compressedEventDataSize - startLocation);
-				}
-
-				// Check if compressed data is in the event data buffer
-				if (g_derXferStruct.compressedDataPtr)
-				{
-					memcpy(&g_derCache[g_derCacheIndex], &g_derXferStruct.compressedDataPtr[startLocation], cacheSize);
-				}
-				else // Compressed data is in a file
-				{
-					CacheERDataToBuffer(g_derXferStruct.derRequest.eventNumber, &g_derCache[0], startLocation, cacheSize);
-				}
-			}
-			else // Cache uncompressed event data
-			{
-				// Check if the uncompressed data size is greater than the remaining cache size
-				if ((g_derXferStruct.dloadEventRec.eventRecord.header.dataLength - startLocation) > DER_CACHE_SIZE)
-				{
-					// Set cache size to remaining cache available
-					cacheSize = DER_CACHE_SIZE;
-				}
-				else // Less compressed data than cache space
-				{
-					// Set cache size to the remaining compressed data available
-					cacheSize = (g_derXferStruct.dloadEventRec.eventRecord.header.dataLength - startLocation);
-				}
-
-				CacheEventDataToRam(g_derXferStruct.derRequest.eventNumber, &g_derCache[0], startLocation, cacheSize);
-			}
-
-			// Find the end packet cached
-			g_derXferStruct.cacheStartPacket = g_derXferStruct.currentPacket;
-			g_derXferStruct.cacheEndPacket = (g_derXferStruct.currentPacket + ((DER_CACHE_SIZE / g_derXferStruct.derRequest.packetSize) * g_derXferStruct.derRequest.packetSize) - 1);
-		}
-
-		g_derXferStruct.xferStateFlag = SEND_PACKETS_STATE;
-	}
-
-	//==========================================================================
-	// DER State: Send Packets
-	//--------------------------------------------------------------------------
-	if (g_derXferStruct.xferStateFlag == SEND_PACKETS_STATE)
-	{
-		// Send starting <CRLF>
-		// Send the DER packet header (DER Command, Event Number, Packet Number, Packet Size)
-		// Send the DER packet data
-		// Send the DER CRC
-		// Send ending <CRLF>
-
-		// Set response timeout (in half second value rounded up from response timeout value)
-
-		// Fill in packet header
-		//strncpy(g_derXferStruct.derPacketHeader.command, "DERx", 4);
-		memcpy(&g_derXferStruct.derPacketHeader.command[0], "DERx", 4);
-		g_derXferStruct.derPacketHeader.eventNumber = g_derXferStruct.derRequest.eventNumber;
-		g_derXferStruct.derPacketHeader.packetNumber = g_derXferStruct.currentPacket;
-
-		// Check if last packet and sending a partial packet size
-		if (g_derXferStruct.currentPacket == g_derXferStruct.totalPackets)
-		{
-			g_derXferStruct.derPacketHeader.packetSize = (sizeof(DER_PACKET_HEADER) + (g_derXferStruct.totalPackageSize % g_derXferStruct.derRequest.packetSize) + (4 * sizeof(uint32)));
-
-			if (!g_derXferStruct.retransmitPacket)
-			{
-				g_derXferStruct.packetDataXmitSize += g_derXferStruct.derPacketHeader.packetSize;
-			}
-			// Need to add compressed event header size
-			// Need to add compressed event data size
-			// Need to add data length including self and CRC
-			// Need to add event CRC
-		}
-		else // Normal packet size
-		{
-			g_derXferStruct.derPacketHeader.packetSize = (sizeof(DER_PACKET_HEADER) + g_derXferStruct.derRequest.packetSize + sizeof(g_transmitCRC));
-			if (!g_derXferStruct.retransmitPacket)
-			{
-				g_derXferStruct.packetDataXmitSize += g_derXferStruct.derPacketHeader.packetSize;
-			}
-		}
-
-		// Send starting CRLF
-		if (ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION) == MODEM_SEND_FAILED)
-		{
-			g_derXferStruct.xferStateFlag = NOP_XFER_STATE; g_modemStatus.xferMutex = NO; g_transferCount = 0; return (NOP_CMD);
-		}
-
-		// Calculate DER Packet CRC on DER Packet Header
-		g_transmitCRC = CalcCCITT32((uint8*)&g_derXferStruct.derPacketHeader, sizeof(DER_PACKET_HEADER), SEED_32);
-
-		// Send DER Packet Header
-		if (ModemPuts((uint8*)&g_derXferStruct.derPacketHeader, sizeof(DER_PACKET_HEADER), NO_CONVERSION) == MODEM_SEND_FAILED)
-		{
-			g_derXferStruct.xferStateFlag = NOP_XFER_STATE; g_modemStatus.xferMutex = NO; g_transferCount = 0; return (NOP_CMD);
-		}
-
-		// Find the start of the cached packet data
-		startLocation = ((g_derXferStruct.currentPacket - g_derXferStruct.cacheStartPacket) * g_derXferStruct.derRequest.packetSize);
-
-		// Calculate DER Packet CRC on the DER Packet Data
-		g_transmitCRC = CalcCCITT32((uint8*)&g_derCache[startLocation], g_derXferStruct.derRequest.packetSize, g_transmitCRC);
-
-		if (!g_derXferStruct.retransmitPacket)
-		{
-			// Check if the first packet data is being sent
-			if (g_derXferStruct.derRequest.startPacket == g_derXferStruct.currentPacket)
-			{
-				// Start the packet data CRC calculation
-				g_derXferStruct.packetDataCRC = CalcCCITT32((uint8*)&g_derCache[startLocation], g_derXferStruct.derRequest.packetSize, SEED_32);
-			}
-			else // Not the first packet
-			{
-				// Continue the packet data CRC calculation
-				g_derXferStruct.packetDataCRC = CalcCCITT32((uint8*)&g_derCache[startLocation], g_derXferStruct.derRequest.packetSize, g_derXferStruct.packetDataCRC);
-			}
-		}
-
-		// Send DER Packet Data
-		if (ModemPuts((uint8*)&g_derCache[startLocation], g_derXferStruct.derRequest.packetSize, NO_CONVERSION) == MODEM_SEND_FAILED)
-		{
-			g_derXferStruct.xferStateFlag = NOP_XFER_STATE; g_modemStatus.xferMutex = NO; g_transferCount = 0; return (NOP_CMD);
-		}
-
-		// Check if last packet and sending a partial packet size
-		if (g_derXferStruct.currentPacket == g_derXferStruct.totalPackets)
-		{
-			// Fill in handling for uncompressed transmission
-
-			g_transmitCRC = CalcCCITT32((uint8*)&g_derXferStruct.compressedEventRecordSize, sizeof(uint32), g_transmitCRC);
-			g_derXferStruct.packetDataCRC = CalcCCITT32((uint8*)&g_derXferStruct.compressedEventRecordSize, sizeof(uint32), g_derXferStruct.packetDataCRC);
-
-			if (ModemPuts((uint8*)&g_derXferStruct.compressedEventRecordSize, sizeof(uint32), NO_CONVERSION) == MODEM_SEND_FAILED)
-			{
-				g_derXferStruct.xferStateFlag = NOP_XFER_STATE; g_modemStatus.xferMutex = NO; g_transferCount = 0; return (NOP_CMD);
-			}
-
-			g_transmitCRC = CalcCCITT32((uint8*)&g_derXferStruct.compressedEventDataSize, sizeof(uint32), g_transmitCRC);
-			g_derXferStruct.packetDataCRC = CalcCCITT32((uint8*)&g_derXferStruct.compressedEventDataSize, sizeof(uint32), g_derXferStruct.packetDataCRC);
-
-			if (ModemPuts((uint8*)&g_derXferStruct.compressedEventDataSize, sizeof(uint32), NO_CONVERSION) == MODEM_SEND_FAILED)
-			{
-				g_derXferStruct.xferStateFlag = NOP_XFER_STATE; g_modemStatus.xferMutex = NO; g_transferCount = 0; return (NOP_CMD);
-			}
-
-			g_transmitCRC = CalcCCITT32((uint8*)&g_derXferStruct.packetDataXmitSize, sizeof(uint32), g_transmitCRC);
-			g_derXferStruct.packetDataCRC = CalcCCITT32((uint8*)&g_derXferStruct.packetDataXmitSize, sizeof(uint32), g_derXferStruct.packetDataCRC);
-
-			if (ModemPuts((uint8*)&g_derXferStruct.packetDataXmitSize, sizeof(uint32), NO_CONVERSION) == MODEM_SEND_FAILED)
-			{
-				g_derXferStruct.xferStateFlag = NOP_XFER_STATE; g_modemStatus.xferMutex = NO; g_transferCount = 0; return (NOP_CMD);
-			}
-
-			g_transmitCRC = CalcCCITT32((uint8*)&(g_derXferStruct.packetDataCRC), sizeof(uint32), g_transmitCRC);
-
-			if (ModemPuts((uint8*)&g_derXferStruct.packetDataCRC, sizeof(uint32), NO_CONVERSION) == MODEM_SEND_FAILED)
-			{
-				g_derXferStruct.xferStateFlag = NOP_XFER_STATE; g_modemStatus.xferMutex = NO; g_transferCount = 0; return (NOP_CMD);
-			}
-		}
-
-		// CRC xmit
-#if ENDIAN_CONVERSION
-		g_transmitCRC = __builtin_bswap32(g_transmitCRC);
-#endif
-		if (ModemPuts((uint8*)&g_transmitCRC, sizeof(g_transmitCRC), NO_CONVERSION) == MODEM_SEND_FAILED)
-		{
-			g_derXferStruct.xferStateFlag = NOP_XFER_STATE; g_modemStatus.xferMutex = NO; g_transferCount = 0; return (NOP_CMD);
-		}
-
-		// crlf xmit
-		if (ModemPuts((uint8*)&g_CRLF, sizeof(uint16), NO_CONVERSION) == MODEM_SEND_FAILED)
-		{
-			g_derXferStruct.xferStateFlag = NOP_XFER_STATE; g_modemStatus.xferMutex = NO; g_transferCount = 0; return (NOP_CMD);
-		}
-
-		// Reset flag (in case it was set)
-		g_derXferStruct.retransmitPacket = NO;
-
-		if (g_derXferStruct.derRequest.enableAck)
-		{
-			g_derXferStruct.xferStateFlag = WAIT_REMOTE_STATUS_STATE;
-			g_modemStatus.remoteResponse = WAITING_FOR_STATUS;
-
-			// Set response timeout (use half second tick)
-			// Fill in
-		}
-		else
-		{
-			g_derXferStruct.currentPacket++;
-
-			// Check if finished sending all the requested packets
-			if (g_derXferStruct.currentPacket == g_derXferStruct.endPacket)
-			{
-				// Check if successfully completed the last packet of the event
-				if (g_derXferStruct.currentPacket == g_derXferStruct.totalPackets)
-				{
-					// Update last downloaded event
-					if (g_derXferStruct.derRequest.eventNumber > __autoDialoutTbl.lastDownloadedEvent) { __autoDialoutTbl.lastDownloadedEvent = g_derXferStruct.derRequest.eventNumber; }
-				}
-
-				// Done with the DER command, clear states and return
-				g_derXferStruct.xferStateFlag = NOP_XFER_STATE; g_modemStatus.xferMutex = NO; g_transferCount = 0; return (NOP_CMD);
-			}
-			// Check if the next packet to send is not cached yet
-			else if (g_derXferStruct.currentPacket > g_derXferStruct.cacheEndPacket)
-			{
-				g_derXferStruct.xferStateFlag = CACHE_PACKETS_STATE;
-			}
-			else // Next packed to send is already cached
-			{
-				g_derXferStruct.xferStateFlag = SEND_PACKETS_STATE;
-			}
-		}
-	}
-#endif
-
-	return (DERx_CMD);
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 {
 	/* Sample Output from Supergraphics
@@ -1936,7 +1337,7 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 	Time	dBL	millibars	 (mm/s)	 (mm/s)	 (mm/s)	 Hz	 Hz	 Hz	 Hz
 	*/
 
-	EVT_RECORD* eventRecord = &(g_derXferStruct.dloadEventRec.eventRecord);
+	EVT_RECORD* eventRecord = &(g_demXferStruct.dloadEventRec.eventRecord);
 	uint32 dataSizeRemaining;
 	uint32 dataOffset = sizeof(EVT_RECORD);
 	uint32 barDataSize;
@@ -1968,8 +1369,8 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 	//===================================================================================================================================
 	if (g_eventNumberCache[eventNumberToSend] != EVENT_REFERENCE_VALID)
 	{
-		xmitLength = sprintf((char*)&g_derCache[0], "DET: Event not found for CSV output\r\n");
-		ModemPuts((uint8*)&g_derCache[0], xmitLength, NO_CONVERSION);
+		xmitLength = sprintf((char*)&g_spareBuffer[0], "DET: Event not found for CSV output\r\n");
+		ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION);
 		return; // Nothing else to be done, time to bail
 	}
 
@@ -2020,55 +1421,55 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 	if ((csvOption == CSV_FULL) || (csvOption == CSV_SUMMARY) || (csvOption == CSV_BARS))
 	//===================================================================================================================================
 	{
-		xmitLength += sprintf((char*)&g_derCache[xmitLength], "Company: %s\r\n", (char*)&(eventRecord->summary.parameters.companyName[0]));
-		xmitLength += sprintf((char*)&g_derCache[xmitLength], "Location: %s\r\n", (char*)&(eventRecord->summary.parameters.sessionLocation[0]));
-		xmitLength += sprintf((char*)&g_derCache[xmitLength], "Operator: %s\r\n", (char*)&(eventRecord->summary.parameters.seismicOperator[0]));
-		xmitLength += sprintf((char*)&g_derCache[xmitLength], "Comments: %s\r\n", (char*)&(eventRecord->summary.parameters.sessionComments[0]));
-		xmitLength += sprintf((char*)&g_derCache[xmitLength], "Graph: %s\r\n", (char*)&(eventRecord->summary.version.serialNumber[0]));
-		xmitLength += sprintf((char*)&g_derCache[xmitLength], "Event#: %d\r\n", eventRecord->summary.eventNumber);
-		if (eventRecord->summary.mode == MANUAL_CAL_MODE) { xmitLength += sprintf((char*)&g_derCache[xmitLength], "Mode: Calibration\r\n"); }
+		xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Company: %s\r\n", (char*)&(eventRecord->summary.parameters.companyName[0]));
+		xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Location: %s\r\n", (char*)&(eventRecord->summary.parameters.sessionLocation[0]));
+		xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Operator: %s\r\n", (char*)&(eventRecord->summary.parameters.seismicOperator[0]));
+		xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Comments: %s\r\n", (char*)&(eventRecord->summary.parameters.sessionComments[0]));
+		xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Graph: %s\r\n", (char*)&(eventRecord->summary.version.serialNumber[0]));
+		xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Event#: %d\r\n", eventRecord->summary.eventNumber);
+		if (eventRecord->summary.mode == MANUAL_CAL_MODE) { xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Mode: Calibration\r\n"); }
 		else if ((eventRecord->summary.mode == WAVEFORM_MODE) || ((eventRecord->summary.mode == COMBO_MODE) && (eventRecord->summary.subMode == WAVEFORM_MODE)))
-		{ xmitLength += sprintf((char*)&g_derCache[xmitLength], "Mode: %sWaveform\r\n", (eventRecord->summary.mode == COMBO_MODE ? "Combo-" : "")); }
-		else { xmitLength += sprintf((char*)&g_derCache[xmitLength], "Mode: %sBargraph\r\n", (eventRecord->summary.mode == COMBO_MODE ? "Combo-" : "")); }
+		{ xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Mode: %sWaveform\r\n", (eventRecord->summary.mode == COMBO_MODE ? "Combo-" : "")); }
+		else { xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Mode: %sBargraph\r\n", (eventRecord->summary.mode == COMBO_MODE ? "Combo-" : "")); }
 		if ((eventRecord->summary.mode == BARGRAPH_MODE) || (eventRecord->summary.subMode == BARGRAPH_MODE))
 		{
-			xmitLength += sprintf((char*)&g_derCache[xmitLength], "Start Time: %d/%d/%d @ %02d:%02d:%02d\r\n", eventRecord->summary.captured.eventTime.month, eventRecord->summary.captured.eventTime.day, eventRecord->summary.captured.eventTime.year,
+			xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Start Time: %d/%d/%d @ %02d:%02d:%02d\r\n", eventRecord->summary.captured.eventTime.month, eventRecord->summary.captured.eventTime.day, eventRecord->summary.captured.eventTime.year,
 									eventRecord->summary.captured.eventTime.hour, eventRecord->summary.captured.eventTime.min, eventRecord->summary.captured.eventTime.sec);
-			xmitLength += sprintf((char*)&g_derCache[xmitLength], "End Time: %d/%d/%d @ %02d:%02d:%02d\r\n", eventRecord->summary.captured.endTime.month, eventRecord->summary.captured.endTime.day, eventRecord->summary.captured.endTime.year,
+			xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "End Time: %d/%d/%d @ %02d:%02d:%02d\r\n", eventRecord->summary.captured.endTime.month, eventRecord->summary.captured.endTime.day, eventRecord->summary.captured.endTime.year,
 									eventRecord->summary.captured.endTime.hour, eventRecord->summary.captured.endTime.min, eventRecord->summary.captured.endTime.sec);
-			xmitLength += sprintf((char*)&g_derCache[xmitLength], "Bar Interval: %d secs\r\n", eventRecord->summary.parameters.barInterval);
-			xmitLength += sprintf((char*)&g_derCache[xmitLength], "Summary Interval: %d mins\r\n", (eventRecord->summary.parameters.summaryInterval / 60));
+			xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Bar Interval: %d secs\r\n", eventRecord->summary.parameters.barInterval);
+			xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Summary Interval: %d mins\r\n", (eventRecord->summary.parameters.summaryInterval / 60));
 		} else /* All non-Bargraph */ {
-			xmitLength += sprintf((char*)&g_derCache[xmitLength], "Date: %d/%d/%d\r\n", eventRecord->summary.captured.eventTime.month, eventRecord->summary.captured.eventTime.day, eventRecord->summary.captured.eventTime.year);
-			xmitLength += sprintf((char*)&g_derCache[xmitLength], "Time: %02d:%02d:%02d\r\n", eventRecord->summary.captured.eventTime.hour, eventRecord->summary.captured.eventTime.min, eventRecord->summary.captured.eventTime.sec);
+			xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Date: %d/%d/%d\r\n", eventRecord->summary.captured.eventTime.month, eventRecord->summary.captured.eventTime.day, eventRecord->summary.captured.eventTime.year);
+			xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Time: %02d:%02d:%02d\r\n", eventRecord->summary.captured.eventTime.hour, eventRecord->summary.captured.eventTime.min, eventRecord->summary.captured.eventTime.sec);
 		}
-		xmitLength += sprintf((char*)&g_derCache[xmitLength], "Air: %.1f %s @ %.1f Hz\r\n", (double)airPeak, aUnits, (double)((float)eventRecord->summary.calculated.a.frequency / 10));
-		xmitLength += sprintf((char*)&g_derCache[xmitLength], "Radial: %.4f %s @ %.1f Hz (Disp %0.4f %s) (Accel %0.3f g's)\r\n",
+		xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Air: %.1f %s @ %.1f Hz\r\n", (double)airPeak, aUnits, (double)((float)eventRecord->summary.calculated.a.frequency / 10));
+		xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Radial: %.4f %s @ %.1f Hz (Disp %0.4f %s) (Accel %0.3f g's)\r\n",
 								(double)((float)eventRecord->summary.calculated.r.peak / div), sUnits, (double)((float)eventRecord->summary.calculated.r.frequency / 10), (double)((float)eventRecord->summary.calculated.r.displacement / (float)1000000 / div), dUnits,
 								(double)(((float)eventRecord->summary.calculated.r.acceleration / gUnits) / (float)1000 / div));
-		xmitLength += sprintf((char*)&g_derCache[xmitLength], "Transverse: %.4f %s @ %.1f Hz (Disp %0.4f %s) (Accel %0.3f g's)\r\n",
+		xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Transverse: %.4f %s @ %.1f Hz (Disp %0.4f %s) (Accel %0.3f g's)\r\n",
 								(double)((float)eventRecord->summary.calculated.t.peak / div), sUnits, (double)((float)eventRecord->summary.calculated.t.frequency / 10), (double)((float)eventRecord->summary.calculated.t.displacement / (float)1000000 / div), dUnits,
 								(double)(((float)eventRecord->summary.calculated.t.acceleration / gUnits) / (float)1000 / div));
-		xmitLength += sprintf((char*)&g_derCache[xmitLength], "Vertical: %.4f %s @ %.1f Hz (Disp %0.4f %s) (Accel %0.3f g's)\r\n",
+		xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Vertical: %.4f %s @ %.1f Hz (Disp %0.4f %s) (Accel %0.3f g's)\r\n",
 								(double)((float)eventRecord->summary.calculated.v.peak / div), sUnits, (double)((float)eventRecord->summary.calculated.v.frequency / 10), (double)((float)eventRecord->summary.calculated.v.displacement / (float)1000000 / div), dUnits,
 								(double)(((float)eventRecord->summary.calculated.v.acceleration / gUnits) / (float)1000 / div));
-		xmitLength += sprintf((char*)&g_derCache[xmitLength], "Vector Sum: %0.2f %s\r\n", (double)(sqrtf((float)eventRecord->summary.calculated.vectorSumPeak) / div), sUnits);
-		if (eventRecord->summary.mode == MANUAL_CAL_MODE) { xmitLength += sprintf((char*)&g_derCache[xmitLength], "Sample Rate: 1024/sec\r\n"); }
-		else { xmitLength += sprintf((char*)&g_derCache[xmitLength], "Sample Rate: %d/sec\r\n", eventRecord->summary.parameters.sampleRate); }
-		xmitLength += sprintf((char*)&g_derCache[xmitLength], "Bit Accuracy: %d-bit\r\n", eventRecord->summary.parameters.bitAccuracy);
+		xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Vector Sum: %0.2f %s\r\n", (double)(sqrtf((float)eventRecord->summary.calculated.vectorSumPeak) / div), sUnits);
+		if (eventRecord->summary.mode == MANUAL_CAL_MODE) { xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Sample Rate: 1024/sec\r\n"); }
+		else { xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Sample Rate: %d/sec\r\n", eventRecord->summary.parameters.sampleRate); }
+		xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Bit Accuracy: %d-bit\r\n", eventRecord->summary.parameters.bitAccuracy);
 		if ((eventRecord->summary.mode != BARGRAPH_MODE) && (eventRecord->summary.subMode != BARGRAPH_MODE))
 		{
-			if (eventRecord->summary.mode == MANUAL_CAL_MODE) { xmitLength += sprintf((char*)&g_derCache[xmitLength], "Record Time: 100ms\r\n"); }
-			else { xmitLength += sprintf((char*)&g_derCache[xmitLength], "Record Time: %lu sec + %0.2f sec pre-trigger\r\n", eventRecord->summary.parameters.recordTime, (double)((float)1 / (float)eventRecord->summary.parameters.pretrigBufferDivider)); }
-			if (eventRecord->summary.parameters.airTriggerLevel == NO_TRIGGER_CHAR) { xmitLength += sprintf((char*)&g_derCache[xmitLength], "Air Trigger: No Trigger\r\n"); }
-			else { xmitLength += sprintf((char*)&g_derCache[xmitLength], "Air Trigger: %f %s\r\n", (double)((float)eventRecord->summary.parameters.airTriggerLevel / div), aUnits); }
-			if (eventRecord->summary.parameters.seismicTriggerLevel == NO_TRIGGER_CHAR) { xmitLength += sprintf((char*)&g_derCache[xmitLength], "Seismic Trigger: No Trigger\r\n"); }
-			else if (eventRecord->summary.parameters.seismicTriggerLevel >= VARIABLE_TRIGGER_CHAR_BASE) { xmitLength += sprintf((char*)&g_derCache[xmitLength], "Seismic Trigger: Variable Trigger (Vibration Standard: %lu)\r\n", (eventRecord->summary.parameters.seismicTriggerLevel - VARIABLE_TRIGGER_CHAR_BASE)); }
-			else { xmitLength += sprintf((char*)&g_derCache[xmitLength], "Seismic Trigger: %f %s\r\n", (double)((float)eventRecord->summary.parameters.seismicTriggerLevel / div), sUnits); }
+			if (eventRecord->summary.mode == MANUAL_CAL_MODE) { xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Record Time: 100ms\r\n"); }
+			else { xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Record Time: %lu sec + %0.2f sec pre-trigger\r\n", eventRecord->summary.parameters.recordTime, (double)((float)1 / (float)eventRecord->summary.parameters.pretrigBufferDivider)); }
+			if (eventRecord->summary.parameters.airTriggerLevel == NO_TRIGGER_CHAR) { xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Air Trigger: No Trigger\r\n"); }
+			else { xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Air Trigger: %f %s\r\n", (double)((float)eventRecord->summary.parameters.airTriggerLevel / div), aUnits); }
+			if (eventRecord->summary.parameters.seismicTriggerLevel == NO_TRIGGER_CHAR) { xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Seismic Trigger: No Trigger\r\n"); }
+			else if (eventRecord->summary.parameters.seismicTriggerLevel >= VARIABLE_TRIGGER_CHAR_BASE) { xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Seismic Trigger: Variable Trigger (Vibration Standard: %lu)\r\n", (eventRecord->summary.parameters.seismicTriggerLevel - VARIABLE_TRIGGER_CHAR_BASE)); }
+			else { xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Seismic Trigger: %f %s\r\n", (double)((float)eventRecord->summary.parameters.seismicTriggerLevel / div), sUnits); }
 		}
-		xmitLength += sprintf((char*)&g_derCache[xmitLength], "Battery Level: %0.2f\r\n", (double)((float)eventRecord->summary.captured.batteryLevel / (float)100));
+		xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Battery Level: %0.2f\r\n", (double)((float)eventRecord->summary.captured.batteryLevel / (float)100));
 
-		if (ModemPuts((uint8*)&g_derCache[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
+		if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
 	}
 
 	//===================================================================================================================================
@@ -2079,8 +1480,8 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 		if ((eventRecord->summary.mode != BARGRAPH_MODE) && (eventRecord->summary.subMode != BARGRAPH_MODE)) // Any mode that isn't Bargraph
 		//===================================================================================================================================
 		{
-			xmitLength = sprintf((char*)&g_derCache[0], "Sample Sample Air Air Radial Transverse Vertical Vector\r\nCount Time dBL millibars (%s) (%s) (%s) Sum\r\n", sUnits, sUnits, sUnits);
-			if (ModemPuts((uint8*)&g_derCache[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
+			xmitLength = sprintf((char*)&g_spareBuffer[0], "Sample Sample Air Air Radial Transverse Vertical Vector\r\nCount Time dBL millibars (%s) (%s) (%s) Sum\r\n", sUnits, sUnits, sUnits);
+			if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
 
 			if (eventRecord->summary.mode == MANUAL_CAL_MODE)
 			{
@@ -2102,8 +1503,8 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 				if (dataSizeRemaining > CMD_BUFFER_SIZE) { pullSize = CMD_BUFFER_SIZE; }
 				else { pullSize = dataSizeRemaining; }
 
-				CacheEventDataToBuffer(eventRecord->summary.eventNumber, (uint8*)&(g_derXferStruct.xmitBuffer[0]), dataOffset, pullSize);
-				currentSample = (SAMPLE_DATA_STRUCT*)&(g_derXferStruct.xmitBuffer[0]);
+				CacheEventDataToBuffer(eventRecord->summary.eventNumber, (uint8*)&(g_demXferStruct.xmitBuffer[0]), dataOffset, pullSize);
+				currentSample = (SAMPLE_DATA_STRUCT*)&(g_demXferStruct.xmitBuffer[0]);
 
 				i = 0;
 				while (i < (pullSize / sizeof(SAMPLE_DATA_STRUCT)))
@@ -2125,8 +1526,8 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 					VS = sqrt((rUnits * rUnits) + (tUnits * tUnits) + (vUnits * vUnits));
 
 					//------------------------------------------------T,Ad,Am,Ru,Tu,Vu,VS
-					xmitLength = sprintf((char*)&g_derCache[0], "%ld %f %f %f %f %f %f %f\r\n", sampleCount, (double)(float)((float)sampleCount/(float)eventRecord->summary.parameters.sampleRate), (double)airdB, (double)airmb, (double)rUnits, (double)tUnits, (double)vUnits, (double)VS);
-					if (ModemPuts((uint8*)&g_derCache[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
+					xmitLength = sprintf((char*)&g_spareBuffer[0], "%ld %f %f %f %f %f %f %f\r\n", sampleCount, (double)(float)((float)sampleCount/(float)eventRecord->summary.parameters.sampleRate), (double)airdB, (double)airmb, (double)rUnits, (double)tUnits, (double)vUnits, (double)VS);
+					if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
 
 					sampleCount++;
 					currentSample++;
@@ -2149,10 +1550,10 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 			if (csvOption == CSV_BARS)
 			{
 				// Bar Intervals only
-				if (barType == BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE) { xmitLength = sprintf((char*)&g_derCache[0], "Bar Bar Air Air Seismic Vector\r\nInterval Time dBL mb (%s) Sum\r\n", sUnits); }
-				else if (barType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE) { xmitLength = sprintf((char*)&g_derCache[0], "Bar Bar Air Air Radial Transverse Vertical Vector\r\nInterval Time dBL mb (%s) (%s) (%s) Sum\r\n", sUnits, sUnits, sUnits); }
-				else { xmitLength = sprintf((char*)&g_derCache[0], "Bar Bar Air Air Air Radial Radial Transverse Transverse Vertical Vertical Vector\r\nInterval Time dBL mb Hz (%s) Hz (%s) Hz (%s) Hz Sum\r\n", sUnits, sUnits, sUnits); }
-				if (ModemPuts((uint8*)&g_derCache[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
+				if (barType == BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE) { xmitLength = sprintf((char*)&g_spareBuffer[0], "Bar Bar Air Air Seismic Vector\r\nInterval Time dBL mb (%s) Sum\r\n", sUnits); }
+				else if (barType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE) { xmitLength = sprintf((char*)&g_spareBuffer[0], "Bar Bar Air Air Radial Transverse Vertical Vector\r\nInterval Time dBL mb (%s) (%s) (%s) Sum\r\n", sUnits, sUnits, sUnits); }
+				else { xmitLength = sprintf((char*)&g_spareBuffer[0], "Bar Bar Air Air Air Radial Radial Transverse Transverse Vertical Vertical Vector\r\nInterval Time dBL mb Hz (%s) Hz (%s) Hz (%s) Hz Sum\r\n", sUnits, sUnits, sUnits); }
+				if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
 
 				for (i = barType; i < CMD_BUFFER_SIZE; i += barType)
 				{
@@ -2170,9 +1571,9 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 
 				while (barIntervalCount <= eventRecord->summary.calculated.barIntervalsCaptured)
 				{
-					CacheEventDataToBuffer(eventRecord->summary.eventNumber, (uint8*)&(g_derXferStruct.xmitBuffer[0]), dataOffset, pullSize);
+					CacheEventDataToBuffer(eventRecord->summary.eventNumber, (uint8*)&(g_demXferStruct.xmitBuffer[0]), dataOffset, pullSize);
 
-					currentBI = (uint16*)&(g_derXferStruct.xmitBuffer[0]);
+					currentBI = (uint16*)&(g_demXferStruct.xmitBuffer[0]);
 
 					// Loop through all of the BI's pulled out of the Bargraph event data
 					for (i=0; i<(pullSize / barType); i++)
@@ -2209,20 +1610,20 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 						if (barType == BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE)
 						{
 							//-------------------------------------------BI,AdB,Amb,RVTpeak,VS
-							xmitLength = sprintf((char*)&g_derCache[0], "%d %02d:%02d:%02d %f %f %f %f\r\n", barIntervalCount++, biHour, biMin, biSec, (double)airdB, (double)airmb, (double)rUnits, (double)VS);
+							xmitLength = sprintf((char*)&g_spareBuffer[0], "%d %02d:%02d:%02d %f %f %f %f\r\n", barIntervalCount++, biHour, biMin, biSec, (double)airdB, (double)airmb, (double)rUnits, (double)VS);
 						}
 						else if (barType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE)
 						{
 							//-------------------------------------------BI,AdB,Amb,Rpeak,Tpeak,Vpeak,VS
-							xmitLength = sprintf((char*)&g_derCache[0], "%d %02d:%02d:%02d %f %f %f %f %f %f\r\n", barIntervalCount++, biHour, biMin, biSec, (double)airdB, (double)airmb, (double)rUnits, (double)tUnits, (double)vUnits, (double)VS);
+							xmitLength = sprintf((char*)&g_spareBuffer[0], "%d %02d:%02d:%02d %f %f %f %f %f %f\r\n", barIntervalCount++, biHour, biMin, biSec, (double)airdB, (double)airmb, (double)rUnits, (double)tUnits, (double)vUnits, (double)VS);
 						}
 						else // (barType == BAR_INTERVAL_A_R_V_T_WITH_FREQ_DATA_TYPE_SIZE)
 						{
 							//-------------------------------------------BI,AdB,Amb,Ahz,Rpeak,Rhz,Tpeak,Thz,Vpeak,Vhz,VS
-							xmitLength = sprintf((char*)&g_derCache[0], "%d %02d:%02d:%02d %f %f %f %f %f %f %f %f %f %f\r\n", barIntervalCount++, biHour, biMin, biSec, (double)airdB, (double)airmb, (double)aFreq, (double)rUnits, (double)rFreq, (double)tUnits, (double)tFreq, (double)vUnits, (double)vFreq, (double)VS);
+							xmitLength = sprintf((char*)&g_spareBuffer[0], "%d %02d:%02d:%02d %f %f %f %f %f %f %f %f %f %f\r\n", barIntervalCount++, biHour, biMin, biSec, (double)airdB, (double)airmb, (double)aFreq, (double)rUnits, (double)rFreq, (double)tUnits, (double)tFreq, (double)vUnits, (double)vFreq, (double)VS);
 						}
 
-						if (ModemPuts((uint8*)&g_derCache[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
+						if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
 
 						// Advance to the next BI in the buffer
 						currentBI += (barType / 2);
@@ -2251,12 +1652,12 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 			else // (csvOption != CSV_BARS)
 			{
 				// Summary Intervals only
-				xmitLength = sprintf((char*)&g_derCache[0], "Summary Start Air Air Air Air R R R T T T V V V Vector\r\nInterval Time dBL mb Hz Time (%s) Hz Time (%s) Hz Time (%s) Sum\r\n", sUnits, sUnits, sUnits);
-				if (ModemPuts((uint8*)&g_derCache[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
+				xmitLength = sprintf((char*)&g_spareBuffer[0], "Summary Start Air Air Air Air R R R T T T V V V Vector\r\nInterval Time dBL mb Hz Time (%s) Hz Time (%s) Hz Time (%s) Sum\r\n", sUnits, sUnits, sUnits);
+				if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
 
 				pullSize = sizeof(CALCULATED_DATA_STRUCT);
 				sampleCount = 1;
-				cSum = (CALCULATED_DATA_STRUCT*)&(g_derXferStruct.xmitBuffer[0]);
+				cSum = (CALCULATED_DATA_STRUCT*)&(g_demXferStruct.xmitBuffer[0]);
 
 				if (eventRecord->summary.calculated.summariesCaptured == 1)
 				{
@@ -2266,10 +1667,10 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 
 				while (sampleCount <= eventRecord->summary.calculated.summariesCaptured)
 				{
-					CacheEventDataToBuffer(eventRecord->summary.eventNumber, (uint8*)&(g_derXferStruct.xmitBuffer[0]), dataOffset, pullSize);
+					CacheEventDataToBuffer(eventRecord->summary.eventNumber, (uint8*)&(g_demXferStruct.xmitBuffer[0]), dataOffset, pullSize);
 #if ENDIAN_CONVERSION
 					// Swap event stored Big Endian to Little Endian for processing
-					EndianSwapCalculatedDataStruct((CALCULATED_DATA_STRUCT*)&(g_derXferStruct.xmitBuffer[0]));
+					EndianSwapCalculatedDataStruct((CALCULATED_DATA_STRUCT*)&(g_demXferStruct.xmitBuffer[0]));
 #endif
 					airdB = HexToDB(cSum->a.peak, DATA_NORMALIZED, bitAccuracyScale, airSensorType);
 					airmb = HexToMB(cSum->a.peak, DATA_NORMALIZED, bitAccuracyScale, airSensorType);
@@ -2283,14 +1684,14 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 					VS = (sqrt(cSum->vectorSumPeak) / (double)div);
 
 					//-------------------------------------------SI,Start time,AdB,Amb,Ahz,Atime,Runits,Rhz,Rtime,Tunits,Thz,Ttime,Vunits,Vhz,Vtime,VS
-					xmitLength = sprintf((char*)&g_derCache[0], "%lu %02d:%02d:%02d %f %f %f %02d:%02d:%02d %f %f %02d:%02d:%02d %f %f %02d:%02d:%02d %f %f %02d:%02d:%02d %f\r\n",
+					xmitLength = sprintf((char*)&g_spareBuffer[0], "%lu %02d:%02d:%02d %f %f %f %02d:%02d:%02d %f %f %02d:%02d:%02d %f %f %02d:%02d:%02d %f %f %02d:%02d:%02d %f\r\n",
 					sampleCount, cSum->intervalEnd_Time.hour, cSum->intervalEnd_Time.min, cSum->intervalEnd_Time.sec,
 					(double)airdB, (double)airmb, (double)aFreq, cSum->a_Time.hour, cSum->a_Time.min, cSum->a_Time.sec,
 					(double)rUnits, (double)rFreq, cSum->r_Time.hour, cSum->r_Time.min, cSum->r_Time.sec,
 					(double)tUnits, (double)tFreq, cSum->t_Time.hour, cSum->t_Time.min, cSum->t_Time.sec,
 					(double)vUnits, (double)vFreq, cSum->v_Time.hour, cSum->v_Time.min, cSum->v_Time.sec, (double)VS);
 
-					if (ModemPuts((uint8*)&g_derCache[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
+					if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
 
 					// Summaries
 					sampleCount++;

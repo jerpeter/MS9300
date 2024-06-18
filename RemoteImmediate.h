@@ -72,9 +72,6 @@ uint8* sendDataNoFlashWrapCheck(uint8*, uint8*);
 // Function: HandleDET - Download event CSV
 void HandleDET(CMD_BUFFER_STRUCT* inCmd);
 
-// Function: HandleDER - Download event resume.
-void HandleDER(CMD_BUFFER_STRUCT* inCmd);
-uint8 ManageDER(void);
 void HandleACK(CMD_BUFFER_STRUCT* inCmd);
 void HandleNAK(CMD_BUFFER_STRUCT* inCmd);
 void HandleCAN(CMD_BUFFER_STRUCT* inCmd);

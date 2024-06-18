@@ -213,7 +213,6 @@ enum {
 	WAIT_REMOTE_STATUS_STATE,
 
 	DEMx_CMD,
-	DERx_CMD,
 	DSMx_CMD,
 	DQMx_CMD,
 	VMLx_CMD,
@@ -294,29 +293,6 @@ typedef struct
 	uint8 spare[HDR_SPARE_LEN + 1]; // 2
 } COMMAND_MESSAGE_HEADER;
 
-#define MIN_DER_REQUEST_LENGTH	5 // DER,1\r\n
-
-// DER request structure
-typedef struct {
-	char command[4];
-	uint16 eventNumber;
-	uint32 delayBeforeSend;
-	uint16 enablePackets;
-	uint16 packetSize;
-	uint16 startPacket;
-	uint16 numberOfPackets;
-	uint16 enableAck;
-	uint32 responseTimeout;
-} DER_REQUEST;
-
-// DER request structure
-typedef struct {
-	char command[4];
-	uint16 eventNumber;
-	uint32 packetNumber;
-	uint16 packetSize;
-} DER_PACKET_HEADER;
-
 // Command processing structure
 typedef struct
 {
@@ -358,45 +334,6 @@ typedef struct
 	uint8 	xmitBuffer[ CMD_BUFFER_SIZE ];
 	uint32 	xmitSize;
 } DEMx_XFER_STRUCT;
-
-typedef struct
-{
-	uint8 	xferStateFlag;
-	uint8 	msgHdr[MESSAGE_HEADER_LENGTH+1];
-	EVENT_RECORD_DOWNLOAD_STRUCT	dloadEventRec;
-
-	EVT_RECORD compressedEventRecord;
-	uint16 compressedEventRecordSize;
-	uint32 compressedEventDataSize;
-	uint32 uncompressedEventSizePlusMessage;
-	uint32 totalPackageSize;
-	uint32 headerPlusEventRecordBoundary;
-
-	uint16 totalPackets;
-	uint16 currentPacket;
-	uint16 endPacket;
-	uint16 cacheStartPacket;
-	uint16 cacheEndPacket;
-	uint32 packetDataXmitSize;
-	uint32 packetDataCRC;
-	DER_REQUEST derRequest;
-	DER_PACKET_HEADER derPacketHeader;
-
-	uint8* startDloadPtr;
-	uint8* dloadPtr;
-	uint8* endDloadPtr;
-
-	uint8* startDataPtr;
-	uint8* dataPtr;
-	uint8* endDataPtr;
-	uint8* compressedDataPtr;
-	uint8 errorStatus;
-	uint8 downloadMethod;
-	uint8 retransmitPacket;
-	uint8 compressedEventDataFilePresent;
-	uint8 xmitBuffer[ CMD_BUFFER_SIZE ];
-	uint32 xmitSize;
-} DERx_XFER_STRUCT;
 
 typedef struct
 {
@@ -601,9 +538,6 @@ enum CMD_MESSAGE_INDEX {
 	DSM,		// Download summary memory.
 	DEM,		// Download event memory.
 	DET,		// Download event in CSV text
-#if 0 /* Command not complete */
-	DER,		// Download event resume.
-#endif
 	EEM,		// Erase event memory.
 	DCM,		// Download configuration memory.
 	UCM,		// Upload configuration memory.
@@ -644,7 +578,6 @@ void StartAutoDialoutProcess(void);
 void AutoDialoutStateMachine(void);
 
 uint8 FirstPassValidateCommandString(char* command);
-uint8 ParseIncommingDERRequestMsg(CMD_BUFFER_STRUCT* inCmd, DER_REQUEST* derRequest);
 
 #endif // _REMOTE_COMMON_H_
 
