@@ -2217,13 +2217,11 @@ void FreqPlotStandardMenuHandler(uint8 keyPressed, void* data)
 // Hardware ID Menu
 //=============================================================================
 //*****************************************************************************
-#define HARDWARE_ID_MENU_ENTRIES 5
+#define HARDWARE_ID_MENU_ENTRIES 3
 USER_MENU_STRUCT hardwareIDMenu[HARDWARE_ID_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, HARDWARE_ID_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, HARDWARE_ID_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
-{ITEM_1, 0, REV_8_NORMAL_TEXT,			NO_TAG, {HARDWARE_ID_REV_8_NORMAL}},
-{ITEM_2, 0, REV_8_WITH_GPS_MOD_TEXT,	NO_TAG, {HARDWARE_ID_REV_8_WITH_GPS_MOD}},
-{ITEM_3, 0, REV_8_WITH_USART_TEXT,		NO_TAG, {HARDWARE_ID_REV_8_WITH_USART}},
+{ITEM_1, 0, NULL_TEXT,			PROTOTYPE_1_TAG, {HARDWARE_ID_REV_PROTOTYPE_1}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&HardwareIDMenuHandler}}
 };
 
@@ -3610,7 +3608,11 @@ void StoredEventsCapModeMenuHandler(uint8 keyPressed, void* data)
 // Summary Interval Menu
 //=============================================================================
 //*****************************************************************************
+#if 0 /* Normal */
 #define SUMMARY_INTERVAL_MENU_ENTRIES 10
+#else /* Scale down max SI time due to caching in a smaller RAM sandbox */
+#define SUMMARY_INTERVAL_MENU_ENTRIES 6
+#endif
 USER_MENU_STRUCT summaryIntervalMenu[SUMMARY_INTERVAL_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, SUMMARY_INTERVAL_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, SUMMARY_INTERVAL_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_4)}},
@@ -3618,10 +3620,13 @@ USER_MENU_STRUCT summaryIntervalMenu[SUMMARY_INTERVAL_MENU_ENTRIES] = {
 {ITEM_2, 15, MINUTES_TEXT,	NO_TAG, {FIFTEEN_MINUTE_INTVL}},
 {ITEM_3, 30, MINUTES_TEXT,	NO_TAG, {THIRTY_MINUTE_INTVL}},
 {ITEM_4, 1, HOUR_TEXT,		NO_TAG, {ONE_HOUR_INTVL}},
+#if 0 /* Normal */
 {ITEM_5, 2, HOURS_TEXT,		NO_TAG, {TWO_HOUR_INTVL}},
 {ITEM_6, 4, HOURS_TEXT,		NO_TAG, {FOUR_HOUR_INTVL}},
 {ITEM_7, 8, HOURS_TEXT,		NO_TAG, {EIGHT_HOUR_INTVL}},
 {ITEM_8, 12, HOURS_TEXT,	NO_TAG, {TWELVE_HOUR_INTVL}},
+#else /* Scale down max SI time due to caching in a smaller RAM sandbox */
+#endif
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&SummaryIntervalMenuHandler}}
 };
 
