@@ -1840,6 +1840,10 @@ static inline void moveBargraphData_ISR_Inline(void)
 	// Check if write pointer is beyond the end of the circular bounds
 	if (g_bargraphDataWritePtr >= g_bargraphDataEndPtr) g_bargraphDataWritePtr = g_bargraphDataStartPtr;
 
+#if 1 /* Test if smaller BG data cache (due to much smaller sandbox) overruns */
+	if (g_bargraphDataWritePtr == g_bargraphDataReadPtr) { debugWarn("Bargraph: BG data about to overrun\r\n"); }
+#endif
+
 	//________________________________________________________________________________________________
 	//
 	// Bargraph Bar Interval clocking changed to be time synced (instead of sample count synced)
