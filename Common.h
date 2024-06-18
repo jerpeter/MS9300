@@ -24,19 +24,11 @@
 #define SOFT_DATE		"6-22-2004"
 #define SOFT_TIME		"08:35pm"
 
-#if 0 /* old FS */
-#define SYSTEM_PATH		"A:\\System\\"
-#define EVENTS_PATH		"A:\\Events\\"
-#define ER_DATA_PATH	"A:\\ERData\\"
-#define LANGUAGE_PATH	"A:\\Language\\"
-#define LOGS_PATH		"A:\\Logs\\"
-#else /* new FS */
 #define SYSTEM_PATH		"0:System/"
 #define EVENTS_PATH		"0:Events/"
 #define ER_DATA_PATH	"0:ERData/"
 #define LANGUAGE_PATH	"0:Language/"
 #define LOGS_PATH		"0:Logs/"
-#endif
 
 #define EVT_FILE		"Evt"
 #define EVTS_SUB_DIR	"Evts"
@@ -77,9 +69,10 @@ enum {
 #define GET_BUILD_ID					(g_shadowFactorySetupRecord.buildID) // Factory setup location of Build ID
 
 enum {
-	HARDWARE_ID_REV_8_NORMAL = 0x08,
-	HARDWARE_ID_REV_8_WITH_GPS_MOD = 0x28,
-	HARDWARE_ID_REV_8_WITH_USART = 0x18,
+	HARDWARE_ID_REV_PROTOTYPE_1 = 0x01,
+	HARDWARE_ID_REV_8_NORMAL = 0x08, // Old hardware
+	HARDWARE_ID_REV_8_WITH_USART = 0x18, // Old hardware
+	HARDWARE_ID_REV_8_WITH_GPS_MOD = 0x28 // Old hardware
 };
 
 enum {
@@ -89,6 +82,11 @@ enum {
 	DEEPSLEEP_MODE,
 	BACKUP_MODE
 };
+
+// Select which USB Driver option is active between the three options, note: Only one can be active
+#define USB_COMPOSITE_OPTION		YES
+#define USB_CDC_ACM_ONLY_OPTION		NO
+#define USB_MSC_ONLY_OPTION			NO
 
 #define ENDIAN_CONVERSION	1
 
