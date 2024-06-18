@@ -455,6 +455,26 @@ void AccelerometerInit(void)
         if (testData == 0x40) { debug("Accelerometer: Ctrl4 is default value\r\n"); }
         else { debug("Accelerometer: Ctrl4 is non-default value of 0x%x\r\n", testData); }
 
+#if 0 /* Test max Acc sample rate over I2C */
+        StartAccAquisition();
+extern volatile uint32_t g_lifetimePeriodicSecondCount;
+        volatile uint32_t secCount = g_lifetimePeriodicSecondCount;
+        uint32_t loopCount = 0;
+        ACC_DATA_STRUCT channelData;
+
+        while (secCount == g_lifetimePeriodicSecondCount) {}
+        secCount = g_lifetimePeriodicSecondCount + 3;
+
+        while (secCount != g_lifetimePeriodicSecondCount)
+        {
+            GetAccChannelData(&channelData);
+            loopCount++;
+        }
+        StopAccAquisition();
+
+        debug("Accelerometer: Fastest sample rate is %0.2f\r\n", (double)((float)loopCount / (float)3));
+#endif
+
 #if 0 /* Attempt Self test */
         // 1. Set STPOL bit to 1 in INC1 register to set the polarity of the self-test mode to positive.
         // 2. Set PC1 bit to 1 in CNTL1 register to enable KX134-1211.
