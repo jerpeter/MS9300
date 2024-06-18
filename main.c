@@ -482,10 +482,6 @@ void CraftManager(void)
 		{
 			g_modemStatus.xferState = sendDEMData();
 		}
-		else if (DERx_CMD == g_modemStatus.xferState)
-		{
-			g_modemStatus.xferState = ManageDER();
-		}
 		else if (DSMx_CMD == g_modemStatus.xferState)
 		{
 			g_modemStatus.xferState = sendDSMData();
@@ -2056,7 +2052,9 @@ extern void SetupUSBComposite(void);
 		MessageManager();
 
 		// Handle USB device
-		UsbDeviceManager();
+		//UsbDeviceManager();
+extern void UsbReportEvents(void);
+		UsbReportEvents();
 		
 		// Handle processing the factory setup
 		FactorySetupManager();
