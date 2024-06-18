@@ -2072,15 +2072,21 @@ volatile unsigned int event_flags;
 int remote_wake_en;
 
 // USB Function Prototypes
-/* static removed while testing CDC-ACM only */ int setconfigCallback(MXC_USB_SetupPkt *sud, void *cbdata);
-/* static removed while testing CDC-ACM only */ int setconfigCallback_CDCACM(MXC_USB_SetupPkt *sud, void *cbdata);
+#if USB_COMPOSITE_OPTION /* Composite MSC + CDC-ACM */
+int setconfigCallback_Composite(MXC_USB_SetupPkt *sud, void *cbdata);
+int usbEventCallback_Composite(maxusb_event_t evt, void *data);
+#elif USB_CDC_ACM_ONLY_OPTION /* CDC-ACM only */
+int setconfigCallback_CDCACM(MXC_USB_SetupPkt *sud, void *cbdata);
+int usbEventCallback_CDCACM(maxusb_event_t evt, void *data);
+#elif USB_MSC_ONLY_OPTION /* MSC only */
+int setconfigCallback_MSC(MXC_USB_SetupPkt *sud, void *cbdata);
+int usbEventCallback_MSC(maxusb_event_t evt, void *data);
+#endif
 static int setfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata);
 static int clrfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata);
-/* static removed while testing CDC-ACM only */ int usbEventCallback(maxusb_event_t evt, void *data);
-/* static removed while testing CDC-ACM only */ int usbEventCallback_CDCACM(maxusb_event_t evt, void *data);
 static void usbAppSleep(void);
 static void usbAppWakeup(void);
-static int usbReadCallback(void);
+/* static removed while testing MSC only */ int usbReadCallback(void);
 int usbStartupCallback();
 int usbShutdownCallback();
 void echoUSB(void);
@@ -2148,7 +2154,7 @@ void SetupUSBComposite(void)
     // Initialize the enumeration module
     if (enum_init() != 0) { debugErr("Enumeration Init failed\r\n"); }
 
-#if 0 /* Original - Composite MSC + CDC-ACM */
+#if USB_COMPOSITE_OPTION /* Original - Composite MSC + CDC-ACM */
     // Register enumeration data
     enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&composite_device_descriptor, 0);
     enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&composite_config_descriptor, 0);
@@ -2166,7 +2172,7 @@ void SetupUSBComposite(void)
     enum_register_descriptor(ENUM_DESC_STRING, msc_func_desc, 5);
 
     // Handle configuration
-    enum_register_callback(ENUM_SETCONFIG, setconfigCallback, NULL);
+    enum_register_callback(ENUM_SETCONFIG, setconfigCallback_Composite, NULL);
 
     // Handle feature set/clear
     enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
@@ -2175,7 +2181,8 @@ void SetupUSBComposite(void)
     // Initialize the class driver
     if (msc_init(&composite_config_descriptor.msc_interface_descriptor, &ids, &mem) != 0) { debugErr("MSC Init failed\r\n"); }
     if (acm_init(&composite_config_descriptor.comm_interface_descriptor) != 0) { debugErr("CDC/ACM Init failed\r\n"); }
-#else /* CDC-ACM only since SDHC eMMC Flash isn't working to connect MSC */
+
+#elif USB_CDC_ACM_ONLY_OPTION /* CDC-ACM only */
     /* Register enumeration data */
     enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&device_descriptor, 0);
     enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
@@ -2186,11 +2193,11 @@ void SetupUSBComposite(void)
         enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&device_qualifier_descriptor, 0);
     }
 
-    enum_register_descriptor(ENUM_DESC_STRING, lang_id_desc, 0);
-    enum_register_descriptor(ENUM_DESC_STRING, mfg_id_desc, 1);
-    enum_register_descriptor(ENUM_DESC_STRING, prod_id_desc, 2);
-    enum_register_descriptor(ENUM_DESC_STRING, serial_id_desc, 3);
-    enum_register_descriptor(ENUM_DESC_STRING, cdcacm_func_desc, 4);
+    enum_register_descriptor(ENUM_DESC_STRING, lang_id_desc_cdcacm, 0);
+    enum_register_descriptor(ENUM_DESC_STRING, mfg_id_desc_cdcacm, 1);
+    enum_register_descriptor(ENUM_DESC_STRING, prod_id_desc_cdcacm, 2);
+    enum_register_descriptor(ENUM_DESC_STRING, serial_id_desc_cdcacm, 3);
+    enum_register_descriptor(ENUM_DESC_STRING, cdcacm_func_desc_cdcacm, 4);
 
     /* Handle configuration */
     enum_register_callback(ENUM_SETCONFIG, setconfigCallback_CDCACM, NULL);
@@ -2201,20 +2208,53 @@ void SetupUSBComposite(void)
 
     /* Initialize the class driver */
     if (acm_init(&config_descriptor.comm_interface_descriptor) != 0) {
-        printf("acm_init() failed\n");
+        debugErr("USB: acm_init() failed\r\n");
+        while (1) {}
+    }
+
+#elif USB_MSC_ONLY_OPTION /* MSC only */
+    /* Register enumeration data */
+    enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&device_descriptor, 0);
+    enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
+
+    if (usb_opts.enable_hs) {
+        /* Two additional descriptors needed for high-speed operation */
+        enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
+        enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&device_qualifier_descriptor, 0);
+    }
+
+    enum_register_descriptor(ENUM_DESC_STRING, lang_id_desc_msc, 0);
+    enum_register_descriptor(ENUM_DESC_STRING, mfg_id_desc_msc, 1);
+    enum_register_descriptor(ENUM_DESC_STRING, prod_id_desc_msc, 2);
+    enum_register_descriptor(ENUM_DESC_STRING, serial_id_desc_msc, 3);
+
+    /* Handle configuration */
+    enum_register_callback(ENUM_SETCONFIG, setconfigCallback_MSC, NULL);
+
+    /* Handle feature set/clear */
+    enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
+    enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
+
+    /* Initialize the class driver */
+    if (msc_init(&config_descriptor.msc_interface_descriptor, &ids, &mem) != 0) {
+        debugErr("USB: msc_init() failed\r\n");
         while (1) {}
     }
 #endif
 
     // Register callbacks
-#if 0 /* Original - Composite MSC + CDC-ACM */
-    MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback, NULL);
-    MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback, NULL);
-#else /* CDC-ACM only since SDHC eMMC Flash isn't working to connect MSC */
+#if USB_COMPOSITE_OPTION /* Original - Composite MSC + CDC-ACM */
+    MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_Composite, NULL);
+    MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_Composite, NULL);
+    acm_register_callback(ACM_CB_READ_READY, usbReadCallback);
+#elif USB_CDC_ACM_ONLY_OPTION /* CDC-ACM */
     MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_CDCACM, NULL);
     MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_CDCACM, NULL);
-#endif
     acm_register_callback(ACM_CB_READ_READY, usbReadCallback);
+#elif USB_MSC_ONLY_OPTION /* MSC only */
+    MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_MSC, NULL);
+    MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_MSC, NULL);
+#endif
 
     // Start with USB in low power mode
     usbAppSleep();
@@ -2285,10 +2325,11 @@ int usbShutdownCallback()
     return E_NO_ERROR;
 }
 
+#if USB_COMPOSITE_OPTION /* Composite MSC + CDC-ACM */
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-/* static removed while testing CDC-ACM only */ int setconfigCallback(MXC_USB_SetupPkt *sud, void *cbdata)
+int setconfigCallback_Composite(MXC_USB_SetupPkt *sud, void *cbdata)
 {
 	debugRaw("<U-cc>");
 
@@ -2334,10 +2375,11 @@ int usbShutdownCallback()
     return -1;
 }
 
+#elif USB_CDC_ACM_ONLY_OPTION /* CDC-ACM only */
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-/* static removed while testing CDC-ACM only */ int setconfigCallback_CDCACM(MXC_USB_SetupPkt *sud, void *cbdata)
+int setconfigCallback_CDCACM(MXC_USB_SetupPkt *sud, void *cbdata)
 {
 	debugRaw("<U-cc>");
 
@@ -2361,6 +2403,42 @@ int usbShutdownCallback()
 
     return -1;
 }
+
+#elif USB_MSC_ONLY_OPTION /* MSC only */
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int setconfigCallback_MSC(MXC_USB_SetupPkt *sud, void *cbdata)
+{
+	debugRaw("<U-cc>");
+
+    /* Confirm the configuration value */
+    if (sud->wValue == config_descriptor.config_descriptor.bConfigurationValue) {
+        configured = 1;
+        MXC_SETBIT(&event_flags, EVENT_ENUM_COMP);
+
+        if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
+            msc_cfg.out_ep = config_descriptor_hs.endpoint_descriptor_1.bEndpointAddress & 0x7;
+            msc_cfg.out_maxpacket = config_descriptor_hs.endpoint_descriptor_1.wMaxPacketSize;
+            msc_cfg.in_ep = config_descriptor_hs.endpoint_descriptor_2.bEndpointAddress & 0x7;
+            msc_cfg.in_maxpacket = config_descriptor_hs.endpoint_descriptor_2.wMaxPacketSize;
+        } else {
+            msc_cfg.out_ep = config_descriptor.endpoint_descriptor_1.bEndpointAddress & 0x7;
+            msc_cfg.out_maxpacket = config_descriptor.endpoint_descriptor_1.wMaxPacketSize;
+            msc_cfg.in_ep = config_descriptor.endpoint_descriptor_2.bEndpointAddress & 0x7;
+            msc_cfg.in_maxpacket = config_descriptor.endpoint_descriptor_2.wMaxPacketSize;
+        }
+
+        return msc_configure(&msc_cfg); /* Configure the device class */
+
+    } else if (sud->wValue == 0) {
+        configured = 0;
+        return msc_deconfigure();
+    }
+
+    return -1;
+}
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -2412,10 +2490,11 @@ static void usbAppWakeup(void)
     // Todo: Any power up code to place here?
 }
 
+#if USB_COMPOSITE_OPTION /* Composite MSC + CDC-ACM */
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-/* static removed while testing CDC-ACM only */ int usbEventCallback(maxusb_event_t evt, void *data)
+int usbEventCallback_Composite(maxusb_event_t evt, void *data)
 {
 	debugRaw("<U-ec:%d>", evt);
 
@@ -2436,11 +2515,11 @@ static void usbAppWakeup(void)
         break;
     case MAXUSB_EVENT_VBUS:
         MXC_USB_EventClear(MAXUSB_EVENT_BRST);
-        MXC_USB_EventEnable(MAXUSB_EVENT_BRST, usbEventCallback, NULL);
+        MXC_USB_EventEnable(MAXUSB_EVENT_BRST, usbEventCallback_Composite, NULL);
         MXC_USB_EventClear(MAXUSB_EVENT_BRSTDN);
-        MXC_USB_EventEnable(MAXUSB_EVENT_BRSTDN, usbEventCallback, NULL);
+        MXC_USB_EventEnable(MAXUSB_EVENT_BRSTDN, usbEventCallback_Composite, NULL);
         MXC_USB_EventClear(MAXUSB_EVENT_SUSP);
-        MXC_USB_EventEnable(MAXUSB_EVENT_SUSP, usbEventCallback, NULL);
+        MXC_USB_EventEnable(MAXUSB_EVENT_SUSP, usbEventCallback_Composite, NULL);
         MXC_USB_Connect();
         usbAppSleep();
         break;
@@ -2476,10 +2555,11 @@ static void usbAppWakeup(void)
     return 0;
 }
 
+#elif USB_CDC_ACM_ONLY_OPTION /* CDC-ACM only */
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-/* static removed while testing CDC-ACM only */ int usbEventCallback_CDCACM(maxusb_event_t evt, void *data)
+int usbEventCallback_CDCACM(maxusb_event_t evt, void *data)
 {
 	debugRaw("<U-ec:%d>", evt);
 
@@ -2536,6 +2616,74 @@ static void usbAppWakeup(void)
     return 0;
 }
 
+#elif USB_MSC_ONLY_OPTION /* MSC only */
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int usbEventCallback_MSC(maxusb_event_t evt, void *data)
+{
+	debugRaw("<U-ec:%d>", evt);
+
+    /* Set event flag */
+    MXC_SETBIT(&event_flags, evt);
+
+    switch (evt) {
+    case MAXUSB_EVENT_NOVBUS:
+        MXC_USB_EventDisable(MAXUSB_EVENT_BRST);
+        MXC_USB_EventDisable(MAXUSB_EVENT_SUSP);
+        MXC_USB_EventDisable(MAXUSB_EVENT_DPACT);
+        MXC_USB_Disconnect();
+        configured = 0;
+        enum_clearconfig();
+        msc_deconfigure();
+        usbAppSleep();
+        break;
+
+    case MAXUSB_EVENT_VBUS:
+        MXC_USB_EventClear(MAXUSB_EVENT_BRST);
+        MXC_USB_EventEnable(MAXUSB_EVENT_BRST, usbEventCallback_MSC, NULL);
+        MXC_USB_EventClear(MAXUSB_EVENT_BRSTDN);
+        MXC_USB_EventEnable(MAXUSB_EVENT_BRSTDN, usbEventCallback_MSC, NULL);
+        MXC_USB_EventClear(MAXUSB_EVENT_SUSP);
+        MXC_USB_EventEnable(MAXUSB_EVENT_SUSP, usbEventCallback_MSC, NULL);
+        MXC_USB_Connect();
+        usbAppSleep();
+        break;
+
+    case MAXUSB_EVENT_BRST:
+        usbAppWakeup();
+        enum_clearconfig();
+        msc_deconfigure();
+        configured = 0;
+        suspended = 0;
+        break;
+
+    case MAXUSB_EVENT_BRSTDN:
+        if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
+            enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor_hs, 0);
+            enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor, 0);
+        } else {
+            enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
+            enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
+        }
+        break;
+
+    case MAXUSB_EVENT_SUSP:
+        usbAppSleep();
+        break;
+
+    case MAXUSB_EVENT_DPACT:
+        usbAppWakeup();
+        break;
+
+    default:
+        break;
+    }
+
+    return 0;
+}
+#endif
+
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -2547,7 +2695,7 @@ void USB_IRQHandler(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-static int usbReadCallback(void)
+/* static removed while testing MSC only */ int usbReadCallback(void)
 {
 	debugRaw("<U-rc>");
 
@@ -2600,19 +2748,21 @@ static int usbReadCallback(void)
 ///----------------------------------------------------------------------------
 void UsbReportEvents(void)
 {
+#if 0 /* Prevent reporting every call, or find another status to toggle like LED or display */
 	if ((suspended) || (!configured)) { debug("USB: Suspended or not configured\r\n"); }
 	else { debug("USB: Configured\r\n"); }
+#endif
 
 	if (event_flags)
 	{
-		if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_NOVBUS)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_NOVBUS); debug("USB: VBUS Disconnect\n"); }
-		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_VBUS)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_VBUS); debug("USB: VBUS Connect\n"); }
-		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRST)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRST); debug("USB: Bus Reset\n"); }
-		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRSTDN)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRSTDN); debug("USB: Bus Reset Done: %s speed\n", (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) ? "High" : "Full"); }
-		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_SUSP)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_SUSP); debug("USB: Suspended\n"); }
-		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_DPACT)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_DPACT); debug("USB: Resume\n"); }
-		else if (MXC_GETBIT(&event_flags, EVENT_ENUM_COMP)) { MXC_CLRBIT(&event_flags, EVENT_ENUM_COMP); debug("USB: Enumeration complete...\n"); }
-		else if (MXC_GETBIT(&event_flags, EVENT_REMOTE_WAKE)) { MXC_CLRBIT(&event_flags, EVENT_REMOTE_WAKE); debug("USB: Remote Wakeup\n"); }
+		if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_NOVBUS)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_NOVBUS); debug("USB: VBUS Disconnect\r\n"); }
+		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_VBUS)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_VBUS); debug("USB: VBUS Connect\r\n"); }
+		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRST)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRST); debug("USB: Bus Reset\r\n"); }
+		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRSTDN)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRSTDN); debug("USB: Bus Reset Done: %s speed\r\n", (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) ? "High" : "Full"); }
+		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_SUSP)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_SUSP); debug("USB: Suspended\r\n"); }
+		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_DPACT)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_DPACT); debug("USB: Resume\r\n"); }
+		else if (MXC_GETBIT(&event_flags, EVENT_ENUM_COMP)) { MXC_CLRBIT(&event_flags, EVENT_ENUM_COMP); debug("USB: Enumeration complete...\r\n"); }
+		else if (MXC_GETBIT(&event_flags, EVENT_REMOTE_WAKE)) { MXC_CLRBIT(&event_flags, EVENT_REMOTE_WAKE); debug("USB: Remote Wakeup\r\n"); }
 	}
 }
 
@@ -4371,7 +4521,7 @@ extern volatile uint8_t hsChange;
 		if (i == 0)
 		{
 			debug("-- SDHC/eMMC Speet Test --\r\n");
-			for (fileSize = 0; fileSize < DER_CACHE_SIZE; fileSize++) { g_derCache[fileSize] = fileSize; }
+			for (fileSize = 0; fileSize < 65536; fileSize++) { g_eventDataBuffer[fileSize] = fileSize; }
 		}
 
 		c = 0;
@@ -4383,7 +4533,7 @@ extern volatile uint8_t hsChange;
 
 		while (1)
 		{
-			if ((err = f_write(&file, &g_derCache[0], DER_CACHE_SIZE, &bytes_written)) != FR_OK) { debugErr("Unable to write file HelloWorld.txt\r\n"); f_mount(NULL, "", 0); }
+			if ((err = f_write(&file, &g_eventDataBuffer[0], 65536, &bytes_written)) != FR_OK) { debugErr("Unable to write file HelloWorld.txt\r\n"); f_mount(NULL, "", 0); }
 			c++;
 			if (g_lifetimeHalfSecondTickCount > (hsTime + 6)) { break; }
 		}
@@ -4391,9 +4541,9 @@ extern volatile uint8_t hsChange;
 		fileSize = f_size(&file);
 		if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file HelloWorld.txt\n"); f_mount(NULL, "", 0); }
 
-		if (fileSize != (c * DER_CACHE_SIZE)) { debugWarn("SDHC/eMMC Write file size difference (%ld <> %ld)\r\n", fileSize, (c * DER_CACHE_SIZE)); }
-		if ((c * DER_CACHE_SIZE) > 1000000) { debug("SDHC/eMMC Test write speed: %.3f MB/sec\r\n", (double)((c * DER_CACHE_SIZE) / 3) / (double)1000000); }
-		else { debug("SDHC/eMMC Test write speed: %.3f KB/sec\r\n", (double)((c * DER_CACHE_SIZE) / 3) / (double)1000); }
+		if (fileSize != (c * 65536)) { debugWarn("SDHC/eMMC Write file size difference (%ld <> %ld)\r\n", fileSize, (c * 65536)); }
+		if ((c * 65536) > 1000000) { debug("SDHC/eMMC Test write speed: %.3f MB/sec\r\n", (double)((c * 65536) / 3) / (double)1000000); }
+		else { debug("SDHC/eMMC Test write speed: %.3f KB/sec\r\n", (double)((c * 65536) / 3) / (double)1000); }
 
 		if ((err = f_open(&file, "0:HelloWorld.txt", FA_READ)) != FR_OK) { debugErr("Unable to open file HelloWorld.txt\r\n"); f_mount(NULL, "", 0); }
 
@@ -4403,7 +4553,7 @@ extern volatile uint8_t hsChange;
 
 		while (c--)
 		{
-			if ((err = f_read(&file, &g_derCache[0], DER_CACHE_SIZE, &bytes_written)) != FR_OK) { debugErr("Unable to read file HelloWorld.txt\r\n"); f_mount(NULL, "", 0); }
+			if ((err = f_read(&file, &g_eventDataBuffer[0], 65536, &bytes_written)) != FR_OK) { debugErr("Unable to read file HelloWorld.txt\r\n"); f_mount(NULL, "", 0); }
 			if (g_lifetimeHalfSecondTickCount > (hsTime + 6)) { debugWarn("SDHC/eMMC Read took longer than write\r\n"); }
 		}
 		debug("SDHC/eMMC Read finished in %d HS ticks\r\n", (g_lifetimeHalfSecondTickCount - hsTime));
@@ -4666,6 +4816,9 @@ void InitSystemHardware_MS9300(void)
 	// Setup I2C0 (1.8V devices) and I2C1 (3.3V devices)
 	//-------------------------------------------------------------------------
 	SetupI2C();
+#if 1 /* Test */
+	TestI2CDeviceAddresses();
+#endif
 
 	//-------------------------------------------------------------------------
 	// Setup SPI3 (ADC) and SPI2 (LCD)
@@ -4675,28 +4828,10 @@ void InitSystemHardware_MS9300(void)
 	SetupSPI2_LCD();
 #endif
 
-#if 1 /* Test */
-	TestI2CDeviceAddresses();
-#endif
-
 	//-------------------------------------------------------------------------
 	// Setup SDHC/eMMC
 	//-------------------------------------------------------------------------
-#if 0 /* Normal */
-	SetupSDHCeMMC();
-#else /* Test Re-init for modded board */
-	if (SetupSDHCeMMC() != E_NO_ERROR)
-	{
-		// Run the setup again
-		SetupSDHCeMMC();
-	}
-
-	// Delay
-	//MXC_Delay(MXC_DELAY_SEC(5));
-	// Attempt one more time after delay, never seemed to work
-	//SetupSDHCeMMC();
-#endif
-
+	if (SetupSDHCeMMC() != E_NO_ERROR) { /* Run the setup again */ SetupSDHCeMMC();	} // Init often fails the first time on cold boot
 #if 1 /* Test */
 	TestSDHCeMMC();
 #endif
@@ -4712,7 +4847,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Setup USB Composite (MSC + CDC/ACM)
 	//-------------------------------------------------------------------------
-#if 0 /* Normal */
+#if 1 /* Normal */
 	SetupUSBComposite();
 #else /* Test wihtout setting up MCU USBC for Port Controller and power delivery */
 #endif
@@ -4727,25 +4862,6 @@ void InitSystemHardware_MS9300(void)
 
 #if 1 /* Early call to adjust power savings for testing current */
 	AdjustPowerSavings(POWER_SAVINGS_HIGH);
-#else /* Test MPU peripheral power shuntdowns and sleep states (sleep states can't be done using JTAG) */
-	AdjustPowerSavings(POWER_SAVINGS_MAX);
-	AdjustPowerSavings(POWER_SAVINGS_NONE);
-	AdjustPowerSavings(POWER_SAVINGS_MINIMUM);
-	AdjustPowerSavings(POWER_SAVINGS_NORMAL);
-	AdjustPowerSavings(POWER_SAVINGS_HIGH);
-
-	ExternalRtcInit(); debug("External RTC: Init complete\r\n");
-extern void GoSleepState(uint32_t mode);
-/*
-	SLEEP_MODE,
-	BACKGROUND_MODE,
-	DEEPSLEEP_MODE,
-	BACKUP_MODE
-*/
-	debug("Sleep states: Going SLEEP_MODE...\r\n");	GoSleepState(SLEEP_MODE); debug("Sleep states: Out of SLEEP_MODE\r\n");
-	debug("Sleep states: Going BACKGROUND_MODE...\r\n");	GoSleepState(BACKGROUND_MODE); debug("Sleep states: Out of BACKGROUND_MODE\r\n");
-	debug("Sleep states: Going DEEPSLEEP_MODE...\r\n");	GoSleepState(DEEPSLEEP_MODE); debug("Sleep states: Out of DEEPSLEEP_MODE\r\n");
-	debug("Sleep states: Going BACKUP_MODE...\r\n");	GoSleepState(BACKUP_MODE); debug("Sleep states: Out of BACKUP_MODE\r\n");
 #endif
 
 	//-------------------------------------------------------------------------
@@ -4769,18 +4885,18 @@ extern void GoSleepState(uint32_t mode);
 	//---------------------
 	// Device specific init
 	//---------------------
-	// Accelerometer
-	// 1-Wire
-	// Battery Charger
-	// USB-C Port Controller
 	// External RTC
 	// Fuel Gauge
+	// 1-Wire
+	// USB-C Port Controller
+	// Battery Charger
+	// Accelerometer
 	// Expansion I2C bridge
+	// EEPROM (should be none)
 	// External ADC
 	// LCD
+	// Cell/LTE
 	// Keypad
-	// EEPROM (should be none)
-	// eMMC + FF driver (should be none)
 
 	//-------------------------------------------------------------------------
 	// Initialize the external RTC
@@ -4814,26 +4930,6 @@ extern void GoSleepState(uint32_t mode);
 	//-------------------------------------------------------------------------
 #if 1 /* Normal */
 	AccelerometerInit(); debug("Accelerometer: Init complete\r\n");
-#else /* Skip while device isn't responding to device address */
-#endif
-#if 0 /* Test */
-extern void VerifyAccManuIDAndPartID(void);
-extern uint8_t accelerometerI2CAddr;
-	//while (1)
-	{
-		MXC_Delay(MXC_DELAY_SEC(1));
-#if 0 /* Double check other addresses, but they fail as expected if not the identified one */
-		if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_1; }
-		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_1) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_2; }
-		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_2) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_3; }
-		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_3) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_4; }
-		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_4) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_5; }
-		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_5) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_6; }
-		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_6) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_7; }
-		else if (accelerometerI2CAddr == I2C_ADDR_ACCELEROMETER_ALT_7) { accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER; }
-#endif
-		VerifyAccManuIDAndPartID();
-	}
 #endif
 
 	//-------------------------------------------------------------------------
@@ -4875,22 +4971,6 @@ extern uint8_t accelerometerI2CAddr;
 #if 1 /* Only enable if LCD connector fixed or hardware modded */
 	InitLCD(); debug("LCD Display: Init complete\r\n");
 #endif
-#if 0 /* Test MessageBox and OverlayMessage */
-	OverlayMessage(getLangText(STATUS_TEXT), "THIS IS A TEST OF THE EMERGENCY BROACDCAST SYSTEM. EVERYTHING IS FINE, PLEASE RETURN TO YOUR NORMAL FUNCTIONS", (3 * SOFT_SECS));
-	MessageBox(getLangText(WARNING_TEXT), "DO YOU WANT TO CHANGE THIS SETTING TO A NON_DEFAULT VALUE? THIS SETTING WILL BE SAVED FOR FUTURE RUNS", MB_YESNO);
-	PowerControl(LCD_POWER_ENABLE, OFF);
-	PowerControl(LCD_POWER_DOWN, ON);
-
-#if 0
-	INPUT_MSG_STRUCT mn_msg;
-	g_factorySetupSequence = PROCESS_FACTORY_SETUP;
-	MessageBox(getLangText(STATUS_TEXT), getLangText(YOU_HAVE_ENTERED_THE_FACTORY_SETUP_TEXT), MB_OK);
-	SETUP_MENU_MSG(DATE_TIME_MENU);
-	JUMP_TO_ACTIVE_MENU();
-	PowerControl(LCD_POWER_ENABLE, OFF);
-	PowerControl(LCD_POWER_DOWN, ON);
-#endif
-#endif
 #if 1 /* Test */
 	TestLCDController();
 #endif
@@ -4925,31 +5005,17 @@ extern uint8_t accelerometerI2CAddr;
 #if 0 /* Normal */
 	AdjustPowerSavings(POWER_SAVINGS_NORMAL); debug("Power Savings: Init complete\r\n");
 #elif 1 /* Initial test */
-	// Make sure no subsystems are incorrectly disabled
-	//AdjustPowerSavings(POWER_SAVINGS_NONE);
+	// Attempt to run with most non essential ancillary subsystems disabled
 	AdjustPowerSavings(POWER_SAVINGS_HIGH);
-#else
-	AdjustPowerSavings(POWER_SAVINGS_NONE);
-	MXC_Delay(MXC_DELAY_SEC(1));
-	AdjustPowerSavings(POWER_SAVINGS_MINIMUM);
-	MXC_Delay(MXC_DELAY_SEC(1));
-	AdjustPowerSavings(POWER_SAVINGS_NORMAL);
-	MXC_Delay(MXC_DELAY_SEC(1));
-	AdjustPowerSavings(POWER_SAVINGS_HIGH);
-	MXC_Delay(MXC_DELAY_SEC(1));
-	AdjustPowerSavings(POWER_SAVINGS_MAX);
-	MXC_Delay(MXC_DELAY_SEC(1));
 #endif
+
 	//-------------------------------------------------------------------------
 	// Read and cache Smart Sensor data
 	//-------------------------------------------------------------------------
 	SmartSensorReadRomAndMemory(SEISMIC_SENSOR); debug("Smart Sensor check for Seismic sensor complete\r\n");
 	SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR); debug("Smart Sensor check for Acoustic sensor complete\r\n");
-
-#if 1 /* Test */
 	SmartSensorReadRomAndMemory(SEISMIC_SENSOR_2); debug("Smart Sensor check for Seismic 2 sensor complete\r\n");
 	SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR_2); debug("Smart Sensor check for Acoustic 2 sensor complete\r\n");
-#endif
 
 	//-------------------------------------------------------------------------
 	// Hardware initialization complete
