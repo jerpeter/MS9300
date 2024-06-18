@@ -64,6 +64,7 @@ enum {
 	ENABLED_TAG,
 	DISABLED_TAG,
 	FILENAME_TAG,
+	PROTOTYPE_1_TAG,
 	// Add new separators before this line
 	TOTAL_TAGS
 };
