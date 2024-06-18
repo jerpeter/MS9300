@@ -36,9 +36,18 @@
 #define EIGHT_HOUR_INTVL			28800
 #define TWELVE_HOUR_INTVL			43200
 
+#if 0 /* Normal */
 #define MAX_NUM_OF_BAR_INTERVAL_BUFFERS			((TWELVE_HOUR_INTVL / ONE_SEC_PRD) + 1) // Max Bars possible per Summary + 1 spare
+#else /* Scale down max BI buffers due to caching in a smaller RAM sandbox */
+#define MAX_NUM_OF_BAR_INTERVAL_BUFFERS			((ONE_HOUR_INTVL / ONE_SEC_PRD) + 1) // Max Bars possible per Summary + 1 spare
+#endif
 
+#if 0 /* Normal */
 #define COMBO_BG_DATA_BUFFER_SIZE 				(SAMPLE_RATE_8K * (sizeof(SAMPLE_DATA_STRUCT)) * 30) // Cache up to 30 seconds of data at max rate
+#else /* Scale down max BG data buffer due to caching in a smaller RAM sandbox */
+#define COMBO_BG_DATA_BUFFER_SIZE 				(SAMPLE_RATE_8K * (sizeof(SAMPLE_DATA_STRUCT)) * 2) // Cache up to 2 seconds of data at max rate
+#endif
+
 #define COMBO_MODE_BAR_INTERVAL_SIZE			(MAX_NUM_OF_BAR_INTERVAL_BUFFERS * sizeof(BARGRAPH_BAR_INTERVAL_DATA))
 #define COMBO_MODE_BARGRAPH_BUFFER_SIZE_OFFSET	(COMBO_MODE_BAR_INTERVAL_SIZE + COMBO_BG_DATA_BUFFER_SIZE)
 #define COMBO_MODE_BARGRAPH_BUFFER_SIZE_WORDS	(((COMBO_MODE_BARGRAPH_BUFFER_SIZE_OFFSET / sizeof(SAMPLE_DATA_STRUCT)) * sizeof(SAMPLE_DATA_STRUCT)) / 2)
