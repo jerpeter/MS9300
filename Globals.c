@@ -45,11 +45,11 @@ INPUT_MSG_STRUCT g_input_buffer[INPUT_BUFFER_SIZE];
 //char g_appDate[16];
 //char g_appTime[16];
 MONTH_TABLE_STRUCT g_monthTable[] = { {0, "\0\0\0\0", 0}, {JAN, "JAN\0", 31}, {FEB, "FEB\0", 28}, {MAR, "MAR\0", 31}, {APR, "APR\0", 30}, {MAY, "MAY\0", 31},
-	{JUN, "JUN\0", 30}, {JUL, "JUL\0", 31}, {AUG, "AUG\0", 31}, {SEP, "SEP\0", 30}, {OCT, "OCT\0", 31}, {NOV, "NOV\0", 30}, {DEC, "DEC\0", 31} };
+	{JUN, "JUN\0", 30}, {JUL, "JUL\0", 31}, {AUG, "AUG\0", 31}, {SEP, "SEP\0", 30}, {OCT, "OCT\0", 31}, {NOV, "NOV\0", 30}, {DEC, "DEC\0", 31} }; // 156B
 /* Original top left, row x column */
-uint8 g_mmap[LCD_NUM_OF_ROWS][LCD_NUM_OF_BIT_COLUMNS];
+uint8 g_mmap[LCD_NUM_OF_ROWS][LCD_NUM_OF_BIT_COLUMNS]; // 1K
 #if 1 /* New bottom left, scan line x heigth */
-uint8 g_bitmap[LCD_MAP_SIZE_IN_BYTES];
+uint8 g_bitmap[LCD_MAP_SIZE_IN_BYTES]; // 1K
 #endif
 uint8 g_contrast_value;
 uint8 g_powerSavingsForSleepEnabled = NO;
@@ -57,15 +57,15 @@ uint16 g_nextEventNumberToUse = 1;
 uint32 __monitorLogTblKey;
 uint16 __monitorLogTblIndex;
 uint16 __monitorLogUniqueEntryId;
-MONITOR_LOG_ENTRY_STRUCT __monitorLogTbl[TOTAL_MONITOR_LOG_ENTRIES];
+MONITOR_LOG_ENTRY_STRUCT __monitorLogTbl[TOTAL_MONITOR_LOG_ENTRIES]; // ~4K
 uint32 __autoDialoutTblKey;
 AUTODIALOUT_STRUCT __autoDialoutTbl;
 uint32 g_eventNumberCacheValidKey;
 uint16 g_eventNumberCacheValidEntries;
 uint16 g_eventNumberCacheMaxIndex;
 uint16 g_eventNumberCacheOldestIndex;
-uint8 g_eventNumberCache[EVENT_NUMBER_CACHE_MAX_ENTRIES];
-uint16 g_pretriggerBuff[PRE_TRIG_BUFF_SIZE_IN_WORDS];
+uint8 g_eventNumberCache[EVENT_NUMBER_CACHE_MAX_ENTRIES]; // 65K
+uint16 g_pretriggerBuff[PRE_TRIG_BUFF_SIZE_IN_WORDS]; // ~131K
 uint16* g_startOfPretriggerBuff;
 uint16* g_tailOfPretriggerBuff;
 uint16* g_endOfPretriggerBuff;
@@ -126,7 +126,7 @@ uint16 g_keypadTable[9] = {KB_SK_4, KB_SK_3, KB_SK_2, KB_SK_1, KB_ENTER, KB_RIGH
 SENSOR_PARAMETERS_STRUCT g_sensorInfo;
 EVT_RECORD g_pendingEventRecord;
 EVT_RECORD g_pendingBargraphRecord;
-EVT_RECORD g_resultsEventCache[50];
+EVT_RECORD g_resultsEventCache[50]; // ~34K
 uint16 g_resultsCacheIndex = 0;
 FACTORY_SETUP_STRUCT g_factorySetupRecord;
 FACTORY_SETUP_STRUCT g_shadowFactorySetupRecord = {0xFFFF};
@@ -142,7 +142,7 @@ CMD_BUFFER_STRUCT g_isrMessageBufferStruct;
 CMD_BUFFER_STRUCT* g_isrMessageBufferPtr = &g_isrMessageBufferStruct;
 void (*g_menufunc_ptrs[TOTAL_NUMBER_OF_MENUS])(INPUT_MSG_STRUCT) = {MainMenu, LoadRecordMenu, SummaryMenu, MonitorMenu, ResultsMenu, OverwriteMenu,
 	BatteryMn, DateTimeMn, LcdContrastMn, TimerModeTimeMenu, TimerModeDateMenu, CalSetupMn, UserMenu, MonitorLogMn};
-MN_MEM_DATA_STRUCT g_menuPtr[DEFAULT_MN_SIZE];
+MN_MEM_DATA_STRUCT g_menuPtr[DEFAULT_MN_SIZE]; // 500B
 USER_MENU_TAGS_STRUCT g_menuTags[TOTAL_TAGS] = {
 	{"",	NO_TAG},
 	{"1. ",	ITEM_1},
@@ -166,7 +166,8 @@ USER_MENU_TAGS_STRUCT g_menuTags[TOTAL_TAGS] = {
 	{"",	BAR_SCALE_EIGHTH_TAG},
 	{" ENABLED",	ENABLED_TAG},
 	{" DISABLED",	DISABLED_TAG},
-	{"",	FILENAME_TAG}
+	{"",	FILENAME_TAG},
+	{"REV PROTOTYPE 1",		PROTOTYPE_1_TAG}
 };
 uint8 g_monitorOperationMode;
 uint8 g_waitForUser = FALSE;
@@ -226,7 +227,6 @@ uint16 g_CRLF = 0x0D0A;
 #endif
 CMD_BUFFER_STRUCT g_msgPool[CMD_MSG_POOL_SIZE];
 DEMx_XFER_STRUCT g_demXferStruct;
-DERx_XFER_STRUCT g_derXferStruct;
 DSMx_XFER_STRUCT g_dsmXferStruct;
 DQMx_XFER_STRUCT g_dqmXferStruct;
 COMMAND_MESSAGE_HEADER g_modemInputHeaderStruct;
@@ -251,7 +251,7 @@ volatile uint8 g_externalTrigger = NO;
 uint8 g_lcdContrastChanged = NO;
 uint32 g_cyclicEventDelay = 0;
 uint32 g_updateOffsetCount = 0;
-USER_MENU_CACHE_STRUCT g_userMenuCache[MAX_MENU_ENTRIES];
+USER_MENU_CACHE_STRUCT g_userMenuCache[MAX_MENU_ENTRIES]; // 1.3K
 USER_MENU_CACHE_STRUCT* g_userMenuCachePtr = &g_userMenuCache[0];
 USER_MENU_CACHE_DATA g_userMenuCacheData;
 void (*g_userMenuHandler)(uint16, void*);
@@ -261,7 +261,7 @@ uint8 g_timerModeLastRun = NO;
 uint8 g_tcTypematicTimerActive = NO;
 uint8 g_lowBatteryState = NO;
 uint32 g_sleepModeState = 0; //AVR32_PM_SMODE_STOP;
-char* g_languageLinkTable[TOTAL_TEXT_STRINGS];
+char* g_languageLinkTable[TOTAL_TEXT_STRINGS]; // 2.1K
 uint32 g_tempTriggerLevelForMenuAdjustment;
 volatile uint16 g_storedTempReading;
 volatile uint16 g_currentTempReading;
@@ -271,20 +271,18 @@ uint32 g_alarmOneSeismicMinLevel;
 uint32 g_alarmOneAirMinLevel;
 uint32 g_alarmTwoSeismicMinLevel;
 uint32 g_alarmTwoAirMinLevel;
-char g_languageTable[LANGUAGE_TABLE_MAX_SIZE];
-uint8 g_spareBuffer[SPARE_BUFFER_SIZE];
+char g_languageTable[LANGUAGE_TABLE_MAX_SIZE]; // 16K
+uint8 g_spareBuffer[SPARE_BUFFER_SIZE]; // 8K
 uint32 g_spareBufferIndex = 0;
 char g_spareFileName[MAX_FILE_NAME_CHARS];
 char g_eventPathAndFilename[MAX_FILE_NAME_CHARS];
 uint8 g_debugBuffer[(MAX_TEXT_LINE_CHARS + 1)];
 uint8 g_blmBuffer[(MAX_TEXT_LINE_CHARS + 1)];
-uint8 g_derCache[DER_CACHE_SIZE];
-uint16 g_derCacheIndex = 0;
-EVENT_TIMESTAMP_STRUCT g_eventDateTimeStampBuffer[MAX_EVENT_TIMESTAMP_BUFFERS];
+EVENT_TIMESTAMP_STRUCT g_eventDateTimeStampBuffer[MAX_EVENT_TIMESTAMP_BUFFERS]; // 340B
 //uint16 g_eventDataBuffer[EVENT_BUFF_SIZE_IN_WORDS_PLUS_EVT_RECORD_PLUS_EVENT_LIST];
-uint16 g_eventDataBuffer[((65536 * 3) + 32768 + 676)];
-EVENT_LIST_ENTRY_STRUCT g_eventListCache[EVENT_LIST_CACHE_ENTRIES_LIMIT];
-uint8 g_serialNumberCache[SERIAL_NUMBER_CACHE_ENTRIES][SERIAL_NUMBER_STRING_SIZE];
+uint16 g_eventDataBuffer[EVENT_BUFF_SIZE_IN_WORDS_PLUS_EVT_RECORD]; // ~600K
+EVENT_LIST_ENTRY_STRUCT g_eventListCache[EVENT_LIST_CACHE_ENTRIES_LIMIT]; // 32K
+uint8 g_serialNumberCache[SERIAL_NUMBER_CACHE_ENTRIES][SERIAL_NUMBER_STRING_SIZE]; // 5K
 uint32 g_execCycles = 0;
 FLASH_USAGE_STRUCT g_sdCardUsageStats;
 SUMMARY_LIST_FILE_DETAILS g_summaryList;
