@@ -83,6 +83,7 @@ void MainMenu(INPUT_MSG_STRUCT msg)
 #include "usb.h"
 extern void SetupUSBComposite(void);
 extern void USBCPortControllerInit(void);
+extern void USBCPortControllerSwapToHost(void);
 #endif
 void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LAYOUT_STRUCT *mn_layout_ptr)
 {
@@ -189,20 +190,24 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 					MainMenuScroll(DOWN, SELECT_MN_WND_LNS, mn_layout_ptr);
 					break;
 				case (UP_ARROW_KEY):
+#if 1 /* Original */
 					MainMenuScroll(UP, SELECT_MN_WND_LNS, mn_layout_ptr);
+#else /* Test */
+					USBCPortControllerSwapToHost();
+#endif
 					break;
 				case (LEFT_ARROW_KEY):
 #if 0 /* Original */
 					AdjustLcdContrast(DARKER);
 #else /* Test */
-					MXC_USB_Shutdown();
+					MXC_USB_Disconnect();
 #endif
 					break;
 				case (RIGHT_ARROW_KEY):
 #if 0 /* Original */
 					AdjustLcdContrast(LIGHTER);
 #else /* Test */
-					SetupUSBComposite();
+					MXC_USB_Connect();
 #endif
 					break;
 				case (ESC_KEY):
