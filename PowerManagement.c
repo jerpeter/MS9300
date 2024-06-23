@@ -609,7 +609,6 @@ void InitBattChargerRegisters(void)
 	// Temperature Protection
 	//	Default Ext Temp is enabled, OPT action is deliver INT and take TS action, TS OT threshold is 80C, NTC protect is on
 	//	Default NTC protect action is deliver INT and take JEITA action, NTC hot thr is 60C, NTC warm thr is 45C, NTC cool thr is 10C, NTC cold thr is 0C
-	//	No change from default
 	//  Change Vts_hot to 65C
 	SetBattChargerRegister(BATT_CHARGER_TEMPERATURE_PROTECTION_SETTING, 0xBF99);
 
@@ -625,9 +624,14 @@ void InitBattChargerRegisters(void)
 	//	Change Ipre to 600mA single/1200mA double, Iterm to 200mA single/400mA double
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
-		SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF264); // Single pack, pre-charge @ 600mA, termination @ 200mA
+		if (BATTERY_PACK_SINGLE_CAPACITY == 8000) { SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF285); } // Single pack (larger), pre-charge @ 800mA, termination @ 250mA
+		else { SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF264); } // Single pack, pre-charge @ 600mA, termination @ 200mA
 	}
-	else { SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF2C8); } // Double pack, pre-charge @ 1200mA, termination @ 400mA
+	else
+	{
+		if (BATTERY_PACK_DOUBLE_CAPACITY == 16000) { SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF2F9); } // Double pack (larger), pre-charge @ 1500mA, termination @ 450mA
+		else { SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF2C8); } // Double pack, pre-charge @ 1200mA, termination @ 400mA
+	}
 
 	// Config Reg 2
 	//	Default ACgate not forced, TS/IMON (Pin 7) config is TS, auto recharge thr is -200mV/cell, batt cells in series is 2, Iin sense gain is 10mOhm
@@ -654,9 +658,14 @@ void InitBattChargerRegisters(void)
 	//	Note: Can chage to max charge current for fast charge
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
-		SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x0680); // Single pack, 1300mA
+		if (BATTERY_PACK_SINGLE_CAPACITY == 8000) { SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x0800); } // Single pack (larger), 1600mA
+		else { SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x0680); } // Single pack, 1300mA
 	}
-	else { SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x0D40); } // Double pack, 2650mA
+	else
+	{
+		if (BATTERY_PACK_DOUBLE_CAPACITY == 16000) { SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x1000); } // Double pack (larger), 3200mA
+		else { SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x0D40); } // Double pack, 2650mA
+	}
 
 	// Batt Reg V
 	//	Default charge full voltage is 8.4V
@@ -695,17 +704,27 @@ void InitBattChargerRegisters(void)
 	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, &regResults); if ((regResults & 0x00FF) != 0x0010) { errStatus = YES; debugErr("Battery Charger Read failed: config reg 0, 0x%x/0x%x\r\n", 0x0010, (regResults & 0x00FF)); } // Filter for ADC conversion flag in case Continuous conversion mode enabled from prior run
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
-		GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF264) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 1, 0x%x/0x%x\r\n", 0xF264, regResults); }
+		if (BATTERY_PACK_SINGLE_CAPACITY == 8000) { GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF285) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 1, 0x%x/0x%x\r\n", 0xF285, regResults); } }
+		else { GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF264) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 1, 0x%x/0x%x\r\n", 0xF264, regResults); } }
 	}
-	else { GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF2C8) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 1, 0x%x/0x%x\r\n", 0xF2C8, regResults); } }
+	else
+	{
+		if (BATTERY_PACK_DOUBLE_CAPACITY == 16000) { GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF2F9) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 1, 0x%x/0x%x\r\n", 0xF2F9, regResults); } }
+		else { GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF2C8) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 1, 0x%x/0x%x\r\n", 0xF2C8, regResults); } }
+	}
 	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_2, &regResults); if (regResults != 0x0A00) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 2, 0x%x/0x%x\r\n", 0x0A00, regResults); }
 	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_3, &regResults); if (regResults != 0x60E8) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 3, 0x%x/0x%x\r\n", 0x60E8, regResults); }
 	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, &regResults); if (regResults != 0x3C53) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 4, 0x%x/0x%x\r\n", 0x3C53, regResults); }
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
-		GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x0680) { errStatus = YES; debugErr("Battery Charger Read failed: Charge current, 0x%x/0x%x\r\n", 0x0680, regResults); }
+		if (BATTERY_PACK_SINGLE_CAPACITY == 8000) { GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x0800) { errStatus = YES; debugErr("Battery Charger Read failed: Charge current, 0x%x/0x%x\r\n", 0x0800, regResults); } }
+		else { GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x0680) { errStatus = YES; debugErr("Battery Charger Read failed: Charge current, 0x%x/0x%x\r\n", 0x0680, regResults); } }
 	}
-	else { GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x0D40) { errStatus = YES; debugErr("Battery Charger Read failed: Charge current, 0x%x/0x%x\r\n", 0x0D40, regResults); } }
+	else
+	{
+		if (BATTERY_PACK_DOUBLE_CAPACITY == 16000) { GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x1000) { errStatus = YES; debugErr("Battery Charger Read failed: Charge current, 0x%x/0x%x\r\n", 0x1000, regResults); } }
+		else { GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x0D40) { errStatus = YES; debugErr("Battery Charger Read failed: Charge current, 0x%x/0x%x\r\n", 0x0D40, regResults); } }
+	}
 	GetBattChargerRegister(BATT_CHARGER_BATTERY_REGULATION_VOLTAGE_SETTING, &regResults); if (regResults != 0x2D00) { errStatus = YES; debugErr("Battery Charger Read failed: Batt regulation, 0x%x/0x%x\r\n", 0x2D00, regResults); }
 	GetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_0, &regResults); if (regResults != 0x3CFF) { errStatus = YES; debugErr("Battery Charger Read failed: Int mask reg 0, 0x%x/0x%x\r\n", 0x3CFF, regResults); }
 	GetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_1, &regResults); if (regResults != 0x0003) { errStatus = YES; debugErr("Battery Charger Read failed: Int mask reg 1, 0x%x/0x%x\r\n", 0x0003, regResults); }
@@ -1793,7 +1812,14 @@ void TestFuelGauge(void)
 	int val;
 
 	info.r_sense = 10;
-	if (GetExpandedBatteryPresenceState() == NO) { info.prescaler = LTC2944_PRESCALER_256; } // Single pack
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		if (BATTERY_PACK_SINGLE_CAPACITY < 6963) // Max capacity for prescaler 256
+		{
+			info.prescaler = LTC2944_PRESCALER_256; // Single pack
+		}
+		else { info.prescaler = LTC2944_PRESCALER_1024; } // Single pack but large enough to need the prescaler 1024
+	}
 	else { info.prescaler = LTC2944_PRESCALER_1024; } // Double pack
 	info.Qlsb = (((((340 * 1000) * 50) / info.r_sense) * LTC2944_M_256) / LTC2944_MAX_PRESCALER); // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
 
@@ -1973,9 +1999,13 @@ void FuelGaugeInit(void)
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
 		debug("Fuel Gauge: Prescaler set for Single Pack\r\n");
-		Ltc2944_device.prescaler = LTC2944_PRESCALER_256; // Single pack
+		if (BATTERY_PACK_SINGLE_CAPACITY < 6963) // Max capacity for prescaler 256
+		{
+			Ltc2944_device.prescaler = LTC2944_PRESCALER_256; // Single pack
+		}
+		else { Ltc2944_device.prescaler = LTC2944_PRESCALER_1024; } // Single pack but large enough to need the prescaler 1024
 	}
-	else { debug("Fuel Gauge: Prescaler set for Double Pack\r\n"); Ltc2944_device.prescaler = LTC2944_PRESCALER_1024; } // Double pack
+	else { debug("Fuel Gauge: Prescaler set for Double Pack\r\n"); Ltc2944_device.prescaler = LTC2944_PRESCALER_1024; } // Double pack, covers smaller and larger capacity packs
 
 	Ltc2944_device.Qlsb = (((((340 * 1000) * 50) / Ltc2944_device.r_sense) * ((Ltc2944_device.prescaler == LTC2944_PRESCALER_256) ? 256 : 1024)) / LTC2944_MAX_PRESCALER); // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
 	debug("Fuel Gauge: Qlsb = %d nAh\r\n", Ltc2944_device.Qlsb);
@@ -1988,31 +2018,31 @@ void FuelGaugeInit(void)
 		// Set the inital charge level based on half charge capacity (50%), function handles disabling the analog section for setting the charge and re-enabling when done
 		if (GetExpandedBatteryPresenceState() == NO)
 		{
-			Ltc2944_set_charge_now(Ltc2944_device.Qlsb, (6600 / 2)); // Single pack
+			Ltc2944_set_charge_now(Ltc2944_device.Qlsb, (BATTERY_PACK_SINGLE_CAPACITY / 2)); // Single pack
 		}
-		else { Ltc2944_set_charge_now(Ltc2944_device.Qlsb, (13200 / 2)); } // Double pack
+		else { Ltc2944_set_charge_now(Ltc2944_device.Qlsb, (BATTERY_PACK_DOUBLE_CAPACITY / 2)); } // Double pack
 
 		// Set the Charge Thresold High and Low
 		if (GetExpandedBatteryPresenceState() == NO)
 		{
-			Ltc2944_set_charge_thr(Ltc2944_device.Qlsb, 6600, 0); // Single pack
+			Ltc2944_set_charge_thr(Ltc2944_device.Qlsb, BATTERY_PACK_SINGLE_CAPACITY, 0); // Single pack
 		}
-		else { Ltc2944_set_charge_thr(Ltc2944_device.Qlsb, 13200, 0); } // Double pack
+		else { Ltc2944_set_charge_thr(Ltc2944_device.Qlsb, BATTERY_PACK_DOUBLE_CAPACITY, 0); } // Double pack
 
 		// Set the Voltage Thresold High and Low based on 7300mV max, 5400mV min
-		Ltc2944_set_voltage_thr(7300, 5400);
+		Ltc2944_set_voltage_thr(BATTERY_VOLTAGE_THRESHOLD_HIGH, BATTERY_VOLTAGE_THRESHOLD_LOW);
 
 		// Set the Current Thresold High and Low based on 3000mA
 		if (GetExpandedBatteryPresenceState() == NO)
 		{
 			// Todo: Determine if charge/discharge current should be Standard 1320mA or Max continuous 3000mA
-			Ltc2944_set_current_thr(Ltc2944_device.r_sense, 3000, 3000); // Single pack
+			Ltc2944_set_current_thr(Ltc2944_device.r_sense, BATTERY_PACK_SINGLE_MAX_CONTINUOUS_CURRENT, BATTERY_PACK_SINGLE_MAX_CONTINUOUS_CURRENT); // Single pack
 		}
 		// Todo: Determine if charge/discharge current should be Standard 2640mA or Max continuous 6000mA
-		else { Ltc2944_set_current_thr(Ltc2944_device.r_sense, 6000, 6000); } // Double pack
+		else { Ltc2944_set_current_thr(Ltc2944_device.r_sense, BATTERY_PACK_DOUBLE_MAX_CONTINUOUS_CURRENT, BATTERY_PACK_DOUBLE_MAX_CONTINUOUS_CURRENT); } // Double pack
 
 		// Set thresholds for temperature (discharge range)
-		Ltc2944_set_temp_thr(60, -20);
+		Ltc2944_set_temp_thr(BATTERY_OPERATING_DISCHARGE_TEMP_HIGH, BATTERY_OPERATING_DISCHARGE_TEMP_LOW);
 	}
 	else { debug("Fuel Gauge: Appears to have been already configured a first time\r\n"); }
 
