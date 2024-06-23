@@ -1583,6 +1583,10 @@ void HandleUMM(CMD_BUFFER_STRUCT* inCmd)
 	// Compare CRC transmitted CRC value with the CRC calculation on the data and check if not equal
 	msgCRC = CalcCCITT32((uint8*)&(inCmd->msg[0]), MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 	msgCRC = CalcCCITT32((uint8*)&modemCfg, sizeof(MODEM_SETUP_STRUCT), msgCRC);
+#if ENDIAN_CONVERSION
+	msgCRC = __builtin_bswap32(msgCRC);
+	debug("UMM CRC compare: In %08x, Msg %08x\r\n", inCRC, msgCRC);
+#endif
 
 	if (inCRC != msgCRC)
 	{
