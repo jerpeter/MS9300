@@ -167,7 +167,7 @@ char filterText[16];
 				switch (key)
 				{
 					case UP_ARROW_KEY:
-#if 0 /* Normal */
+#if 1 /* Normal */
 						if (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE)
 						{
 							s_pauseDisplay = NO;
@@ -211,7 +211,7 @@ char filterText[16];
 						break;
 
 					case DOWN_ARROW_KEY:
-#if 0 /* Normal */
+#if 1 /* Normal */
 						if (s_calDisplayScreen == CAL_MENU_DEFAULT_NON_CALIBRATED_DISPLAY)
 						{
 							// Stop A/D data collection clock
