@@ -1072,6 +1072,7 @@ void MessageChoice(MB_CHOICE_TYPE choiceType);
 void MessageChoiceActiveSwap(MB_CHOICE_TYPE choiceType);
 uint8 MessageBox(char* titleString, char* textString, MB_CHOICE_TYPE messageType);
 void OverlayMessage(char* titleString, char* textString, uint32 usDisplayTime);
+void MessageDisplayToLcd(char* titleString, char* textString, MB_CHOICE_TYPE choiceType, uint8_t activeChoice);
 void DisplayLogoToLcd(void);
 
 // Prototypes needed across menus

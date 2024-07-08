@@ -31,6 +31,7 @@
 //#include "host_mass_storage_task.h"
 #include "lcd.h"
 
+#include "tmr.h"
 #include "mxc_delay.h"
 
 ///----------------------------------------------------------------------------
@@ -347,9 +348,6 @@ Write map to LCD replacement
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* Empty call until LCD connector fixed or hardware modded */
-void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, int ln_type) {}
-#else
 void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, int ln_type)
 {
 #if 0 /* original function */
@@ -539,8 +537,11 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 		cbit_size = EIGHT_ROW_SIZE;
 		crow_size = (uint8)(cbit_size / 8);
 		if (EIGHT_ROW_SIZE % 8) { crow_size++; }
+#if 0 /* Original try, doesn't account for string size */
 		ccol_size = SIX_COL_SIZE;
-
+#else
+		ccol_size = ((strlen((char*)buff) * SIX_COL_SIZE / 2) + ((strlen((char*)buff) + 1) / 2));
+#endif
 		wnd_layout->next_row = (uint16)(wnd_layout->curr_row + cbit_size);
 		wnd_layout->next_col = (uint16)(wnd_layout->curr_col + ccol_size);
 	}
@@ -552,7 +553,8 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 		ft81x_bgcolor_rgb32(~0xff0000);
 		ft81x_fgcolor_rgb32(~0x0000ff);
 #else /* Datasheet says fg and bg color don't affect CMD_TEXT */
-		ft81x_cmd_button((int16_t)(wnd_layout->curr_col * 25 / 4), (int16_t)(wnd_layout->curr_row * 25 / 4), (strlen((char*)buff) * 18), 32, 30, 0, "");
+		//ft81x_cmd_button((int16_t)(wnd_layout->curr_col * 25 / 4), (int16_t)(wnd_layout->curr_row * 25 / 4), (strlen((char*)buff) * 18), 32, 30, 0, "");
+		ft81x_cmd_button((int16_t)(wnd_layout->curr_col * 25 / 4), (int16_t)(wnd_layout->curr_row * 25 / 4), (strlen((char*)buff) * 19), 32, 30, 0, "");
 		ft81x_color_rgb32(0xffffff);
 #endif
 	}
@@ -591,7 +593,6 @@ void WndMpWrtString(uint8* buff, WND_LAYOUT_STRUCT* wnd_layout, int font_type, i
 	}
 #endif
 }
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -939,9 +940,6 @@ void MessageChoiceActiveSwap(MB_CHOICE_TYPE choiceType)
 ///	Function Break
 ///----------------------------------------------------------------------------
 extern const char sign_on_logo_l2_top_left[2064];
-#if 0 /* Empty call until LCD connector fixed or hardware modded */
-void DisplayLogoToLcd(void) {}
-#else
 void DisplayLogoToLcd(void)
 {
 	if (g_lcdPowerFlag == DISABLED) { return; }
@@ -969,14 +967,10 @@ void DisplayLogoToLcd(void)
 	ft81x_stream_stop();
 	ft81x_wait_finish();
 }
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* Empty call until LCD connector fixed or hardware modded */
-void BitmapDisplayToLcd(void) {}
-#else
 void BitmapDisplayToLcd(void)
 {
 #if 0 /* Test method to re-power the LCD */
@@ -1010,12 +1004,11 @@ void BitmapDisplayToLcd(void)
 	ft81x_wait_finish();
 
 #if 0 /* Test disable of LCD for now */
-	MXC_Delay(MXC_DELAY_SEC(3));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(3));
 	PowerControl(LCD_POWER_ENABLE, OFF);
 	PowerControl(LCD_POWER_DOWN, ON);
 #endif
 }
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -1027,7 +1020,14 @@ void MessageDisplayToLcd(char* titleString, char* textString, MB_CHOICE_TYPE cho
 	char secondChoiceText[30];
 	char messageText[MESSAGE_TEXT_LINE_LENGTH + 1];
 
+#if 0 /* Original */
 	ClearLcdMap();
+#else /* Test with special skip in monitoring */
+	if (g_promtForLeavingMonitorMode != TRUE)
+	{
+		ClearLcdMap();
+	}
+#endif
 
 	ft81x_fgcolor_rgb32(0x0000ff); // Blue foreground
 	ft81x_cmd_button(20, 20, (800-40), (400-40), 29, 0, "");
@@ -1103,6 +1103,7 @@ void MessageDisplayToLcd(char* titleString, char* textString, MB_CHOICE_TYPE cho
 		}
 	}
 
+#if 0 /* Original */
 	ft81x_fgcolor_rgb32(0x525252); // Grey foreground
 	ft81x_color_rgb32(0xffffff); // White text
 
@@ -1116,9 +1117,27 @@ void MessageDisplayToLcd(char* titleString, char* textString, MB_CHOICE_TYPE cho
 	ft81x_getfree(0); // Trigger FT81x to read the command buffer
 	ft81x_stream_stop(); // Finish streaming to command buffer
 	ft81x_wait_finish(); // Wait till the GPU is finished? (or delay at start of next display interaction?)
+#else /* Test with special skip in monitoring */
+	if (g_promtForLeavingMonitorMode != TRUE)
+	{
+		ft81x_fgcolor_rgb32(0x525252); // Grey foreground
+		ft81x_color_rgb32(0xffffff); // White text
+
+		ft81x_cmd_button(12, 420, 132, 55, 29, 0, "LCD OFF");
+		ft81x_cmd_button(225, 420, 132, 55, 29, 0, "BACKLIGHT");
+		ft81x_cmd_button(432, 420, 132, 55, 29, 0, "CONFIG");
+		ft81x_cmd_button(650, 420, 132, 55, 29, 0, "ESCAPE");
+
+		//WriteMapToLcd(NULL);
+		ft81x_display(); // End the display list started with the ClearLcdMap function
+		ft81x_getfree(0); // Trigger FT81x to read the command buffer
+		ft81x_stream_stop(); // Finish streaming to command buffer
+		ft81x_wait_finish(); // Wait till the GPU is finished? (or delay at start of next display interaction?)
+	}
+#endif
 
 #if 0 /* Test with short display delay */
-	MXC_Delay(MXC_DELAY_SEC(5));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(5));
 #endif
 }
 

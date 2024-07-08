@@ -524,7 +524,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 		ConvertTimeStampToString(buff, &time, REC_DATE_TIME_MONITOR);
 		length = (uint8)strlen(buff);
 
-		wnd_layout_ptr->curr_col =(uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+		wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
 
 		WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 		wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
@@ -535,7 +535,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 		memset(&buff[0], 0, sizeof(buff));
 		length = (uint8)sprintf(buff,"%02d:%02d:%02d",time.hour, time.min, time.sec);
 
-		wnd_layout_ptr->curr_col =(uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+		wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
 
 		WndMpWrtString((uint8*)(&buff[0]),wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 		wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
@@ -552,7 +552,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 		memset(&buff[0], 0, sizeof(buff));
 		length = (uint8)sprintf(buff,"%s %.2f", getLangText(BATTERY_TEXT), (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
 
-		wnd_layout_ptr->curr_col =(uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+		wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
 
 		WndMpWrtString((uint8*)(&buff[0]),wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 		wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
@@ -597,7 +597,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 		ConvertTimeStampToString(buff, &time, REC_DATE_TIME_TYPE);
 		length = (uint8)strlen(buff);
-		wnd_layout_ptr->curr_col =(uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+		wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
 
 		WndMpWrtString((uint8*)(&buff[0]),wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 		wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
@@ -630,7 +630,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			length = (uint8)sprintf(buff, "%s", getLangText(IMPULSE_RESULTS_TEXT));
 		}
 				
-		wnd_layout_ptr->curr_col =(uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+		wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
 
 		WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 		wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
@@ -647,9 +647,10 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			// Max Results Header
 			//-----------------------------------------------------------------------
 			memset(&buff[0], 0, sizeof(buff));
-			length = (uint8)sprintf(buff, "PEAK | R  | T  | V  |");
+			length = (uint8)sprintf(buff, "PEAK    R     T     V");
 
-			wnd_layout_ptr->curr_col =(uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+			//wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+			wnd_layout_ptr->curr_col = (uint16)(SIX_COL_SIZE);
 
 			WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 			wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
@@ -682,9 +683,9 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER))
 			{
 				if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER)
-					strcpy(buff, "mg/s |");
+					strcpy(buff, "mg/s   ");
 				else
-					strcpy(buff, "in/s |");
+					strcpy(buff, "in/s   ");
 			}
 			else // g_sensorInfo.unitsFlag == METRIC_TYPE
 			{
@@ -692,30 +693,31 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 				tempT *= (float)METRIC;
 				tempV *= (float)METRIC;
 
-				strcpy(buff, "mm/s |");
+				strcpy(buff, "mm/s   ");
 			}		
 
 			// Make sure formatting is correct
 			if (tempR > 100)
-				sprintf(displayFormat, "%4d|", (int)tempR);
+				sprintf(displayFormat, "%4d  ", (int)tempR);
 			else
-				sprintf(displayFormat, "%4.1f|", (double)tempR);
+				sprintf(displayFormat, "%4.1f  ", (double)tempR);
 			strcat(buff, displayFormat);
 		
 			if (tempT > 100)
-				sprintf(displayFormat, "%4d|", (int)tempT);
+				sprintf(displayFormat, "%4d  ", (int)tempT);
 			else
-				sprintf(displayFormat, "%4.1f|", (double)tempT);
+				sprintf(displayFormat, "%4.1f  ", (double)tempT);
 			strcat(buff, displayFormat);
 
 			if (tempV > 100)
-				sprintf(displayFormat, "%4d|", (int)tempV);
+				sprintf(displayFormat, "%4d  ", (int)tempV);
 			else
-				sprintf(displayFormat, "%4.1f|", (double)tempV);
+				sprintf(displayFormat, "%4.1f  ", (double)tempV);
 			strcat(buff, displayFormat);
 
 			length = 21;
-			wnd_layout_ptr->curr_col =(uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+			//wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+			wnd_layout_ptr->curr_col = (uint16)(SIX_COL_SIZE);
 
 			WndMpWrtString((uint8*)(&buff[0]),wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 			wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
@@ -766,29 +768,30 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 					}
 				}
 
-				strcpy(buff, "F(Hz)|");
+				strcpy(buff, "F(Hz)  ");
 
 				// Make sure formatting is correct
 				if (tempR > 100)
-					sprintf(displayFormat, "%4d|", (int)tempR);
+					sprintf(displayFormat, "%4d  ", (int)tempR);
 				else
-					sprintf(displayFormat, "%4.1f|", (double)tempR);
+					sprintf(displayFormat, "%4.1f  ", (double)tempR);
 				strcat(buff, displayFormat);
 			
 				if (tempT > 100)
-					sprintf(displayFormat, "%4d|", (int)tempT);
+					sprintf(displayFormat, "%4d  ", (int)tempT);
 				else
-					sprintf(displayFormat, "%4.1f|", (double)tempT);
+					sprintf(displayFormat, "%4.1f  ", (double)tempT);
 				strcat(buff, displayFormat);
 
 				if (tempV > 100)
-					sprintf(displayFormat, "%4d|", (int)tempV);
+					sprintf(displayFormat, "%4d  ", (int)tempV);
 				else
-					sprintf(displayFormat, "%4.1f|", (double)tempV);
+					sprintf(displayFormat, "%4.1f  ", (double)tempV);
 				strcat(buff, displayFormat);
 
 				length = 21;
-				wnd_layout_ptr->curr_col =(uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+				//wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+				wnd_layout_ptr->curr_col = (uint16)(SIX_COL_SIZE);
 
 				WndMpWrtString((uint8*)(&buff[0]),wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 				wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
@@ -826,7 +829,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 				strcpy(displayFormat, "mm/s");
 			}
 
-			sprintf(buff,"VS %.2f %s", (double)tempVS, displayFormat);
+			sprintf(buff,"VS  %.2f  %s", (double)tempVS, displayFormat);
 		}
 		else if (g_displayAlternateResultState == PEAK_DISPLACEMENT_RESULTS) // Removing option to check Bar Channel (g_triggerRecord.berec.barChannel != BAR_AIR_CHANNEL)
 		{
@@ -904,7 +907,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 				strcpy(displayFormat, "mm");
 			}
 
-			sprintf(buff, "PEAK DISP %5.4f %s", (double)tempPeakDisp, displayFormat);
+			sprintf(buff, "PEAK DISP  %5.4f  %s", (double)tempPeakDisp, displayFormat);
 		}
 		else if (g_displayAlternateResultState == PEAK_ACCELERATION_RESULTS) // Removing option to check Bar Channel (g_triggerRecord.berec.barChannel != BAR_AIR_CHANNEL)
 		{
@@ -978,7 +981,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER) { strcpy(displayFormat, "mg/s2"); }
 			else { strcpy(displayFormat, "g"); }
 
-			sprintf(buff,"PEAK ACC %5.4f %s", (double)tempPeakAcc, displayFormat);
+			sprintf(buff,"PEAK ACC  %5.4f  %s", (double)tempPeakAcc, displayFormat);
 		}
 		else // g_displayAlternateResultState == DEFAULT_RESULTS || g_triggerRecord.berec.barChannel == BAR_AIR_CHANNEL
 		{
@@ -987,9 +990,9 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			{
 				if (g_displayBargraphResultsMode == IMPULSE_RESULTS)
 				{
-					if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) {	sprintf(buff, "%s %0.3f mb", getLangText(PEAK_AIR_TEXT), (double)HexToMB(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
-					else if (g_unitConfig.unitsOfAir == PSI_TYPE) { sprintf(buff, "%s %0.3f psi", getLangText(PEAK_AIR_TEXT), (double)HexToPSI(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
-					else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf(buff, "%s %4.1f dB", getLangText(PEAK_AIR_TEXT), (double)HexToDB(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+					if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) {	sprintf(buff, "%s  %0.3f mb", getLangText(PEAK_AIR_TEXT), (double)HexToMB(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+					else if (g_unitConfig.unitsOfAir == PSI_TYPE) { sprintf(buff, "%s  %0.3f psi", getLangText(PEAK_AIR_TEXT), (double)HexToPSI(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+					else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf(buff, "%s  %4.1f dB", getLangText(PEAK_AIR_TEXT), (double)HexToDB(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
 				}
 				else // (g_displayBargraphResultsMode == SUMMARY_INTERVAL_RESULTS) || (g_displayBargraphResultsMode == JOB_PEAK_RESULTS)
 				{
@@ -1001,9 +1004,9 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 									((float)((g_bargraphSummaryInterval.a.frequency * 2) - 1)));
 						}
 
-						if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) { sprintf(buff, "AIR %0.3f mb ", (double)HexToMB(g_bargraphSummaryInterval.a.peak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType));	}
-						else if (g_unitConfig.unitsOfAir == PSI_TYPE) { sprintf(buff, "AIR %0.3f psi ", (double)HexToPSI(g_bargraphSummaryInterval.a.peak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
-						else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf(buff, "AIR %4.1f dB ", (double)HexToDB(g_bargraphSummaryInterval.a.peak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+						if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) { sprintf(buff, "AIR  %0.3f mb ", (double)HexToMB(g_bargraphSummaryInterval.a.peak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType));	}
+						else if (g_unitConfig.unitsOfAir == PSI_TYPE) { sprintf(buff, "AIR  %0.3f psi ", (double)HexToPSI(g_bargraphSummaryInterval.a.peak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+						else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf(buff, "AIR  %4.1f dB ", (double)HexToDB(g_bargraphSummaryInterval.a.peak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
 					}
 					else // g_displayBargraphResultsMode == JOB_PEAK_RESULTS
 					{
@@ -1013,22 +1016,23 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 									((float)((g_aJobFreq * 2) - 1)));
 						}
 
-						if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) { sprintf(buff, "AIR %0.3f mb ", (double)HexToMB(g_aJobPeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
-						else if (g_unitConfig.unitsOfAir == PSI_TYPE) { sprintf(buff, "AIR %0.3f psi ", (double)HexToPSI(g_aJobPeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
-						else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf(buff, "AIR %4.1f dB ", (double)HexToDB(g_aJobPeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+						if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) { sprintf(buff, "AIR  %0.3f mb ", (double)HexToMB(g_aJobPeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+						else if (g_unitConfig.unitsOfAir == PSI_TYPE) { sprintf(buff, "AIR  %0.3f psi ", (double)HexToPSI(g_aJobPeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+						else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf(buff, "AIR  %4.1f dB ", (double)HexToDB(g_aJobPeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
 					}
 
 					if (tempA > 100)
-						sprintf(displayFormat, "%3d(Hz)", (int)tempA);
+						sprintf(displayFormat, "%3d (Hz)", (int)tempA);
 					else
-						sprintf(displayFormat, "%3.1f(Hz)", (double)tempA);
+						sprintf(displayFormat, "%3.1f (Hz)", (double)tempA);
 					strcat(buff, displayFormat);
 				}
 			}
 		}
 
 		length = 21;
-		wnd_layout_ptr->curr_col =(uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+		//wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+		wnd_layout_ptr->curr_col = (uint16)(SIX_COL_SIZE);
 
 		WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 		wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
@@ -1064,6 +1068,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 	
 	if (g_promtForLeavingMonitorMode == TRUE)
 	{
+#if 0 /* Original */
 		MessageBorder();
 		MessageTitle(getLangText(WARNING_TEXT));
 		MessageText(getLangText(DO_YOU_WANT_TO_LEAVE_MONITOR_MODE_Q_TEXT));
@@ -1071,5 +1076,8 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 		if (g_monitorModeActiveChoice == MB_SECOND_CHOICE)
 			MessageChoiceActiveSwap(MB_YESNO);
+#else
+		MessageDisplayToLcd(getLangText(WARNING_TEXT), getLangText(DO_YOU_WANT_TO_LEAVE_MONITOR_MODE_Q_TEXT), MB_YESNO, g_monitorModeActiveChoice);
+#endif
 	}
 }

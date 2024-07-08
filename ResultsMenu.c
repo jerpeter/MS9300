@@ -618,14 +618,14 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 	if ((g_summaryList.cachedEntry.mode == BARGRAPH_MODE) ||
 	((g_summaryList.cachedEntry.mode == COMBO_MODE) && (g_summaryList.cachedEntry.subMode == BARGRAPH_MODE)))
 	{
-		sprintf(buff,"%5.2f %5.2f %5.2f Hz",
+		sprintf(buff,"%5.1f  %5.1f  %5.1f Hz",
 		(double)((float)g_summaryList.cachedEntry.sampleRate / (float)((g_summaryList.cachedEntry.channelSummary.r.frequency * 2) - 1)),
 		(double)((float)g_summaryList.cachedEntry.sampleRate / (float)((g_summaryList.cachedEntry.channelSummary.t.frequency * 2) - 1)),
 		(double)((float)g_summaryList.cachedEntry.sampleRate / (float)((g_summaryList.cachedEntry.channelSummary.v.frequency * 2) - 1)));
 	}
 	else // mode == WAVEFORM_MODE or MANUAL_CAL_MODE
 	{
-		sprintf(buff,"%5.2f %5.2f %5.2f Hz",
+		sprintf(buff,"%5.1f  %5.1f  %5.1f Hz",
 		(double)((float)g_summaryList.cachedEntry.channelSummary.r.frequency / (float)10.0),
 		(double)((float)g_summaryList.cachedEntry.channelSummary.t.frequency / (float)10.0),
 		(double)((float)g_summaryList.cachedEntry.channelSummary.v.frequency / (float)10.0));
@@ -849,6 +849,7 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 	if (g_promtForLeavingMonitorMode == TRUE)
 	{
+#if 0 /* Original */
 		MessageBorder();
 		MessageTitle(getLangText(WARNING_TEXT));
 		MessageText(getLangText(DO_YOU_WANT_TO_LEAVE_MONITOR_MODE_Q_TEXT));
@@ -856,6 +857,9 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 		if (g_monitorModeActiveChoice == MB_SECOND_CHOICE)
 			MessageChoiceActiveSwap(MB_YESNO);
+#else
+		MessageDisplayToLcd(getLangText(WARNING_TEXT), getLangText(DO_YOU_WANT_TO_LEAVE_MONITOR_MODE_Q_TEXT), MB_YESNO, g_monitorModeActiveChoice);
+#endif
 	}
 }
 
