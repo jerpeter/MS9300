@@ -38,6 +38,7 @@
 #include "math.h"
 
 #include "tmr.h"
+#include "mxc_delay.h"
 #include "ff.h"
 #include "wdt.h"
 #include "usb.h"
@@ -571,6 +572,10 @@ void Internal_rtc_alarms(void)
 		{
 			g_cyclicEventDelay = 0;
 			raiseSystemEventFlag_ISR(CYCLIC_EVENT);
+#if 1 /* Test */
+			g_sampleCountHold = g_sampleCount;
+			g_sampleCount = 0;
+#endif
 		}
 
 		// Every so often flag for updating to the External RTC time.
@@ -617,6 +622,10 @@ void Soft_timer_tick_irq(void)
 	{
 		g_cyclicEventDelay = 0;
 		raiseSystemEventFlag_ISR(CYCLIC_EVENT);
+#if 1 /* Test */
+		g_sampleCountHold = g_sampleCount;
+		g_sampleCount = 0;
+#endif
 	}
 
 	// Every so often flag for updating to the External RTC time.
@@ -2462,7 +2471,9 @@ __attribute__((__interrupt__))
 void Sample_irq(void)
 {
 #if 1 /* Test */
-	uint32 startTiming = DWT->CYCCNT;
+	//SysTick->LOAD = 0xffffff; /* set reload register */
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
 #endif
 
 #if 0 /* Test */
@@ -2616,8 +2627,9 @@ SKIP_PRIOR_PROCESSING_FOR_ADAPTIVE_MIN_RATE:
 	if (g_tailOfPretriggerBuff >= g_endOfPretriggerBuff) g_tailOfPretriggerBuff = g_startOfPretriggerBuff;
 
 #if 1 /* Test */
-	if (sampleProcessTiming) { sampleProcessTiming += (DWT->CYCCNT - startTiming); sampleProcessTiming /= 2; }
-	else { sampleProcessTiming = (DWT->CYCCNT - startTiming); }
+	if (sampleProcessTiming) { sampleProcessTiming += (0xffffff - SysTick->VAL); sampleProcessTiming >>= 1; }
+	else { sampleProcessTiming = (0xffffff - SysTick->VAL); }
+    SysTick->CTRL = 0; /* Disable */
 #endif
 
 	// Clear the interrupt flag
