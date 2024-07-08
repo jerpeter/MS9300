@@ -160,8 +160,8 @@ extern uint32_t testLifetimeCurrentAvgCount;
 #if 1 /* Test */
 static uint8_t aCutoffState = ANALOG_CUTOFF_FREQ_1K;
 static uint8_t gpState = ON;
-static uint8_t scState = 0;
-static uint8_t scEnable = 0;
+//static uint8_t scState = 0;
+//static uint8_t scEnable = 0;
 char filterText[16];
 #endif
 				switch (key)
