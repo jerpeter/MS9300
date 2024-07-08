@@ -24,6 +24,7 @@
 #include "adc.h"
 #include "ctype.h"
 
+#include "tmr.h"
 #include "mxc_delay.h"
 #include "ff.h"
 #include "mxc_sys.h"
@@ -248,7 +249,7 @@ void SoftUsecWait(uint32 usecs)
 		countdown--;
 	}
 #else /* New hardware timer */
-	MXC_Delay(usecs);
+	MXC_TMR_Delay(MXC_TMR0, usecs);
 #endif
 }
 
@@ -572,55 +573,58 @@ void BuildLanguageLinkTable(uint8 languageSelection)
 
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 		f_close(&file);
-	}
+
 #else /* Skip until eMMC Flash access is stable */
 	// Todo: Remove when filesystem is ready
 	UNUSED(sizeCheck);
 	UNUSED(file);
 	UNUSED(fno);
 	UNUSED(readSize);
+	if (0)
+	{
 #endif
 
-	// Loop and convert all line feeds and carriage returns to nulls, and leaving the last char element as a null
-	for (i = 1; i < (LANGUAGE_TABLE_MAX_SIZE - 1); i++)
-	{
-		// Check if a CR or LF was used as an element separator
-		if ((g_languageTable[i] == '\r') || (g_languageTable[i] == '\n'))
+		// Loop and convert all line feeds and carriage returns to nulls, and leaving the last char element as a null
+		for (i = 1; i < (LANGUAGE_TABLE_MAX_SIZE - 1); i++)
 		{
-			// Convert the CR of LF to a Null
-			g_languageTable[i] = '\0';
-
-			// Check if a CR/LF or LF/CR combo was used to as the element separator
-			if ((g_languageTable[i + 1] == '\r') || (g_languageTable[i + 1] == '\n'))
+			// Check if a CR or LF was used as an element separator
+			if ((g_languageTable[i] == '\r') || (g_languageTable[i] == '\n'))
 			{
-				// Skip the second character of the combo separator
-				i++;
+				// Convert the CR of LF to a Null
+				g_languageTable[i] = '\0';
+
+				// Check if a CR/LF or LF/CR combo was used to as the element separator
+				if ((g_languageTable[i + 1] == '\r') || (g_languageTable[i + 1] == '\n'))
+				{
+					// Skip the second character of the combo separator
+					i++;
+				}
 			}
 		}
-	}
 
-	// Set the first element of the link table to the start of the language table
-	g_languageLinkTable[0] = &g_languageTable[0];
-
-#if 0 /* Test debug output */
-	length = sprintf((char*)g_spareBuffer, "Language File Table Link\r\n(%d) %s\r\n", 1, (char*)g_languageLinkTable[0]);
-	ModemPuts(g_spareBuffer, length, NO_CONVERSION);
-#endif
-	
-	// Build the language link table by pointing to the start of every string following a Null
-	for (i = 1, currIndex = 0; i < TOTAL_TEXT_STRINGS; i++)
-	{
-		while (g_languageTable[currIndex++] != '\0')
-		{ /* spin */
-			if (currIndex == fileSize) break;
-		};
-
-		if (currIndex < fileSize) {	g_languageLinkTable[i] = g_languageTable + currIndex; }
+		// Set the first element of the link table to the start of the language table
+		g_languageLinkTable[0] = &g_languageTable[0];
 
 #if 0 /* Test debug output */
-		length = sprintf((char*)g_spareBuffer, "(%d) %s\r\n", (i + 1), (char*)g_languageLinkTable[i]);
+		length = sprintf((char*)g_spareBuffer, "Language File Table Link\r\n(%d) %s\r\n", 1, (char*)g_languageLinkTable[0]);
 		ModemPuts(g_spareBuffer, length, NO_CONVERSION);
 #endif
+	
+		// Build the language link table by pointing to the start of every string following a Null
+		for (i = 1, currIndex = 0; i < TOTAL_TEXT_STRINGS; i++)
+		{
+			while (g_languageTable[currIndex++] != '\0')
+			{ /* spin */
+				if (currIndex == fileSize) break;
+			};
+
+			if (currIndex < fileSize) {	g_languageLinkTable[i] = g_languageTable + currIndex; }
+
+#if 0 /* Test debug output */
+			length = sprintf((char*)g_spareBuffer, "(%d) %s\r\n", (i + 1), (char*)g_languageLinkTable[i]);
+			ModemPuts(g_spareBuffer, length, NO_CONVERSION);
+#endif
+		}
 	}
 
 	// Check if the null text is actually empty covering the case where a newer language table is loaded but using older firmware where the null entry is populated
@@ -1039,7 +1043,10 @@ uint8 CheckTriggerSourceExists(void)
 ///----------------------------------------------------------------------------
 uint32_t CycleCountToMicroseconds(uint32_t cycleCount, uint32_t mpuCoreFreq)
 {
-  return ((uint64_t)cycleCount * 1000000 + (mpuCoreFreq - 1) / mpuCoreFreq);
+	uint32_t mpuCoreFreq_us = (mpuCoreFreq / 1000000);
+
+	// Return microseconds rounded up with interger division
+	return ((cycleCount + (mpuCoreFreq_us - 1)) / mpuCoreFreq_us);
 }
 
 ///----------------------------------------------------------------------------
