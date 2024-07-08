@@ -118,6 +118,10 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 	if (keyMapRead) { debugRaw(" (Key Pressed: %x)", keyMapRead); }
 	else { debugRaw(" (Key Release)"); }
 
+#if 1 /* Test special method for redirect */
+	if (g_kpadIsrKeymap & 0x8000) { g_kpadIsrKeymap = 0; }
+#endif
+
 	//---------------------------------------------------------------------------------
 	// Find key
 	//---------------------------------------------------------------------------------
@@ -495,6 +499,9 @@ uint16 HandleCtrlKeyCombination(uint16 inputChar)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 1 /* Test */
+#include "RemoteHandler.h"
+#endif
 uint16 GetKeypadKey(uint8 mode)
 {
 	//uint8 columnSelection = 0;
@@ -517,6 +524,9 @@ uint16 GetKeypadKey(uint8 mode)
 #else /* Process USB as a delay */
 			// Process USB core routines (do not call UsbDeviceManager since it's not designed to be re-entrant)
 			ProcessUsbCoreHandling();
+#if 1 /* Test special method to redirect from serial */
+			ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); }
+#endif
 #endif
 			keyPressed = ScanKeypad();
 		}
@@ -530,6 +540,9 @@ uint16 GetKeypadKey(uint8 mode)
 #else /* Process USB as a delay */
 			// Process USB core routines (do not call UsbDeviceManager since it's not designed to be re-entrant)
 			ProcessUsbCoreHandling();
+#if 1 /* Test special method to redirect from serial */
+			ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); }
+#endif
 #endif
 			keyPressed = ScanKeypad();
 		}
@@ -553,12 +566,18 @@ uint16 GetKeypadKey(uint8 mode)
 #else /* Process USB as a delay */
 			// Process USB core routines (do not call UsbDeviceManager since it's not designed to be re-entrant)
 			ProcessUsbCoreHandling();
+#if 1 /* Test special method to redirect from serial */
+			ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); }
+#endif
 #endif
 		}
 	}
 	else // mode = CHECK_ONCE_FOR_KEY
 	{
 		// Check once if there is a key depressed
+#if 1 /* Test special method to redirect from serial */
+		ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); }
+#endif
 		keyPressed = ScanKeypad();
 
 		if (keyPressed == KEY_NONE)
@@ -623,6 +642,19 @@ uint16 ScanKeypad(void)
 	uint16 keyMapRead;
 	uint8 i = 0;
 
+#if 1 /* Test special method for redirect */
+	if (g_kpadIsrKeymap & 0x8000)
+	{
+		keyMapRead = g_kpadIsrKeymap;
+		g_kpadIsrKeymap = 0;
+
+		if (keyMapRead & 0x4000)
+		{
+			return (ON_ESC_KEY);
+		}
+	}
+	else
+#endif
 	keyMapRead = READ_KEY_BUTTON_MAP;
 #if 0 /* extra reads for debounce? */
 	SoftUsecWait(1 * SOFT_MSECS);

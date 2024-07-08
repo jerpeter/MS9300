@@ -102,6 +102,9 @@ enum {
 enum {
 	KEY_SOURCE_IRQ,
 	KEY_SOURCE_TIMER
+#if 0 /* Test */
+	, KEY_SOURCE_SERIAL_REDIRECT
+#endif
 };
 
 ///----------------------------------------------------------------------------

@@ -198,7 +198,54 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 		}	
 		else
 		{
+#if 0 /* Normal */
 			debug("System IS Locked\r\n");
+#else
+			char keyName[20];
+			sprintf(keyName, "None");
+
+			if (cmdMsg->msg[0] == 'Q') { sprintf(keyName, "Soft Key 4"); g_kpadIsrKeymap |= 0x0001; }
+			if (cmdMsg->msg[0] == '4') { sprintf(keyName, "Soft Key 4"); g_kpadIsrKeymap |= 0x0001; }
+			if (cmdMsg->msg[0] == '3') { sprintf(keyName, "Soft Key 3"); g_kpadIsrKeymap |= 0x0002; }
+			if (cmdMsg->msg[0] == '2') { sprintf(keyName, "Soft Key 2"); g_kpadIsrKeymap |= 0x0004; }
+			if (cmdMsg->msg[0] == '1') { sprintf(keyName, "Soft Key 1"); g_kpadIsrKeymap |= 0x0008; }
+			if (cmdMsg->msg[0] == 'E') { sprintf(keyName, "Enter"); g_kpadIsrKeymap |= 0x0010; }
+			if (cmdMsg->msg[0] == 'D') { sprintf(keyName, "Right"); g_kpadIsrKeymap |= 0x0020; }
+			if (cmdMsg->msg[0] == 'A') { sprintf(keyName, "Left"); g_kpadIsrKeymap |= 0x0040; }
+			if (cmdMsg->msg[0] == 'S') { sprintf(keyName, "Down"); g_kpadIsrKeymap |= 0x0080; }
+			if (cmdMsg->msg[0] == 'W') { sprintf(keyName, "Up"); g_kpadIsrKeymap |= 0x0100; }
+
+			if (cmdMsg->msg[0] == 'F')
+			{
+				debug("(System Locked) Factory Setup unlocked\r\n");
+				g_factorySetupSequence = ENTER_FACTORY_SETUP;
+			}
+			else if (cmdMsg->msg[0] == 'X')
+			{
+				debug("(System Locked) On-Esc sim\r\n");
+				g_kpadIsrKeymap |= 0xC000;
+			}
+			else if (cmdMsg->msg[0] == 'T')
+			{
+				if (g_unitConfig.externalTrigger == ENABLED)
+				{
+					// Signal the start of an event
+					debug("(System Locked) External Trigger sim\r\n");
+					g_externalTrigger = EXTERNAL_TRIGGER_EVENT;
+				}
+			}
+			else // Regular key, not factory setup
+			{
+				// Mark unused top bit to signify this came from redirect
+				g_kpadIsrKeymap |= 0x8000;
+
+				if (g_kpadProcessingFlag == DEACTIVATED)
+				{
+					debug("(System Locked) Redirecting input to keypad processing (%c -> %s)\r\n", cmdMsg->msg[0], keyName);
+					KeypadProcessing(KEY_SOURCE_IRQ);
+				}
+			}
+#endif
 		}
 	}
 
