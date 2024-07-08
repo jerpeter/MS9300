@@ -19,6 +19,7 @@
 #include "Record.h"
 #include "lcd.h"
 
+#include "tmr.h"
 #include "mxc_delay.h"
 
 ///----------------------------------------------------------------------------
@@ -282,9 +283,6 @@ void WriteStringToLcd(uint8* p, uint8 x, uint8 y, uint8 (*table_ptr)[2][10])
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* Empty call until LCD connector fixed or hardware modded */
-void WriteMapToLcd(uint8 (*g_mmap_ptr)[128]) {}
-#else
 int32_t testLifetimeCurrentAvg = -18;
 uint32_t testLifetimeCurrentAvgCount = 1;
 void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
@@ -385,6 +383,9 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 	// Swap to white text
 	ft81x_color_rgb32(0xffffff);
 
+	// If the special message box for leaving monitoring is displayed, grey out the soft keys
+	if (g_promtForLeavingMonitorMode == TRUE) { ft81x_fgcolor_rgb32(0x525252); } // Grey foreground
+
 	ft81x_cmd_button(12, 420, 132, 55, 29, 0, "LCD OFF");
 	ft81x_cmd_button(225, 420, 132, 55, 29, 0, "BACKLIGHT");
 	ft81x_cmd_button(432, 420, 132, 55, 29, 0, "CONFIG");
@@ -394,25 +395,28 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 	ft81x_color_rgb32(0x0000ff);
 
 #if 1 /* Test display of Battery information */
-	char debugInfo[32];
-	sprintf(debugInfo, "Battery: %0.3fV", (double)((float)FuelGaugeGetVoltage() / 1000));
-	ft81x_cmd_text(580, 40, 28, 0, debugInfo);
+	if (g_promtForLeavingMonitorMode != TRUE)
+	{
+		char debugInfo[32];
+		sprintf(debugInfo, "Battery: %0.3fV", (double)((float)FuelGaugeGetVoltage() / 1000));
+		ft81x_cmd_text(580, 40, 28, 0, debugInfo);
 
-	sprintf(debugInfo, "Current: %0.3fmA", (double)((float)FuelGaugeGetCurrent() / 1000));
-	if (FuelGaugeGetCurrent() > 0) { ft81x_color_rgb32(0x068c3b); ft81x_cmd_text(580, 60, 28, 0, debugInfo); ft81x_color_rgb32(0x0000ff); }
-	else { ft81x_cmd_text(580, 60, 28, 0, debugInfo); }
+		sprintf(debugInfo, "Current: %0.3fmA", (double)((float)FuelGaugeGetCurrent() / 1000));
+		if (FuelGaugeGetCurrent() > 0) { ft81x_color_rgb32(0x068c3b); ft81x_cmd_text(580, 60, 28, 0, debugInfo); ft81x_color_rgb32(0x0000ff); }
+		else { ft81x_cmd_text(580, 60, 28, 0, debugInfo); }
 
-	sprintf(debugInfo, "Temperature: %dF", FuelGaugeGetTemperature());
-	ft81x_cmd_text(580, 80, 28, 0, debugInfo);
+		sprintf(debugInfo, "Temperature: %dF", FuelGaugeGetTemperature());
+		ft81x_cmd_text(580, 80, 28, 0, debugInfo);
 
-	sprintf(debugInfo, "Avg Current: %.0fmA", (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount));
-	ft81x_cmd_text(580, 120, 28, 0, debugInfo);
+		sprintf(debugInfo, "Avg Current: %.0fmA", (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount));
+		ft81x_cmd_text(580, 120, 28, 0, debugInfo);
 
-	uint32_t runTime = g_lifetimeHalfSecondTickCount >> 1;
-	if (runTime < (60 * 60)) { sprintf(debugInfo, "Run Time: %dm %ds", ((runTime) / 60), (runTime % 60)); }
-	else if (runTime < (60 * 60 * 24)) { sprintf(debugInfo, "Run Time: %dh %dm %ds", ((runTime) / 3600), ((runTime % 3600) / 60), (runTime % 60)); }
-	else { sprintf(debugInfo, "Run Time: %dd %dh %dm", ((runTime) / (3600 * 24)), ((runTime % (3600 * 24)) / 3600), ((runTime % 3600) / 60)); }
-	ft81x_cmd_text(580, 140, 28, 0, debugInfo);
+		uint32_t runTime = g_lifetimeHalfSecondTickCount >> 1;
+		if (runTime < (60 * 60)) { sprintf(debugInfo, "Run Time: %dm %ds", ((runTime) / 60), (runTime % 60)); }
+		else if (runTime < (60 * 60 * 24)) { sprintf(debugInfo, "Run Time: %dh %dm %ds", ((runTime) / 3600), ((runTime % 3600) / 60), (runTime % 60)); }
+		else { sprintf(debugInfo, "Run Time: %dd %dh %dm", ((runTime) / (3600 * 24)), ((runTime % (3600 * 24)) / 3600), ((runTime % 3600) / 60)); }
+		ft81x_cmd_text(580, 140, 28, 0, debugInfo);
+	}
 #endif
 
 	ft81x_display(); // End the display list started with the ClearLcdMap function
@@ -423,19 +427,15 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 #endif
 
 #if 0 /* Test disable of LCD for now */
-	MXC_Delay(MXC_DELAY_SEC(3));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(3));
 	PowerControl(LCD_POWER_ENABLE, OFF);
 	PowerControl(LCD_POWER_DOWN, ON);
 #endif
 }
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* Empty call until LCD connector fixed or hardware modded */
-void ClearLcdMap(void) {}
-#else
 void ClearLcdMap(void)
 {
 #if 0 /* original function */
@@ -471,7 +471,6 @@ void ClearLcdMap(void)
 		//memset(&g_softKeyTranslation[0], 0, sizeof(g_softKeyTranslation));
 #endif
 }
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -553,9 +552,6 @@ void SetNextLcdBacklightState(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* Empty call until LCD connector fixed or hardware modded */
-LCD_BACKLIGHT_STATES GetLcdBacklightState(void) { return (BACKLIGHT_OFF); }
-#else
 LCD_BACKLIGHT_STATES GetLcdBacklightState(void)
 {
 	uint8_t backlightLevel, backlightState;
@@ -576,14 +572,10 @@ LCD_BACKLIGHT_STATES GetLcdBacklightState(void)
 
 	return (backlightState);
 }
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* Empty call until LCD connector fixed or hardware modded */
-void SetLcdBacklightState(LCD_BACKLIGHT_STATES state) {}
-#else
 void SetLcdBacklightState(LCD_BACKLIGHT_STATES state)
 {
 	switch (state)
@@ -597,7 +589,6 @@ void SetLcdBacklightState(LCD_BACKLIGHT_STATES state)
 		case BACKLIGHT_FULL: ft81x_set_backlight_level(FT81X_BACKLIGHT_FULL); break;
 	}
 }
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
