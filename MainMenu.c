@@ -367,6 +367,9 @@ void CheckAndPromptUserWaitingForSensorWarmup(void)
 
 		while ((volatile uint32)g_lifetimeHalfSecondTickCount < (SENSOR_WARMUP_DELAY_IN_SECONDS * 2))
 		{
+#if 1 /* Test breaking out of loop until hardware is stable enough to find a zero level */
+			if (GetKeypadKey(CHECK_ONCE_FOR_KEY) == ON_ESC_KEY) { break; }
+#endif
 			sprintf((char*)g_spareBuffer, "%s (%lu sec)", getLangText(SENSOR_WARMING_UP_FROM_COLD_START_TEXT), (((SENSOR_WARMUP_DELAY_IN_SECONDS * 2) - g_lifetimeHalfSecondTickCount) / 2));
 			OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, (1 * SOFT_SECS));
 		}
