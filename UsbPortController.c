@@ -16,6 +16,7 @@
 #include "Common.h"
 #include "mxc_errors.h"
 #include "i2c.h"
+#include "tmr.h"
 #include "mxc_delay.h"
 
 #include "UsbPortController.h"
@@ -254,7 +255,7 @@ static int tps25750_wait_cmd_complete(struct tps25750 *tps, unsigned long timeou
 #endif
 
 		// Delay 10ms
-		MXC_Delay(MXC_DELAY_MSEC(10));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(10));
 	} while (val);
 
 	return (0);
@@ -304,7 +305,7 @@ static int tps25750_exec_cmd(struct tps25750 *tps, const char *cmd, size_t in_le
 	if (ret)
 		return ret;
 
-	MXC_Delay(MXC_DELAY_MSEC(response_delay_ms));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(response_delay_ms));
 
 	ret = tps25750_block_read(tps, TPS_REG_DATA1, out_data, out_len);
 	if (ret)
@@ -879,7 +880,7 @@ extern uint8_t usbIsrActive;
 		 * based on pg.62 in TPS25750 Host Interface Technical
 		 * Reference Manual
 		 */
-		MXC_Delay(500);
+		MXC_TMR_Delay(MXC_TMR0, 500);
 		ret = 0;
 		debug("USB Port Controller: Low region patch write success (%d bytes)\n", gSizeLowRegionArray);
 	}
@@ -968,7 +969,7 @@ wait_for_app:
 			return E_TIME_OUT;
 #endif
 
-		MXC_Delay(MXC_DELAY_MSEC(10));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(10));
 
 	} while (ret != 1);
 
@@ -1465,10 +1466,10 @@ void USBCPortControllerInit(void)
 	debug("USB Port Controller: Setting Interrupt mask...\r\n");
 	memset(g_debugBuffer, 0xFF, 11);
 	tps25750_block_write(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
-	MXC_Delay(MXC_DELAY_MSEC(500));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 	memset(g_debugBuffer, 0x00, 11);
 	tps25750_block_write(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
-	MXC_Delay(MXC_DELAY_MSEC(1500));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1500));
 	memset(g_debugBuffer, 0xFF, 11);
 	tps25750_block_write(&tps, TPS_REG_INT_MASK1, g_debugBuffer, 11);
 #endif
@@ -1487,13 +1488,13 @@ void USBCPortControllerInit(void)
 		if (ret) { debugWarn("USB Port Controller: Failed to write Go2P (0x%x)\r\n", ret); }
 		ret = tps25750_wait_cmd_complete(&tps, 5000);
 		if (ret) { debugWarn("USB Port Controller: Failed to wait for commmand complete (0x%x)\r\n", ret); }
-		MXC_Delay(MXC_DELAY_MSEC(20));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20));
 		ret = tps25750_block_read(&tps, TPS_REG_DATA1, &rc, sizeof(rc));
 		if (ret) { debugWarn("USB Port Controller: Failed to read status (0x%x)\r\n", ret); }
 
 		if (!ret && !rc)
 		{
-			MXC_Delay(MXC_DELAY_MSEC(1000));
+			MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1000));
 			if (tps2750_is_mode(&tps, TPS_MODE_PTCH) == 1) { fullAccess = NO; debugWarn("USB Port Controller: In Patch mode, applying patch...\r\n"); tps25750_apply_patch(&tps); }
 			if (tps2750_is_mode(&tps, TPS_MODE_APP) == 1) { fullAccess = YES; debug("USB Port Controller: In App mode\r\n"); }
 		}

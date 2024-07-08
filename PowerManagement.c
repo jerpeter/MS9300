@@ -21,6 +21,7 @@
 #include "mxc_errors.h"
 #include "i2c.h"
 #include "ff.h"
+#include "tmr.h"
 #include "mxc_delay.h"
 #include "stdlib.h"
 #include "spi.h"
@@ -691,7 +692,7 @@ void InitBattChargerRegisters(void)
 	GetBattChargerRegister(BATT_CHARGER_OUTPUT_VOLTAGE_SETTING_IN_SOURCE_MODE, &regResults); if (regResults != 0x00F9) { errStatus = YES; debugErr("Battery Charger Read failed: Output voltage, 0x%x/0x%x\r\n", 0x00F9, regResults); }
 	GetBattChargerRegister(BATT_CHARGER_BATTERY_IMPEDANCE_COMPENSATION_AND_OUTPUT_CURRENT_LIMIT_SETTING_IN_SOURCE_MODE, &regResults); if (regResults != 0x003C) { errStatus = YES; debugErr("Battery Charger Read failed: Output current, 0x%x/0x%x\r\n", 0x003C, regResults); }
 #if 1 /* Test delay to see if that changes expanded Batt presenece to read different */
-	MXC_Delay(MXC_DELAY_MSEC(500));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 #endif
 	if (GetExpandedBatteryPresenceState() == NO)
 	{
@@ -1059,27 +1060,27 @@ void BatteryChargerInit(void)
 	debug("Battery Charger: Write Config Reg 0 Conversion state test for Expanded battery line change...\r\n");
 
 	debug("Battery Charger: ADC Conv Off\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0010);
-	MXC_Delay(MXC_DELAY_SEC(2));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(2));
 	debug("Battery Charger: ADC Conv On\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0090);
-	MXC_Delay(MXC_DELAY_SEC(2));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(2));
 
 	debug("Battery Charger: ADC Conv Off\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0010);
-	MXC_Delay(MXC_DELAY_SEC(2));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(2));
 	debug("Battery Charger: ADC Conv On\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0090);
-	MXC_Delay(MXC_DELAY_SEC(2));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(2));
 
 	debug("Battery Charger: ADC Conv Off\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0010);
-	MXC_Delay(MXC_DELAY_SEC(2));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(2));
 	debug("Battery Charger: ADC Conv On\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0090);
-	MXC_Delay(MXC_DELAY_SEC(2));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(2));
 
 	debug("Battery Charger: Test One-Shot conversions for Expanded battery line change...\r\n");
 	debug("Battery Charger: ADC Conv One-Shot\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0110);
-	MXC_Delay(MXC_DELAY_SEC(2));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(2));
 	debug("Battery Charger: ADC Conv One-Shot\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0110);
-	MXC_Delay(MXC_DELAY_SEC(2));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(2));
 	debug("Battery Charger: ADC Conv One-Shot\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0110);
-	MXC_Delay(MXC_DELAY_SEC(2));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(2));
 #endif
 	debug("Battery Charger: Config Reg 0 reads: 0x%x\r\n", ReturnBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0));
 
@@ -1103,7 +1104,7 @@ void BatteryChargerInit(void)
 		SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, 0x3E93);
 		debug("Battery Charger: Status/Fault Reg 0 after clear reads: 0x%x\r\n", ReturnBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_0));
 		//debug("Battery Charger: Status/Fault Reg 1 after clear reads: 0x%x\r\n", ReturnBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_1));
-		for (uint8_t i = 0; i < 9; i++) { MXC_Delay(MXC_DELAY_SEC(5)); debug("Battery Charger: Delay...\r\n"); }
+		for (uint8_t i = 0; i < 9; i++) { MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(5)); debug("Battery Charger: Delay...\r\n"); }
 		// Read int status reg 16 and 17
 		//debug("Battery Charger: Status/Fault Reg 0 reads: 0x%x\r\n", ReturnBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_0));
 		readReg = ReturnBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_0);
@@ -2055,7 +2056,7 @@ void FuelGaugeInit(void)
 	Ltc2944_config(Ltc2944_device.prescaler, LTC2944_REG_CONTROL_MODE_SCAN);
 
 	debug("Fuel Gauge: 10 second delay to allow scan mode to process...\r\n");
-	MXC_Delay(MXC_DELAY_SEC(10));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(10));
 
 	debug("Fuel Gauge: Battery voltage is %f\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
 
@@ -2077,7 +2078,7 @@ void FuelGaugeInit(void)
 	Ltc2944_config(Ltc2944_device.prescaler, LTC2944_REG_CONTROL_MODE_AUTO);
 
 	// Small delay to allow conversions
-	MXC_Delay(MXC_DELAY_MSEC(100));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(100));
 
 	debug("Fuel Gauge: Battery voltage is %0.2fV\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
 
@@ -2144,7 +2145,7 @@ void FuelGaugeInit(void)
 		Ltc2944_set_temp_thr(0, -20);
 
 		//Ltc2944_read_regs(LTC2944_REG_STATUS, &readReg, 1); debug("Fuel Gauge: Status register is 0x%x\r\n", readReg);
-		MXC_Delay(MXC_DELAY_MSEC(50));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
 		Ltc2944_read_regs(LTC2944_REG_STATUS, &readReg, 1); //debug("Fuel Gauge: Status register is 0x%x\r\n", readReg);
 
 		if (readReg)
@@ -2165,7 +2166,7 @@ void FuelGaugeInit(void)
 		Ltc2944_set_temp_thr(60, -20);
 
 		//Ltc2944_read_regs(LTC2944_REG_STATUS, &readReg, 1); debug("Fuel Gauge: Status register is 0x%x\r\n", readReg);
-		MXC_Delay(MXC_DELAY_MSEC(50));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
 		Ltc2944_read_regs(LTC2944_REG_STATUS, &readReg, 1); //debug("Fuel Gauge: Status register is 0x%x\r\n", readReg);
 	}
 

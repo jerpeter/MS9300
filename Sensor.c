@@ -21,6 +21,7 @@
 #include "i2c.h"
 #include "gpio.h"
 #include "mxc_errors.h"
+#include "tmr.h"
 #include "mxc_delay.h"
 
 ///----------------------------------------------------------------------------
@@ -53,7 +54,7 @@ uint8 OneWireReset(void)
 
 	return (presenceDetect);
 #if 0 /* Test delay for repeat commands */
-	MXC_Delay(MXC_DELAY_MSEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1));
 #endif
 }
 
@@ -63,9 +64,9 @@ uint8 OneWireReset(void)
 void OneWireWriteByte(uint8 data)
 {
 #if 0 /* Test delay for repeat commands, fails otherwise */
-	MXC_Delay(MXC_DELAY_MSEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1));
 #else /* Test shorter delay, I2C fail below 500, Extra data byte read at 500, 750us works */
-	MXC_Delay(MXC_DELAY_USEC(750));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_USEC(750));
 #endif
 	ds2484_w1_write_byte(data);
 }
@@ -76,9 +77,9 @@ void OneWireWriteByte(uint8 data)
 uint8 OneWireReadByte(void)
 {
 #if 0 /* Test delay for repeat commands, fails otherwise */
-	MXC_Delay(MXC_DELAY_MSEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1));
 #else /* Test shorter delay, I2C fail below 500, Extra data byte read at 500, 750us works */
-	MXC_Delay(MXC_DELAY_USEC(750));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_USEC(750));
 #endif
 	uint8 data = ds2484_w1_read_byte();
 
@@ -808,7 +809,7 @@ uint8_t SmartSensorMuxSelectAndDriverEnable(SMART_SENSOR_TYPE sensor)
 		// Make sure Mux is disabled before changing mux address lines
 		SetSmartSensorMuxEnableState(OFF);
 		// Delay before changing? 250ns max
-		MXC_Delay(1);
+		MXC_TMR_Delay(MXC_TMR0, 1);
 	}
 
 	// Set the 1-Write Mux to the specified sensor
@@ -818,7 +819,7 @@ uint8_t SmartSensorMuxSelectAndDriverEnable(SMART_SENSOR_TYPE sensor)
 
 	// Activate the 1-Wire driver
 	SetSmartSensorSleepState(OFF);
-	MXC_Delay(MXC_DELAY_MSEC(2));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(2));
 
 	// Reconfigure 1-Wire driver since it's possible that the analog 5V was removed since setup
 	OneWireResetAndConfigure();
@@ -932,6 +933,7 @@ void UpdateUnitSensorsWithSmartSensorTypes(void)
 void DisplaySmartSensorInfo(SMART_SENSOR_INFO situation)
 {
 	char airSensorTypeName[16];
+	uint8_t sensorFound = 0;
 
 	if (situation == INFO_ON_CHECK)
 	{
@@ -952,6 +954,9 @@ void DisplaySmartSensorInfo(SMART_SENSOR_INFO situation)
 				(g_seismicSmartSensorMemory.sensorType < 0x80) ? (pow(2,g_seismicSmartSensorMemory.sensorType) * (double)2.56) : ((pow(2, (g_seismicSmartSensorMemory.sensorType - 0x80)) * (double)65.535)),
 				(g_seismicSmartSensorMemory.sensorType < 0x80) ? ("IN") : ("MM"));
 		debug("Discovered: Seismic smart sensor, type: X%d (%4.2f %s)\r\n", (uint8)(8 / pow(2, g_seismicSmartSensorMemory.sensorType)), (double)(pow(2,g_seismicSmartSensorMemory.sensorType) * (double)2.56), ("IN"));
+
+		// Display on init if found
+		if (situation == INFO_ON_INIT) { sensorFound++; OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, (3 * SOFT_SECS)); }
 	}
 	else if (situation == INFO_ON_CHECK)
 	{
@@ -960,8 +965,7 @@ void DisplaySmartSensorInfo(SMART_SENSOR_INFO situation)
 	}
 
 	// Allow faster UI menu traversal if not during initialization
-	if (situation == INFO_ON_INIT) { OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, (3 * SOFT_SECS)); }
-	else { MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK); }
+	if (situation == INFO_ON_CHECK) { MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK); }
 
 	//-------------------------------------------
 	// Acoustic sensor check
@@ -972,6 +976,9 @@ void DisplaySmartSensorInfo(SMART_SENSOR_INFO situation)
 		sprintf((char*)g_spareBuffer, "%s: %s %s, %s: %s", getLangText(DISCOVERED_TEXT), getLangText(ACOUSTIC_TEXT), getLangText(SMART_SENSOR_TEXT),
 				getLangText(TYPE_TEXT), airSensorTypeName);
 		debug("Discovered: Acoustic smart sensor, type: %s\r\n", airSensorTypeName);
+
+		// Display on init if found
+		if (situation == INFO_ON_INIT) { sensorFound++; OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, (3 * SOFT_SECS)); }
 	}
 	else if (situation == INFO_ON_CHECK)
 	{
@@ -980,8 +987,7 @@ void DisplaySmartSensorInfo(SMART_SENSOR_INFO situation)
 	}
 
 	// Allow faster UI menu traversal if not during initialization
-	if (situation == INFO_ON_INIT) { OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, (3 * SOFT_SECS)); }
-	else { MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK); }
+	if (situation == INFO_ON_CHECK) { MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK); }
 
 	//-------------------------------------------
 	// Seismic 2 sensor check
@@ -994,6 +1000,9 @@ void DisplaySmartSensorInfo(SMART_SENSOR_INFO situation)
 				(g_seismic2SmartSensorMemory.sensorType < 0x80) ? (pow(2,g_seismic2SmartSensorMemory.sensorType) * (double)2.56) : ((pow(2, (g_seismic2SmartSensorMemory.sensorType - 0x80)) * (double)65.535)),
 				(g_seismic2SmartSensorMemory.sensorType < 0x80) ? ("IN") : ("MM"));
 		debug("Discovered: Seismic 2 smart sensor, type: X%d (%4.2f %s)\r\n", (uint8)(8 / pow(2, g_seismic2SmartSensorMemory.sensorType)), (double)(pow(2,g_seismic2SmartSensorMemory.sensorType) * (double)2.56), ("IN"));
+
+		// Display on init if found
+		if (situation == INFO_ON_INIT) { sensorFound++; OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, (3 * SOFT_SECS)); }
 	}
 	else if (situation == INFO_ON_CHECK)
 	{
@@ -1002,8 +1011,7 @@ void DisplaySmartSensorInfo(SMART_SENSOR_INFO situation)
 	}
 
 	// Allow faster UI menu traversal if not during initialization
-	if (situation == INFO_ON_INIT) { OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, (3 * SOFT_SECS)); }
-	else { MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK); }
+	if (situation == INFO_ON_CHECK) { MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK); }
 
 	//-------------------------------------------
 	// Acoustic 2 sensor check
@@ -1014,6 +1022,9 @@ void DisplaySmartSensorInfo(SMART_SENSOR_INFO situation)
 		sprintf((char*)g_spareBuffer, "%s: %s 2 %s, %s: %s", getLangText(DISCOVERED_TEXT), getLangText(ACOUSTIC_TEXT), getLangText(SMART_SENSOR_TEXT),
 				getLangText(TYPE_TEXT), airSensorTypeName);
 		debug("Discovered: Acoustic 2 smart sensor, type: %s\r\n", airSensorTypeName);
+
+		// Display on init if found
+		if (situation == INFO_ON_INIT) { sensorFound++; OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, (3 * SOFT_SECS)); }
 	}
 	else if (situation == INFO_ON_CHECK)
 	{
@@ -1022,8 +1033,14 @@ void DisplaySmartSensorInfo(SMART_SENSOR_INFO situation)
 	}
 
 	// Allow faster UI menu traversal if not during initialization
-	if (situation == INFO_ON_INIT) { OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, (3 * SOFT_SECS)); }
-	else { MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK); }
+	if (situation == INFO_ON_CHECK) { MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK); }
+
+	if ((situation == INFO_ON_INIT) && (sensorFound == 0))
+	{
+		sprintf((char*)g_spareBuffer, "%s %s", getLangText(SMART_SENSOR_TEXT), getLangText(NOT_FOUND_TEXT));
+		debugWarn("No Smart sensors found\r\n");
+		OverlayMessage(getLangText(WARNING_TEXT), (char*)g_spareBuffer, (3 * SOFT_SECS));
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -1147,7 +1164,7 @@ void EnableAndSelectSmartSensorMux(SMART_SENSOR_TYPE sensor)
 		SetSmartSensorMuxEnableState(ON);
 		
 		// Delay 480ns @ 5V after enabling
-		MXC_Delay(1); // 1us
+		MXC_TMR_Delay(MXC_TMR0, 1); // 1us
 
 		// Set the upper address bit, logic 0 for either seismic or logic 1 for either acoustic 
 		if ((sensor == SEISMIC_SENSOR) || (sensor == SEISMIC_SENSOR_2))
@@ -1184,7 +1201,7 @@ void DisableSmartSensorMux(void)
 	SetSmartSensorMuxEnableState(OFF);
 
 	// Delay 400ns @ 5V after disabling
-	MXC_Delay(1); // 1us
+	MXC_TMR_Delay(MXC_TMR0, 1); // 1us
 }
 
 ///============================================================================
@@ -1576,7 +1593,7 @@ int ds2484_probe(void)
 	}
 
 	/* Sleep at least 525ns to allow the reset to complete */
-	MXC_Delay(1);
+	MXC_TMR_Delay(MXC_TMR0, 1);
 
 	/* Read the status byte - only reset bit and line should be set */
 	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &temp1, sizeof(temp1));
@@ -1620,13 +1637,13 @@ void Test1Wire(void)
 
     debug("1-Wire Master: Powering up (disabling sleep)\r\n");
 	SetSmartSensorSleepState(OFF);
-	MXC_Delay(MXC_DELAY_MSEC(10));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(10));
 
 	if (ds2484_send_cmd(data, DS2484_CMD_RESET) < 0) { debugWarn("1-Wire Master: Reset failed\r\n"); }
 	else { debug("1-Wire Master: Reset successful\r\n"); }
 
 	/* Sleep at least 525ns to allow the reset to complete */
-	MXC_Delay(1);
+	MXC_TMR_Delay(MXC_TMR0, 1);
 
 	/* Read the status byte - only reset bit and line should be set */
 	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &temp1, sizeof(temp1));
@@ -1636,7 +1653,7 @@ void Test1Wire(void)
 	debug("1-Wire Master: Set device config\r\n");
 	ds2484_send_cmd_data(data, DS2484_CMD_WRITE_CONFIG, ds2484_calculate_config(0x00));
 
-	MXC_Delay(MXC_DELAY_MSEC(500));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 
 	ds2484_select_register(data, DS2484_PTR_CODE_STATUS);
 	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &temp1, sizeof(temp1));
@@ -1654,7 +1671,7 @@ void OneWireResetAndConfigure(void)
 	if (ds2484_send_cmd(data, DS2484_CMD_RESET) < 0) { debugErr("1-Wire Master: Reset failed\r\n"); }
 
 	/* Sleep at least 525ns to allow the reset to complete */
-	MXC_Delay(1);
+	MXC_TMR_Delay(MXC_TMR0, 1);
 
 	// Write device config, enabling active pullup (generally recommended for best 1-Wire bus performance)
 	ds2484_send_cmd_data(data, DS2484_CMD_WRITE_CONFIG, ds2484_calculate_config(DS2484_REG_CFG_APU));
@@ -1685,14 +1702,14 @@ void OneWireInit(void)
 
 	// Enable the 1-Wire driver
 	SetSmartSensorSleepState(OFF);
-	MXC_Delay(MXC_DELAY_MSEC(2)); // Per datasheet delay coming out of sleep
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(2)); // Per datasheet delay coming out of sleep
 
 	// Issue device reset (also sets read pointer at the status register)
 	if (ds2484_send_cmd(data, DS2484_CMD_RESET) < 0) { debugErr("1-Wire Master: Reset failed\r\n"); }
 	else { debug("1-Wire Master: Reset success\r\n"); }
 
 	/* Sleep at least 525ns to allow the reset to complete */
-	MXC_Delay(1);
+	MXC_TMR_Delay(MXC_TMR0, 1);
 
 	/* Read the status byte - only reset bit and line should be set */
 	WriteI2CDevice(MXC_I2C0, I2C_ADDR_1_WIRE, NULL, 0, &status, sizeof(status));
@@ -1709,6 +1726,7 @@ void OneWireInit(void)
 
 	if (analog5vPoweredUp)
 	{
+		PowerControl(ADC_RESET, ON);
 		PowerControl(ANALOG_5V_ENABLE, OFF);
 	}
 }

@@ -21,6 +21,7 @@
 #include "mxc_errors.h"
 #include "i2c.h"
 #include "uart.h"
+#include "tmr.h"
 #include "mxc_delay.h"
 #include "cdc_acm.h"
 
@@ -811,7 +812,7 @@ void TestExpansionI2CBridge(void)
 	{
 		debug("Power Control: Expansion I2C UART bridge enable being turned on\r\n");
 		PowerControl(EXPANSION_ENABLE, ON);
-		MXC_Delay(MXC_DELAY_MSEC(500));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 		PowerControl(EXPANSION_RESET, OFF);
 	}
 	else { debugWarn("Power Control: Expansion I2C UART bridge enable already on\r\n"); }
@@ -828,17 +829,17 @@ void ExpansionBridgeInit(void)
 	uint8_t reg;
 
 	PowerControl(EXPANSION_ENABLE, ON);
-	MXC_Delay(MXC_DELAY_MSEC(500));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 
 	PowerControl(EXPANSION_RESET, OFF);
-	MXC_Delay(MXC_DELAY_MSEC(250));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(250));
 
 #if 0 /* Test read for scope */
 	debug("Expansion I2C Uart Bridge: Forever read LCD register...\r\n");
 	while (1)
 	{
 		ReadUartBridgeControlRegister(PI7C9X760_REG_LCR);
-		MXC_Delay(50);
+		MXC_TMR_Delay(MXC_TMR0, 50);
 	}
 #endif
 
@@ -873,6 +874,6 @@ void ExpansionBridgeInit(void)
 	}
 
 #if 1 /* Test delay after power down for Expansion interrupt which is firing */
-	MXC_Delay(MXC_DELAY_MSEC(500));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 #endif
 }

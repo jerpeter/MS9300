@@ -20,6 +20,7 @@
 #include "spi.h"
 
 #include "i2c.h"
+#include "tmr.h"
 #include "mxc_delay.h"
 //#include "flashc.h"
 
@@ -725,7 +726,7 @@ void SaveParameterMemory(uint8* dataSrc, uint16 startAddr, uint16 dataLength)
 		dataSrc += writeLength;
 
 		// Old system used delay, new part datasheet is similar, lists 5ms write time if not able to special no ack write loop
-		MXC_Delay(MXC_DELAY_MSEC(5));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(5));
 	}
 #else /* Test bypass since reads seem to cause the I2C to hang */
 	// Todo: swap back to normal
@@ -763,7 +764,7 @@ void EraseParameterMemory(uint16 startAddr, uint16 dataLength)
 		WriteI2CDevice(MXC_I2C0, I2C_ADDR_EEPROM, g_spareBuffer, (pageSize + 2), NULL, 0);
 
 		// Old system used delay, new part datasheet is similar, lists 5ms write time if not able to special no ack write loop
-		MXC_Delay(MXC_DELAY_MSEC(5));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(5));
 	}
 #else /* Test bypass since reads seem to cause the I2C to hang */
 	// Todo: swap back to normal

@@ -21,6 +21,7 @@
 #include "mxc_errors.h"
 #include "ff.h"
 #include "i2c.h"
+#include "tmr.h"
 #include "mxc_delay.h"
 
 ///----------------------------------------------------------------------------
@@ -112,13 +113,17 @@ BOOLEAN ExternalRtcInit(void)
 	DisableExternalRtcAlarm();
 #endif
 
-#if 1 /* Test setting Offset register to trim External RTC time */
+#if 0 /* Test setting Offset register to trim External RTC time */
 	// Time reads fast, +114.547 ppm, 114.547 / 2.170 (OFFM = 0) = 52.78 = ~53
-	uint8_t offsetReg = 0x53; // Two's complement of 53
+	uint8_t offsetReg = 0x35; // Two's complement
 	SetRtcRegisters(PCF85263_CTL_OFFSET, &offsetReg, sizeof(offsetReg));
 	offsetReg = 0;
 	GetRtcRegisters(PCF85263_CTL_OFFSET, &offsetReg, sizeof(offsetReg));
 	debug("External RTC: Offset register set to %d\r\n", offsetReg);
+#else /* Reset offset */
+	uint8_t offsetReg = 0; // Clear offset if set
+	SetRtcRegisters(PCF85263_CTL_OFFSET, &offsetReg, sizeof(offsetReg));
+	debug("External RTC: Offset register reset to 0\r\n");
 #endif
 
 	// Need to initialize the global Current Time
@@ -156,9 +161,9 @@ BOOLEAN ExternalRtcInit(void)
 
 	// Print time in succession with 1 second processor delays to show time increment
 	testTime = GetExternalRtcTime(); debug("External RTC: Get time yields %02d:%02d:%02d, delaying 1 second for next check\r\n", testTime.hour, testTime.min, testTime.sec);
-	MXC_Delay(MXC_DELAY_SEC(1)); //debug("MXC 1 second delay\r\n");
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1)); //debug("MXC 1 second delay\r\n");
 	testTime = GetExternalRtcTime(); debug("External RTC: Get time yields %02d:%02d:%02d, delaying 1 second for next check\r\n", testTime.hour, testTime.min, testTime.sec);
-	MXC_Delay(MXC_DELAY_SEC(1)); //debug("MXC 1 second delay\r\n");
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1)); //debug("MXC 1 second delay\r\n");
 	testTime = GetExternalRtcTime(); debug("External RTC: Get time yields %02d:%02d:%02d\r\n", testTime.hour, testTime.min, testTime.sec);
 #endif
 	return (TRUE);
@@ -666,8 +671,8 @@ void TestExternalRTC(void)
 
 	// Print time in succession with 1 second processor delays to show time increment
 	testTime = GetExternalRtcTime(); debug("External RTC: Get time yields %02d:%02d:%02d\r\n", testTime.hour, testTime.min, testTime.sec);
-	MXC_Delay(MXC_DELAY_SEC(1)); debug("MXC 1 second delay\r\n");
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1)); debug("MXC 1 second delay\r\n");
 	testTime = GetExternalRtcTime(); debug("External RTC: Get time yields %02d:%02d:%02d\r\n", testTime.hour, testTime.min, testTime.sec);
-	MXC_Delay(MXC_DELAY_SEC(1)); debug("MXC 1 second delay\r\n");
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1)); debug("MXC 1 second delay\r\n");
 	testTime = GetExternalRtcTime(); debug("External RTC: Get time yields %02d:%02d:%02d\r\n", testTime.hour, testTime.min, testTime.sec);
 }

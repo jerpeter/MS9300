@@ -12,6 +12,7 @@
 #include "Globals.h"
 #include "stdint.h"
 #include "spi.h"
+#include "tmr.h"
 #include "mxc_delay.h"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1385,7 +1386,7 @@ void restart_core(void)
 	ft81x_rd(CMD_ACTIVE);
 
 	// Delay (20ms)
-	MXC_Delay(MXC_DELAY_MSEC(20));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20));
 
 	// Select internal clock (default), which may cause a system reset.
 	ft81x_hostcmd(CMD_CLKINT);
@@ -1409,7 +1410,7 @@ bool read_chip_id()
 #endif
 
 		// Sleep (10ms)
-		MXC_Delay(MXC_DELAY_MSEC(10));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(10));
 	};
 
 	ft81x_chip_id = 0;
@@ -1563,7 +1564,7 @@ void ft81x_init_gpio()
 	//ft81x_wr16(REG_GPIOX, 0x8000);
 
 	// Sleep a little (100ms)
-	MXC_Delay(MXC_DELAY_MSEC(100));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(100));
 }
 
 #if 1 // Test with black screen before starting display clock
@@ -1581,7 +1582,7 @@ void test_black_screen()
 	ft81x_wait_finish();  // Wait till the GPU is finished processing the commands
 
 	// Sleep a little (100ms)
-	MXC_Delay(MXC_DELAY_MSEC(100));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(100));
 }
 #else
 #define test_black_screen()
@@ -1601,7 +1602,7 @@ void test_white_screen()
 	ft81x_wait_finish();  // Wait till the GPU is finished processing the commands
 
 	// Sleep a little (100ms)
-	MXC_Delay(MXC_DELAY_MSEC(3000));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(3000));
 }
 
 #if 1
@@ -1760,7 +1761,7 @@ void test_load_image(void)
 		ft81x_wait_finish();
 
 		// Sleep (10ms)
-		MXC_Delay(MXC_DELAY_MSEC(10));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(10));
 	}
 }
 #else
@@ -1810,7 +1811,7 @@ void test_display(
 	for (int x=0; x<300; x++)
 	{
 		// Sleep (200ms)
-		MXC_Delay(MXC_DELAY_MSEC(200));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(200));
 
 		ft81x_stream_start(); // Start streaming
 		ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
@@ -1892,7 +1893,7 @@ void test_cycle_colors(
 		rgb>>=8; if(!rgb) rgb=0xff0000;
 
 		// Sleep (100ms)
-		MXC_Delay(MXC_DELAY_MSEC(100));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(100));
 	}
 }
 #else
@@ -1934,11 +1935,11 @@ void test_dots(
 		ft81x_stream_stop();  // Finish streaming to command buffer
 
 		// Sleep (100ms)
-		MXC_Delay(MXC_DELAY_MSEC(100));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(100));
 	}
 
 	// Sleep (10ms)
-	MXC_Delay(MXC_DELAY_MSEC(10));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(10));
 }
 #else
 #define test_dots()
@@ -1971,14 +1972,14 @@ uint8_t ft81x_init(void)
     if (GetPowerControlState(LCD_POWER_DOWN) == ON)
 	{
 		PowerControl(LCD_POWER_DOWN, OFF);
-		MXC_Delay(MXC_DELAY_MSEC(20)); // Per datasheet: From Sleep state, the host needs to wait at least 20ms before accessing any registers or commands
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20)); // Per datasheet: From Sleep state, the host needs to wait at least 20ms before accessing any registers or commands
 		g_lcdPowerFlag = ENABLED;
 	}
 
 #if 0 /* Test power draw after LCD power block enabled */
 	for (uint8_t j = 0; j < 5; j++)
 	{
-		MXC_Delay(MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
 	}
 #endif
 
@@ -1991,7 +1992,7 @@ uint8_t ft81x_init(void)
 	debug("LCD Controller: Going Active...\r\n");
 	ft81x_rd(CMD_ACTIVE);
 	ft81x_rd(CMD_ACTIVE);
-	MXC_Delay(MXC_DELAY_MSEC(300));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(300));
 
 	if (ft81x_rd(REG_ID) != 0x7C) { debugErr("LCD Controller: Failed to read reg ID after going active\r\n"); }
 	else { debug("LCD Controller: Reg ID verified after going active\r\n"); }
@@ -2044,11 +2045,11 @@ uint8_t ft81x_init(void)
 		test_black_screen();
 		debug("LCD Controller: Flags are 0x%x\r\n", ft81x_rd(REG_INT_FLAGS));
 		debug("LCD Controller: Flags are 0x%x\r\n", ft81x_rd(REG_INT_FLAGS));
-		MXC_Delay(MXC_DELAY_SEC(1));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 		test_white_screen();
 		debug("LCD Controller: Flags are 0x%x\r\n", ft81x_rd(REG_INT_FLAGS));
 		debug("LCD Controller: Flags are 0x%x\r\n", ft81x_rd(REG_INT_FLAGS));
-		MXC_Delay(MXC_DELAY_SEC(1));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 	}
 #elif 0 /* Test disable interrupts for now */
 	debug("LCD Controller: Disabling interrupts\r\n");
@@ -2492,7 +2493,7 @@ void ft81x_cSPOOL_MF(uint8_t *buffer, int32_t size)
       }
 
       // sleep a little let other processes go (1ms).
-		MXC_Delay(MXC_DELAY_MSEC(1));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1));
 
       // Get the read pointer where the GPU is working currently
       // consuming bytes.
@@ -2537,7 +2538,7 @@ void ft81x_cSPOOL_MF(uint8_t *buffer, int32_t size)
     written+=ts;
 
 	// Sleep (10ms)
-	MXC_Delay(MXC_DELAY_MSEC(10));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(10));
 
     // loop around if we overflow the fifo.
     mf_wp&=(mf_size-1);
@@ -2626,7 +2627,7 @@ void ft81x_getfree(uint16_t required)
 
   do {
 	// Sleep (10ms)
-	MXC_Delay(MXC_DELAY_MSEC(10));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(10));
 
     uint16_t rp = ft81x_fifo_rp();
     uint16_t howfull = (ft81x_fifo_wp - rp) & 4095;
@@ -4415,7 +4416,7 @@ void ft81x_logo()
 #if 0 /* Original */
   ft81x_wait_finish();
 #else /* Wait for finish doesn't work with the logo, the read pointer seems to get reset to 0 while the write pointer is still non-zero */
-	MXC_Delay(MXC_DELAY_SEC(3));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(3));
 #endif
   // AFAIK the only command that will set the RD/WR to 0 when finished
   ft81x_fifo_reset();
@@ -4432,7 +4433,7 @@ void TestLCD(void)
 	{
 		debug("Power Control: LCD Power enable bring turned on\r\n");
 		PowerControl(LCD_POWER_ENABLE, ON);
-		MXC_Delay(MXC_DELAY_MSEC(500));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 	}
 	else { debugWarn("Power Control: LCD Power enable already on\r\n"); }
 
@@ -4440,7 +4441,7 @@ void TestLCD(void)
 	{
 		debug("Power Control: LCD Power down being turned off\r\n");
 		PowerControl(LCD_POWER_DOWN, OFF);
-		MXC_Delay(MXC_DELAY_MSEC(500));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 	}
 	else { debugWarn("Power Control: LCD Power down already off\r\n"); }
 
@@ -4459,7 +4460,7 @@ void TestLCD(void)
 		if ((ft81x_chip_id) == 0x1008) { break; } // Chip version is FT810
 #endif
 
-		MXC_Delay(MXC_DELAY_MSEC(10));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(10));
 	}
 
 #if 0 /* Original */
