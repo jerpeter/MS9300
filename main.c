@@ -183,7 +183,11 @@ extern uint32_t testLifetimeCurrentAvgCount;
 		//debug("(Cyclic Event) (%s) (USB: %08x %04x %08x) Exe/s: %s\r\n", FuelGaugeDebugString(), USBCPortControllerStatus(), USBCPortControllerPStatus(), USBCPortControllerPDStatus(), (char*)g_spareBuffer);
 		testLifetimeCurrentAvg += (FuelGaugeGetCurrent() / 1000);
 		testLifetimeCurrentAvgCount++;
-		debug("(Cyclic Event) (%s) (%.0fmA avg) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer);
+		if (g_sampleProcessing == ACTIVE_STATE)
+		{
+			debug("(Cyclic Event) (%s) (%.0fmA avg) SPT: %lu, Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), CycleCountToMicroseconds(sampleProcessTiming, SYS_CLK), (char*)g_spareBuffer);
+		}
+		else { debug("(Cyclic Event) (%s) (%.0fmA avg) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer); }
 #if 0 /* Test 1 */
 extern void tps25750_int_status_and_clear(void);
 		tps25750_int_status_and_clear();
