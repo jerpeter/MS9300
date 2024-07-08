@@ -32,12 +32,14 @@
 #include "msc.h"
 #include "descriptors.h"
 #include "mscmem.h"
+#include "tmr.h"
 #include "mxc_delay.h"
 //#include "usb_protocol.h"
 // SDHC includes
 #include "mxc_device.h"
 #include "sdhc_regs.h"
 #include "tmr.h"
+#include "mxc_delay.h"
 #include "sdhc_lib.h"
 #include "ff.h"
 #include "sdhc_reva.h"
@@ -45,7 +47,6 @@
 #include "spi_reva_regs.h"
 #include "spi_reva1.h"
 
-//#include "mxc_delay.h"
 //#include "mxc_errors.h"
 //#include "uart.h"
 //#include "gpio.h"
@@ -158,7 +159,7 @@ void InitExternalKeypad(void)
 		if (keyScan & 0x100) { debugRaw(" <Up>"); }
 		if (keyScan) { debug("\r\n"); }
 
-		MXC_Delay(MXC_DELAY_MSEC(5));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(5));
 
 		if (GetPowerOnButtonState() == ON) { debug("Keypad: Loop break\r\n");break; }
 	}
@@ -220,19 +221,19 @@ extern uint16_t dataTemperature;
 		//debug("Ext ADC (Batt: %1.3f): R:%04x T:%04x V:%04x A:%04x TempF:%d\r\n", (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE), tempData.r, tempData.t, tempData.v, tempData.a, AD4695_TemperatureConversionCtoF(dataTemperature));
 		debug("Ext ADC (%s): R:%04x T:%04x V:%04x A:%04x TempF:%d\r\n", FuelGaugeDebugString(), tempData.r, tempData.t, tempData.v, tempData.a, AD4695_TemperatureConversionCtoF(dataTemperature));
 		if (FuelGaugeGetCurrentAbs() > 500000) { debug("Fuel Gauge: Current over 500 (%d)\r\n", FuelGaugeGetCurrentAbs()); break; }
-		MXC_Delay(MXC_DELAY_MSEC(100));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(100));
 		//if (i++ % 100 == 0) { debugRaw("."); }
 		//if (i++ % 10000 == 0) { debugRaw("."); }
 #else
 		debug("Monitor Sensor Enables: %s\r\n", FuelGaugeDebugString());
-		MXC_Delay(MXC_DELAY_SEC(1)); tempData.a++; dataTemperature++;
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1)); tempData.a++; dataTemperature++;
 		if (FuelGaugeGetCurrentAbs() > 500000) { debug("Fuel Gauge: Current over 500 (%d)\r\n", FuelGaugeGetCurrentAbs()); break; }
 #endif
 	}
 	AD4695_ExitConversionMode();
 	i = 0; while (1)
 	{
-		MXC_Delay(MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
 		if (i++ > 20) { break; }
 	}
 
@@ -240,13 +241,13 @@ extern uint16_t dataTemperature;
 	DisableSensorBlocks();
 	i = 0; while (1)
 	{
-		MXC_Delay(MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
 		if (i++ > 20) { break; }
 	}
 
 	while (FuelGaugeGetCurrentAbs() > 500000)
 	{
-		MXC_Delay(MXC_DELAY_SEC(1));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 		debug("Fuel Gauge: Current high, %s\r\n", FuelGaugeDebugString());
 	}
 
@@ -285,7 +286,7 @@ extern uint16_t dataTemperature;
 #if 0 /* Test */
 	while (FuelGaugeGetCurrentAbs() > 500000)
 	{
-		MXC_Delay(MXC_DELAY_SEC(1));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 		debug("Fuel Gauge: Current high, %s\r\n", FuelGaugeDebugString());
 	}
 	debug("Fuel Gauge: ADC put in reset and Analog 5V power off\r\n");
@@ -297,7 +298,7 @@ extern uint16_t dataTemperature;
 #if 0 /* Test */
 	while (FuelGaugeGetCurrentAbs() > 500000)
 	{
-		MXC_Delay(MXC_DELAY_SEC(1));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 		debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
 	}
 #endif
@@ -328,10 +329,10 @@ extern void test_logo(void);
 #endif
 
 #if 0 /* Test disable of LCD for now */
-	MXC_Delay(MXC_DELAY_SEC(3));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(3));
 	PowerControl(LCD_POWER_ENABLE, OFF);
 	PowerControl(LCD_POWER_DOWN, ON);
-	MXC_Delay(MXC_DELAY_SEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 #endif
 }
 
@@ -342,7 +343,7 @@ void InitCellLTE(void)
 {
 #if 0 /* Test */
 	debug("Cell/LTE: Init delay (5 secs)...\r\n");
-	MXC_Delay(MXC_DELAY_SEC(5));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(5));
 #endif
 
 #if 0 /* Test */
@@ -350,10 +351,10 @@ void InitCellLTE(void)
 	{
 		debug("Cell/LTE: Powering on...\r\n");
 		PowerControl(CELL_ENABLE, ON);
-		MXC_Delay(MXC_DELAY_SEC(2));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(2));
 		debug("Cell/LTE: Powering off...\r\n");
 		PowerControl(CELL_ENABLE, OFF);
-		MXC_Delay(MXC_DELAY_SEC(2));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(2));
 	}
 #endif
 
@@ -361,7 +362,7 @@ void InitCellLTE(void)
 	{
 		debug("Cell/LTE: Powering section...\r\n");
 		PowerControl(CELL_ENABLE, ON);
-		//MXC_Delay(MXC_DELAY_SEC(3));
+		//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(3));
 		//debug("Cell/LTE: Disabling LTE reset...\r\n");
 		//PowerControl(LTE_RESET, OFF);
 	}
@@ -396,47 +397,47 @@ extern uint32_t uart1BufferCount;
 #endif
 
 #if 1 /* Test */
-	//MXC_Delay(MXC_DELAY_SEC(3));
+	//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(3));
 
 	int status = 0; int strLen;
 	sprintf((char*)g_spareBuffer, "+++\r\n"); debug("Cell/LTE: Issuing <+++>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
 
 	sprintf((char*)g_spareBuffer, "ATE1\r\n"); debug("Cell/LTE: Issuing <ATE1>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
 
 	sprintf((char*)g_spareBuffer, "AT+CGMI\r\n"); debug("Cell/LTE: Issuing <AT+CGMI>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
 
 	sprintf((char*)g_spareBuffer, "AT+CGMM\r\n"); debug("Cell/LTE: Issuing <AT+CGMM>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
 
 	sprintf((char*)g_spareBuffer, "AT+CGMR\r\n"); debug("Cell/LTE: Issuing <AT+CGMR>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
 
 	sprintf((char*)g_spareBuffer, "AT+CEMODE\r\n"); debug("Cell/LTE: Issuing <AT+CEMODE>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
 
 
 	sprintf((char*)g_spareBuffer, "AT+CFUN?\r\n"); debug("Cell/LTE: Issuing <AT+CFUN?>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(500));
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
 
 	sprintf((char*)g_spareBuffer, "AT+CGMI\r\n"); debug("Cell/LTE: Issuing <AT+CGMI>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }	MXC_Delay(MXC_DELAY_MSEC(500));
+	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
 #endif
 
 #if 0 /* Test loop writing for Uart TX identificaiton */
 	while (1)
 	{
-		status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_Delay(MXC_DELAY_MSEC(50));
+		status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
 	}
 #endif
 
@@ -1977,8 +1978,10 @@ void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeasser
 	spiRequest.rxCnt = 0;
 	spiRequest.completeCB = (spi_complete_cb_t)SPI_Callback;
 
+#if 0 /* Prevent re-setting the data since since this has to disable the SPI to set each time, moved to SPI init */
 	// Set the number of data bits for the transfer
 	MXC_SPI_SetDataSize(spiPort, dataBits);
+#endif
 
 	if (method == BLOCKING)
 	{
@@ -2030,6 +2033,10 @@ void SetupSPI3_ExternalADC(void)
 	// External SPI3 uses SPI Mode 3 only
 	MXC_SPI_SetMode(MXC_SPI3, SPI_MODE_3);
 
+#if 1 /* Test moving setting the data size once per init since this doesn't change and setting requires disabling the SPI */
+	MXC_SPI_SetDataSize(MXC_SPI3, SPI_8_BIT_DATA_SIZE);
+#endif
+
 	debug("SPI3 Clock control config: Scale: %d, High CC: %d, Low CC: %d\r\n", (MXC_SPI3->clk_cfg >> 16), ((MXC_SPI3->clk_cfg >> 8) & 0xFF), (MXC_SPI3->clk_cfg >> 8) & 0xFF);
 }
 
@@ -2054,6 +2061,10 @@ void SetupSPI2_LCD(void)
 
 	// LCD controller uses SPI Mode 0 only
 	MXC_SPI_SetMode(MXC_SPI2, SPI_MODE_0);
+
+#if 1 /* Test moving setting the data size once per init since this doesn't change and setting requires disabling the SPI */
+	MXC_SPI_SetDataSize(MXC_SPI2, SPI_8_BIT_DATA_SIZE);
+#endif
 }
 
 // USB Definitions
@@ -2123,8 +2134,7 @@ msc_mem_t mem = { mscmem_Init, mscmem_Start, mscmem_Stop, mscmem_Ready, mscmem_S
 ///----------------------------------------------------------------------------
 void delay_us(unsigned int usec)
 {
-    /* mxc_delay() takes unsigned long, so can't use it directly */
-    MXC_Delay(usec);
+    MXC_TMR_Delay(MXC_TMR5, usec);
 }
 
 ///----------------------------------------------------------------------------
@@ -2258,7 +2268,11 @@ void SetupUSBComposite(void)
 
     // Start with USB in low power mode
     usbAppSleep();
+#if 1 /* Original */
     NVIC_EnableIRQ(USB_IRQn);
+#else /* Test delayed start so that the USB driver isn't initializing while the unit is going through init */
+	MXC_USB_Disconnect();
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -3353,7 +3367,7 @@ uint8_t SetupSDHCeMMC(void)
 	mxc_gpio_cfg_t gpio_sdhc_cmd = { GPIO_SDHC_PORT, GPIO_SDHC_CMD_PIN, MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
     MXC_GPIO_Config(&gpio_sdhc_cmd);
 	MXC_GPIO_OutClr(GPIO_SDHC_PORT, GPIO_SDHC_CMD_PIN);
-	MXC_Delay(MXC_DELAY_MSEC(74)); // Delay 74 clock cycles, but unsure of clock, going with 74ms to be sure
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(74)); // Delay 74 clock cycles, but unsure of clock, going with 74ms to be sure
 #endif
 
     MXC_GPIO_Config(&gpio_cfg_sdhc_1);
@@ -3473,6 +3487,10 @@ void SetupDriveAndFilesystem(void)
 	MKFS_PARM setupFS = { FM_FAT32, 0, 0, 0, 0 };
 	if ((err = f_mkfs("", &setupFS, work, sizeof(work))) != FR_OK) { debugErr("Drive(eMMC): Formatting failed with error %s\r\n", FF_ERRORS[err]); }
 	else { debug("Drive(eMMC): Formatted successfully\r\n"); }
+
+	// Remount
+	if ((err = f_mount(&fs_obj, "", 1)) != FR_OK) { debugErr("Drive(eMMC): filed to mount after formatting, with error %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); }
+	else if ((err = f_setlabel("NOMIS")) != FR_OK) { debugErr("Drive(eMMC): Setting label failed with error %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0);	}
 #endif
 
 #if 0 /* Test making FS immedaitely to exercise formatting flash */
@@ -3805,7 +3823,7 @@ void ValidatePowerOn(void)
 		// Monitor Power on button for 2 secs making sure it remains depressed signaling desire to turn unit on
 		for (i = 0; i < 40; i++)
 		{
-			MXC_Delay(MXC_DELAY_MSEC(50));
+			MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
 			debugRaw(".");
 
 			// Determine if the Power on button was released early
@@ -3848,7 +3866,7 @@ void ValidatePowerOn(void)
 				// Monitor Power on button for 2 secs making sure it remains depressed signaling desire to turn unit on
 				for (i = 0; i < 40; i++)
 				{
-					MXC_Delay(MXC_DELAY_MSEC(50));
+					MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
 					debugRaw(".");
 
 					// Determine if the Power on button was released early
@@ -3928,7 +3946,7 @@ void TestI2CDeviceAddresses(void)
 
 	for (uint8_t i = 0; i < 1; i++)
 	{
-		MXC_Delay(MXC_DELAY_SEC(1));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 		debug("-- I2C Test, Cycle %d --\r\n", i);
 
 		if (i == -1) //0)
@@ -3937,7 +3955,7 @@ void TestI2CDeviceAddresses(void)
 			//SetSmartSensorSleepState(OFF);
 			// Bring up Expansion
 			PowerControl(EXPANSION_ENABLE, ON);
-			MXC_Delay(MXC_DELAY_MSEC(500));
+			MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 			PowerControl(EXPANSION_RESET, OFF);
 		}
 
@@ -3953,7 +3971,7 @@ void TestI2CDeviceAddresses(void)
 		{
 			debug("-- Power down 5V --\r\n");
 			PowerControl(ANALOG_5V_ENABLE, OFF);
-			MXC_Delay(MXC_DELAY_SEC(1));
+			MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 		}
 
 #if 0
@@ -4023,14 +4041,14 @@ void TestI2CDeviceAddresses(void)
 	debug("-- Power down 5V --\r\n");
 	PowerControl(ADC_RESET, ON);
 	PowerControl(ANALOG_5V_ENABLE, OFF);
-	MXC_Delay(MXC_DELAY_SEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 
 	SetSmartSensorSleepState(ON);
 	PowerControl(EXPANSION_RESET, ON);
 	PowerControl(EXPANSION_ENABLE, OFF);
 
 #if 1 /* Test delay for Expanion interupt that shows up shortly after power down */
-	MXC_Delay(MXC_DELAY_MSEC(500));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 #endif
 #endif
 
@@ -4050,7 +4068,7 @@ void TestI2CDeviceAddresses(void)
 		//GetBattChargerRegister(BATT_CHARGER_STATUS_AND_FAULT_REGISTER_0, &testReg16);
 		WriteI2CDevice(MXC_I2C0, I2C_ADDR_USBC_PORT_CONTROLLER, &regA, sizeof(uint8_t), testBootStatus, sizeof(testBootStatus));
 		GetRtcRegisters(PCF85263_CTL_RAM_BYTE, &ramData, sizeof(ramData));
-		MXC_Delay(MXC_DELAY_MSEC(1));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1));
 		//if (j++ % 1000 == 0) { debugRaw("."); }
 		if (j++ % 1000 == 0) { FuelGaugeDebugInfo(); }
 	}
@@ -4067,7 +4085,7 @@ void TestI2CDeviceAddresses(void)
 #if 0 /* Test 1 */
 extern uint8_t VerifyAccManuIDAndPartID(void);
 		VerifyAccManuIDAndPartID();
-		MXC_Delay(MXC_DELAY_SEC(1));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 #elif 1 /* Test 2 */
 	// Write 0x00 to register 0x7F, primary or flipped address (I2C_ADDR_ACCELEROMETER or I2C_ADDR_ACCELEROMETER_ALT_1)
 	uint8_t registerAddrAndData[2];
@@ -4090,7 +4108,7 @@ extern uint8_t VerifyAccManuIDAndPartID(void);
 		if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) != E_SUCCESS) { debugErr("Acc (P:%02x) Addr: Device needs to be power cycled\r\n", I2C_ADDR_ACCELEROMETER); }
 
 		// Wait for device reset
-		MXC_Delay(MXC_DELAY_MSEC(50));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
 
 		// Read addr 0x13
 		registerAddrAndData[0] = 0x13;
@@ -4109,7 +4127,7 @@ extern uint8_t VerifyAccManuIDAndPartID(void);
 		if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER_ALT_1, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) != E_SUCCESS) { debugErr("Acc (F:%02x) Addr: Device needs to be power cycled\r\n", I2C_ADDR_ACCELEROMETER_ALT_1); }
 
 		// Wait for device reset
-		MXC_Delay(MXC_DELAY_MSEC(50));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
 
 		registerAddrAndData[0] = 0x13;
 		WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER_ALT_1, &registerAddrAndData[0], sizeof(uint8_t), &readVal, sizeof(uint8_t));
@@ -4135,7 +4153,7 @@ extern uint8_t accelerometerI2CAddr;
 			if (WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) != E_SUCCESS) { debugErr("Acc (D:%02x) Addr: Device needs to be power cycled\r\n", accelerometerI2CAddr); }
 
 			// Wait for device reset
-			MXC_Delay(MXC_DELAY_MSEC(50));
+			MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
 
 			// Read addr 0x13
 			registerAddrAndData[0] = 0x13;
@@ -4144,7 +4162,7 @@ extern uint8_t accelerometerI2CAddr;
 			else { debugErr("Acc (D:%02x) Addr: 'Who am I' not valid\r\n", accelerometerI2CAddr); }
 		}
 	}
-	MXC_Delay(MXC_DELAY_SEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 #endif
 	}
 #endif
@@ -4175,17 +4193,17 @@ void TestGPIO(void)
 	{
 		MXC_GPIO_OutSet(GPIO_ALERT_1_PORT, GPIO_ALERT_1_PIN);
 		MXC_GPIO_OutSet(GPIO_ALERT_2_PORT, GPIO_ALERT_2_PIN);
-		MXC_Delay(MXC_DELAY_MSEC(1));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1));
 
 		MXC_GPIO_OutClr(GPIO_ALERT_1_PORT, GPIO_ALERT_1_PIN);
-		MXC_Delay(MXC_DELAY_MSEC(1));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1));
 
 		MXC_GPIO_OutSet(GPIO_ALERT_1_PORT, GPIO_ALERT_1_PIN);
 		MXC_GPIO_OutClr(GPIO_ALERT_2_PORT, GPIO_ALERT_2_PIN);
-		MXC_Delay(MXC_DELAY_MSEC(1));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1));
 
 		MXC_GPIO_OutClr(GPIO_ALERT_1_PORT, GPIO_ALERT_1_PIN);
-		MXC_Delay(MXC_DELAY_MSEC(1));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1));
 	}
 #endif
 
@@ -4232,19 +4250,19 @@ void TestGPIO(void)
 
 #if 0 /* Test GPIO pins */
 	PowerControl(USB_SOURCE_ENABLE, ON);
-	MXC_Delay(MXC_DELAY_SEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 	PowerControl(USB_SOURCE_ENABLE, OFF);
-	MXC_Delay(MXC_DELAY_SEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 
 	PowerControl(USB_AUX_POWER_ENABLE, ON);
-	MXC_Delay(MXC_DELAY_SEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 	PowerControl(USB_AUX_POWER_ENABLE, OFF);
-	MXC_Delay(MXC_DELAY_SEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 
 	PowerControl(ENABLE_12V, ON);
-	MXC_Delay(MXC_DELAY_SEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 	PowerControl(ENABLE_12V, OFF);
-	MXC_Delay(MXC_DELAY_SEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 
 	SetSmartSensorMuxA0State(ON);
 	SetSmartSensorMuxA0State(OFF);
@@ -4296,7 +4314,7 @@ void TestGPIO(void)
 void TestSDHCeMMC(void)
 {
 #if 0 /* Test a second init call */
-	MXC_Delay(MXC_DELAY_MSEC(500));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 	SetupSDHCeMMC();
 #endif
 
@@ -4304,13 +4322,13 @@ void TestSDHCeMMC(void)
 	SetupSDHCeMMC();
 	SetupDriveAndFilesystem();
 	MXC_GPIO_OutClr(GPIO_EMMC_RESET_PORT, GPIO_EMMC_RESET_PIN);
-	MXC_Delay(MXC_DELAY_SEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 	SetupSDHCeMMC();
 	SetupDriveAndFilesystem();
 	SetupSDHCeMMC();
 	SetupDriveAndFilesystem();
 	MXC_GPIO_OutSet(GPIO_EMMC_RESET_PORT, GPIO_EMMC_RESET_PIN);
-	MXC_Delay(MXC_DELAY_SEC(2));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(2));
 	SetupSDHCeMMC();
 	SetupDriveAndFilesystem();
 	SetupSDHCeMMC();
@@ -4460,11 +4478,11 @@ extern volatile uint8_t hsChange;
 		if (j % 4 == 0) { 	MXC_GPIO_OutClr(GPIO_EMMC_RESET_PORT, GPIO_EMMC_RESET_PIN); }
 		else { MXC_GPIO_OutSet(GPIO_EMMC_RESET_PORT, GPIO_EMMC_RESET_PIN); }
 
-		MXC_Delay(MXC_DELAY_MSEC(250));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(250));
 		SetupSDHCeMMC();
 		debug("SDHC Clock Config: Changed to %d (0x%x)\r\n", j, j);
 		MXC_SDHC_Set_Clock_Config(j);
-		MXC_Delay(MXC_DELAY_MSEC(5));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(5));
 		SetupDriveAndFilesystem();
 #endif
 		j--;
@@ -4595,7 +4613,7 @@ void TestAnalog5V(void)
 	PowerUpAnalog5VandExternalADC();
 	while (1)
 	{
-		MXC_Delay(MXC_DELAY_SEC(1));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 		FuelGaugeDebugInfo();
 	}
 #endif
@@ -4605,10 +4623,10 @@ void TestAnalog5V(void)
 	debug("External Trigger In state: %s\r\n", (MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_IN_PORT, GPIO_EXTERNAL_TRIGGER_IN_PIN) > 0 ? "HIGH" : "LOW"));
 	while (1) /* Spin, checking interrupts */
 	{
-		MXC_Delay(MXC_DELAY_SEC(15));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(15));
 		PowerControl(TRIGGER_OUT, ON);
 		debug("External Trigger In state: %s\r\n", (MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_IN_PORT, GPIO_EXTERNAL_TRIGGER_IN_PIN) > 0 ? "HIGH" : "LOW"));
-		MXC_Delay(MXC_DELAY_SEC(3));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(3));
 		PowerControl(TRIGGER_OUT, OFF);
 		debug("External Trigger In state: %s\r\n", (MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_IN_PORT, GPIO_EXTERNAL_TRIGGER_IN_PIN) > 0 ? "HIGH" : "LOW"));
 	}
@@ -4621,7 +4639,7 @@ void TestAnalog5V(void)
 void TestExtADC(void)
 {
 #if 0 /* Test Re-init after shutting down the SPI and domain */
-	MXC_Delay(MXC_DELAY_SEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 	InitExternalADC(); debug("External ADC: Init complete\r\n");
 #endif
 
@@ -4630,9 +4648,9 @@ void TestExtADC(void)
 	StartExternalRtcClock(SAMPLE_RATE_1K);
 	while (1)
 	{
-		MXC_Delay(MXC_DELAY_SEC(5));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(5));
 		StopExternalRtcClock();
-		MXC_Delay(MXC_DELAY_SEC(3));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(3));
 		StartExternalRtcClock(SAMPLE_RATE_1K);
 	}
 #endif
@@ -4641,15 +4659,18 @@ extern volatile uint8_t psChange;
 extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	volatile uint32 trackSeconds = 0;
 
+	debug("Sample clock: Testing External RTC clock...\r\n");
+
 	uint8_t rtcReg = 0;
 	rtcReg = 0x02; SetRtcRegisters(PCF85263_CTL_PIN_IO, (uint8_t*)&rtcReg, sizeof(rtcReg));
+	MXC_GPIO_EnableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 
 	g_sampleCount = 0;
 	psChange = 0; while (psChange == 0) {;}
 	trackSeconds = g_lifetimePeriodicSecondCount;
 	//StartExternalRtcClock(SAMPLE_RATE_1K);
 	rtcReg = 0x25; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
-	//MXC_Delay(MXC_DELAY_SEC(16));
+	//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(16));
 	while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackSeconds + 64)) {;}
 	//StopExternalRtcClock();
 	rtcReg = 0x27; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
@@ -4660,7 +4681,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	trackSeconds = g_lifetimePeriodicSecondCount;
 	//StartExternalRtcClock(SAMPLE_RATE_2K);
 	rtcReg = 0x24; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
-	//MXC_Delay(MXC_DELAY_SEC(16));
+	//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(16));
 	while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackSeconds + 64)) {;}
 	//StopExternalRtcClock();
 	rtcReg = 0x27; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
@@ -4671,7 +4692,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	trackSeconds = g_lifetimePeriodicSecondCount;
 	//StartExternalRtcClock(SAMPLE_RATE_4K);
 	rtcReg = 0x23; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
-	//MXC_Delay(MXC_DELAY_SEC(16));
+	//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(16));
 	while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackSeconds + 64)) {;}
 	//StopExternalRtcClock();
 	rtcReg = 0x27; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
@@ -4682,7 +4703,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	trackSeconds = g_lifetimePeriodicSecondCount;
 	//StartExternalRtcClock(SAMPLE_RATE_8K);
 	rtcReg = 0x22; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
-	//MXC_Delay(MXC_DELAY_SEC(16));
+	//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(16));
 	while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackSeconds + 64)) {;}
 	//StopExternalRtcClock();
 	rtcReg = 0x27; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
@@ -4693,7 +4714,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	trackSeconds = g_lifetimePeriodicSecondCount;
 	//StartExternalRtcClock(SAMPLE_RATE_16K);
 	rtcReg = 0x21; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
-	//MXC_Delay(MXC_DELAY_SEC(16));
+	//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(16));
 	while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackSeconds + 64)) {;}
 	//StopExternalRtcClock();
 	rtcReg = 0x27; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
@@ -4704,11 +4725,88 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	trackSeconds = g_lifetimePeriodicSecondCount;
 	//StartExternalRtcClock(SAMPLE_RATE_32K);
 	rtcReg = 0x20; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
-	//MXC_Delay(MXC_DELAY_SEC(16));
+	//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(16));
 	while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackSeconds + 64)) {;}
 	//StopExternalRtcClock();
 	rtcReg = 0x27; SetRtcRegisters(PCF85263_CTL_FUNCTION, (uint8_t*)&rtcReg, sizeof(rtcReg));
 	debug("Sample clock: Sample rate @ %d results in %lu actual (%lu)\r\n", SAMPLE_RATE_32K, (g_sampleCount >> 6), g_sampleCount);
+
+	MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+#endif
+
+#if 0 /* Test max rate of collecting data only */
+extern volatile uint8_t psChange;
+extern volatile uint32_t g_lifetimePeriodicSecondCount;
+	volatile uint32 trackedSeconds = 0;
+	SAMPLE_DATA_STRUCT tempData;
+	g_sampleCount = 0;
+	uint32_t sampleProcessTiming = 0;
+
+	// Test 4 Chan + Temp + Readback
+	PowerUpAnalog5VandExternalADC();
+	SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION);
+	MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+
+	psChange = 0; while (psChange == 0) {;}
+	trackedSeconds = g_lifetimePeriodicSecondCount;
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+
+	while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{
+		ReadAnalogData(&tempData);
+		g_sampleCount++;
+		sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120);
+		SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	}
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan + Temp (No readback)
+	g_sampleCount = 0; sampleProcessTiming = 0;
+	AD4695_ExitConversionMode();
+	SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0);
+	MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+
+	psChange = 0; while (psChange == 0) {;}
+	trackedSeconds = g_lifetimePeriodicSecondCount;
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{
+		ReadAnalogData(&tempData);
+		g_sampleCount++;
+		sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120);
+		SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	}
+	AD4695_ExitConversionMode();
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan (No Temp, no readback)
+	g_sampleCount = 0; sampleProcessTiming = 0;
+	AD4695_ExitConversionMode();
+	SetupADChannelConfig(SAMPLE_RATE_16K, 0);
+	MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+
+	psChange = 0; while (psChange == 0) {;}
+	trackedSeconds = g_lifetimePeriodicSecondCount;
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{
+		ReadAnalogData(&tempData);
+		g_sampleCount++;
+		sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120);
+		SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	}
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+    SysTick->CTRL = 0; /* Disable */
+	AD4695_ExitConversionMode();
+	PowerControl(ANALOG_5V_ENABLE, OFF);
 #endif
 }
 
@@ -4725,7 +4823,7 @@ void TestLCDController(void)
 extern void test_logo(void);
 	test_logo();
 	// Forever loop displaying current draw
-	//while (1) { MXC_Delay(MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString()); }
+	//while (1) { MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString()); }
 	PowerControl(LCD_POWER_DOWN, ON);
 	PowerControl(LCD_POWER_ENABLE, OFF);
 #endif
@@ -4741,7 +4839,7 @@ extern void test_logo(void);
 	uint32_t i = 1;
 	while (1)
 	{
-		MXC_Delay(MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s, Backlight level: %d\r\n", FuelGaugeDebugString(), (i % 128));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1)); debug("Fuel Gauge: %s, Backlight level: %d\r\n", FuelGaugeDebugString(), (i % 128));
 		ft81x_set_backlight_level(i++ % 128);
 	}
 #endif
@@ -4751,7 +4849,7 @@ extern void test_logo(void);
 	test_logo();
 	PowerControl(LCD_POWER_DOWN, ON);
 	PowerControl(LCD_POWER_ENABLE, OFF);
-	MXC_Delay(MXC_DELAY_SEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 	InitLCD(); debug("LCD Display: Init complete\r\n");
 	test_logo();
 	PowerControl(LCD_POWER_DOWN, ON);
@@ -4795,7 +4893,11 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Enable Cycle Counter
 	//-------------------------------------------------------------------------
+#if 0 /* Original */
 	EnableMpuCycleCounter();
+#else /* DWT (Data Watchpoint and Trace) doesn't look to be implemented in this version of the Cotrex-M4 core */
+	// Using the SysTick function instead
+#endif
 
 	//-------------------------------------------------------------------------
 	// Setup Watchdog
@@ -4847,7 +4949,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Setup USB Composite (MSC + CDC/ACM)
 	//-------------------------------------------------------------------------
-#if 1 /* Normal */
+#if 0 /* Normal */
 	SetupUSBComposite();
 #else /* Test wihtout setting up MCU USBC for Port Controller and power delivery */
 #endif
@@ -4982,13 +5084,13 @@ void InitSystemHardware_MS9300(void)
 	InitCellLTE();
 
 #if 1 /* Test re-init of SDHC since Cell/LTE power on seems to kill the eMMC Flash */
-	MXC_Delay(MXC_DELAY_SEC(1));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 	if (SetupSDHCeMMC() != E_NO_ERROR) { SetupSDHCeMMC(); } // Run the setup again if it fails the first time
 	SetupDriveAndFilesystem();
 	TestFlashAndFatFilesystem();
-	//MXC_Delay(MXC_DELAY_SEC(1));
+	//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 	//PowerControl(CELL_ENABLE, ON);
-	//MXC_Delay(MXC_DELAY_SEC(1));
+	//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 	//PowerControl(CELL_ENABLE, OFF);
 #endif
 #else /* Skip for now */

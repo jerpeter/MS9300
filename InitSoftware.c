@@ -45,6 +45,7 @@
 //#include "device_mass_storage_task.h"
 //#include "usb_drv.h"
 //#include "flashc.h"
+#include "usb.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -247,6 +248,9 @@ void LoadFactorySetupRecord(void)
 	// Check if the Factory Setup Record is valid (in case shadow factory setup was copied over)
 	if (!g_factorySetupRecord.invalid)
 	{
+#if 1 /* Correction for serial number stored as erased flash 0xFF's */
+		if (g_factorySetupRecord.unitSerialNumber[0] == 0xFF) { memset(g_factorySetupRecord.unitSerialNumber, 0, sizeof(g_factorySetupRecord.unitSerialNumber)); }
+#endif
 		UpdateUnitSensorsWithSmartSensorTypes();
 
 		UpdateWorkingCalibrationDate();
@@ -518,5 +522,18 @@ void InitSoftwareSettings_MS9300(void)
 	// Display last line of system init
 	//-------------------------------------------------------------------------
 	DisplayVersionToDebug();
+
+#if 0 /* Test language table */
+	debug("Language Table 1st entry: <%s>\r\n", (char*)&g_languageTable[0]);
+	debug("Language Link Table 1st entry: Addr 0x%x, Text: <%s>, Macro: <%s>\r\n", (uint32_t)g_languageLinkTable[0], g_languageLinkTable[0], getLangText(A_WEIGHTING_TEXT));
+	debug("Language Link Table 1st entry: Addr 0x%x, Text: <%s>, Macro: <%s>\r\n", (uint32_t)g_languageLinkTable[1], g_languageLinkTable[1], getLangText(A_WEIGHTING_OPTION_TEXT));
+#endif
+
+#if 1 /* Test delayed start so that the USB driver isn't initializing while the unit is going through init */
+	//NVIC_EnableIRQ(USB_IRQn);
+	//MXC_USB_Connect();
+extern void SetupUSBComposite(void);
+	SetupUSBComposite();
+#endif
 }
 
