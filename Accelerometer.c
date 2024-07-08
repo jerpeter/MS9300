@@ -21,6 +21,7 @@
 //#include "Crc.h"
 //#include "string.h"
 #include "PowerManagement.h"
+#include "tmr.h"
 #include "mxc_delay.h"
 
 ///----------------------------------------------------------------------------
@@ -378,7 +379,7 @@ void IssueAccSoftwareReset(void)
             if (WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) == E_SUCCESS)
             {
                 // Wait for device reset
-                MXC_Delay(MXC_DELAY_MSEC(50));
+                MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
 
                 // Read addr 0x13
                 registerAddrAndData[0] = 0x13;
@@ -490,12 +491,12 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 
         SetAccRegister(ACC_SELF_TEST_REGISTER, 0xCA);
 
-        MXC_Delay(MXC_DELAY_SEC(5));
+        MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(5));
 
         SetAccRegister(ACC_CONTROL_1_REGISTER, 0x00);
         SetAccRegister(ACC_SELF_TEST_REGISTER, 0x00);
         debug("Accelerometer: Self-test disabled\r\n");
-        MXC_Delay(MXC_DELAY_SEC(1));
+        MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 #endif
 
 #if 0 /* Test reading data */
@@ -507,7 +508,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
         {
             GetAccChannelData(&channelData);
             debug("Accelerometer (%s): X:%04x Y:%04x Z:%04x\r\n", FuelGaugeDebugString(), channelData.x, channelData.y, channelData.z);
-            MXC_Delay(MXC_DELAY_MSEC(250));
+            MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(250));
         }
 
         StopAccAquisition();
@@ -517,9 +518,9 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
         while (1)
         {
             SetAccelerometerTriggerState(ON);
-            MXC_Delay(MXC_DELAY_MSEC(1));
+            MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1));
             SetAccelerometerTriggerState(OFF);
-            MXC_Delay(MXC_DELAY_MSEC(1));
+            MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1));
         }
 #endif
 
@@ -539,11 +540,11 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
         testData |= 0xE5;
         SetAccRegister(ACC_CONTROL_1_REGISTER, testData);
 
-        //MXC_Delay(MXC_DELAY_SEC(8));
+        //MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(8));
 extern volatile uint8_t testAccInt;
         uint8_t is1, is2, is3, count = 0;
         SetAccelerometerTriggerState(ON);
-        MXC_Delay(MXC_DELAY_MSEC(5));
+        MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(5));
         SetAccelerometerTriggerState(OFF);
         while (1)
         {
