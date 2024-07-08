@@ -24,6 +24,7 @@
 //#include "tc.h"
 //#include "twi.h"
 #include "spi.h"
+#include "tmr.h"
 #include "mxc_delay.h"
 #include "gpio.h"
 
@@ -228,8 +229,8 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 		AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_2 | ANALOG_AOP_2));
 	}
 
-	// For any sample rate 16K and below
-	if (sampleRate <= SAMPLE_RATE_16K)
+	// For any sample rate 8K and below
+	if (sampleRate <= SAMPLE_RATE_8K)
 	{
 		// Check if channel verification is not disabled or verification override is enabled to allow reading back the config
 		if ((g_unitConfig.adChannelVerification != DISABLED) || (channelVerification == OVERRIDE_ENABLE_CHANNEL_VERIFICATION))
@@ -243,7 +244,7 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 			g_adChannelConfig = FOUR_AD_CHANNELS_NO_READBACK_WITH_TEMP;
 		}
 	}
-	else // Sample rates above 16384 might take too long to read back config and temp, so skip them
+	else // Sample rates 16384 and above take too long to read back config and temp, so skip them
 	{
 			debug("ADC Channel Setup: 4 channels only (No Temp, No readback)\r\n");
 		g_adChannelConfig = FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP;
@@ -754,6 +755,9 @@ void ZeroingSensorCalibration(void)
 
 	while (g_lifetimeHalfSecondTickCount < (startZeroSensorTime + (ZERO_SENSOR_MAX_TIME_IN_SECONDS * 2)))
 	{
+#if 1 /* Test breaking out of loop until hardware is stable enough to find a zero level */
+		if (GetKeypadKey(CHECK_ONCE_FOR_KEY) == ON_ESC_KEY) { break; }
+#endif
 		ZeroSensors();
 
 		// Check if the time changed, used for display purposes
@@ -926,7 +930,7 @@ void AD4695_SetRegisterAccessMode(enum ad4695_reg_access access)
 	AD4695_SpiReadRegister(AD4695_REG_SPI_CONFIG_C, &verify);
 
 	if(test != verify) { debugErr("External ADC: Access mode error\r\n"); }
-	else debug("External ADC: Access mode updated\r\n");
+	//else debug("External ADC: Access mode updated\r\n");
 }
 
 ///----------------------------------------------------------------------------
@@ -946,7 +950,7 @@ void AD4695_SetBusyState(void)
 		test = AD4695_SpiWriteRegisterWithMask(AD4695_REG_GP_MODE, AD4695_GP_MODE_BUSY_GP_EN_MASK, AD4695_GP_MODE_BUSY_GP_EN(1));
 		AD4695_SpiReadRegister(AD4695_REG_GP_MODE, &verify);
 		if(test != verify) { debugErr("External ADC: Busy state error (1)\r\n"); }
-		else { debug("External ADC: Set Busy status on Busy/Alt GPIO pin\r\n"); }
+		//else { debug("External ADC: Set Busy status on Busy/Alt GPIO pin\r\n"); }
 	}
 }
 
@@ -974,7 +978,7 @@ void AD4695_SetStandardSequenceModeChannelOSR(enum ad4695_osr_ratios ratio) /*ov
 	AD4695_SpiReadRegister(AD4695_REG_CONFIG_IN(0), &verify);
 
 	if(test != verify){ debugErr("External ADC: Channel input OSR setting error\r\n"); }
-	else { debug("External ADC: Channel input OSR set\r\n"); }
+	//else { debug("External ADC: Channel input OSR set\r\n"); }
 }
 
 ///----------------------------------------------------------------------------
@@ -988,7 +992,7 @@ void AD4695_SetStandardSequenceModeChannelInputConfig(uint8_t regData)
 	AD4695_SpiReadRegister(AD4695_REG_CONFIG_IN(0), &verify);
 
 	if(regData != verify){ debugErr("External ADC: Standard sequence mode channel input config error\r\n"); }
-	else { debug("External ADC: Standard sequence mode channel input config set\r\n"); }
+	//else { debug("External ADC: Standard sequence mode channel input config set\r\n"); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1002,7 +1006,7 @@ void AD4695_SetStandardMode() /*Standard Sequencer Enable Bit*/
 	AD4695_SpiReadRegister(AD4695_REG_SEQ_CTRL, &verify);
 
 	if(test != verify) { debugErr("External ADC: Standard mode set error\r\n"); }
-	else { debug("External ADC: Standard mode set\r\n"); }
+	//else { debug("External ADC: Standard mode set\r\n"); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1022,7 +1026,7 @@ void AD4695_SetReferenceInputRange(enum ad4695_ref REF)
 	AD4695_SpiReadRegister(AD4695_REG_REF_CTRL, &verify);
 
 	if(test != verify) { debugErr("External ADC: Reference control error\r\n"); }
-	else { debug("External ADC: Reference control set\r\n"); }
+	//else { debug("External ADC: Reference control set\r\n"); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1036,7 +1040,7 @@ void AD4695_SetStandardSequenceActiveChannels(uint8_t channels)
 	AD4695_SpiWriteRegister(AD4695_REG_STD_SEQ_CONFIG, channels);
 	AD4695_SpiReadRegister(AD4695_REG_STD_SEQ_CONFIG, &verify);
 
-	if(channels != verify) { debugErr("External ADC: Set standard sequence active channels error\r\n"); }
+	if(channels != verify) { debugErr("External ADC: Set standard sequence active channels error (0x%x != 0x%x)\r\n", channels, verify); }
 	else { debug("External ADC: Standard sequence active channels set (0x%x)\r\n", channels); }
 
 #if 1 /* Temp method to dynamically change the channel verify, but fixed to either Geo1+AOP1 or Geo2+AOP2 (static 4 channels) */
@@ -1094,7 +1098,7 @@ void AD4695_DisableInternalLDO(void)
 {
 	AD4695_SpiWriteRegister(AD4695_REG_SETUP, 0x00);
 	AD4695_SpiWriteRegisterWithMask(AD4695_REG_SETUP, AD4695_SETUP_LDO_ENABLE_MASK, AD4695_SETUP_LDO_ENABLE_EN(OFF));
-	debug("External ADC: Disabling Internal LDO...\r\n");
+	//debug("External ADC: Disabling Internal LDO...\r\n");
 }
 
 ///----------------------------------------------------------------------------
@@ -1116,11 +1120,13 @@ void AD4695_Init()
 
 	testData = 0xAA; AD4695_SpiWriteRegister(AD4695_REG_SCRATCH_PAD, testData);
 	testData = 0x00; AD4695_SpiReadRegister(AD4695_REG_SCRATCH_PAD, &testData);
-	debug("External ADC: 1st Scratchpad test %s\r\n", (testData == 0xAA) ? "Passed" : "Failed");
+	if (testData != 0xAA) { debugErr("External ADC: 1st Scratchpad test failed\r\n"); }
+	//else debug("External ADC: 1st Scratchpad test passed\r\n");
 
 	testData = 0x55; AD4695_SpiWriteRegister(AD4695_REG_SCRATCH_PAD, testData);
 	testData = 0x00; AD4695_SpiReadRegister(AD4695_REG_SCRATCH_PAD, &testData);
-	debug("External ADC: 2nd Scratchpad test %s\r\n", (testData == 0x55) ? "Passed" : "Failed");
+	if (testData != 0x55) { debugErr("External ADC: 2nd Scratchpad test failed\r\n"); }
+	//else debug("External ADC: 2nd Scratchpad test passed\r\n");
 #endif
 
 	AD4695_SetRegisterAccessMode(AD4695_BYTE_ACCESS); //individual bytes in multibyte registers are read from or written to in individual data phases
@@ -1149,7 +1155,7 @@ void AD4695_Init()
 	AD4695_EnterConversionMode(NO); /*Enters conversion mode*/
 
 	// Delay 100ms?
-	MXC_Delay(MXC_DELAY_MSEC(100));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(100));
 #endif
 }
 
@@ -1217,7 +1223,7 @@ void AD4695_Test() //test the SPI com
 		AD4695_SpiReadRegister(AD4695_REG_SCRATCH_PAD, &testData);
 
 		// Delay 100ms?
-		MXC_Delay(MXC_DELAY_MSEC(100));
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(100));
 	}
 }
 
