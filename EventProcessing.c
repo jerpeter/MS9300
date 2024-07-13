@@ -2498,13 +2498,13 @@ void ValidateSummaryListFileWithEventCache(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void EndianSwapDataX16(uint16_t* data, uint32_t dataLength)
+void EndianSwapDataX16(uint16_t* data, uint32_t wordDataLength)
 {
-	while(dataLength)
+	while(wordDataLength)
 	{
 		*data = __builtin_bswap16(*data);
 		data++;
-		dataLength--;
+		wordDataLength--;
 	}
 }
 

@@ -185,7 +185,7 @@ void MoveManualCalToFile(void)
 #endif
 #if ENDIAN_CONVERSION
 			// Swap data to Big Endian for event file (and compression below if used)
-			EndianSwapDataX16(g_currentEventStartPtr, (g_wordSizeInCal * 2));
+			EndianSwapDataX16(g_currentEventStartPtr, g_wordSizeInCal);
 #endif
 			// Write the event data, containing the Pretrigger, event and cal
 			f_write(&file, g_currentEventStartPtr, (g_wordSizeInCal * 2), (UINT*)&bytesWritten);

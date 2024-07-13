@@ -147,7 +147,7 @@ uint16_t GetEventListCacheAvailableIndex(void);
 uint32_t SetFileTimestamp(char* filename);
 
 // Endian swap conversions
-void EndianSwapDataX16(uint16_t* data, uint32_t dataLength);
+void EndianSwapDataX16(uint16_t* data, uint32_t wordDataLength);
 void EndianSwapEventRecordHeader(EVENT_HEADER_STRUCT* evtHdr);
 void EndianSwapEventRecordSummary(EVENT_SUMMARY_STRUCT* evtSum);
 void EndianSwapEventRecord(EVT_RECORD* evtRec);

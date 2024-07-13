@@ -287,7 +287,7 @@ void MoveWaveformEventToFile(void)
 
 #if ENDIAN_CONVERSION
 					// Swap data to Big Endian for event file (and compression below if used)
-					EndianSwapDataX16(tempDataPtr, remainingDataLength);
+					EndianSwapDataX16(tempDataPtr, g_wordSizeInEvent);
 #endif
 
 #if 0 /* Bypassing chunk write since new filesystem should not have a 16K size limit */
@@ -451,6 +451,8 @@ void MoveWaveformEventToFile(void)
 
 				// Check if AutoDialout is enabled and signal the system if necessary
 				CheckAutoDialoutStatusAndFlagIfAvailable();
+
+				debug("Waveform Event complete\r\n");
 			break;
 		}
 	}
