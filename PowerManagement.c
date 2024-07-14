@@ -27,6 +27,8 @@
 #include "spi.h"
 //#include "navigation.h"
 
+#include "usb.h"
+
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
@@ -455,6 +457,16 @@ void PowerUnitOff(uint8 powerOffMode)
 
 		// Put Fuel Gauge ADC to sleep while off (device is battery powered and not placed into reset)
 		Ltc2944_i2c_shutdown();
+
+		// Disable USB
+		MXC_USB_Shutdown();
+
+		// Disable power blocks
+		PowerControl(ANALOG_5V_ENABLE, OFF);
+		PowerControl(LCD_POWER_ENABLE, OFF);
+		PowerControl(ENABLE_12V, OFF);
+		PowerControl(CELL_ENABLE, OFF);
+		PowerControl(EXPANSION_ENABLE, OFF);
 
 		// Shutdown application
 		PowerControl(MCU_POWER_LATCH, OFF);
