@@ -682,7 +682,7 @@ void ActivateDisplayShortDuration(uint16 secondsToDisplay)
 		}
 	}
 
-	// Check if the LCD Backlight was turned off
+	// Check if the LCD Backlight was turned off (now treating BACKLIGHT_SUPER_LOW as disabled since the LCD really can't be seen with the backlight on at some level)
 	if (g_lcdBacklightFlag == DISABLED)
 	{
 		g_lcdBacklightFlag = ENABLED;

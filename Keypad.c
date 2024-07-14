@@ -426,7 +426,7 @@ void KeypressEventMgr(void)
 		AssignSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM, (uint32)(g_unitConfig.lcdTimeout * TICKS_PER_MIN), LcdPwTimerCallBack);
 	}
 
-	// Check if the LCD Backlight was turned off
+	// Check if the LCD Backlight was turned off (now treating BACKLIGHT_SUPER_LOW as disabled since the LCD really can't be seen with the backlight on at some level)
 	if (g_lcdBacklightFlag == DISABLED)
 	{
 		g_lcdBacklightFlag = ENABLED;

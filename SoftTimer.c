@@ -193,11 +193,19 @@ void DisplayTimerCallBack(void)
 {
 	debug("LCD Backlight Timer callback: activated.\r\n");
 
+#if 0 /* Orignial */
 	g_lcdBacklightFlag = DISABLED;
 #if 0 /* Original */
 	SetLcdBacklightState(BACKLIGHT_OFF);
-#else
+#else /* LCD is basically not readable when the Backlight is off */
 	SetLcdBacklightState(BACKLIGHT_SUPER_LOW);
+#endif
+#else /* Updated method to make sure the LCD resource is available before adjusting */
+	if (g_lcdBacklightFlag == ENABLED)
+	{
+		g_lcdBacklightFlag = DISABLED; // Now treating BACKLIGHT_SUPER_LOW as disabled since the LCD really can't be seen with the backlight on at some level
+		SetLcdBacklightState(BACKLIGHT_SUPER_LOW);
+	}
 #endif
 }
 
@@ -245,6 +253,7 @@ void LcdPwTimerCallBack(void)
 	debug("LCD Power Timer callback: activated.\r\n");
 
 	g_lcdPowerFlag = DISABLED;
+	g_lcdBacklightFlag = DISABLED; // Added disabling the Backlight flag since it goes down when power removed
 
 	// Todo: Update to only power off display first, set timer to power off entire LCD section
 	PowerControl(LCD_POWER_DOWN, ON);
