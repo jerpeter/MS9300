@@ -161,6 +161,7 @@ void StartMonitoring(uint8 operationMode, TRIGGER_EVENT_DATA_STRUCT* opModeParam
 	}
 
 	debug("\tAD Channel Verification: %s\r\n", ((opModeParamsPtr->sample_rate == SAMPLE_RATE_16K) || (g_unitConfig.adChannelVerification == DISABLED)) ? "Disabled" : "Enabled");
+	debug("\tGeo Gain: %s, Air Path: %s\r\n", ((g_triggerRecord.srec.sensitivity == LOW) ? "Normal" : "High"), (((g_factorySetupRecord.aWeightOption == ENABLED) && (g_unitConfig.airScale == AIR_SCALE_A_WEIGHTING)) ? "A-weighted" : "AOP/Linear"));
 	debug("---------------------------\r\n");
 
 	if (GET_HARDWARE_ID == HARDWARE_ID_REV_8_WITH_GPS_MOD)
@@ -243,6 +244,7 @@ void StartMonitoring(uint8 operationMode, TRIGGER_EVENT_DATA_STRUCT* opModeParam
 		g_adaptiveBoundaryMarker = 0;
 	}
 
+#if 0 /* Moved to StartDataCollection since the Analog 5V isn't enabled at this point and the Analog controls can't be set yet */
 	// Setup Analog controls
 	debug("Setup Analog controls\r\n");
 
@@ -272,6 +274,7 @@ void StartMonitoring(uint8 operationMode, TRIGGER_EVENT_DATA_STRUCT* opModeParam
 	}
 	// Set acoustic for normal gain
 	else { SetAcousticPathSelect(ACOUSTIC_PATH_AOP); }
+#endif
 
 #if 0 /* Necessary? Probably need 1 sec for changes, however 1 sec worth of samples thrown away with getting channel offsets  */
 	// Delay for Analog cutoff and gain select changes to propagate
@@ -300,6 +303,38 @@ void StartDataCollection(uint32 sampleRate)
 		// Configure External ADC
 		AD4695_Init();
 	}
+
+#if 1 /* Moved from StartMonitoring since the Analog 5V wasn't enabled at that point to setup the Analog controls */
+	// Setup Analog controls
+	debug("Setup Analog controls\r\n");
+
+	// Set the cutoff frequency based on sample rate
+	switch (sampleRate)
+	{
+		case SAMPLE_RATE_1K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
+		case SAMPLE_RATE_2K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
+		case SAMPLE_RATE_4K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_2K); break;
+		case SAMPLE_RATE_8K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_4K); break;
+		case SAMPLE_RATE_16K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_8K); break;
+		case SAMPLE_RATE_32K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_16K); break;
+
+		// Default just in case it's a custom frequency
+		default: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
+	}
+
+	// Set the sensitivity (aka gain) based on the current settings
+	if (g_triggerRecord.srec.sensitivity == LOW) { SetSeismicGainSelect(SEISMIC_GAIN_NORMAL); }
+	else { SetSeismicGainSelect(SEISMIC_GAIN_HIGH); }
+
+	// Check if A-weighting is enabled
+	if ((g_factorySetupRecord.aWeightOption == ENABLED) && (g_unitConfig.airScale == AIR_SCALE_A_WEIGHTING))
+	{
+		// Set acoustic for A-weighted gain
+		SetAcousticPathSelect(ACOUSTIC_PATH_A_WEIGHTED);
+	}
+	// Set acoustic for normal gain
+	else { SetAcousticPathSelect(ACOUSTIC_PATH_AOP); }
+#endif
 
 	// Setup the A/D Channel configuration
 	SetupADChannelConfig(sampleRate, UNIT_CONFIG_CHANNEL_VERIFICATION);
