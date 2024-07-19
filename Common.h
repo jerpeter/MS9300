@@ -84,9 +84,19 @@ enum {
 };
 
 // Select which USB Driver option is active between the three options, note: Only one can be active
+#if 1 /* Composite */
+#define USB_COMPOSITE_OPTION		YES
+#define USB_CDC_ACM_ONLY_OPTION		NO
+#define USB_MSC_ONLY_OPTION			NO
+#elif 1 /* Serial only */
 #define USB_COMPOSITE_OPTION		NO
 #define USB_CDC_ACM_ONLY_OPTION		YES
 #define USB_MSC_ONLY_OPTION			NO
+#else /* Mass storage only */
+#define USB_COMPOSITE_OPTION		NO
+#define USB_CDC_ACM_ONLY_OPTION		NO
+#define USB_MSC_ONLY_OPTION			YES
+#endif
 
 #define ENDIAN_CONVERSION	1
 
