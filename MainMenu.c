@@ -200,6 +200,7 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 #if 0 /* Original */
 					AdjustLcdContrast(DARKER);
 #else /* Test */
+					debug("USB: Manually disconnecting (resource)...\r\n");
 					MXC_USB_Disconnect();
 #endif
 					break;
@@ -207,6 +208,7 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 #if 0 /* Original */
 					AdjustLcdContrast(LIGHTER);
 #else /* Test */
+					debug("USB: Manually connecting (resource)...\r\n");
 					MXC_USB_Connect();
 #endif
 					break;
