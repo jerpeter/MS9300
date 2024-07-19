@@ -115,8 +115,23 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 
 	if (keyMapRead != g_kpadIsrKeymap) { debugWarn("Keypad processing missed key (0x%x, 0x%x)\r\n", keyMapRead, g_kpadIsrKeymap); }
 
+#if 0 /* Original */
 	if (keyMapRead) { debugRaw(" (Key Pressed: %x)", keyMapRead); }
 	else { debugRaw(" (Key Release)"); }
+#else
+	char keyName[8];
+	if (keyMapRead == 0x0001) { sprintf(keyName, "SK 4"); }
+	if (keyMapRead == 0x0002) { sprintf(keyName, "SK 3"); }
+	if (keyMapRead == 0x0004) { sprintf(keyName, "SK 2"); }
+	if (keyMapRead == 0x0008) { sprintf(keyName, "SK 1"); }
+	if (keyMapRead == 0x0010) { sprintf(keyName, "Enter"); }
+	if (keyMapRead == 0x0020) { sprintf(keyName, "Right"); }
+	if (keyMapRead == 0x0040) { sprintf(keyName, "Left"); }
+	if (keyMapRead == 0x0080) { sprintf(keyName, "Down"); }
+	if (keyMapRead == 0x0100) { sprintf(keyName, "Up"); }
+	if (keyMapRead) { debugRaw(" (Key Pressed: %s)", keyName); }
+	else { debugRaw(" (Key Release)"); }
+#endif
 
 #if 1 /* Test special method for redirect */
 	if (g_kpadIsrKeymap & 0x8000) { g_kpadIsrKeymap = 0; }
