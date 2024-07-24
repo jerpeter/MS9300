@@ -1654,7 +1654,7 @@ void SetupUART(void)
     uart0ReadRequest.uart = MXC_UART0;
     uart0ReadRequest.rxData = g_Uart0_RxBuffer;
     //uart0ReadRequest.rxLen = UART_BUFFER_SIZE;
-	uart0ReadRequest.rxLen = (UART_BUFFER_SIZE / 8);
+	uart0ReadRequest.rxLen = (UART_BUFFER_SIZE / 8); // Shortened to see if output is any different
     uart0ReadRequest.txLen = 0;
     uart0ReadRequest.callback = UART0_Read_Callback;
 
@@ -2339,6 +2339,7 @@ int usbShutdownCallback()
     return E_NO_ERROR;
 }
 
+uint8_t g_mscDelayState = OFF;
 #if USB_COMPOSITE_OPTION /* Composite MSC + CDC-ACM */
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -2375,6 +2376,7 @@ int setconfigCallback_Composite(MXC_USB_SetupPkt *sud, void *cbdata)
         acm_cfg.notify_ep = composite_config_descriptor.endpoint_descriptor_3.bEndpointAddress & 0x7;
         acm_cfg.notify_maxpacket = composite_config_descriptor.endpoint_descriptor_3.wMaxPacketSize;
 
+		if (g_mscDelayState == ON) { SoftUsecWait(1 * SOFT_SECS); }
         msc_configure(&msc_cfg);
         return acm_configure(&acm_cfg);
         /* Configure the device class */
@@ -2443,6 +2445,7 @@ int setconfigCallback_MSC(MXC_USB_SetupPkt *sud, void *cbdata)
             msc_cfg.in_maxpacket = config_descriptor.endpoint_descriptor_2.wMaxPacketSize;
         }
 
+		if (g_mscDelayState == ON) { SoftUsecWait(1 * SOFT_SECS); }
         return msc_configure(&msc_cfg); /* Configure the device class */
 
     } else if (sud->wValue == 0) {
@@ -2777,6 +2780,13 @@ void UsbReportEvents(void)
 		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_DPACT)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_DPACT); debug("USB: Resume\r\n"); }
 		else if (MXC_GETBIT(&event_flags, EVENT_ENUM_COMP)) { MXC_CLRBIT(&event_flags, EVENT_ENUM_COMP); debug("USB: Enumeration complete...\r\n"); }
 		else if (MXC_GETBIT(&event_flags, EVENT_REMOTE_WAKE)) { MXC_CLRBIT(&event_flags, EVENT_REMOTE_WAKE); debug("USB: Remote Wakeup\r\n"); }
+	}
+
+	// 0 = int enabled, 1 = disabled
+	if (__get_PRIMASK() != 0)
+	{
+		debugWarn("MCU: Interrupts are disabled, attempting re-enable...\r\n");
+		__enable_irq();
 	}
 }
 
@@ -5018,14 +5028,16 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initalize the USB-C Port Controller
 	//-------------------------------------------------------------------------
-#if 1 /* Test skipping init */
+#if 1 /* Normal */
 	USBCPortControllerInit(); debug("USB Port Controller: Init complete\r\n");
 #endif
 
 	//-------------------------------------------------------------------------
 	// Initalize the Battery Charger
 	//-------------------------------------------------------------------------
+#if 1 /* Normal */
 	BatteryChargerInit(); debug("Battery Charger: Init complete\r\n");
+#endif
 
 	//-------------------------------------------------------------------------
 	// Initalize the Accelerometer

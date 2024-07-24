@@ -84,6 +84,7 @@ void MainMenu(INPUT_MSG_STRUCT msg)
 extern void SetupUSBComposite(void);
 extern void USBCPortControllerInit(void);
 extern void USBCPortControllerSwapToHost(void);
+extern uint8_t g_mscDelayState;
 #endif
 void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LAYOUT_STRUCT *mn_layout_ptr)
 {
@@ -213,6 +214,12 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 #endif
 					break;
 				case (ESC_KEY):
+					if (GetPowerOnButtonState() == ON)
+					{
+						g_mscDelayState ^= ON;
+						debug("USB: Toggling MSC delay (%s)\r\n", ((g_mscDelayState == ON) ? "On" : "Off"));
+					}
+					else
 					// Reset the current line to tbe the top line	
 					mn_layout_ptr->curr_ln = 3;
 					break;
