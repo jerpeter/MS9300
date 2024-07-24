@@ -102,7 +102,8 @@ enum {
 
 enum {
 	SENSOR_GROUP_A_1 = 1,
-	SENSOR_GROUP_B_2
+	SENSOR_GROUP_B_2,
+	SENSOR_GROUP_BOTH
 };
 
 typedef struct

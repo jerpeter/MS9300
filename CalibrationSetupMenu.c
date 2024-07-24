@@ -273,14 +273,27 @@ char filterText[16];
 						if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { g_calDisplayAlternateResultState = DEFAULT_ALTERNATE_RESULTS; }
 						else { g_calDisplayAlternateResultState = DEFAULT_RESULTS; }
 #else
+						if (GetPowerOnButtonState() == ON)
+						{
+							sprintf((char*)g_debugBuffer, "Cal Setup: Geo1 + Geo2 Sensor disabled");
+							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
+							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
+						}
+						else
 						if (g_currentSensorGroup == SENSOR_GROUP_A_1)
 						{
 							sprintf((char*)g_debugBuffer, "Cal Setup: Geo1 Sensor disabled");
 							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
 						}
-						else // SENSOR_GROUP_B_2
+						else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
 						{
 							sprintf((char*)g_debugBuffer, "Cal Setup: Geo2 Sensor disabled");
+							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
+						}
+						else // (g_currentSensorGroup == SENSOR_GROUP_BOTH)
+						{
+							sprintf((char*)g_debugBuffer, "Cal Setup: Geo1 + Geo2 Sensor disabled");
+							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
 							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
 						}
 
@@ -294,14 +307,27 @@ char filterText[16];
 						if (g_displayAlternateResultState == DEFAULT_ALTERNATE_RESULTS) { g_displayAlternateResultState = DEFAULT_RESULTS; }
 						else { g_displayAlternateResultState = DEFAULT_ALTERNATE_RESULTS; }
 #else
+						if (GetPowerOnButtonState() == ON)
+						{
+							sprintf((char*)g_debugBuffer, "Cal Setup: AOP1 + AOP2 Sensor disabled");
+							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
+							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+						}
+						else
 						if (g_currentSensorGroup == SENSOR_GROUP_A_1)
 						{
 							sprintf((char*)g_debugBuffer, "Cal Setup: AOP1 Sensor disabled");
 							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
 						}
-						else // SENSOR_GROUP_B_2
+						else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
 						{
 							sprintf((char*)g_debugBuffer, "Cal Setup: AOP2 Sensor disabled");
+							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+						}
+						else // (g_currentSensorGroup == SENSOR_GROUP_BOTH)
+						{
+							sprintf((char*)g_debugBuffer, "Cal Setup: AOP1 + AOP2 Sensor disabled");
+							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
 							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
 						}
 
@@ -315,15 +341,32 @@ char filterText[16];
 						if (s_pauseDisplay == NO) { s_pauseDisplay = YES; }
 						else { s_pauseDisplay = NO; }
 #else
+						if (GetPowerOnButtonState() == ON)
+						{
+							sprintf((char*)g_debugBuffer, "Cal Setup: Geo1 + Geo2 + AOP1 + AOP2 Sensors enabled");
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+						}
+						else
 						if (g_currentSensorGroup == SENSOR_GROUP_A_1)
 						{
 							sprintf((char*)g_debugBuffer, "Cal Setup: Geo1 + AOP1 Sensors enabled");
 							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
 							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
 						}
-						else // SENSOR_GROUP_B_2
+						else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
 						{
 							sprintf((char*)g_debugBuffer, "Cal Setup: Geo2 + AOP2 Sensors enabled");
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+						}
+						else // (g_currentSensorGroup == SENSOR_GROUP_BOTH)
+						{
+							sprintf((char*)g_debugBuffer, "Cal Setup: Geo1 + Geo2 + AOP1 + AOP2 Sensors enabled");
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
 							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
 							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
 						}
@@ -350,17 +393,42 @@ char filterText[16];
 					case KB_SK_2:
 #if 1 /* Test */
 						if (gpState == ON) { gpState = OFF; } else { gpState = ON; }
+						if (GetPowerOnButtonState() == ON)
+						{
+							if (g_currentSensorGroup == SENSOR_GROUP_A_1)
+							{
+								if (gpState){ strcpy(filterText, "AOP"); SetPathSelectAop1State(HIGH); } else { strcpy(filterText, "A-weight"); SetPathSelectAop1State(LOW); }
+								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP1 path (%s)", filterText);
+							}
+							else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
+							{
+								if (gpState){ strcpy(filterText, "AOP"); SetPathSelectAop2State(HIGH); } else { strcpy(filterText, "A-weight"); SetPathSelectAop2State(LOW); }
+								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP2 path (%s)", filterText);
+							}
+							else // (g_currentSensorGroup == SENSOR_GROUP_BOTH)
+							{
+								if (gpState){ strcpy(filterText, "AOP"); SetPathSelectAop1State(HIGH); } else { strcpy(filterText, "A-weight"); SetPathSelectAop1State(LOW); }
+								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP1 path (%s)", filterText);
+							}
+						}
+						else
 						if (g_currentSensorGroup == SENSOR_GROUP_A_1)
 						{
 							if (gpState){ strcpy(filterText, "Normal/AOP"); SetGainGeo1State(HIGH); SetPathSelectAop1State(HIGH); }
 							else { strcpy(filterText, "High/A-weight"); SetGainGeo1State(LOW); SetPathSelectAop1State(LOW); }
 							sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo1/AOP1 gain/path (%s)", filterText);
 						}
-						else // SENSOR_GROUP_B_2
+						else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
 						{
 							if (gpState){ strcpy(filterText, "Normal/AOP"); SetGainGeo2State(HIGH); SetPathSelectAop2State(HIGH); }
 							else { strcpy(filterText, "High/A-weight"); SetGainGeo2State(LOW); SetPathSelectAop2State(LOW); }
 							sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo2/AOP2 gain/path (%s)", filterText);
+						}
+						else // (g_currentSensorGroup == SENSOR_GROUP_BOTH)
+						{
+							if (gpState){ strcpy(filterText, "Normal/AOP"); SetGainGeo1State(HIGH); SetPathSelectAop1State(HIGH); }
+							else { strcpy(filterText, "High/A-weight"); SetGainGeo1State(LOW); SetPathSelectAop1State(LOW); }
+							sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo1/AOP1 gain/path (%s)", filterText);
 						}
 
 						debug("%s\r\n", (char*)g_debugBuffer);
@@ -385,6 +453,26 @@ char filterText[16];
 
 					case KB_SK_4:
 #if 1 /* Test */
+						if (GetPowerOnButtonState() == ON)
+						{
+							if (g_lcdBacklightFlag == ENABLED)
+							{
+								sprintf((char*)g_debugBuffer, "Cal Setup: Turning Backlight Off");
+								debug("%s\r\n", (char*)g_debugBuffer);
+								OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+								SetLcdBacklightState(BACKLIGHT_OFF);
+								g_lcdBacklightFlag = DISABLED;
+							}
+							else
+							{
+								SetLcdBacklightState(BACKLIGHT_MID);
+								g_lcdBacklightFlag = ENABLED;
+								sprintf((char*)g_debugBuffer, "Cal Setup: Turning Backlight On");
+								debug("%s\r\n", (char*)g_debugBuffer);
+								OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+							}
+						}
+						else
 						if (cmState) // Check if on
 						{
 							cmState = OFF; SetCalMuxPreADEnableState(OFF);
@@ -401,10 +489,17 @@ char filterText[16];
 								debug("%s\r\n", (char*)g_debugBuffer);
 								OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
 							}
-							else // SENSOR_GROUP_B_2
+							else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
 							{
 								cmState = CAL_MUX_SELECT_SENSOR_GROUP_B; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B); SetCalMuxPreADEnableState(ON);
 								sprintf((char*)g_debugBuffer, "Cal Setup: Enabling Cal Mux Sensor Group B/2");
+								debug("%s\r\n", (char*)g_debugBuffer);
+								OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+							}
+							else // (g_currentSensorGroup == SENSOR_GROUP_BOTH)
+							{
+								cmState = CAL_MUX_SELECT_SENSOR_GROUP_A; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); SetCalMuxPreADEnableState(ON);
+								sprintf((char*)g_debugBuffer, "Cal Setup: Enabling Cal Mux Sensor Group A/1");
 								debug("%s\r\n", (char*)g_debugBuffer);
 								OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
 							}
@@ -541,11 +636,11 @@ void CalSetupMnProc(INPUT_MSG_STRUCT msg,
 
 			// Enable the Cal Mux for Sensor group A (Geo1 + AOP1)
 #if 1 /* Prompt for Cal Mux choice */
-			if (MessageBox(getLangText(SELECT_TEXT), "TEST WITH SENSOR GROUP A/1? NO WILL SWAP TO SENSOR GROUP B/2", MB_YESNO) == MB_FIRST_CHOICE)
-			{ g_currentSensorGroup = SENSOR_GROUP_A_1; }
-			else { g_currentSensorGroup = SENSOR_GROUP_B_2; }
+			mbChoice = MessageBox(getLangText(SELECT_TEXT), "TEST WITH SENSOR GROUP A/1? NO WILL SWAP TO SENSOR GROUP B/2", MB_YESNO);
+			if (mbChoice == MB_FIRST_CHOICE) { g_currentSensorGroup = SENSOR_GROUP_A_1; }
+			else if (mbChoice == MB_SECOND_CHOICE) { g_currentSensorGroup = SENSOR_GROUP_B_2; }
+			else /* (mbChoice == MB_SPECIAL_ACTION) */ { g_currentSensorGroup = SENSOR_GROUP_BOTH; }
 #endif
-
 			OverlayMessage(getLangText(STATUS_TEXT), getLangText(PLEASE_BE_PATIENT_TEXT), 0);
 
 			// Save the currently stored sample rate to later be reverted
@@ -569,7 +664,8 @@ extern void StartAccAquisition(void);
 
 			// Set the Cal Mux to the correct sensor group
 			if (g_currentSensorGroup == SENSOR_GROUP_A_1) { SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); cmState = CAL_MUX_SELECT_SENSOR_GROUP_A; }
-			else /* SENSOR_GROUP_B_2 */ { SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B); cmState = CAL_MUX_SELECT_SENSOR_GROUP_B; }
+			else if (g_currentSensorGroup == SENSOR_GROUP_B_2) { SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B); cmState = CAL_MUX_SELECT_SENSOR_GROUP_B; }
+			else /* (g_currentSensorGroup == SENSOR_GROUP_BOTH) */ { SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); cmState = CAL_MUX_SELECT_SENSOR_GROUP_A; } // Just use A/1
 			SetCalMuxPreADEnableState(ON);
 
 			// Clear channel offsets since uncalibrated is the first menu
