@@ -159,7 +159,8 @@ extern uint32_t testLifetimeCurrentAvgCount;
 
 #if 1 /* Test */
 static uint8_t aCutoffState = ANALOG_CUTOFF_FREQ_1K;
-static uint8_t gpState = ON;
+static uint8_t gainState = SEISMIC_GAIN_NORMAL;
+static uint8_t pathState = ACOUSTIC_PATH_AOP;
 //static uint8_t scState = 0;
 //static uint8_t scEnable = 0;
 char filterText[16];
@@ -392,43 +393,33 @@ char filterText[16];
 
 					case KB_SK_2:
 #if 1 /* Test */
-						if (gpState == ON) { gpState = OFF; } else { gpState = ON; }
 						if (GetPowerOnButtonState() == ON)
 						{
-							if (g_currentSensorGroup == SENSOR_GROUP_A_1)
+							if (pathState == ACOUSTIC_PATH_AOP) { pathState = ACOUSTIC_PATH_A_WEIGHTED; } else { pathState = ACOUSTIC_PATH_AOP; }
+							if ((g_currentSensorGroup == SENSOR_GROUP_A_1) || (g_currentSensorGroup == SENSOR_GROUP_BOTH))
 							{
-								if (gpState){ strcpy(filterText, "AOP"); SetPathSelectAop1State(HIGH); } else { strcpy(filterText, "A-weight"); SetPathSelectAop1State(LOW); }
+								if (pathState == ACOUSTIC_PATH_AOP){ strcpy(filterText, "AOP"); SetPathSelectAop1State(HIGH); } else { strcpy(filterText, "A-weight"); SetPathSelectAop1State(LOW); }
 								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP1 path (%s)", filterText);
 							}
 							else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
 							{
-								if (gpState){ strcpy(filterText, "AOP"); SetPathSelectAop2State(HIGH); } else { strcpy(filterText, "A-weight"); SetPathSelectAop2State(LOW); }
+								if (pathState == ACOUSTIC_PATH_AOP){ strcpy(filterText, "AOP"); SetPathSelectAop2State(HIGH); } else { strcpy(filterText, "A-weight"); SetPathSelectAop2State(LOW); }
 								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP2 path (%s)", filterText);
-							}
-							else // (g_currentSensorGroup == SENSOR_GROUP_BOTH)
-							{
-								if (gpState){ strcpy(filterText, "AOP"); SetPathSelectAop1State(HIGH); } else { strcpy(filterText, "A-weight"); SetPathSelectAop1State(LOW); }
-								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP1 path (%s)", filterText);
 							}
 						}
 						else
-						if (g_currentSensorGroup == SENSOR_GROUP_A_1)
 						{
-							if (gpState){ strcpy(filterText, "Normal/AOP"); SetGainGeo1State(HIGH); SetPathSelectAop1State(HIGH); }
-							else { strcpy(filterText, "High/A-weight"); SetGainGeo1State(LOW); SetPathSelectAop1State(LOW); }
-							sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo1/AOP1 gain/path (%s)", filterText);
-						}
-						else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
-						{
-							if (gpState){ strcpy(filterText, "Normal/AOP"); SetGainGeo2State(HIGH); SetPathSelectAop2State(HIGH); }
-							else { strcpy(filterText, "High/A-weight"); SetGainGeo2State(LOW); SetPathSelectAop2State(LOW); }
-							sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo2/AOP2 gain/path (%s)", filterText);
-						}
-						else // (g_currentSensorGroup == SENSOR_GROUP_BOTH)
-						{
-							if (gpState){ strcpy(filterText, "Normal/AOP"); SetGainGeo1State(HIGH); SetPathSelectAop1State(HIGH); }
-							else { strcpy(filterText, "High/A-weight"); SetGainGeo1State(LOW); SetPathSelectAop1State(LOW); }
-							sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo1/AOP1 gain/path (%s)", filterText);
+							if (gainState == SEISMIC_GAIN_NORMAL) { gainState = SEISMIC_GAIN_HIGH; } else { gainState = SEISMIC_GAIN_NORMAL; }
+							if ((g_currentSensorGroup == SENSOR_GROUP_A_1) || (g_currentSensorGroup == SENSOR_GROUP_BOTH))
+							{
+								if (gainState == SEISMIC_GAIN_NORMAL){ strcpy(filterText, "Normal"); SetGainGeo1State(HIGH); } else { strcpy(filterText, "High"); SetGainGeo1State(LOW); }
+								sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo1 gain (%s)", filterText);
+							}
+							else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
+							{
+								if (gainState == SEISMIC_GAIN_NORMAL){ strcpy(filterText, "Normal"); SetGainGeo2State(HIGH); } else { strcpy(filterText, "High"); SetGainGeo2State(LOW); }
+								sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo2 gain (%s)", filterText);
+							}
 						}
 
 						debug("%s\r\n", (char*)g_debugBuffer);
