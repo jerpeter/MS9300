@@ -273,7 +273,13 @@ void MonitorMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 					g_monitorEscapeCheck = YES;
 					g_promtForLeavingMonitorMode = TRUE;
 				break;
-				
+
+				case (HELP_KEY):
+#if 1 /* Test */
+					raiseSystemEventFlag(UPDATE_OFFSET_EVENT);
+#endif
+				break;
+
 				case (DOWN_ARROW_KEY):
 #if 1
 						g_showRVTA = YES;
