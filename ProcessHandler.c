@@ -616,7 +616,19 @@ void GetManualCalibration(void)
 	while ((volatile uint32)g_manualCalSampleCount != 0) { /* spin */ }
 
 	// Stop data transfer
+#if 0 /* Normal */
 	StopDataClock();
+#else /* Test skipping channel disable and analog 5V power down */
+	g_sampleProcessing = IDLE_STATE;
+
+#if INTERNAL_SAMPLING_SOURCE
+	StopInteralSampleTimer();
+#elif EXTERNAL_SAMPLING_SOURCE
+	StopExternalRtcClock();
+#endif
+
+	AD4695_ExitConversionMode();
+#endif
 
 	if (getSystemEventState(MANUAL_CAL_EVENT))
 	{
@@ -648,7 +660,19 @@ void HandleManualCalibration(void)
 			else // Handle cycle change calibration while in Waveform mode (without leaving monitor session)
 			{
 				// Stop data transfer
+#if 0 /* Normal */
 				StopDataClock();
+#else /* Test skipping channel disable and analog 5V power down */
+				g_sampleProcessing = IDLE_STATE;
+
+#if INTERNAL_SAMPLING_SOURCE
+				StopInteralSampleTimer();
+#elif EXTERNAL_SAMPLING_SOURCE
+				StopExternalRtcClock();
+#endif
+
+				AD4695_ExitConversionMode();
+#endif
 
 				// Perform Cal while in monitor mode
 				OverlayMessage(getLangText(STATUS_TEXT), getLangText(PERFORMING_CALIBRATION_TEXT), 0);
