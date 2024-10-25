@@ -1351,8 +1351,8 @@ void ft81x_assert_cs(bool assert)
 {
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL)
 	{
-		if (assert) { MXC_GPIO_OutClr(GPIO_LCD_SPI2_SS0_PORT, GPIO_LCD_SPI2_SS0_PIN); }
-		else { MXC_GPIO_OutSet(GPIO_LCD_SPI2_SS0_PORT, GPIO_LCD_SPI2_SS0_PIN); }
+		if (assert) { MXC_GPIO_OutClr(GPIO_SPI2_SS0_LCD_PORT, GPIO_SPI2_SS0_LCD_PIN); }
+		else { MXC_GPIO_OutSet(GPIO_SPI2_SS0_LCD_PORT, GPIO_SPI2_SS0_LCD_PIN); }
 	}
 	else // SPI2 Slave select controlled by the SPI driver
 	{
@@ -1954,12 +1954,14 @@ uint8_t ft81x_init(void)
 	return false;
 #endif
 
+uint16_t sampleCountTiming[10];
+
 #if 0 /* LCD Slave Select 0 Setup moved to LCD Power GPIO init */
 	mxc_gpio_cfg_t setupGPIO;
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL)
 	{
-		setupGPIO.port = GPIO_LCD_SPI2_SS0_PORT;
-		setupGPIO.mask = GPIO_LCD_SPI2_SS0_PIN;
+		setupGPIO.port = GPIO_SPI2_SS0_LCD_PORT;
+		setupGPIO.mask = GPIO_SPI2_SS0_LCD_PIN;
 		setupGPIO.func = MXC_GPIO_FUNC_OUT;
 		setupGPIO.pad = MXC_GPIO_PAD_NONE;
 		setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
@@ -1968,13 +1970,32 @@ uint8_t ft81x_init(void)
 	}
 #endif
 
+#if 1 /* Normal */
+	sampleCountTiming[0] = g_sampleCount;
     if (GetPowerControlState(LCD_POWER_ENABLE) == OFF) { PowerControl(LCD_POWER_ENABLE, ON); }
     if (GetPowerControlState(LCD_POWER_DOWN) == ON)
 	{
+		sampleCountTiming[1] = g_sampleCount;
 		PowerControl(LCD_POWER_DOWN, OFF);
 		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20)); // Per datasheet: From Sleep state, the host needs to wait at least 20ms before accessing any registers or commands
+		sampleCountTiming[3] = g_sampleCount;
 		g_lcdPowerFlag = ENABLED;
 	}
+#else /* Test */
+	sampleCountTiming[0] = g_sampleCount;
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20));
+	sampleCountTiming[1] = g_sampleCount;
+	MXC_GPIO_OutSet(GPIO_LCD_POWER_ENABLE_PORT, GPIO_LCD_POWER_ENABLE_PIN);
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20));
+	sampleCountTiming[2] = g_sampleCount;
+	LcdPowerGpioSetup(ON);
+	MXC_GPIO_OutSet(GPIO_LCD_POWER_DOWN_PORT, GPIO_LCD_POWER_DOWN_PIN);
+	LcdControllerGpioSetup(ON);
+	g_lcdPowerFlag = ENABLED;
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20));
+	sampleCountTiming[3] = g_sampleCount;
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20));
+#endif
 
 #if 0 /* Test power draw after LCD power block enabled */
 	for (uint8_t j = 0; j < 5; j++)
@@ -1992,7 +2013,9 @@ uint8_t ft81x_init(void)
 	debug("LCD Controller: Going Active...\r\n");
 	ft81x_rd(CMD_ACTIVE);
 	ft81x_rd(CMD_ACTIVE);
+	sampleCountTiming[4] = g_sampleCount;
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(300));
+	sampleCountTiming[5] = g_sampleCount;
 
 	if (ft81x_rd(REG_ID) != 0x7C) { debugErr("LCD Controller: Failed to read reg ID after going active\r\n"); }
 	else { debug("LCD Controller: Reg ID verified after going active\r\n"); }
@@ -2024,12 +2047,46 @@ uint8_t ft81x_init(void)
 	debug("LCD Controller: Seting backlight level to 25%%\r\n");
 	ft81x_set_backlight_level(32);
 #endif
+	sampleCountTiming[6] = g_sampleCount;
 	ft81x_fifo_reset();
 	ft81x_init_display_settings();
 	test_black_screen();
 	ft81x_init_gpio();
 
+#if 1 /* Original */
 	ft81x_wake(32);
+	sampleCountTiming[7] = g_sampleCount;
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(100));
+
+	// Set backlight PWM to pwm
+	ft81x_set_backlight_level(0);
+	sampleCountTiming[8] = g_sampleCount;
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(100));
+
+	ft81x_set_backlight_level(32);
+	sampleCountTiming[9] = g_sampleCount;
+#else /* Test breakout for timing */
+	// Turn the pixel clock on
+	ft81x_wr32(REG_PCLK, 2);
+
+	// Set backlight PWM to pwm
+	ft81x_set_backlight_level(0);
+
+	// Turn the display on
+	ft81x_wr16(REG_GPIOX, ft81x_rd16(REG_GPIOX) | 0x8000);
+	sampleCountTiming[7] = g_sampleCount;
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
+
+	ft81x_set_backlight_level(32);
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
+	sampleCountTiming[8] = g_sampleCount;
+
+	ft81x_set_backlight_level(0);
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
+	sampleCountTiming[9] = g_sampleCount;
+
+	ft81x_set_backlight_level(32);
+#endif
 
 #if 1 /* Test */
 	test_memory_ops();
@@ -2057,6 +2114,8 @@ uint8_t ft81x_init(void)
 	ft81x_wr(REG_INT_MASK, 0x00);
 #endif
 
+	debug("LCD Power: Timing array %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\r\n", sampleCountTiming[0], sampleCountTiming[1], sampleCountTiming[2], sampleCountTiming[3], sampleCountTiming[4],
+			sampleCountTiming[5], sampleCountTiming[6], sampleCountTiming[7], sampleCountTiming[8], sampleCountTiming[9]);
 	return true;
 }
 
