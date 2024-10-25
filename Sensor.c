@@ -780,7 +780,10 @@ void SmartSensorTest(void)
 	debugRaw("\r\n----------End----------\r\n");
 
 	SmartSensorDisableMuxAndDriver();
-	if (powerDownAnalogWhenFinished) { PowerControl(ANALOG_5V_ENABLE, OFF); }
+	if (powerDownAnalogWhenFinished)
+	{
+		PowerControl(ADC_RESET, ON);
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -795,13 +798,6 @@ uint8_t SmartSensorMuxSelectAndDriverEnable(SMART_SENSOR_TYPE sensor)
 	else if (sensor == ACOUSTIC_SENSOR) { MuxA1 = 1; MuxA0 = 0; }
 	else if (sensor == ACOUSTIC_SENSOR_2) { MuxA1 = 1; MuxA0 = 1; }
 	else /* (sensor == SEISMIC_SENSOR) */ { MuxA1 = 0; MuxA0 = 0; }
-
-    if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
-	{
-		debug("Power Control: Analog 5V enable being turned on\r\n");
-		analog5vPoweredUp = YES;
-		PowerUpAnalog5VandExternalADC();
-	}
 
 	// Check if the Smart Sensor Mux Enable is active (swapping channels)
 	if (GetSmartSensorMuxEnableState() == ON)
@@ -904,7 +900,10 @@ void SmartSensorReadRomAndMemory(SMART_SENSOR_TYPE sensor)
 	}
 
 	SmartSensorDisableMuxAndDriver();
-	if (powerDownAnalogWhenFinished) { PowerControl(ANALOG_5V_ENABLE, OFF); }
+	if (powerDownAnalogWhenFinished)
+	{
+		PowerControl(ADC_RESET, ON);
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -1622,13 +1621,6 @@ void Test1Wire(void)
 
     debug("1-Wire Master: Test device access...\r\n");
 
-    if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
-	{
-		debug("Power Control: Analog 5V enable being turned on\r\n");
-		PowerUpAnalog5VandExternalADC();
-	}
-	else { debug("Power Control: Analog 5V enable already on\r\n"); }
-
 	debug("1-Wire Mux: Setting Mux for Smart Sensor: Geophone 1\r\n");
 	SetSmartSensorMuxA0State(0);
 	SetSmartSensorMuxA1State(0);
@@ -1686,17 +1678,6 @@ void OneWireInit(void)
 	uint8_t analog5vPoweredUp = NO;
 	uint8_t status;
 
-    if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
-	{
-		analog5vPoweredUp = YES;
-#if 0 /* Normal */
-		PowerUpAnalog5VandExternalADC();
-#else /* Skip External ADC */
-		PowerControl(ANALOG_5V_ENABLE, ON);
-		WaitAnalogPower5vGood();
-#endif
-	}
-
 	// No need to set and enable the 1-Wire mux since we're only going to write 1-Wire driver config
 	//SetSmartSensorMuxA0State(0); SetSmartSensorMuxA1State(0); SetSmartSensorMuxEnableState(ON);
 
@@ -1727,6 +1708,5 @@ void OneWireInit(void)
 	if (analog5vPoweredUp)
 	{
 		PowerControl(ADC_RESET, ON);
-		PowerControl(ANALOG_5V_ENABLE, OFF);
 	}
 }
