@@ -1174,6 +1174,7 @@ uint8 SetExternalRtcTime(DATE_TIME_STRUCT* time);
 uint8 SetExternalRtcDate(DATE_TIME_STRUCT* time);
 uint8 SetExternalRtcDateAndTimeByGpsUtcEpoch(time_t currentEpochTime);
 DATE_TIME_STRUCT GetExternalRtcTime(void);
+uint8_t GetExternalRtcTimestamp(uint8_t tsNum, DATE_TIME_STRUCT* tsTime);
 uint8 UpdateCurrentTime(void);
 DATE_TIME_STRUCT GetCurrentTime(void);
 uint32 GetCurrentEpochTime(void);
@@ -1187,6 +1188,8 @@ void ExternalRtcWrite(uint8 register_address, int length, uint8* data);
 void ExternalRtcRead(uint8 register_address, int length, uint8* data);
 void StartExternalRtcClock(uint16 sampleRate);
 void StopExternalRtcClock(void);
+void PulseRtcTimestamp(void);
+void ClearRtcTimestamp(void);
 
 void GetRtcRegisters(uint8_t registerAddress, uint8_t* registerData, uint16_t dataLength);
 void SetRtcRegisters(uint8_t registerAddress, uint8_t* registerData, uint16_t dataLength);

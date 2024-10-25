@@ -49,6 +49,7 @@ BOOLEAN ExternalRtcInit(void)
 	uint8_t stopEnableReg;
 	uint8_t flagsReg;
 	uint8_t ioConfig;
+	uint8_t modeConfig;
 	uint8_t interruptReg;
 	uint8_t controlReg;
 
@@ -88,9 +89,13 @@ BOOLEAN ExternalRtcInit(void)
 	flagsReg = 0;
 	SetRtcRegisters(PCF85263_CTL_FLAGS, (uint8_t*)&flagsReg, sizeof(flagsReg));
 
-	// Change Interrupt A to be an interrupt and not a mirrored clock
-	ioConfig = PCF85263_CTL_INTAPM_INTA;
+	// Change Interrupt A to be an interrupt and not a mirrored clock, Change Timestamp I/O control to input mode
+	ioConfig = (PCF85263_CTL_INTAPM_INTA | PCF85263_CTL_TSPM_INPUT);
 	SetRtcRegisters(PCF85263_CTL_PIN_IO, (uint8_t*)&ioConfig, sizeof(ioConfig));
+
+	// Setup Timestamp register 1-3 modes
+	modeConfig = (PCF85263_RTC_TSR_TSR3M_LV | PCF85263_RTC_TSR_TSR2M_FE | PCF85263_RTC_TSR_TSR1M_LE);
+	SetRtcRegisters(PCF85263_STW_TSR_MODE, (uint8_t*)&modeConfig, sizeof(modeConfig));
 
 	// Enable interrupts for the periodic and alarm 1
 	interruptReg = (PCF85263_CTL_INTA_PIEA | PCF85263_CTL_INTA_A1IEA);
@@ -343,6 +348,38 @@ DATE_TIME_STRUCT GetExternalRtcTime(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint8_t GetExternalRtcTimestamp(uint8_t tsNum, DATE_TIME_STRUCT* tsTime)
+{
+	RTC_DATE_TIME_STRUCT translateTime;
+	uint8_t tsReg;
+
+	if (tsTime == NULL) { return (E_NULL_PTR); }
+
+	if (tsNum == 1) { tsReg = PCF85263_RTC_TSR1_SECONDS; }
+	else if (tsNum == 2) { tsReg = PCF85263_RTC_TSR2_SECONDS; }
+	else if (tsNum == 3) { tsReg = PCF85263_RTC_TSR3_SECONDS; }
+	else { return (E_BAD_PARAM); }
+
+	GetRtcRegisters(tsReg, (uint8_t*)&translateTime, sizeof(translateTime));
+
+	// Get time and date registers (24 Hour settings), BCD format
+	tsTime->year = BCD_CONVERT_TO_UINT8(translateTime.years, RTC_BCD_YEARS_MASK);
+	tsTime->month = BCD_CONVERT_TO_UINT8(translateTime.months, RTC_BCD_MONTHS_MASK);
+	tsTime->day = BCD_CONVERT_TO_UINT8(translateTime.days, RTC_BCD_DAYS_MASK);
+	tsTime->weekday = BCD_CONVERT_TO_UINT8(translateTime.weekdays, RTC_BCD_WEEKDAY_MASK);
+
+	tsTime->hour = BCD_CONVERT_TO_UINT8(translateTime.hours, RTC_BCD_HOURS_MASK);
+	tsTime->min = BCD_CONVERT_TO_UINT8(translateTime.minutes, RTC_BCD_MINUTES_MASK);
+	tsTime->sec = BCD_CONVERT_TO_UINT8(translateTime.seconds, RTC_BCD_SECONDS_MASK);
+
+	//debug("Ext RTC timestamp: Get Time: %02d:%02d:%02d (%d), %02d-%02d-%02d\n\r\n", tsTime->hour, tsTime->min, tsTime->sec, tsTime->weekday, tsTime->month, tsTime->day, tsTime->year);
+
+	return (E_SUCCESS);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 uint8 UpdateCurrentTime(void)
 {
 	g_rtcTickCountSinceLastExternalUpdate = 0;
@@ -589,6 +626,29 @@ void EnableExternalRtcAlarm(uint8 day, uint8 hour, uint8 minute, uint8 second)
 	ClearAlarm1Flag();
 }
 #endif
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void PulseRtcTimestamp(void)
+{
+	MXC_GPIO_OutSet(GPIO_EXT_RTC_TIMESTAMP_PORT, GPIO_EXT_RTC_TIMESTAMP_PIN);
+	// Delay
+	SoftUsecWait(1);
+	MXC_GPIO_OutClr(GPIO_EXT_RTC_TIMESTAMP_PORT, GPIO_EXT_RTC_TIMESTAMP_PIN);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void ClearRtcTimestamp(void)
+{
+	uint8_t reg;
+
+	// Clear Timestamp register 1-3
+	reg = (PCF85263_CTL_RESETS_BITS | PCF85263_CTL_CTS);
+	SetRtcRegisters(PCF85263_CTL_RESETS, (uint8_t*)&reg, sizeof(reg));
+}
 
 ///----------------------------------------------------------------------------
 ///	Function Break
