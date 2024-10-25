@@ -77,6 +77,9 @@ void MonitorMenu(INPUT_MSG_STRUCT msg)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 1 /* Test */
+extern uint8_t ft81x_init(void);
+#endif
 uint8 g_showRVTA = NO;
 void MonitorMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LAYOUT_STRUCT *mn_layout_ptr)
 {
@@ -277,6 +280,29 @@ void MonitorMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 				case (HELP_KEY):
 #if 1 /* Test */
 					raiseSystemEventFlag(UPDATE_OFFSET_EVENT);
+#else
+					ClearSoftTimer(LCD_BACKLIGHT_ON_OFF_TIMER_NUM);
+					ClearSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM);
+					LcdPwTimerCallBack();
+					SoftUsecWait(3 * SOFT_SECS);
+
+					// Signal the start of an event
+					debug("--- External Trigger sim ---\r\n");
+					g_externalTrigger = EXTERNAL_TRIGGER_EVENT;
+					g_sampleCount = 0;
+
+					// Check if the LCD Power was turned off
+					g_lcdPowerFlag = ENABLED;
+					raiseSystemEventFlag(UPDATE_MENU_EVENT);
+					ft81x_init(); // Power up and init display
+					AssignSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM, (uint32)(g_unitConfig.lcdTimeout * TICKS_PER_MIN), LcdPwTimerCallBack);
+
+					// Check if the unit is monitoring, if so, reassign the monitor update timer
+					if (g_sampleProcessing == ACTIVE_STATE)
+					{
+						debug("Keypress Timer Mgr: enabling Monitor Update Timer.\r\n");
+						AssignSoftTimer(MENU_UPDATE_TIMER_NUM, ONE_SECOND_TIMEOUT, MenuUpdateTimerCallBack);
+					}
 #endif
 				break;
 
