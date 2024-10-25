@@ -87,7 +87,12 @@ void SystemEventManager(void)
 		if ((g_triggerRecord.opMode == WAVEFORM_MODE) || (g_triggerRecord.opMode == COMBO_MODE))
 		{
 			debug("Trigger Event (%s)\r\n", (g_triggerRecord.opMode == WAVEFORM_MODE) ? "Wave" : "Combo");
+#if 1 /* Normal */
 			MoveWaveformEventToFile();
+#else /* Test trigger without creating event */
+			// Make sure to clear trigger event
+			clearSystemEventState(TRIGGER_EVENT);
+#endif
 		}
 	}
 
@@ -185,7 +190,7 @@ extern uint32_t testLifetimeCurrentAvgCount;
 		testLifetimeCurrentAvgCount++;
 		if (g_sampleProcessing == ACTIVE_STATE)
 		{
-			debug("(Cyclic Event) (%s) (%.0fmA avg) SPT: %lu, Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), CycleCountToMicroseconds(sampleProcessTiming, SYS_CLK), (char*)g_spareBuffer);
+			debug("(Cyclic Event) (%s) (%.0fmA avg) SPT: %lu, SPS: %d, Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), CycleCountToMicroseconds(sampleProcessTiming, SYS_CLK), (g_sampleCountHold / 4), (char*)g_spareBuffer);
 		}
 		else { debug("(Cyclic Event) (%s) (%.0fmA avg) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer); }
 #if 0 /* Test 1 */
@@ -214,7 +219,7 @@ uint8_t* tps25750_get_rx_sink_cap(void);
 #endif
 
 #endif
-		g_sampleCountHold = 0;
+		//g_sampleCountHold = 0;
 		g_execCycles = 0;
 		g_channelSyncError = NO;
 #else
@@ -469,6 +474,13 @@ void CraftManager(void)
 			g_modemStatus.connectionState = NOP_CMD;
 			g_modemStatus.systemIsLockedFlag = YES;
 			AssignSoftTimer(MODEM_DELAY_TIMER_NUM, MODEM_ATZ_DELAY, ModemDelayTimerCallback);
+
+#if 1 /* New addition to make sure the Auto Monitor Timer is refreshed in case it was changed via UCM */
+			if ((g_unitConfig.autoMonitorMode != AUTO_NO_TIMEOUT) && (g_sampleProcessing != ACTIVE_STATE) && (IsSoftTimerActive(AUTO_MONITOR_TIMER_NUM) == NO))
+			{
+				AssignSoftTimer(AUTO_MONITOR_TIMER_NUM, (uint32)(g_unitConfig.autoMonitorMode * TICKS_PER_MIN), AutoMonitorTimerCallBack);
+			}
+#endif
 		}
 	}
 
@@ -513,6 +525,46 @@ void CraftManager(void)
 		clearSystemEventFlag(CRAFT_PORT_EVENT);
 		RemoteCmdMessageProcessing();
 	}
+
+#if 0 /* Test multifunction actions on power button when keypad is not functional */
+extern uint8_t g_powerButtonAction;
+static uint8_t s_eventCount = 0;
+	if (g_powerButtonAction)
+	{
+		INPUT_MSG_STRUCT mn_msg;
+		if (g_powerButtonAction == 1)
+		{
+			g_triggerRecord.opMode = WAVEFORM_MODE;
+			SETUP_MENU_WITH_DATA_MSG(MONITOR_MENU, g_triggerRecord.opMode);
+			JUMP_TO_ACTIVE_MENU();
+		}
+		else if (g_powerButtonAction == 2)
+		{
+			strcpy((char*)&g_isrMessageBufferStruct.msg[0], "1\r\n");
+			RemoteCmdMessageHandler(&g_isrMessageBufferStruct);
+		}
+		else if (g_powerButtonAction == 3)
+		{
+			if (s_eventCount < 3)
+			{
+				strcpy((char*)&g_isrMessageBufferStruct.msg[0], "T\r\n");
+				RemoteCmdMessageHandler(&g_isrMessageBufferStruct);
+				s_eventCount++;
+			}
+			else
+			{
+				mn_msg.cmd = STOP_MONITORING_CMD;
+				mn_msg.length = 1;
+				(*g_menufunc_ptrs[MONITOR_MENU])(mn_msg);
+			}
+		}
+		else if (g_powerButtonAction == 4)
+		{
+		}
+
+		g_powerButtonAction = 0;
+	}
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -1772,7 +1824,7 @@ void exception(uint32_t r12, uint32_t r11, uint32_t r10, uint32_t r9, uint32_t e
 		ft81x_init(); // Power up display and init driver
 	}
 
-	// Check if the LCD Backlight was turned off
+	// Check if the LCD Backlight was turned off (now treating BACKLIGHT_SUPER_LOW as disabled since the LCD really can't be seen with the backlight on at some level)
 	if (g_lcdBacklightFlag == DISABLED)
 	{
 		g_lcdBacklightFlag = ENABLED;
@@ -2069,6 +2121,10 @@ extern void UsbReportEvents(void);
 #endif
 		// Count Exec cycles
 		g_execCycles++;
+
+#if 1 /* Test */
+		if (strlen((char*)g_blmBuffer)) { debug("%s", (char*)g_blmBuffer); memset(g_blmBuffer, 0, sizeof(g_blmBuffer)); }
+#endif
 
 #if 0 /* Todo: Re-enable in init, disabled for testing */
 		//Reset watchdog
