@@ -228,10 +228,10 @@ void WDT0_IRQHandler(void)
 ///	Function Break
 ///----------------------------------------------------------------------------
 __attribute__((__interrupt__))
-void Expanded_battery_resence_irq(void)
+void External_battery_presence_irq(void)
 {
 	//debugRaw("=");
-	debugWarn("-(ISR) 2nd battery pack alert (%s)-\r\n", ((GetExpandedBatteryPresenceState() == YES) ? "Added" : "Removed"));
+	debugWarn("-(ISR) Battery pack status alert (Slot 1:%s, Slot 2:%s)-\r\n", ((GPIO_EXT_BATTERY_PRESENCE_1_PORT->in & GPIO_EXT_BATTERY_PRESENCE_1_PIN) ? "Added" : "Removed"), ((GPIO_EXT_BATTERY_PRESENCE_2_PORT->in & GPIO_EXT_BATTERY_PRESENCE_2_PIN) ? "Added" : "Removed"));
 }
 
 ///----------------------------------------------------------------------------
@@ -264,6 +264,58 @@ void Battery_charger_irq(void)
 
 	// Clear Battery Charger interrupt flag (Port 0, Pin 5)
 	GPIO_BATTERY_CHARGER_IRQ_PORT->int_clr = GPIO_BATTERY_CHARGER_IRQ_PIN;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+__attribute__((__interrupt__))
+void Sensor_detect_1_irq(void)
+{
+	//debugRaw("+");
+	debugWarn("-(ISR) Sensor Detect 1-\r\n");
+
+	// Clear Sensor Detect 1 flag (Port 0, Pin 7)
+	GPIO_SENSOR_DETECT_1_PORT->int_clr = GPIO_SENSOR_DETECT_1_PIN;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+__attribute__((__interrupt__))
+void Sensor_detect_2_irq(void)
+{
+	//debugRaw("+");
+	debugWarn("-(ISR) Sensor Detect 2-\r\n");
+
+	// Clear Sensor Detect 2 flag (Port 1, Pin 2)
+	GPIO_SENSOR_DETECT_2_PORT->int_clr = GPIO_SENSOR_DETECT_2_PIN;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+__attribute__((__interrupt__))
+void Sensor_detect_3_irq(void)
+{
+	//debugRaw("+");
+	debugWarn("-(ISR) Sensor Detect 3-\r\n");
+
+	// Clear Sensor Detect 3 flag (Port 1, Pin 13)
+	GPIO_SENSOR_DETECT_3_PORT->int_clr = GPIO_SENSOR_DETECT_3_PIN;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+__attribute__((__interrupt__))
+void Sensor_detect_4_irq(void)
+{
+	//debugRaw("+");
+	debugWarn("-(ISR) Sensor Detect 4-\r\n");
+
+	// Clear Sensor Detect 4 flag (Port 1, Pin 27)
+	GPIO_SENSOR_DETECT_4_PORT->int_clr = GPIO_SENSOR_DETECT_4_PIN;
 }
 
 ///----------------------------------------------------------------------------
@@ -313,7 +365,7 @@ void Power_good_battery_charger_irq(void)
 ///----------------------------------------------------------------------------
 volatile uint8_t testAccInt = 0;
 __attribute__((__interrupt__))
-void Accelerometer_irq_1(void)
+void Accelerometer_irq(void)
 {
 	//debugRaw("<");
 	//debugWarn("-(ISR) Acc IRQ 1-\r\n");
@@ -322,21 +374,6 @@ void Accelerometer_irq_1(void)
 
 	// Clear Accelerometer interrupt flag 1 (Port 1, Pin 12)
 	GPIO_ACCEL_INT_1_PORT->int_clr = GPIO_ACCEL_INT_1_PIN;
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-__attribute__((__interrupt__))
-void Accelerometer_irq_2(void)
-{
-	//debugRaw(">");
-	//debugWarn("-(ISR) Acc IRQ 2-\r\n");
-
-	testAccInt = 1;
-
-	// Clear Accelerometer interrupt flag 2 (Port 1, Pin 13)
-	GPIO_ACCEL_INT_2_PORT->int_clr = GPIO_ACCEL_INT_2_PIN;
 }
 
 ///----------------------------------------------------------------------------
@@ -435,6 +472,9 @@ void Keypad_irq(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* Test */
+uint8_t g_powerButtonAction = 0;
+#endif
 __attribute__((__interrupt__))
 void System_power_button_irq(void)
 {
@@ -473,8 +513,32 @@ void System_power_button_irq(void)
 			onKeyCount++;
 		}
 
+#if 0 /* Test multifunction actions on power button when keypad is not functional */
+		if (g_sampleProcessing != ACTIVE_STATE)
+		{
+			// Go monitoring
+			g_powerButtonAction = 1;
+		}
+		else
+		{
+			if (GetPowerControlState(LCD_POWER_ENABLE) == ON)
+			{
+				// Disable LCD
+				g_powerButtonAction = 2;
+			}
+			else
+			{
+				// External Trigger
+				g_powerButtonAction = 3;
+			}
+		}
+#endif
 		// Check if repeated On key press was detected 3 additional times (original press is unlock)
+#if 1 /* Normal */
 		if (onKeyCount == 3)
+#else /* Test multifunction actions on power button when keypad is not functional */
+		if (0)
+#endif
 		{
 			// Gracefully fall off the ledge.. No returning from this
 			debugRaw("\n--> SAFE FALL <--");
@@ -494,7 +558,7 @@ void System_power_button_irq(void)
 			MXC_USB_Shutdown();
 
 			// Disable power blocks
-			PowerControl(ANALOG_5V_ENABLE, OFF);
+			PowerControl(ADC_RESET, ON);
 			PowerControl(LCD_POWER_ENABLE, OFF);
 			PowerControl(ENABLE_12V, OFF);
 			PowerControl(CELL_ENABLE, OFF);
@@ -505,7 +569,11 @@ void System_power_button_irq(void)
 		}
 
 		// Check if repeated On key press was detected 6 additional times (original press is unlock)
+#if 1 /* Normal */
 		if (onKeyCount == 6)
+#else /* Test multifunction actions on power button when keypad is not functional */
+		if (0)
+#endif
 		{
 			// Jumping off the ledge.. No returning from this
 			debugRaw("\n--> BOOM <--");
@@ -549,6 +617,7 @@ void External_trigger_irq(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint32_t s_sampleCountHold = 0;
 __attribute__((__interrupt__))
 void Internal_rtc_alarms(void)
 {
@@ -573,8 +642,8 @@ void Internal_rtc_alarms(void)
 			g_cyclicEventDelay = 0;
 			raiseSystemEventFlag_ISR(CYCLIC_EVENT);
 #if 1 /* Test */
-			g_sampleCountHold = g_sampleCount;
-			g_sampleCount = 0;
+			g_sampleCountHold = g_sampleCount - s_sampleCountHold;
+			s_sampleCountHold = g_sampleCount;
 #endif
 		}
 
@@ -623,8 +692,8 @@ void Soft_timer_tick_irq(void)
 		g_cyclicEventDelay = 0;
 		raiseSystemEventFlag_ISR(CYCLIC_EVENT);
 #if 1 /* Test */
-		g_sampleCountHold = g_sampleCount;
-		g_sampleCount = 0;
+		g_sampleCountHold = g_sampleCount - s_sampleCountHold;
+		s_sampleCountHold = g_sampleCount;
 #endif
 	}
 
@@ -1384,7 +1453,9 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 		//___Check if either a seismic or acoustic trigger threshold condition was achieved or an external trigger was found
 		if ((s_consecSeismicTriggerCount == CONSECUTIVE_TRIGGERS_THRESHOLD) || (s_consecAirTriggerCount == CONSECUTIVE_TRIGGERS_THRESHOLD) || (g_externalTrigger))
 		{
-			//debug("--> Trigger Found! %x %x %x %x\r\n", s_R_channelReading, s_V_channelReading, s_T_channelReading, s_A_channelReading);
+			if (g_externalTrigger == EXTERNAL_TRIGGER_EVENT) { sprintf((char*)g_blmBuffer, "--> (ISR) External Trigger Found (ET: %d)\r\n", g_externalTrigger); } else
+			sprintf((char*)g_blmBuffer, "(ISR) --> %s Trigger Found, %x %x %x (%x), %x (%x)\r\n", (g_externalTrigger == VARIABLE_TRIGGER_EVENT) ? "VT" : "Normal", s_R_channelReading, s_V_channelReading, s_T_channelReading,
+					g_triggerRecord.trec.seismicTriggerLevel, s_A_channelReading, g_triggerRecord.trec.airTriggerLevel);
 			//usart_write_char(&AVR32_USART1, '$');
 			g_testTimeSinceLastTrigger = g_lifetimeHalfSecondTickCount;
 			
@@ -2322,13 +2393,13 @@ static inline void HandleChannelSyncError_ISR_Inline(void)
 	// Disable A/D due to error
 	DisableSensorBlocks();
 	PowerControl(ADC_RESET, ON);
-	PowerControl(ANALOG_5V_ENABLE, OFF);
 
 	// Delay to allow power down
 	SoftUsecWait(10 * SOFT_MSECS);
 
-	// Re-Enable the Analog 5V and External ADC
-	PowerUpAnalog5VandExternalADC();
+	// Re-Enable the Ext ADC
+	WaitAnalogPower5vGood();
+	AD4695_Init();
 
 	// Setup the A/D Channel configuration
 	SetupADChannelConfig(s_sampleRate, UNIT_CONFIG_CHANNEL_VERIFICATION);
