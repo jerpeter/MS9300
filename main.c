@@ -170,6 +170,36 @@ uint32_t USBCPortControllerReadAndClearInt(void);
 	{
 		clearSystemEventFlag(CYCLIC_EVENT);
 
+#if 0 /* Test Expansion RS232 loopback */
+		static uint32_t testCyclicCycles = 0;
+		testCyclicCycles++;
+		uint8_t messageLength = 0;
+		if (testCyclicCycles == 5)
+		{
+#if 1 /* Test */
+			messageLength = sprintf((char*)g_spareBuffer, "unl0000\r\n"); ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+#else
+			uint8_t messageLength = sprintf((char*)g_spareBuffer, "u"); ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION); SoftUsecWait(18);
+			messageLength = sprintf((char*)g_spareBuffer, "n"); ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION); SoftUsecWait(18);
+			messageLength = sprintf((char*)g_spareBuffer, "l"); ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION); SoftUsecWait(18);
+			messageLength = sprintf((char*)g_spareBuffer, "0"); ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION); SoftUsecWait(18);
+			messageLength = sprintf((char*)g_spareBuffer, "0"); ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION); SoftUsecWait(18);
+			messageLength = sprintf((char*)g_spareBuffer, "0"); ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION); SoftUsecWait(18);
+			messageLength = sprintf((char*)g_spareBuffer, "0"); ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION); SoftUsecWait(18);
+			messageLength = sprintf((char*)g_spareBuffer, "\r"); ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION); SoftUsecWait(18);
+			messageLength = sprintf((char*)g_spareBuffer, "\n"); ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION); SoftUsecWait(18);
+#endif
+		}
+		//else if (testCyclicCycles == 10) { messageLength = sprintf((char*)g_spareBuffer, "dqm\r\n"); ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION); }
+		else if (testCyclicCycles == 8) { ModemPutc('\r', NO_CONVERSION); }
+		else if (testCyclicCycles == 9) { ModemPutc('\n', NO_CONVERSION); }
+		else if (testCyclicCycles == 10) { ModemPutc('d', NO_CONVERSION); }
+		else if (testCyclicCycles == 11) { ModemPutc('q', NO_CONVERSION); }
+		else if (testCyclicCycles == 12) { ModemPutc('m', NO_CONVERSION); }
+		else if (testCyclicCycles == 13) { ModemPutc('\r', NO_CONVERSION); }
+		else if (testCyclicCycles == 14) { ModemPutc('\n', NO_CONVERSION); }
+#endif
+
 #if 1 /* Test (ISR/Exec Cycles) */
 		extern uint32 sampleProcessTiming;
 
@@ -563,6 +593,82 @@ static uint8_t s_eventCount = 0;
 		}
 
 		g_powerButtonAction = 0;
+	}
+#endif
+#if 1 /* Add ability to handle Expansion RS232 IRQs */
+extern uint8_t g_expansionIrqActive;
+extern uint8_t ExpansionBridgeReadInterruptStatus(void);
+extern uint8_t ExpansionBridgeInterruptStatusAndClear(void);
+extern uint8_t ExpansionBridgeReadLSRStatus(void);
+	if (g_expansionIrqActive)
+	{
+		g_expansionIrqActive = 0;
+
+		uint8_t status = ExpansionBridgeReadInterruptStatus();
+		uint8_t intStatus = ExpansionBridgeInterruptStatusAndClear();
+		uint8_t lsrStatus = ExpansionBridgeReadLSRStatus();
+
+#if 0 /* Temp remove */
+		if (status & 0x01) { debugErr("Expansion RS232: No interrupt is pending\r\n"); }
+		else
+		{
+			switch (status & 0x3F)
+			{
+				case (0x06): debugErr("Exp RS232: Rx Line status error\r\n"); break;
+				case (0x0C): debug("Exp RS232: Receiver timeout\r\n"); break;
+				case (0x04): break; //debug("Exp RS232: RHR int\r\n"); break;
+				case (0x02): break; //debug("Exp RS232: THR int\r\n"); break;
+				case (0x00): debug("Exp RS232: Modem int\r\n"); break;
+				case (0x10): debug("Exp RS232: Rx Xoff signal/special character\r\n"); break;
+				case (0x20): debug("Exp RS232: CTS/RTS change from active to inactive\r\n"); break;
+				case (0x30): debug("Exp RS232: Input pin change of state\r\n"); break;
+				default: debugErr("Exp RS232: Unknown (0x%x)\r\n", (status % 0x3F)); break;
+			}
+		}
+#else
+			//debugRaw("\r\nExp RS232: Status (0x%x), Int Status (0x%x)", status, intStatus);
+#endif
+
+extern uint8_t ExpansionBridgeRxCountFifo(void);
+		//debugRaw("\r\n<E-f%d>", ExpansionBridgeRxCountFifo());
+		//debugRaw("\n\n<E-f%d>", ExpansionBridgeRxCountFifo());
+
+		//if (status & 0x0C) { debugWarn("Exp RS232: S(0x%x) I(0x%x) L(0x%x) F(0x%x)", status, intStatus, lsrStatus, ExpansionBridgeRxCountFifo()); }
+
+		// Check if RHR Int flagged for incoming data
+		//if ((status & 0x3F) == 0x04)
+		if ((status & 0x0C) || ((intStatus & 0x04) || (intStatus & 0x04)) || (lsrStatus & 0x01)) // Check if Rx timeout, or interrupt status is either Rx timeout or RHR, or LSR shows data received and saved in Rx FIFO
+		{
+			while (ExpansionBridgeRxCountFifo())
+			{
+			//debugRaw("<E-rc>");
+
+extern uint8_t Expansion_UART_ReadCharacter(void);
+			uint8_t recieveData = Expansion_UART_ReadCharacter();
+
+			// Raise the Craft Data flag
+			g_modemStatus.craftPortRcvFlag = YES;
+
+			// Write the received data into the buffer
+			*g_isrMessageBufferPtr->writePtr = recieveData;
+
+			// Advance the buffer pointer
+			g_isrMessageBufferPtr->writePtr++;
+
+			// Check if buffer pointer goes beyond the end
+			if (g_isrMessageBufferPtr->writePtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE))
+			{
+				// Reset the buffer pointer to the beginning of the buffer
+				g_isrMessageBufferPtr->writePtr = g_isrMessageBufferPtr->msg;
+			}
+			}
+		}
+
+		// Check if THR Int flagged
+		if ((status & 0x3F) == 0x02)
+		{
+			//debugRaw("<E-tc>");
+		}
 	}
 #endif
 }
