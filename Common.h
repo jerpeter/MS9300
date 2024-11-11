@@ -69,14 +69,14 @@ enum {
 #define GET_BUILD_ID					(g_shadowFactorySetupRecord.buildID) // Factory setup location of Build ID
 
 enum {
-	HARDWARE_ID_REV_PROTOTYPE_1 = 0x01,
-	HARDWARE_ID_REV_BETA_RESPIN = 0x02,
+	HARDWARE_ID_REV_PROTOTYPE_1 = 1,
+	HARDWARE_ID_REV_BETA_RESPIN = 2,
 	HARDWARE_ID_REV_8_NORMAL = 0x08, // Old hardware
 	HARDWARE_ID_REV_8_WITH_USART = 0x18, // Old hardware
 	HARDWARE_ID_REV_8_WITH_GPS_MOD = 0x28 // Old hardware
 };
 
-#define HARDWARE_BOARD_REVISION		HARDWARE_ID_REV_BETA_RESPIN
+#define HARDWARE_BOARD_REVISION		1
 
 enum {
 	ACTIVE_MODE = 0,
