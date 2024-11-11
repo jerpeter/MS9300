@@ -290,19 +290,11 @@ void StartMonitoring(uint8 operationMode, TRIGGER_EVENT_DATA_STRUCT* opModeParam
 ///----------------------------------------------------------------------------
 void StartDataCollection(uint32 sampleRate)
 {
-	// Check if the Analog 5V is powered down
-	if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
-	{
-		PowerUpAnalog5VandExternalADC();
-	}
-	else // Analog 5V already enabled
-	{
-		// Check if External ADC is still in reset and if so take out of reset
-		if (GetPowerControlState(ADC_RESET) == ON) { WaitAnalogPower5vGood(); }
+	// Check if External ADC is in reset
+	if (GetPowerControlState(ADC_RESET) == ON) { WaitAnalogPower5vGood(); }
 
-		// Configure External ADC
-		AD4695_Init();
-	}
+	// Configure External ADC
+	AD4695_Init();
 
 #if 1 /* Moved from StartMonitoring since the Analog 5V wasn't enabled at that point to setup the Analog controls */
 	// Setup Analog controls
@@ -338,7 +330,11 @@ void StartDataCollection(uint32 sampleRate)
 
 	// Setup the A/D Channel configuration
 	SetupADChannelConfig(sampleRate, UNIT_CONFIG_CHANNEL_VERIFICATION);
-	
+
+#if 1 /* Test adding delay for Analog stabilization before zeroing */
+	SoftUsecWait(3 * SOFT_SECS);
+#endif
+
 	// Get current A/D offsets for normalization
 	debug("Getting channel offsets...\r\n");
 	GetChannelOffsets(sampleRate);
@@ -477,7 +473,6 @@ void StopDataCollection(void)
 	AD4695_ExitConversionMode();
 	DisableSensorBlocks();
 	PowerControl(ADC_RESET, ON);
-	PowerControl(ANALOG_5V_ENABLE, OFF);
 
 	ClearSoftTimer(MENU_UPDATE_TIMER_NUM);
 }
@@ -498,7 +493,6 @@ void StopDataClock(void)
 	AD4695_ExitConversionMode();
 	DisableSensorBlocks();
 	PowerControl(ADC_RESET, ON);
-	PowerControl(ANALOG_5V_ENABLE, OFF);
 }
 
 ///----------------------------------------------------------------------------
@@ -870,19 +864,11 @@ void StopMonitoringForLowPowerState(void)
 ///----------------------------------------------------------------------------
 void StartADDataCollectionForCalibration(uint16 sampleRate)
 {
-	// Enable the Analog section
-	if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
-	{
-		PowerUpAnalog5VandExternalADC();
-	}
-	else // Analog 5V already enabled
-	{
-		// Check if External ADC is still in reset and if so take out of reset
-		if (GetPowerControlState(ADC_RESET) == ON) { WaitAnalogPower5vGood(); }
+	// Check if External ADC is in reset
+	if (GetPowerControlState(ADC_RESET) == ON) { WaitAnalogPower5vGood(); }
 
-		// Configure External ADC
-		AD4695_Init();
-	}
+	// Configure External ADC
+	AD4695_Init();
 
 	// Setup Analog controls
 	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K);
@@ -925,5 +911,4 @@ void StopADDataCollectionForCalibration(void)
 	AD4695_ExitConversionMode();
 	DisableSensorBlocks();
 	PowerControl(ADC_RESET, ON);
-	PowerControl(ANALOG_5V_ENABLE, OFF);
 }
