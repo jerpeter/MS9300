@@ -195,7 +195,15 @@ void UartPutc(uint8 c, int32 channel)
 				debugErr("USB CDC/ACM serial transfer failed trying to send <%c>\r\n", c);
 			}
 		}
+#if 0 /* Normal */
 		else { debugErr("USB CDC/ACM serial unavailable\r\n"); }
+#else /* Test Expansion RS232 */
+		else
+		{
+extern void Expansion_UART_WriteCharacter(uint8_t data);
+			Expansion_UART_WriteCharacter(c);
+		}
+#endif
 	}
 	else // channel is UART serial
 	{
@@ -824,10 +832,138 @@ void TestExpansionI2CBridge(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void Expansion_UART_WriteCharacter(uint8_t data)
+{
+	// Expectation that LCR[7]=0 to write the THR
+	WriteUartBridgeControlRegister(PI7C9X760_REG_THR, data);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t Expansion_UART_ReadCharacter(void)
+{
+	// Expectation that LCR[7]=0 to read the RHR
+	return (ReadUartBridgeControlRegister(PI7C9X760_REG_RHR));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t ExpansionBridgeReadLSRStatus(void)
+{
+	return (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t ExpansionBridgeReadInterruptStatus(void)
+{
+	// Expectation that LCR[7]=0 to read the IIR
+	return (ReadUartBridgeControlRegister(PI7C9X760_REG_IIR));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t ExpansionBridgeInterruptStatusAndClear(void)
+{
+	// Expectation that LCR=0xBF and SFR[2]=1 to read ISCR (SFREN and SFR left enabled and bit set from setup)
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0xBF);
+	uint8_t intStatus = ReadUartBridgeControlRegister(PI7C9X760_REG_ISCR);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_ISCR, 0x01);
+
+	// Reset LCR for normal function
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x13);
+
+	return (intStatus);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void ExpansionBridgeStatus(void)
+{
+	uint8_t status = ExpansionBridgeReadInterruptStatus();
+	uint8_t intStatus = ExpansionBridgeInterruptStatusAndClear();
+	uint8_t lcrStatus = ReadUartBridgeControlRegister(PI7C9X760_REG_LSR);
+	debug("Expansion RS232: Status (0x%02x), Int (0x%02x), LSR (0x%02x)\r\n", status, intStatus, lcrStatus);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t ExpansionBridgeRxCountFifo(void)
+{
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0xBF);
+	uint8_t rxCount = ReadUartBridgeControlRegister(PI7C9X760_REG_RFD);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x13); // Parity is not forced, even parity, parity disabled, 1 stop bit, 8 bits
+	return (rxCount);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void ExpansionBridgeSetupRS232(void)
+{
+	// Set Baud 115200 (Divisor = 8, Sample rate = 26, % error in clock = 0.16)
+	// Set LCR[7]=1 to access the divisor latches/registers
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x93); // Divisor latch enabled, parity is not forced, even parity, parity disabled, 1 stop bit, 8 bits
+
+	// MSB bits of divisor for baud rate generator, default = 0x00 which is desired
+	// LSB bits of divisor for baud rate generator, needs change from default
+	WriteUartBridgeControlRegister(PI7C9X760_REG_DLL, 0x08);
+
+	// SCR - Sample Clock value used in the Baud Rate Generator, default = 0 which is desired
+
+	// CPRN - N number in calculating the prescaler,which is used to generate Baud Rate, needs change from default
+	// Clock Prescale Register (CPR). Accessible when LCR=0xBF and SFR[2]=1
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0xBF);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SFREN, 0x5A);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x04);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_CPR, 0x1A); // Set CPR N to 10
+
+#if 0 /* Leave SFR and SFREN enabled */
+	// Unwind special access
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x00);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SFREN, 0x00);
+#endif
+	// LCR set just below
+
+	// Set 8N1
+	// Make sure LCR[7]=0
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x13); // Parity is not forced, even parity, parity disabled, 1 stop bit, 8 bits
+
+	// Enable Rx/Tx FIFO
+	WriteUartBridgeControlRegister(PI7C9X760_REG_FCR, 0x01);
+
+#if 1 /* Test */
+	ExpansionBridgeStatus();
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+	ExpansionBridgeStatus();
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+	ExpansionBridgeStatus();
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+#endif
+
+	// Set interrupt flags in IER
+	// Expectation that LCR[7]=0 to write the THR
+	debug("Expansion RS232: Set Int flags\r\n");
+	//WriteUartBridgeControlRegister(PI7C9X760_REG_IER, 0x07); // Set RX line status (errors), TX ready, RX ready
+	WriteUartBridgeControlRegister(PI7C9X760_REG_IER, 0x05); // Set RX line status (errors), RX ready
+
+	ExpansionBridgeStatus();
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+	ExpansionBridgeStatus();
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void ExpansionBridgeInit(void)
 {
-	uint8_t reg;
-
 	PowerControl(EXPANSION_ENABLE, ON);
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
 
@@ -843,6 +979,9 @@ void ExpansionBridgeInit(void)
 	}
 #endif
 
+#if 0 /* Test */
+	uint8_t reg;
+
 	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_LCR);
 	debug("Expansion: Register %d is 0x%x\r\n", PI7C9X760_REG_LCR, reg);
 	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x7F);
@@ -857,6 +996,7 @@ void ExpansionBridgeInit(void)
 
 	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_LSR);
 	debug("Expansion: Register %d is 0x%x\r\n", PI7C9X760_REG_LSR, reg);
+#endif
 
 	debug("Expansion I2C Uart Bridge: Powered on, Scratchpad test...\r\n");
 	TestUartBridgeScratchpad();
@@ -865,6 +1005,7 @@ void ExpansionBridgeInit(void)
 	WriteUartBridgeControlRegister(PI7C9X760_REG_IER, 0xEF);
 #endif
 
+#if 0 /* Normal shutdown */
 	// Make sure Expansion bridge is turned off
 	if (GetPowerControlState(EXPANSION_ENABLE) == ON)
 	{
@@ -875,5 +1016,54 @@ void ExpansionBridgeInit(void)
 
 #if 1 /* Test delay after power down for Expansion interrupt which is firing */
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
+#endif
+#else /* Test Expansion RS232 */
+	ExpansionBridgeSetupRS232();
+	debug("Expansion RS232: Setup complete\r\n");
+
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+
+#if 0 /* Test with local loopback */
+	WriteUartBridgeControlRegister(PI7C9X760_REG_MCR, 0x10); // Local Tx -> Rx loopback
+	debug("Expansion RS232: TX -> RX loopback enabled\r\n");
+#endif
+
+	ExpansionBridgeStatus();
+
+#if 0 /* Test */
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+	ExpansionBridgeStatus();
+	uint8_t testChar = 0xAA;
+	ExpansionBridgeStatus();
+	debug("Expansion RS232: Tx (0x%x)\r\n", testChar);
+	Expansion_UART_WriteCharacter(testChar);
+	ExpansionBridgeStatus();
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+
+	testChar = 0x55;
+	ExpansionBridgeStatus();
+	debug("Expansion RS232: Tx (0x%x)\r\n", testChar);
+	Expansion_UART_WriteCharacter(testChar);
+	ExpansionBridgeStatus();
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+
+	testChar = 0x12;
+	ExpansionBridgeStatus();
+	debug("Expansion RS232: Tx (0x%x)\r\n", testChar);
+	Expansion_UART_WriteCharacter(testChar);
+	ExpansionBridgeStatus();
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+#endif
+extern uint8_t g_expansionIrqActive;
+	g_expansionIrqActive = 0;
 #endif
 }
