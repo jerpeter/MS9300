@@ -473,22 +473,13 @@ void GetChannelOffsets(uint32 sampleRate)
 	uint8 powerAnalogDown = NO;
 
 	// Check to see if the A/D is in sleep mode
-	if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
+	if (GetPowerControlState(ADC_RESET) == ON)
 	{
-		// Power the A/D on to set the offsets
-		PowerUpAnalog5VandExternalADC();
+		WaitAnalogPower5vGood();
+		AD4695_Init();
 
 		// Set flag to signal powering off the A/D when finished
 		powerAnalogDown = YES;
-	}
-	else // Analog 5V section is already powered
-	{
-		// Check if External ADC is still in reset
-		if (GetPowerControlState(ADC_RESET) == ON)
-		{
-			WaitAnalogPower5vGood();
-			AD4695_Init();
-		}
 	}
 
 	// Reset offset values
@@ -598,7 +589,6 @@ void GetChannelOffsets(uint32 sampleRate)
 	{
 		DisableSensorBlocks();
 		PowerControl(ADC_RESET, ON);
-		PowerControl(ANALOG_5V_ENABLE, OFF);
 	}		
 }
 
@@ -851,17 +841,7 @@ void WaitAnalogPower5vGood(void)
 	SoftUsecWait(11 * SOFT_MSECS);
 
 	// Any extra delay needed for the analog to power up/stabilize?
-	//SoftUsecWait(50 * SOFT_MSECS);
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void PowerUpAnalog5VandExternalADC(void)
-{
-	PowerControl(ANALOG_5V_ENABLE, ON);
-	WaitAnalogPower5vGood();
-	AD4695_Init();
+	SoftUsecWait(50 * SOFT_MSECS);
 }
 
 ///============================================================================
@@ -1243,21 +1223,11 @@ void TestExternalADC(void)
 
     debug("External ADC: Test device access...\r\n");
 
-    if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
+	// Check if External ADC is still in reset
+	if (GetPowerControlState(ADC_RESET) == ON)
 	{
-		debug("Power Control: Analog 5V enable being turned on\r\n");
-		PowerUpAnalog5VandExternalADC();
-	}
-	else
-	{
-		debug("Power Control: Analog 5V enable already on\r\n");
-
-		// Check if External ADC is still in reset
-		if (GetPowerControlState(ADC_RESET) == ON)
-		{
-			debug("Power Control: Bringing External ADC out of reset\r\n");
-			WaitAnalogPower5vGood();
-		}
+		debug("Power Control: Bringing External ADC out of reset\r\n");
+		WaitAnalogPower5vGood();
 	}
 
 	debug("External ADC: Initializing...\r\n");
