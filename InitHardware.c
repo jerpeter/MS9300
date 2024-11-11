@@ -836,7 +836,7 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
-#if 0 /* Original */
+#if 1 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as disabled
 #else /* Test starting as enabled so not back powering the analog section */
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as enabled to prevent back powering
@@ -1527,7 +1527,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
-#if 0 /* Original */
+#if 1 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as disabled (960Hz select)
 #else /* Start as enabled to prevent back powering the 5V analog section */
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as enabled to prevent back powering
@@ -1597,7 +1597,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
 	MXC_GPIO_Config(&setupGPIO);
-#if 0 /* Original */
+#if 1 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as high (Normal gain)
 #else /* Start as low to prevent possibly back powering the 5V analog section */
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low (High gain) to prevent back powering
@@ -1612,7 +1612,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
 	MXC_GPIO_Config(&setupGPIO);
-#if 0 /* Original */
+#if 1 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as high (AOP path)
 #else /* Start as low to prevent possibly back powering the 5V analog section */
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low (A-weighting path) to prevent back powering
@@ -1627,7 +1627,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
 	MXC_GPIO_Config(&setupGPIO);
-#if 0 /* Original */
+#if 1 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as high (Normal gain)
 #else /* Start as low to prevent possibly back powering the 5V analog section */
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low (High gain) to prevent back powering
@@ -1642,7 +1642,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
 	MXC_GPIO_Config(&setupGPIO);
-#if 0 /* Original */
+#if 1 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as high (AOP path)
 #else /* Start as low to prevent possibly back powering the 5V analog section */
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low (A-weighting path) to prevent back powering
@@ -5303,8 +5303,8 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Setup SPI3 (ADC) and SPI2 (LCD)
 	//-------------------------------------------------------------------------
+	SetupSPI3_ExternalADC(30 * 1000000);
 #if 0 /* Only initializing when the power domain is activated */
-	SetupSPI3_ExternalADC();
 	SetupSPI2_LCD();
 #endif
 
@@ -5442,7 +5442,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Init and configure the A/D to prevent the unit from burning current charging internal reference (default config)
 	//-------------------------------------------------------------------------
-	//InitExternalADC(); debug("External ADC: Init complete\r\n");
+	InitExternalADC(); debug("External ADC: Init complete\r\n");
 #if 1 /* Test */
 	TestExtADC();
 #endif
