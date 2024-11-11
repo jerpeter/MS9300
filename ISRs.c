@@ -231,7 +231,9 @@ __attribute__((__interrupt__))
 void External_battery_presence_irq(void)
 {
 	//debugRaw("=");
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	debugWarn("-(ISR) Battery pack status alert (Slot 1:%s, Slot 2:%s)-\r\n", ((GPIO_EXT_BATTERY_PRESENCE_1_PORT->in & GPIO_EXT_BATTERY_PRESENCE_1_PIN) ? "Added" : "Removed"), ((GPIO_EXT_BATTERY_PRESENCE_2_PORT->in & GPIO_EXT_BATTERY_PRESENCE_2_PIN) ? "Added" : "Removed"));
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -276,7 +278,9 @@ void Sensor_detect_1_irq(void)
 	debugWarn("-(ISR) Sensor Detect 1-\r\n");
 
 	// Clear Sensor Detect 1 flag (Port 0, Pin 7)
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	GPIO_SENSOR_DETECT_1_PORT->int_clr = GPIO_SENSOR_DETECT_1_PIN;
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -289,7 +293,9 @@ void Sensor_detect_2_irq(void)
 	debugWarn("-(ISR) Sensor Detect 2-\r\n");
 
 	// Clear Sensor Detect 2 flag (Port 1, Pin 2)
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	GPIO_SENSOR_DETECT_2_PORT->int_clr = GPIO_SENSOR_DETECT_2_PIN;
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -302,7 +308,9 @@ void Sensor_detect_3_irq(void)
 	debugWarn("-(ISR) Sensor Detect 3-\r\n");
 
 	// Clear Sensor Detect 3 flag (Port 1, Pin 13)
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	GPIO_SENSOR_DETECT_3_PORT->int_clr = GPIO_SENSOR_DETECT_3_PIN;
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -315,17 +323,51 @@ void Sensor_detect_4_irq(void)
 	debugWarn("-(ISR) Sensor Detect 4-\r\n");
 
 	// Clear Sensor Detect 4 flag (Port 1, Pin 27)
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	GPIO_SENSOR_DETECT_4_PORT->int_clr = GPIO_SENSOR_DETECT_4_PIN;
+#endif
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint8_t g_expansionIrqActive = 0;
 __attribute__((__interrupt__))
 void Expansion_irq(void)
 {
 	//debugRaw("_");
-	debugWarn("-(ISR) Expansion-\r\n");
+	//debugWarn("-(ISR) Expansion-\r\n");
+
+#if 1 /* Flag */
+	g_expansionIrqActive = 1;
+#else
+extern uint8_t ExpansionBridgeReadLSRStatus(void);
+	uint8_t lcrStatus = ExpansionBridgeReadLSRStatus();
+
+	if (lcrStatus & 0x01)
+	{
+		//debugRaw("<E-rc>");
+
+extern uint8_t Expansion_UART_ReadCharacter(void);
+		uint8_t recieveData = Expansion_UART_ReadCharacter();
+
+		// Raise the Craft Data flag
+		g_modemStatus.craftPortRcvFlag = YES;
+
+		// Write the received data into the buffer
+		*g_isrMessageBufferPtr->writePtr = recieveData;
+
+		// Advance the buffer pointer
+		g_isrMessageBufferPtr->writePtr++;
+
+		// Check if buffer pointer goes beyond the end
+		if (g_isrMessageBufferPtr->writePtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE))
+		{
+			// Reset the buffer pointer to the beginning of the buffer
+			g_isrMessageBufferPtr->writePtr = g_isrMessageBufferPtr->msg;
+		}
+	}
+#endif
 
 	// Clear Expansion interrupt flag (Port 0, Pin 8)
 	GPIO_EXPANSION_IRQ_PORT->int_clr = GPIO_EXPANSION_IRQ_PIN;
