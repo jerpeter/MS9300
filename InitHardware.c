@@ -188,18 +188,11 @@ void InitInternalAD(void)
 ///----------------------------------------------------------------------------
 void InitExternalADC(void)
 {
-	if (GetPowerControlState(ANALOG_5V_ENABLE) == OFF)
-	{
-		PowerUpAnalog5VandExternalADC();
-	}
-	else // Analog 5V already enabled
-	{
-		// Check if External ADC is still in reset and if so take out of reset
-		if (GetPowerControlState(ADC_RESET) == ON) { WaitAnalogPower5vGood(); }
+	// Check if External ADC is in reset
+	if (GetPowerControlState(ADC_RESET) == ON) { WaitAnalogPower5vGood(); }
 
-		// Configure External ADC
-		AD4695_Init();
-	}
+	// Configure External ADC
+	AD4695_Init();
 
 	// Setup the A/D Channel configuration
 #if 1 /* Normal */
@@ -293,7 +286,6 @@ extern uint16_t dataTemperature;
 #endif
 
 	PowerControl(ADC_RESET, ON);
-	PowerControl(ANALOG_5V_ENABLE, OFF);
 
 #if 0 /* Test */
 	while (FuelGaugeGetCurrentAbs() > 500000)
@@ -396,7 +388,7 @@ extern uint32_t uart1BufferCount;
 	}
 #endif
 
-#if 1 /* Test */
+#if 0 /* Test, turns out default module firmware doesn't respond to requests per FAE */
 	//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(3));
 
 	int status = 0; int strLen;
@@ -558,9 +550,23 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start enabled
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	//----------------------------------------------------------------------------------------------------------------------
+	// External Battery Presence Slot 1: Port 0, Pin 2, Input, No external pullup, Active high, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_EXT_BATTERY_PRESENCE_1_PORT;
+	setupGPIO.mask = GPIO_EXT_BATTERY_PRESENCE_1_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)External_battery_presence_irq, NULL);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_RISING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#else /* HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// Expanded Battery Detect: Port 0, Pin 2, Input, External pullup, Active high, 1.8V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -569,11 +575,26 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_IN;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
-	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Expanded_battery_resence_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_RISING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)External_battery_presence_irq, NULL);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_RISING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#endif
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	//----------------------------------------------------------------------------------------------------------------------
+	// External Battery Presence Slot 2: Port 0, Pin 3, Input, No external pullup, Active high, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_EXT_BATTERY_PRESENCE_2_PORT;
+	setupGPIO.mask = GPIO_EXT_BATTERY_PRESENCE_2_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)External_battery_presence_irq, NULL);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_RISING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#else /* HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// LED 1: Port 0, Pin 3, Output, No external pull, Active high, 3.3V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -582,8 +603,9 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Gauge Alert: Port 0, Pin 4, Input, External pullup, Active low, 1.8V, Interrupt
@@ -595,8 +617,8 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Fuel_gauge_alert_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Battery Charger IRQ: Port 0, Pin 5, Input, External pullup, Active low, 3.3V, Interrupt
@@ -608,8 +630,8 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Battery_charger_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Enable 12V = Port 0, Pin 6, Output, External pulldown, Active high, 1.8V (minimum 1.5V)
@@ -619,9 +641,23 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start disabled (only needed for alarms)
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	//----------------------------------------------------------------------------------------------------------------------
+	// Sensor Detect 1: Port 0, Pin 7, Input, No external pullup, Active high, 1.8, Interrupt
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_SENSOR_DETECT_1_PORT;
+	setupGPIO.mask = GPIO_SENSOR_DETECT_1_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Sensor_detect_1_irq, NULL);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#else /* HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// Enable 5V: Port 0, Pin 7, Output, External pulldown, Active high, 1.8V (minimum 0.9V)
 	//----------------------------------------------------------------------------------------------------------------------
@@ -630,8 +666,9 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
-    MXC_GPIO_Config(&setupGPIO);
-	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start disabled
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start enabled since controls removed
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Expansion IRQ: Port 0, Pin 8, Input, External pullup, Active low, 3.3V (minimum 2V)
@@ -643,8 +680,8 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Expansion_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
-#if 0 /* Original */
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+#if 1 /* Original */
     MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 #else /* Wait until Expansion I2C Bridge is powered to enable */
 #endif
@@ -657,7 +694,7 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -668,7 +705,7 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -679,7 +716,7 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_IN;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Power Good Battery Charge: Port 0, Pin 12, Input, External pullup, 1.8V
@@ -689,11 +726,11 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_IN;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 #if 1 /* Test line with interrupt */
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Power_good_battery_charger_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 #endif
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -704,7 +741,7 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start in sleep
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -715,7 +752,7 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -726,7 +763,7 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start in reset
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -757,7 +794,7 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as no conversion
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -798,7 +835,7 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 #if 0 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as disabled
 #else /* Test starting as enabled so not back powering the analog section */
@@ -813,7 +850,7 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as 0 (Full sensor group Geo1 + AOP1)
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -824,7 +861,7 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -835,7 +872,7 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -846,7 +883,7 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_IN;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	// Todo: Fill in handling when more information known
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -855,15 +892,25 @@ void SetupAllGPIO(void)
 	setupGPIO.port = GPIO_EMMC_RESET_PORT;
 	setupGPIO.mask = GPIO_EMMC_RESET_PIN;
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
-#if 1 /* Normal */
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
-#else /* Test strong internal pullup to combat external pulldown */
-	setupGPIO.pad = MXC_GPIO_PAD_STRONG_PULL_UP;
-#endif
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start by removing from reset
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	//----------------------------------------------------------------------------------------------------------------------
+	// Sensor Detect 2: Port 1, Pin 2, Input, No external pullup, Active high, 1.8, Interrupt
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_SENSOR_DETECT_2_PORT;
+	setupGPIO.mask = GPIO_SENSOR_DETECT_2_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Sensor_detect_2_irq, NULL);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// eMMC Data Strobe: Port 1, Pin 2, Input, External pulldown, Active high, 1.8V (device runs 1.8V interface & 3.3V part)
 	//----------------------------------------------------------------------------------------------------------------------
@@ -872,8 +919,9 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_IN;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	// Note: Doesn't look like we can use this line which is only enabled for HS400 mode and HS400 mode seems to only work with 8-bit data bus width (we're 4-bit max)
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Expansion Enable: Port 1, Pin 7, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
@@ -883,7 +931,7 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -894,7 +942,7 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start in reset
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -907,8 +955,8 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Usbc_port_controller_i2c_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Accel Int 1: Port 1, Pin 12, Input, No external pull, Active high, 1.8V
@@ -919,10 +967,24 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
-	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Accelerometer_irq_1, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_RISING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Accelerometer_irq, NULL);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_RISING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	//----------------------------------------------------------------------------------------------------------------------
+	// Sensor Detect 3: Port 1, Pin 13, Input, No external pullup, Active high, 1.8, Interrupt
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_SENSOR_DETECT_3_PORT;
+	setupGPIO.mask = GPIO_SENSOR_DETECT_3_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Sensor_detect_3_irq, NULL);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// Accel Int 2: Port 1, Pin 13, Input, No external pull, Active high, 1.8V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -932,9 +994,10 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
-	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Accelerometer_irq_2, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_RISING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Accelerometer_irq, NULL);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_RISING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Accel Trig: Port 1, Pin 14, Output, No external pull, Active high, 1.8V
@@ -944,7 +1007,7 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -957,8 +1020,8 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)System_power_button_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_RISING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_RISING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Button 1: Port 1, Pin 16, Input, External pullup, Active low, 1.8V
@@ -970,8 +1033,8 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Button 2: Port 1, Pin 17, Input, External pullup, Active low, 1.8V
@@ -983,8 +1046,8 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Button 3: Port 1, Pin 18, Input, External pullup, Active low, 1.8V
@@ -996,8 +1059,8 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Button 4: Port 1, Pin 19, Input, External pullup, Active low, 1.8V
@@ -1009,8 +1072,8 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Button 5: Port 1, Pin 20, Input, External pullup, Active low, 1.8V
@@ -1022,8 +1085,8 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Button 6: Port 1, Pin 21, Input, External pullup, Active low, 1.8V
@@ -1035,8 +1098,8 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Button 7: Port 1, Pin 22, Input, External pullup, Active low, 1.8V
@@ -1048,8 +1111,8 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Button 8: Port 1, Pin 23, Input, External pullup, Active low, 1.8V
@@ -1061,8 +1124,8 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Button 9: Port 1, Pin 24, Input, External pullup, Active low, 1.8V
@@ -1074,9 +1137,21 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Keypad_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	//----------------------------------------------------------------------------------------------------------------------
+	// LED 1: Port 1, Pin 25, Output, No external pull, Active high, 3.3V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_LED_1_PORT;
+	setupGPIO.mask = GPIO_LED_1_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
+#else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// LED 2: Port 1, Pin 25, Output, No external pull, Active high, 3.3V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1085,9 +1160,22 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
+#endif
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	//----------------------------------------------------------------------------------------------------------------------
+	// LED 2: Port 1, Pin 26, Output, No external pull, Active high, 3.3V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_LED_2_PORT;
+	setupGPIO.mask = GPIO_LED_2_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
+#else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// LED 3: Port 1, Pin 26, Output, No external pull, Active high, 3.3V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1096,9 +1184,24 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
+#endif
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	//----------------------------------------------------------------------------------------------------------------------
+	// Sensor Detect 4: Port 1, Pin 27, Input, No external pullup, Active high, 1.8, Interrupt
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_SENSOR_DETECT_4_PORT;
+	setupGPIO.mask = GPIO_SENSOR_DETECT_4_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Sensor_detect_4_irq, NULL);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// LED 4: Port 1, Pin 27, Output, No external pull, Active high, 3.3V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1107,8 +1210,9 @@ void SetupAllGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// RTC Int A: Port 1, Pin 28, Input, External pullup, Active low, 1.8V (minimum 0.66V)
@@ -1121,16 +1225,28 @@ void SetupAllGPIO(void)
 	MXC_GPIO_Config(&setupGPIO);
 #if 0 /* ISR removal option for 1 board where RTC Int is triggering to start */
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)External_rtc_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 #endif
 #if 1 /* Test periodic 1 second interrupt */
 extern void External_rtc_periodic_timer(void);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)External_rtc_periodic_timer, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 #endif
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	//----------------------------------------------------------------------------------------------------------------------
+	// RTC Timestamp: Port 1, Pin 29, Output, No external pull, Active high, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_EXT_RTC_TIMESTAMP_PORT;
+	setupGPIO.mask = GPIO_EXT_RTC_TIMESTAMP_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
+#else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// BLE OTA: Port 1, Pin 29, Input, No external pull, Active unknown, 3.3V (device runs 3.3V)
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1139,8 +1255,9 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_IN;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	// Todo: Fill in handling when more information known
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Trig Out: Port 1, Pin 30, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
@@ -1150,7 +1267,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1163,8 +1280,8 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)External_trigger_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_RISING);
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_RISING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// LCD Power Enable: Port 2, Pin 0, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
@@ -1174,9 +1291,20 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	//----------------------------------------------------------------------------------------------------------------------
+	// SPI2 Slave Select 1 Accelerometer: Port 2, Pin 1, Output, External pullup, Active low, 1.8V (minimum 1.7V)
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_SPI2_SS1_ACC_PORT;
+	setupGPIO.mask = GPIO_SPI2_SS1_ACC_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_ALT1;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+#else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// LCD Power Down: Port 2, Pin 1, Output, External pulldown, Active low, 1.8V (minimum 1.7V)
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1185,44 +1313,35 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// LCD SPI2 Serial Clock: Port 2, Pin 2, Input when not powered, SPI Control when powered, No external pull, 1.8V (minimum 1.7V)
+	// SPI2 Serial Clock: Port 2, Pin 2, Input when not powered, SPI Control when powered, No external pull, 1.8V (minimum 1.7V)
 	//----------------------------------------------------------------------------------------------------------------------
-	setupGPIO.port = GPIO_LCD_SPI2_SCK_PORT;
-	setupGPIO.mask = GPIO_LCD_SPI2_SCK_PIN;
+	setupGPIO.port = GPIO_SPI2_SCK_PORT;
+	setupGPIO.mask = GPIO_SPI2_SCK_PIN;
 	setupGPIO.func = MXC_GPIO_FUNC_IN;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// LCD SPI2 Master In Slave Out: Port 2, Pin 3, Input when not powered, SPI Control when powered, No external pull, 1.8V (minimum 1.7V)
+	// SPI2 Master In Slave Out: Port 2, Pin 3, Input when not powered, SPI Control when powered, No external pull, 1.8V (minimum 1.7V)
 	//----------------------------------------------------------------------------------------------------------------------
-	setupGPIO.port = GPIO_LCD_SPI2_MISO_PORT;
-	setupGPIO.mask = GPIO_LCD_SPI2_MISO_PIN;
+	setupGPIO.port = GPIO_SPI2_MISO_PORT;
+	setupGPIO.mask = GPIO_SPI2_MISO_PIN;
 	setupGPIO.func = MXC_GPIO_FUNC_IN;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 
 	//----------------------------------------------------------------------------------------------------------------------
-	// LCD SPI2 Master Out Slave In: Port 2, Pin 4, Input when not powered, SPI Control when powered, No external pull, 1.8V (minimum 1.7V)
+	// SPI2 Master Out Slave In: Port 2, Pin 4, Input when not powered, SPI Control when powered, No external pull, 1.8V (minimum 1.7V)
 	//----------------------------------------------------------------------------------------------------------------------
-	setupGPIO.port = GPIO_LCD_SPI2_MOSI_PORT;
-	setupGPIO.mask = GPIO_LCD_SPI2_MOSI_PIN;
-	setupGPIO.func = MXC_GPIO_FUNC_IN;
-	setupGPIO.pad = MXC_GPIO_PAD_NONE;
-	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-	MXC_GPIO_Config(&setupGPIO);
-
-	//----------------------------------------------------------------------------------------------------------------------
-	// LCD SPI2 Slave Select 0: Port 2, Pin 5, Input when not powered, SPI Control when powered, No external pull, 1.8V (minimum 1.7V)
-	//----------------------------------------------------------------------------------------------------------------------
-	setupGPIO.port = GPIO_LCD_SPI2_SS0_PORT;
-	setupGPIO.mask = GPIO_LCD_SPI2_SS0_PIN;
+	setupGPIO.port = GPIO_SPI2_MOSI_PORT;
+	setupGPIO.mask = GPIO_SPI2_MOSI_PIN;
 	setupGPIO.func = MXC_GPIO_FUNC_IN;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
@@ -1234,8 +1353,8 @@ extern void External_rtc_periodic_timer(void);
 	//----------------------------------------------------------------------------------------------------------------------
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL)
 	{
-		setupGPIO.port = GPIO_LCD_SPI2_SS0_PORT;
-		setupGPIO.mask = GPIO_LCD_SPI2_SS0_PIN;
+		setupGPIO.port = GPIO_SPI2_SS0_LCD_PORT;
+		setupGPIO.mask = GPIO_SPI2_SS0_LCD_PIN;
 		setupGPIO.func = MXC_GPIO_FUNC_OUT;
 		setupGPIO.pad = MXC_GPIO_PAD_NONE;
 		setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
@@ -1258,9 +1377,9 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Lcd_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
 #if 0 /* Original */
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 #else /* Wait until LCD Controller is powered to enable */
 #endif
 
@@ -1272,7 +1391,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1283,8 +1402,21 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE; // Consider weak pulldown?
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	//----------------------------------------------------------------------------------------------------------------------
+	// LCD Power Down: Port 2, Pin 12, Output, External pulldown, Active low, 1.8V (minimum 1.7V)
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_LCD_POWER_DOWN_PORT;
+	setupGPIO.mask = GPIO_LCD_POWER_DOWN_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// LTE Reset: Port 2, Pin 13, Output, External pull up, Active low, 3.3V
@@ -1294,13 +1426,38 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 #if 0 /* Orignal */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as disabled
 #else /* Test starting as enabled so not back powering the Cell section */
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 #endif
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	//----------------------------------------------------------------------------------------------------------------------
+	// Unused GPIO 1: Port 2, 14, Output, No external pull up, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_UNUSED_1_PORT;
+	setupGPIO.mask = GPIO_UNUSED_1_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#endif
+
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	//----------------------------------------------------------------------------------------------------------------------
+	// Unused GPIO 2: Port 2, 15, Output, No external pull up, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_UNUSED_2_PORT;
+	setupGPIO.mask = GPIO_UNUSED_2_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// BLE Reset: Port 2, 15, Output, External pull up, Active low, 3.3V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1309,11 +1466,12 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 #if 0 /* Orignal */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as disabled
 #else /* Test starting as enabled so not back powering the Cell section */
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#endif
 #endif
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1324,7 +1482,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low (Smart Sensor Geo1 select)
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1335,7 +1493,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low (Smart Sensor Geo1 select)
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1346,7 +1504,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1357,7 +1515,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1368,7 +1526,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 #if 0 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as disabled (960Hz select)
 #else /* Start as enabled to prevent back powering the 5V analog section */
@@ -1383,7 +1541,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1394,7 +1552,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1405,7 +1563,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1416,7 +1574,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1427,7 +1585,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1438,7 +1596,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 #if 0 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as high (Normal gain)
 #else /* Start as low to prevent possibly back powering the 5V analog section */
@@ -1453,7 +1611,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 #if 0 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as high (AOP path)
 #else /* Start as low to prevent possibly back powering the 5V analog section */
@@ -1468,7 +1626,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 #if 0 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as high (Normal gain)
 #else /* Start as low to prevent possibly back powering the 5V analog section */
@@ -1483,7 +1641,7 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 #if 0 /* Original */
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as high (AOP path)
 #else /* Start as low to prevent possibly back powering the 5V analog section */
@@ -1500,9 +1658,9 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Sample_irq, NULL);
-    MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_RISING);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_RISING);
 #if 0 /* Original */
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 #else /* Only enabling when the Analog 5V section is powered and the RTC clock is enabled to prevent an early trigger */
 #endif
 
@@ -2010,7 +2168,8 @@ void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeasser
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SetupSPI3_ExternalADC(void)
+//void SetupSPI3_ExternalADC(void)
+void SetupSPI3_ExternalADC(uint32_t clockSpeed)
 {
 	int status;
 
@@ -2023,7 +2182,8 @@ void SetupSPI3_ExternalADC(void)
 #else /* Manual setup */
 	MXC_SYS_Reset_Periph(MXC_SYS_RESET_SPI3);
 	MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_SPI3);
-	status = MXC_SPI_RevA1_Init((mxc_spi_reva_regs_t *)MXC_SPI3, YES, NO, 1, LOW, SPI_SPEED_ADC);
+	//status = MXC_SPI_RevA1_Init((mxc_spi_reva_regs_t *)MXC_SPI3, YES, NO, 1, LOW, SPI_SPEED_ADC);
+	status = MXC_SPI_RevA1_Init((mxc_spi_reva_regs_t *)MXC_SPI3, YES, NO, 1, LOW, clockSpeed);
 #endif
 	if (status != E_SUCCESS) { debugErr("SPI3 (ADC) Init failed with code: %d\r\n", status); }
 
@@ -2048,7 +2208,7 @@ void SetupSPI2_LCD(void)
 	int status;
 
 	// Setup the SPI2 Slave Select since the driver init call does not initialize the GPIO
-	mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { GPIO_LCD_SPI2_SS0_PORT, GPIO_LCD_SPI2_SS0_PIN, MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
+	mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { GPIO_SPI2_SS0_LCD_PORT, GPIO_SPI2_SS0_LCD_PIN, MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_SPI2->ctrl0 &= ~MXC_F_SPI_CTRL0_SS_SEL; } // Clear Master SS select control
 	else { spi2SlaveSelect0GpioConfig.func = MXC_GPIO_FUNC_ALT1; } // SPI2 Slave Select controlled by the SPI driver
 	MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig);
@@ -3972,29 +4132,9 @@ void TestI2CDeviceAddresses(void)
 		if (i == -1)//0)
 		{
 			debug("-- Power up 5V --\r\n");
-			// Bring up Analog 5V
-			PowerControl(ANALOG_5V_ENABLE, ON);
+			// Bring up Ext ADC
 			WaitAnalogPower5vGood();
 		}
-
-		if (i == -1) //1)
-		{
-			debug("-- Power down 5V --\r\n");
-			PowerControl(ANALOG_5V_ENABLE, OFF);
-			MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
-		}
-
-#if 0
-		else
-		{
-			debug("Power down 5V & Exp\r\n");
-			// Turn off Analog 5V
-			PowerControl(ANALOG_5V_ENABLE, OFF);
-			// Turn off Expansion
-			PowerControl(EXPANSION_RESET, ON);
-			PowerControl(EXPANSION_ENABLE, OFF);
-		}
-#endif
 
 		numDevices = 0;
 		for (regAddr = 0; regAddr < 0x80; regAddr++)
@@ -4050,7 +4190,6 @@ void TestI2CDeviceAddresses(void)
 	} // for i
 	debug("-- Power down 5V --\r\n");
 	PowerControl(ADC_RESET, ON);
-	PowerControl(ANALOG_5V_ENABLE, OFF);
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 
 	SetSmartSensorSleepState(ON);
@@ -4223,7 +4362,6 @@ void TestGPIO(void)
 	debug("Power state ALARM_1_ENABLE: 0x%x\r\n", GetPowerControlState(ALARM_1_ENABLE));
 	debug("Power state ALARM_2_ENABLE: 0x%x\r\n", GetPowerControlState(ALARM_2_ENABLE));
 	debug("Power state LCD_POWER_ENABLE: 0x%x\r\n", GetPowerControlState(LCD_POWER_ENABLE));
-	debug("Power state ANALOG_5V_ENABLE: 0x%x\r\n", GetPowerControlState(ANALOG_5V_ENABLE));
 	debug("Power state TRIGGER_OUT: 0x%x\r\n", GetPowerControlState(TRIGGER_OUT));
 	debug("Power state MCU_POWER_LATCH: 0x%x\r\n", GetPowerControlState(MCU_POWER_LATCH));
 	debug("Power state ENABLE_12V: 0x%x\r\n", GetPowerControlState(ENABLE_12V));
@@ -4239,21 +4377,12 @@ void TestGPIO(void)
 	debug("Power state LCD_POWER_DOWN: 0x%x\r\n", GetPowerControlState(LCD_POWER_DOWN));
 	debug("Power state LED_1: 0x%x\r\n", GetPowerControlState(LED_1));
 	debug("Power state LED_2: 0x%x\r\n", GetPowerControlState(LED_2));
-	debug("Power state LED_3: 0x%x\r\n", GetPowerControlState(LED_3));
-	debug("Power state LED_4: 0x%x\r\n", GetPowerControlState(LED_4));
 	debug("Power state LEDS: 0x%x\r\n", GetCurrentLedStates());
 	PowerControl(ALARM_1_ENABLE, OFF);
 	debug("Power state ALARM_1_ENABLE: 0x%x\r\n", GetPowerControlState(ALARM_1_ENABLE));
 #endif
 
 #if 0 /* Test back powering */
-	PowerControl(ANALOG_5V_ENABLE, ON);
-	PowerControl(ANALOG_5V_ENABLE, OFF);
-
-	PowerControl(ANALOG_5V_ENABLE, ON);
-	PowerControl(ADC_RESET, ON);
-	PowerControl(ANALOG_5V_ENABLE, OFF);
-
 	PowerControl(CELL_ENABLE, ON);
 	PowerControl(CELL_ENABLE, OFF);
 #endif
@@ -4617,18 +4746,6 @@ extern volatile uint8_t hsChange;
 void TestAnalog5V(void)
 {
 #if 0 /* Test */
-	debug("-- Power up 5V --\r\n");
-	//PowerControl(ANALOG_5V_ENABLE, ON);
-	//WaitAnalogPower5vGood();
-	PowerUpAnalog5VandExternalADC();
-	while (1)
-	{
-		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
-		FuelGaugeDebugInfo();
-	}
-#endif
-
-#if 0 /* Test */
 	debug("Forever loop, testing interrupts...\r\n");
 	debug("External Trigger In state: %s\r\n", (MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_IN_PORT, GPIO_EXTERNAL_TRIGGER_IN_PIN) > 0 ? "HIGH" : "LOW"));
 	while (1) /* Spin, checking interrupts */
@@ -4648,6 +4765,41 @@ void TestAnalog5V(void)
 ///----------------------------------------------------------------------------
 void TestExtADC(void)
 {
+#if 0 /* Test power draw for Analog channels */
+	uint16 i = 0;
+	for (i = 0; i < 10; i++) { debug("Analog Power Test: Stage %d, %s\r\n", 1, FuelGaugeDebugString()); SoftUsecWait(1 * SOFT_SECS); }
+
+	PowerUpAnalog5VandExternalADC();
+	WaitAnalogPower5vGood();
+	AD4695_Init();
+
+	for (i = 0; i < 10; i++) { debug("Analog Power Test: Stage %d, %s\r\n", 2, FuelGaugeDebugString()); SoftUsecWait(1 * SOFT_SECS); }
+
+	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K);
+	SetSeismicGainSelect(SEISMIC_GAIN_NORMAL);
+	SetAcousticPathSelect(ACOUSTIC_PATH_AOP);
+
+	for (i = 0; i < 10; i++) { debug("Analog Power Test: Stage %d, %s\r\n", 3, FuelGaugeDebugString()); SoftUsecWait(1 * SOFT_SECS); }
+
+	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
+	for (i = 0; i < 10; i++) { debug("Analog Power Test: Stage %d, %s\r\n", 4, FuelGaugeDebugString()); SoftUsecWait(1 * SOFT_SECS); }
+	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
+	for (i = 0; i < 10; i++) { debug("Analog Power Test: Stage %d, %s\r\n", 5, FuelGaugeDebugString()); SoftUsecWait(1 * SOFT_SECS); }
+	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
+	for (i = 0; i < 10; i++) { debug("Analog Power Test: Stage %d, %s\r\n", 6, FuelGaugeDebugString()); SoftUsecWait(1 * SOFT_SECS); }
+	MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+	for (i = 0; i < 10; i++) { debug("Analog Power Test: Stage %d, %s\r\n", 7, FuelGaugeDebugString()); SoftUsecWait(1 * SOFT_SECS); }
+
+	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
+	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
+	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
+	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+	for (i = 0; i < 10; i++) { debug("Analog Power Test: Stage %d, %s\r\n", 8, FuelGaugeDebugString()); SoftUsecWait(1 * SOFT_SECS); }
+
+	PowerControl(ADC_RESET, ON);
+	for (i = 0; i < 10; i++) { debug("Analog Power Test: Stage %d, %s\r\n", 9, FuelGaugeDebugString()); SoftUsecWait(1 * SOFT_SECS); }
+#endif
+
 #if 0 /* Test Re-init after shutting down the SPI and domain */
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 	InitExternalADC(); debug("External ADC: Init complete\r\n");
@@ -4791,7 +4943,6 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 		sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120);
 		SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
 	}
-	AD4695_ExitConversionMode();
 	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
 
 	// Test 4 Chan (No Temp, no readback)
@@ -4814,9 +4965,226 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	}
 	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
 
+	//------------------------------------------------------------------------------------------------------------------------------------------
+	SetupSPI3_ExternalADC(1 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 1);
+
+	// Test 4 Chan + Temp + Readback
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan + Temp (No readback)
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */	}
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan (No Temp, no readback)
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_16K, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	//------------------------------------------------------------------------------------------------------------------------------------------
+	SetupSPI3_ExternalADC(2 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 2);
+
+	// Test 4 Chan + Temp + Readback
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan + Temp (No readback)
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */	}
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan (No Temp, no readback)
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_16K, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	//------------------------------------------------------------------------------------------------------------------------------------------
+	SetupSPI3_ExternalADC(4 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 4);
+
+	// Test 4 Chan + Temp + Readback
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan + Temp (No readback)
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */	}
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan (No Temp, no readback)
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_16K, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	//------------------------------------------------------------------------------------------------------------------------------------------
+	SetupSPI3_ExternalADC(8 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 8);
+
+	// Test 4 Chan + Temp + Readback
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan + Temp (No readback)
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */	}
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan (No Temp, no readback)
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_16K, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	//------------------------------------------------------------------------------------------------------------------------------------------
+	SetupSPI3_ExternalADC(16 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 16);
+
+	// Test 4 Chan + Temp + Readback
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan + Temp (No readback)
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */	}
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan (No Temp, no readback)
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_16K, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	//------------------------------------------------------------------------------------------------------------------------------------------
+	SetupSPI3_ExternalADC(20 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 20);
+
+	// Test 4 Chan + Temp + Readback
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan + Temp (No readback)
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */	}
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan (No Temp, no readback)
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_16K, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	//------------------------------------------------------------------------------------------------------------------------------------------
+	SetupSPI3_ExternalADC(25 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 25);
+
+	// Test 4 Chan + Temp + Readback
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan + Temp (No readback)
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */	}
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan (No Temp, no readback)
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_16K, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	//------------------------------------------------------------------------------------------------------------------------------------------
+	SetupSPI3_ExternalADC(30 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 30);
+
+	// Test 4 Chan + Temp + Readback
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan + Temp (No readback)
+	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */	}
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+
+	// Test 4 Chan (No Temp, no readback)
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_16K, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	debug("Sample clock: Testing External ADC successive reads...\r\n");
+	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
+	{ ReadAnalogData(&tempData); g_sampleCount++; sampleProcessTiming += ((0xffffff - SysTick->VAL) / 120); SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ }
+	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
+	//------------------------------------------------------------------------------------------------------------------------------------------
+
     SysTick->CTRL = 0; /* Disable */
 	AD4695_ExitConversionMode();
-	PowerControl(ANALOG_5V_ENABLE, OFF);
+	PowerControl(ADC_RESET, ON);
 #endif
 }
 
@@ -5049,7 +5417,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initalize the Expansion I2C UART Bridge
 	//-------------------------------------------------------------------------
-#if 0 /* New modded board I2C doesn't work if epxansion powered */
+#if 1 /* New modded board I2C doesn't work if epxansion powered */
 	ExpansionBridgeInit(); debug("Expansion I2C Uart Bridge: Init complete\r\n");
 #endif
 
@@ -5074,7 +5442,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Init and configure the A/D to prevent the unit from burning current charging internal reference (default config)
 	//-------------------------------------------------------------------------
-	InitExternalADC(); debug("External ADC: Init complete\r\n");
+	//InitExternalADC(); debug("External ADC: Init complete\r\n");
 #if 1 /* Test */
 	TestExtADC();
 #endif
@@ -5095,7 +5463,7 @@ void InitSystemHardware_MS9300(void)
 #if 0 /* Normal */
 	InitCellLTE();
 
-#if 1 /* Test re-init of SDHC since Cell/LTE power on seems to kill the eMMC Flash */
+#if 0 /* Test re-init of SDHC since Cell/LTE power on seems to kill the eMMC Flash */
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 	if (SetupSDHCeMMC() != E_NO_ERROR) { SetupSDHCeMMC(); } // Run the setup again if it fails the first time
 	SetupDriveAndFilesystem();
