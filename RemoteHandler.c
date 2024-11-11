@@ -18,6 +18,9 @@
 #include "Common.h"
 #include "TextTypes.h"
 
+#include "lcd.h"
+#include "PowerManagement.h"
+
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
@@ -225,13 +228,74 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 				debug("(System Locked) On-Esc sim\r\n");
 				g_kpadIsrKeymap |= 0xC000;
 			}
+			else if (cmdMsg->msg[0] == 'O')
+			{
+				OverlayMessage(getLangText(WARNING_TEXT), getLangText(FORCED_POWER_OFF_TEXT), 0);
+				// Handle and finish any processing
+				StopMonitoring(g_triggerRecord.opMode, FINISH_PROCESSING);
+				PowerUnitOff(SHUTDOWN_UNIT);
+			}
 			else if (cmdMsg->msg[0] == 'T')
 			{
 				if (g_unitConfig.externalTrigger == ENABLED)
 				{
+#if 0 /* Test powering on LCD to see interaction with sampling */
+					ClearSoftTimer(LCD_BACKLIGHT_ON_OFF_TIMER_NUM);
+					ClearSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM);
+					LcdPwTimerCallBack();
+					SoftUsecWait(3 * SOFT_SECS);
+
 					// Signal the start of an event
 					debug("(System Locked) External Trigger sim\r\n");
 					g_externalTrigger = EXTERNAL_TRIGGER_EVENT;
+					g_sampleCount = 0;
+
+					// Check if the LCD Power was turned off
+					if (g_lcdPowerFlag == DISABLED)
+					{
+						g_lcdPowerFlag = ENABLED;
+						raiseSystemEventFlag(UPDATE_MENU_EVENT);
+						ft81x_init(); // Power up and init display
+						AssignSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM, (uint32)(g_unitConfig.lcdTimeout * TICKS_PER_MIN), LcdPwTimerCallBack);
+
+						// Check if the unit is monitoring, if so, reassign the monitor update timer
+						if (g_sampleProcessing == ACTIVE_STATE)
+						{
+							debug("Keypress Timer Mgr: enabling Monitor Update Timer.\r\n");
+							AssignSoftTimer(MENU_UPDATE_TIMER_NUM, ONE_SECOND_TIMEOUT, MenuUpdateTimerCallBack);
+						}
+					}
+					else
+					{
+						ClearSoftTimer(LCD_BACKLIGHT_ON_OFF_TIMER_NUM);
+						ClearSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM);
+						LcdPwTimerCallBack();
+					}
+#elif 0 /* Test powering on the Cell/LTE module to see interaction with sampling */
+					uint16_t sampleCountTiming[10];
+					PowerControl(CELL_ENABLE, OFF);
+					SoftUsecWait(3 * SOFT_SECS);
+
+					// Signal the start of an event
+					debug("(System Locked) External Trigger sim\r\n");
+					g_externalTrigger = EXTERNAL_TRIGGER_EVENT;
+					g_sampleCount = 0;
+
+					// Check if the LCD Power was turned off
+					PowerControl(CELL_ENABLE, ON);
+					sampleCountTiming[0] = g_sampleCount;
+					SoftUsecWait(1 * SOFT_SECS);
+					sampleCountTiming[1] = g_sampleCount;
+					PowerControl(CELL_ENABLE, OFF);
+					sampleCountTiming[2] = g_sampleCount;
+
+					debug("Cell/LTE Power: Timing array %d, %d, %d\r\n", sampleCountTiming[0], sampleCountTiming[1], sampleCountTiming[2]);
+#else
+					// Signal the start of an event
+					debug("(System Locked) External Trigger sim\r\n");
+					g_externalTrigger = EXTERNAL_TRIGGER_EVENT;
+					g_sampleCount = 0;
+#endif
 				}
 			}
 			else // Regular key, not factory setup
