@@ -80,15 +80,6 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			break;
 
 		//----------------------------------------------------------------------------
-		case ANALOG_5V_ENABLE: // Active high
-		//----------------------------------------------------------------------------
-			debug("Analog (5V) Enable: %s\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON) { MXC_GPIO_OutSet(GPIO_ENABLE_5V_PORT, GPIO_ENABLE_5V_PIN); }
-			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_ENABLE_5V_PORT, GPIO_ENABLE_5V_PIN); }
-			Analog5vPowerGpioSetup(mode);
-			break;
-
-		//----------------------------------------------------------------------------
 		case TRIGGER_OUT: // Active high
 		//----------------------------------------------------------------------------
 			debug("External Trigger Out: %s\r\n", mode == ON ? "On" : "Off");
@@ -162,14 +153,6 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			break;
 
 		//----------------------------------------------------------------------------
-		case BLE_RESET: // Active low
-		//----------------------------------------------------------------------------
-			debug("BLE Reset: %s\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON) { MXC_GPIO_OutClr(GPIO_BLE_RESET_PORT, GPIO_BLE_RESET_PIN); }
-			else /* (mode == OFF) */ { MXC_GPIO_OutSet(GPIO_BLE_RESET_PORT, GPIO_BLE_RESET_PIN); }
-			break;
-
-		//----------------------------------------------------------------------------
 		case CELL_ENABLE: // Active high
 		//----------------------------------------------------------------------------
 			debug("Cellular: %s\r\n", mode == ON ? "On" : "Off");
@@ -211,22 +194,6 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_LED_2_PORT, GPIO_LED_2_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_LED_2_PORT, GPIO_LED_2_PIN); }
 			break;
-
-		//----------------------------------------------------------------------------
-		case LED_3: // Active high (Green)
-		//----------------------------------------------------------------------------
-			debug("LED 3: %s\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON) { MXC_GPIO_OutSet(GPIO_LED_3_PORT, GPIO_LED_3_PIN); }
-			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_LED_3_PORT, GPIO_LED_3_PIN); }
-			break;
-
-		//----------------------------------------------------------------------------
-		case LED_4: // Active high (Green)
-		//----------------------------------------------------------------------------
-			debug("LED 4: %s\r\n", mode == ON ? "On" : "Off");
-			if (mode == ON) { MXC_GPIO_OutSet(GPIO_LED_4_PORT, GPIO_LED_4_PIN); }
-			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_LED_4_PORT, GPIO_LED_4_PIN); }
-			break;
 	}
 
 	// Set Power Control state for the option selected
@@ -255,7 +222,6 @@ BOOLEAN GetPowerControlState(POWER_MGMT_OPTIONS option)
 		case ALARM_1_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_ALERT_1_PORT, GPIO_ALERT_1_PIN); break;
 		case ALARM_2_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_ALERT_2_PORT, GPIO_ALERT_2_PIN); break;
 		case LCD_POWER_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_LCD_POWER_ENABLE_PORT, GPIO_LCD_POWER_ENABLE_PIN); break;
-		case ANALOG_5V_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_ENABLE_5V_PORT, GPIO_ENABLE_5V_PIN); break;
 		case TRIGGER_OUT: gpioReg = MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_OUT_PORT, GPIO_EXTERNAL_TRIGGER_OUT_PIN); break;
 		case MCU_POWER_LATCH: gpioReg = MXC_GPIO_OutGet(GPIO_MCU_POWER_LATCH_PORT, GPIO_MCU_POWER_LATCH_PIN); break;
 		case ENABLE_12V: gpioReg = MXC_GPIO_OutGet(GPIO_ENABLE_12V_PORT, GPIO_ENABLE_12V_PIN); break;
@@ -265,14 +231,11 @@ BOOLEAN GetPowerControlState(POWER_MGMT_OPTIONS option)
 		case EXPANSION_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_EXPANSION_ENABLE_PORT, GPIO_EXPANSION_ENABLE_PIN); break;
 		case SENSOR_CHECK_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_SENSOR_CHECK_ENABLE_PORT, GPIO_SENSOR_CHECK_ENABLE_PIN); break;
 		case LTE_RESET: gpioReg = !MXC_GPIO_OutGet(GPIO_LTE_RESET_PORT, GPIO_LTE_RESET_PIN); break; // Active low, invert state
-		case BLE_RESET: gpioReg = !MXC_GPIO_OutGet(GPIO_BLE_RESET_PORT, GPIO_BLE_RESET_PIN); break; // Active low, invert state
 		case CELL_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_CELL_ENABLE_PORT, GPIO_CELL_ENABLE_PIN); break;
 		case EXPANSION_RESET: gpioReg = !MXC_GPIO_OutGet(GPIO_EXPANSION_RESET_PORT, GPIO_EXPANSION_RESET_PIN); break; // Active low, invert state
 		case LCD_POWER_DOWN: gpioReg = !MXC_GPIO_OutGet(GPIO_LCD_POWER_DOWN_PORT, GPIO_LCD_POWER_DOWN_PIN); break; // Active low, invert state
 		case LED_1: gpioReg = MXC_GPIO_OutGet(GPIO_LED_1_PORT, GPIO_LED_1_PIN); break;
 		case LED_2: gpioReg = MXC_GPIO_OutGet(GPIO_LED_2_PORT, GPIO_LED_2_PIN); break;
-		case LED_3: gpioReg = MXC_GPIO_OutGet(GPIO_LED_3_PORT, GPIO_LED_3_PIN); break;
-		case LED_4: gpioReg = MXC_GPIO_OutGet(GPIO_LED_4_PORT, GPIO_LED_4_PIN); break;
 	}
 
 	// GPIO pin value tied to bit position so normalize to a logic 1 if any bit is set
@@ -311,7 +274,9 @@ void Analog5vPowerGpioSetup(uint8_t mode)
 		MXC_GPIO_OutSet(GPIO_PATH_SELECT_AOP1_PORT, GPIO_PATH_SELECT_AOP1_PIN); // Enable AOP path (Active high)
 		MXC_GPIO_OutSet(GPIO_PATH_SELECT_AOP2_PORT, GPIO_PATH_SELECT_AOP2_PIN); // Enable AOP path (Active high)
 
-		SetupSPI3_ExternalADC();
+		//SetupSPI3_ExternalADC()
+		SetupSPI3_ExternalADC(30 * 1000000);
+		//SetupSPI3_ExternalADC(0.5 * 1000000);
 	}
 	else // (mode == OFF)
 	{
@@ -344,7 +309,7 @@ void LcdPowerGpioSetup(uint8_t mode)
 	else // (mode == OFF)
 	{
 		MXC_SPI_Shutdown(MXC_SPI2);
-		mxc_gpio_cfg_t gpio_cfg_spi2 = { MXC_GPIO2, (GPIO_LCD_SPI2_SCK_PIN | GPIO_LCD_SPI2_MISO_PIN | GPIO_LCD_SPI2_MOSI_PIN | GPIO_LCD_SPI2_SS0_PIN), MXC_GPIO_FUNC_IN, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
+		mxc_gpio_cfg_t gpio_cfg_spi2 = { MXC_GPIO2, (GPIO_SPI2_SCK_PIN | GPIO_SPI2_MISO_PIN | GPIO_SPI2_MOSI_PIN | GPIO_SPI2_SS0_LCD_PIN), MXC_GPIO_FUNC_IN, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
 		MXC_GPIO_Config(&gpio_cfg_spi2);
 	}
 }
@@ -403,14 +368,12 @@ void CellPowerGpioSetup(uint8_t mode)
 	{
 #if 1 /* Normal */
 		MXC_GPIO_OutSet(GPIO_LTE_RESET_PORT, GPIO_LTE_RESET_PIN); // Disable (Active low)
-		MXC_GPIO_OutSet(GPIO_BLE_RESET_PORT, GPIO_BLE_RESET_PIN); // Disable (Active low)
 #else /* Test without setting these immediately */
 #endif
 	}
 	else // (mode == OFF)
 	{
 		MXC_GPIO_OutClr(GPIO_LTE_RESET_PORT, GPIO_LTE_RESET_PIN); // Set low to prevent back powering
-		MXC_GPIO_OutClr(GPIO_BLE_RESET_PORT, GPIO_BLE_RESET_PIN); // Set low to prevent back powering
 	}
 }
 
@@ -424,8 +387,6 @@ uint8_t GetCurrentLedStates(void)
 	// Get the LED states and shift bit representation to the lowest nibble, with LED 1 at bit 0
 	state = (MXC_GPIO_OutGet(GPIO_LED_1_PORT, GPIO_LED_1_PIN) ? ON : OFF);
 	state |= ((MXC_GPIO_OutGet(GPIO_LED_2_PORT, GPIO_LED_2_PIN) ? ON : OFF) << 1);
-	state |= ((MXC_GPIO_OutGet(GPIO_LED_3_PORT, GPIO_LED_3_PIN) ? ON : OFF) << 2);
-	state |= ((MXC_GPIO_OutGet(GPIO_LED_4_PORT, GPIO_LED_4_PIN) ? ON : OFF) << 3);
 
 	return (state);
 }
@@ -462,7 +423,7 @@ void PowerUnitOff(uint8 powerOffMode)
 		MXC_USB_Shutdown();
 
 		// Disable power blocks
-		PowerControl(ANALOG_5V_ENABLE, OFF);
+		PowerControl(ADC_RESET, ON);
 		PowerControl(LCD_POWER_ENABLE, OFF);
 		PowerControl(ENABLE_12V, OFF);
 		PowerControl(CELL_ENABLE, OFF);
@@ -1068,7 +1029,7 @@ void BatteryChargerInit(void)
 	*/
 
 #if 0 /* Test proving that setting the ADC Conversion mode changes the state of the Expanded Battery Presence GPIO line */
-	debug("Battery Charger: Battery presence state is %s\r\n", ((GetExpandedBatteryPresenceState() == YES) ? "High/Present" : "Low/Absent"));
+	debug("Battery Charger: Battery presence state is %s\r\n", ((GetExpandedBatteryPresenceState() == YES) ? "Dual" : "Single"));
 	debug("Battery Charger: Write Config Reg 0 Conversion state test for Expanded battery line change...\r\n");
 
 	debug("Battery Charger: ADC Conv Off\r\n"); SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0010);

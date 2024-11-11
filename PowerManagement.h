@@ -24,7 +24,6 @@ typedef enum
 	ALARM_2_ENABLE = 0,
 	ALARM_1_ENABLE,
 	LCD_POWER_ENABLE,
-	ANALOG_5V_ENABLE,
 	TRIGGER_OUT,
 	MCU_POWER_LATCH,
 	ENABLE_12V,
@@ -34,20 +33,16 @@ typedef enum
 	EXPANSION_ENABLE,
 	SENSOR_CHECK_ENABLE,
 	LTE_RESET,
-	BLE_RESET,
 	CELL_ENABLE,
 	EXPANSION_RESET,
 	LCD_POWER_DOWN,
 	LED_1,
-	LED_2,
-	LED_3,
-	LED_4
+	LED_2
 } POWER_MGMT_OPTIONS;
 
 #define ALARM_2_ENABLE_BIT					(1 << ALARM_2_ENABLE)
 #define ALARM_1_ENABLE_BIT					(1 << ALARM_1_ENABLE)
 #define LCD_POWER_ENABLE_BIT				(1 << LCD_POWER_ENABLE)
-#define ANALOG_5V_ENABLE_BIT				(1 << ANALOG_5V_ENABLE)
 #define TRIGGER_OUT_BIT						(1 << TRIGGER_OUT)
 #define MCU_POWER_LATCH_BIT					(1 << MCU_POWER_LATCH)
 #define ENABLE_12V_BIT						(1 << ENABLE_12V)
@@ -57,14 +52,11 @@ typedef enum
 #define EXPANSION_ENABLE_BIT				(1 << EXPANSION_ENABLE)
 #define SENSOR_CHECK_ENABLE_BIT				(1 << SENSOR_CHECK_ENABLE)
 #define LTE_RESET_BIT						(1 << LTE_RESET)
-#define BLE_RESET_BIT						(1 << BLE_RESET)
 #define CELL_ENABLE_BIT						(1 << CELL_ENABLE)
 #define EXPANSION_RESET_BIT					(1 << EXPANSION_RESET)
 #define LCD_POWER_DOWN_BIT					(1 << LCD_POWER_DOWN)
 #define LED_1_BIT							(1 << LED_1)
-#define LED_2_BIT							(1 << LED_2)
-#define LED_3_BIT							(1 << LED_3)
-#define LED_4_BIT							(1 << LED_4) // 25th bit
+#define LED_2_BIT							(1 << LED_2) // 21st bit
 
 #if 1 /* Original 6600 mAh Battery pack */
 #define BATTERY_PACK_SINGLE_CAPACITY	6600 // mAh
