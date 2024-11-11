@@ -1978,7 +1978,7 @@ uint16_t sampleCountTiming[10];
 		sampleCountTiming[1] = g_sampleCount;
 		PowerControl(LCD_POWER_DOWN, OFF);
 		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20)); // Per datasheet: From Sleep state, the host needs to wait at least 20ms before accessing any registers or commands
-		sampleCountTiming[3] = g_sampleCount;
+		sampleCountTiming[2] = g_sampleCount;
 		g_lcdPowerFlag = ENABLED;
 	}
 #else /* Test */
@@ -2011,6 +2011,7 @@ uint16_t sampleCountTiming[10];
 
 	// Bring LCD Controller active, done by issuing two read commands of address 0, per datasheet "The boot-up may take up to 300ms to complete"
 	debug("LCD Controller: Going Active...\r\n");
+	sampleCountTiming[3] = g_sampleCount;
 	ft81x_rd(CMD_ACTIVE);
 	ft81x_rd(CMD_ACTIVE);
 	sampleCountTiming[4] = g_sampleCount;
