@@ -742,19 +742,19 @@ void TestUartBridgeScratchpad(void)
 	WriteUartBridgeControlRegister(PI7C9X760_REG_SPR, 0xAA);
 	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_SPR);
 #if 0 /* Shorter */
-	debug("Expansion I2C Uart Bridge: 1st scracth test: %s\r\n", (reg == 0xAA) ? "Passed" : "Failed");
+	debug("Expansion I2C Uart Bridge: 1st scratch test: %s\r\n", (reg == 0xAA) ? "Passed" : "Failed");
 #else
-	if (ReadUartBridgeControlRegister(PI7C9X760_REG_SPR) == 0xAA) { debug("Expansion I2C Uart Bridge: 1st scracth test passed\r\n"); }
-	else { debugErr("Expansion I2C Uart Bridge: 1st scracth test failed (0x%x)\r\n", reg); }
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_SPR) == 0xAA) { debug("Expansion I2C Uart Bridge: 1st scratch test passed\r\n"); }
+	else { debugErr("Expansion I2C Uart Bridge: 1st scratch test failed (0x%x)\r\n", reg); }
 #endif
 
 	WriteUartBridgeControlRegister(PI7C9X760_REG_SPR, 0x55);
 	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_SPR);
 #if 0 /* Shorter */
-	debug("Expansion I2C Uart Bridge: 2nd scracth test: %s\r\n", (reg == 0x55) ? "Passed" : "Failed");
+	debug("Expansion I2C Uart Bridge: 2nd scratch test: %s\r\n", (reg == 0x55) ? "Passed" : "Failed");
 #else
-	if (ReadUartBridgeControlRegister(PI7C9X760_REG_SPR) == 0x55) { debug("Expansion I2C Uart Bridge: 2nd scracth test passed\r\n"); }
-	else { debugErr("Expansion I2C Uart Bridge: 2nd scracth test failed (0x%x)\r\n", reg); }
+	if (ReadUartBridgeControlRegister(PI7C9X760_REG_SPR) == 0x55) { debug("Expansion I2C Uart Bridge: 2nd scratch test passed\r\n"); }
+	else { debugErr("Expansion I2C Uart Bridge: 2nd scratch test failed (0x%x)\r\n", reg); }
 #endif
 }
 
