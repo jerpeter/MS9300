@@ -632,10 +632,12 @@ void EnableExternalRtcAlarm(uint8 day, uint8 hour, uint8 minute, uint8 second)
 ///----------------------------------------------------------------------------
 void PulseRtcTimestamp(void)
 {
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	MXC_GPIO_OutSet(GPIO_EXT_RTC_TIMESTAMP_PORT, GPIO_EXT_RTC_TIMESTAMP_PIN);
 	// Delay
 	SoftUsecWait(1);
 	MXC_GPIO_OutClr(GPIO_EXT_RTC_TIMESTAMP_PORT, GPIO_EXT_RTC_TIMESTAMP_PIN);
+#endif
 }
 
 ///----------------------------------------------------------------------------
