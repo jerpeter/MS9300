@@ -266,6 +266,14 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void SetupAccChannelConfig(uint32 sampleRate)
+{
+	g_adChannelConfig = THREE_ACC_CHANNELS_NO_AIR;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void DisableSensorBlocks(void)
 {
 	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
@@ -472,6 +480,13 @@ void GetChannelOffsets(uint32 sampleRate)
 	uint32 timeDelay = (977 / (sampleRate / 1024));
 	uint8 powerAnalogDown = NO;
 
+#if 1 /* Test Accelerometer */
+	if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
+	{
+		debug("Get Chan Offsets: Using Accelerometer\r\n");
+	}
+#endif
+
 	// Check to see if the A/D is in sleep mode
 	if (GetPowerControlState(ADC_RESET) == ON)
 	{
@@ -489,7 +504,18 @@ void GetChannelOffsets(uint32 sampleRate)
 	// Read and pitch samples
 	for (i = 0; i < (sampleRate * 1); i++)
 	{
+#if 1 /* Test Accelerometer */
+		if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
+		{
+extern void GetAccChannelData(ACC_DATA_STRUCT* channelData);
+			ACC_DATA_STRUCT accData;
+			GetAccChannelData(&accData);
+			s_tempData.a = 0x8000; s_tempData.r = accData.x; s_tempData.t = accData.y; s_tempData.v = accData.z;
+		}
+		else { ReadAnalogData(&s_tempData); }
+#else
 		ReadAnalogData(&s_tempData);
+#endif
 
 		//debug("Offset throw away data: 0x%x, 0x%x, 0x%x, 0x%x\r\n", s_tempData.r, s_tempData.v, s_tempData.t, s_tempData.a);
 
@@ -504,7 +530,18 @@ void GetChannelOffsets(uint32 sampleRate)
 	// Read and sum samples
 	for (i = 0; i < (sampleRate * 1); i++)
 	{
+#if 1 /* Test Accelerometer */
+		if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
+		{
+extern void GetAccChannelData(ACC_DATA_STRUCT* channelData);
+			ACC_DATA_STRUCT accData;
+			GetAccChannelData(&accData);
+			s_tempData.a = 0x8000; s_tempData.r = accData.x; s_tempData.t = accData.y; s_tempData.v = accData.z;
+		}
+		else { ReadAnalogData(&s_tempData); }
+#else
 		ReadAnalogData(&s_tempData);
+#endif
 
 		//debug("Offset sum data: 0x%x, 0x%x, 0x%x, 0x%x\r\n", s_tempData.r, s_tempData.v, s_tempData.t, s_tempData.a);
 
@@ -539,7 +576,18 @@ void GetChannelOffsets(uint32 sampleRate)
 	// Read and sum samples
 	for (i = 0; i < (sampleRate * 1); i++)
 	{
+#if 1 /* Test Accelerometer */
+		if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
+		{
+extern void GetAccChannelData(ACC_DATA_STRUCT* channelData);
+			ACC_DATA_STRUCT accData;
+			GetAccChannelData(&accData);
+			s_tempData.a = 0x8000; s_tempData.r = accData.x; s_tempData.t = accData.y; s_tempData.v = accData.z;
+		}
+		else { ReadAnalogData(&s_tempData); }
+#else
 		ReadAnalogData(&s_tempData);
+#endif
 
 		//debug("Offset sum data: 0x%x, 0x%x, 0x%x, 0x%x\r\n", s_tempData.r, s_tempData.v, s_tempData.t, s_tempData.a);
 
