@@ -2428,6 +2428,21 @@ static inline void getChannelDataNoReadbackNoTemp_ISR_Inline(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+extern void GetAccChannelData(ACC_DATA_STRUCT* channelData);
+static inline void getChannelDataAcc_ISR_Inline(void)
+{
+	ACC_DATA_STRUCT accData;
+	GetAccChannelData(&accData);
+
+	s_R_channelReading = accData.x;
+	s_T_channelReading = accData.y;
+	s_V_channelReading = accData.z;
+	s_A_channelReading = 0x8000;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 static inline void HandleChannelSyncError_ISR_Inline(void)
 {
 	debugErr("AD Channel Sync Error\r\n");
@@ -2613,6 +2628,15 @@ static uint32_t trash = 0;
 		goto SKIP_PRIOR_PROCESSING_FOR_ADAPTIVE_MIN_RATE;
 	}
 
+#if 1 /* Test Accelerometer */
+	//___________________________________________________________________________________________
+	//___Internal Accelerometer raw data read 3 channels
+	if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
+	{
+		getChannelDataAcc_ISR_Inline();
+	}
+	else
+#endif
 	//___________________________________________________________________________________________
 	//___AD raw data read all 4 channels without config read back and no temp
 	if (g_adChannelConfig == FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP)
