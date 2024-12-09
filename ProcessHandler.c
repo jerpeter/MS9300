@@ -290,6 +290,22 @@ void StartMonitoring(uint8 operationMode, TRIGGER_EVENT_DATA_STRUCT* opModeParam
 ///----------------------------------------------------------------------------
 void StartDataCollection(uint32 sampleRate)
 {
+#if 1 /* Test Accelerometer */
+	if (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType))
+	{
+		debug("Start data collection: Using Accelerometer\r\n");
+
+void StartAccAquisition(void);
+		StartAccAquisition();
+
+void SetupAccChannelConfig(uint32 sampleRate);
+		if (sampleRate > SAMPLE_RATE_4K) { sampleRate = SAMPLE_RATE_1K; }
+		SetupAccChannelConfig(sampleRate);
+	}
+	else // Normal sensors
+	{
+#endif
+
 	// Check if External ADC is in reset
 	if (GetPowerControlState(ADC_RESET) == ON) { WaitAnalogPower5vGood(); }
 
@@ -333,6 +349,9 @@ void StartDataCollection(uint32 sampleRate)
 
 #if 1 /* Test adding delay for Analog stabilization before zeroing */
 	SoftUsecWait(3 * SOFT_SECS);
+#endif
+#if 1 /* Test Accelerometer */
+	} // Ending section
 #endif
 
 	// Get current A/D offsets for normalization
@@ -864,6 +883,21 @@ void StopMonitoringForLowPowerState(void)
 ///----------------------------------------------------------------------------
 void StartADDataCollectionForCalibration(uint16 sampleRate)
 {
+#if 1 /* New option for Accelerometer */
+	if (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType))
+	{
+		debug("A/D data collection: Using Internal Accelerometer\r\n");
+
+void StartAccAquisition(void);
+		StartAccAquisition();
+
+void SetupAccChannelConfig(uint32 sampleRate);
+		if (sampleRate > SAMPLE_RATE_4K) { sampleRate = SAMPLE_RATE_1K; }
+		SetupAccChannelConfig(sampleRate);
+	}
+	else // Normal sensors
+	{
+#endif
 	// Check if External ADC is in reset
 	if (GetPowerControlState(ADC_RESET) == ON) { WaitAnalogPower5vGood(); }
 
@@ -880,6 +914,9 @@ void StartADDataCollectionForCalibration(uint16 sampleRate)
 
 	// Setup AD Channel config
 	SetupADChannelConfig(sampleRate, OVERRIDE_ENABLE_CHANNEL_VERIFICATION);
+#if 1 /* Test Accelerometer */
+	} // Ending section
+#endif
 
 	DataIsrInit(sampleRate);
 
