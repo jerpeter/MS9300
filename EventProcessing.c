@@ -993,7 +993,7 @@ void FillInTriggerLevelRecordInfo(EVT_RECORD* eventRec)
 
 		tempSesmicTriggerInUnits = (float)(g_triggerRecord.trec.seismicTriggerLevel >> g_bitShiftForAccuracy) / (float)unitsDiv;
 
-		if ((g_factorySetupRecord.seismicSensorType < SENSOR_ACC_RANGE_DIVIDER) && (g_unitConfig.unitsOfMeasure == METRIC_TYPE))
+		if (IsSeismicSensorAGeophone(g_factorySetupRecord.seismicSensorType) && (g_unitConfig.unitsOfMeasure == METRIC_TYPE))
 		{
 			tempSesmicTriggerInUnits *= (float)METRIC;
 		}
@@ -2040,21 +2040,21 @@ void CompleteRamEventSummary(void)
 
 	// Calculate Displacement as PPV/(2 * PI * Freq) with 1000000 to shift to keep accuracy and the 10 to adjust the frequency
 	// R Channel
-	if (g_pendingEventRecord.summary.calculated.r.frequency != 0)
+	if ((g_pendingEventRecord.summary.calculated.r.frequency != 0) && (IsSeismicSensorAGeophone(g_pendingEventRecord.summary.parameters.seismicSensorType)))
 	{
 		g_pendingEventRecord.summary.calculated.r.displacement = (uint32)(g_pendingEventRecord.summary.calculated.r.peak * 1000000 / 2 / PI / g_pendingEventRecord.summary.calculated.r.frequency * 10);
 	}
 	else { g_pendingEventRecord.summary.calculated.r.displacement = 0; }
 
 	// V Channel
-	if (g_pendingEventRecord.summary.calculated.v.frequency != 0)
+	if ((g_pendingEventRecord.summary.calculated.v.frequency != 0) && (IsSeismicSensorAGeophone(g_pendingEventRecord.summary.parameters.seismicSensorType)))
 	{
 		g_pendingEventRecord.summary.calculated.v.displacement = (uint32)(g_pendingEventRecord.summary.calculated.v.peak * 1000000 / 2 / PI / g_pendingEventRecord.summary.calculated.v.frequency * 10);
 	}
 	else { g_pendingEventRecord.summary.calculated.v.displacement = 0; }
 
 	// T Channel
-	if (g_pendingEventRecord.summary.calculated.t.frequency != 0)
+	if ((g_pendingEventRecord.summary.calculated.t.frequency != 0) && (IsSeismicSensorAGeophone(g_pendingEventRecord.summary.parameters.seismicSensorType)))
 	{
 		g_pendingEventRecord.summary.calculated.t.displacement = (uint32)(g_pendingEventRecord.summary.calculated.t.peak * 1000000 / 2 / PI / g_pendingEventRecord.summary.calculated.t.frequency * 10);
 	}
@@ -2066,9 +2066,16 @@ void CompleteRamEventSummary(void)
 	// Calculate Peak Acceleration as (2 * PI * PPV * Freq) / 1G, where 1G = 386.4in/sec2 or 9814.6 mm/sec2, using 1000 to shift to keep accuracy
 	// The divide by 10 at the end to adjust the frequency, since freq stored as freq * 10
 	// Not dividing by 1G at this time. Before displaying Peak Acceleration, 1G will need to be divided out
-	g_pendingEventRecord.summary.calculated.r.acceleration = (uint32)(g_pendingEventRecord.summary.calculated.r.peak * 1000 * 2 * PI * g_pendingEventRecord.summary.calculated.r.frequency / 10);
-	g_pendingEventRecord.summary.calculated.v.acceleration = (uint32)(g_pendingEventRecord.summary.calculated.v.peak * 1000 * 2 * PI * g_pendingEventRecord.summary.calculated.v.frequency / 10);
-	g_pendingEventRecord.summary.calculated.t.acceleration = (uint32)(g_pendingEventRecord.summary.calculated.t.peak * 1000 * 2 * PI * g_pendingEventRecord.summary.calculated.t.frequency / 10);
+	if (IsSeismicSensorAnAccelerometer(g_pendingEventRecord.summary.parameters.seismicSensorType))
+	{
+		g_pendingEventRecord.summary.calculated.r.acceleration = g_pendingEventRecord.summary.calculated.v.acceleration = g_pendingEventRecord.summary.calculated.t.acceleration = 0;
+	}
+	else
+	{
+		g_pendingEventRecord.summary.calculated.r.acceleration = (uint32)(g_pendingEventRecord.summary.calculated.r.peak * 1000 * 2 * PI * g_pendingEventRecord.summary.calculated.r.frequency / 10);
+		g_pendingEventRecord.summary.calculated.v.acceleration = (uint32)(g_pendingEventRecord.summary.calculated.v.peak * 1000 * 2 * PI * g_pendingEventRecord.summary.calculated.v.frequency / 10);
+		g_pendingEventRecord.summary.calculated.t.acceleration = (uint32)(g_pendingEventRecord.summary.calculated.t.peak * 1000 * 2 * PI * g_pendingEventRecord.summary.calculated.t.frequency / 10);
+	}
 
 	// A Channel (No Acceleration)
 	g_pendingEventRecord.summary.calculated.a.acceleration = 0;
