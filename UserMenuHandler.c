@@ -48,6 +48,7 @@ static USER_TYPE_STRUCT unitTypes[TOTAL_TYPES] = {
 {"secs", SECS_TYPE, 1},
 {"mins", MINS_TYPE, 1},
 {"mg", MG_TYPE, 1},
+{"g", G_TYPE, 1},
 {"hour", HOUR_TYPE, 1},
 {"%", PERCENT_TYPE, 1},
 {"psi", PSI_UNIT_TYPE, 1}
@@ -1322,7 +1323,7 @@ void CopyDataToMenu(MN_LAYOUT_STRUCT* menu_layout)
 			{
 				// Check if the units are metric and no alternative type is set and not the accelerometer
 				if ((g_unitConfig.unitsOfMeasure == METRIC_TYPE) && (USER_MENU_ALT_TYPE(g_userMenuCachePtr) != NO_ALT_TYPE) &&
-					(g_factorySetupRecord.seismicSensorType < SENSOR_ACC_RANGE_DIVIDER))
+					(IsSeismicSensorAGeophone(g_factorySetupRecord.seismicSensorType)))
 				{
 					// Init the float increment value adjusted by the units conversion
 					g_userMenuCacheData.floatIncrement = ((float)(g_factorySetupRecord.seismicSensorType * unitTypes[USER_MENU_ALT_TYPE(g_userMenuCachePtr)].conversion) /
@@ -1344,8 +1345,8 @@ void CopyDataToMenu(MN_LAYOUT_STRUCT* menu_layout)
 				g_userMenuCacheData.floatData = (float)g_userMenuCacheData.numLongData * g_userMenuCacheData.floatIncrement;
 				
 				// The following code will check sensor type and sensitivity to auto adjust the accuracy being printed to the screen
-				if (((g_factorySetupRecord.seismicSensorType >= SENSOR_20_IN) && (g_factorySetupRecord.seismicSensorType < SENSOR_ACC_RANGE_DIVIDER)) ||
-					((g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER) && (g_triggerRecord.srec.sensitivity == LOW)) ||
+				if (((g_factorySetupRecord.seismicSensorType >= SENSOR_20_IN) && (IsSeismicSensorAGeophone(g_factorySetupRecord.seismicSensorType))) ||
+					((IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType)) && (g_triggerRecord.srec.sensitivity == LOW)) ||
 					((g_factorySetupRecord.seismicSensorType == SENSOR_10_IN) && (g_triggerRecord.srec.sensitivity == LOW)))
 				{
 					sprintf(g_userMenuCachePtr[INTEGER_RANGE].text, "(%.3f-%.3f%s,N)",
@@ -1359,7 +1360,7 @@ void CopyDataToMenu(MN_LAYOUT_STRUCT* menu_layout)
 						sprintf(g_userMenuCachePtr[tempRow].text, "%.4f", (double)g_userMenuCacheData.floatData);
 				}
 				else if (((g_factorySetupRecord.seismicSensorType == SENSOR_10_IN) && (g_triggerRecord.srec.sensitivity == HIGH)) ||
-						((g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER) && (g_triggerRecord.srec.sensitivity == HIGH)) ||
+						((IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType)) && (g_triggerRecord.srec.sensitivity == HIGH)) ||
 						((g_factorySetupRecord.seismicSensorType == SENSOR_5_IN) && (g_triggerRecord.srec.sensitivity == LOW)))
 				{
 					sprintf(g_userMenuCachePtr[INTEGER_RANGE].text, "(%.4f-%.3f%s,N)",
