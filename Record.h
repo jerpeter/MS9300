@@ -64,6 +64,7 @@ enum {
 
 #define ACC_832M1_SCALER		4
 
+// Sensor type much exist within 2 bytes, seismic geophones represent full range (+/-) shifted up 100
 #define SENSOR_80_IN			16384
 #define SENSOR_40_IN			8192
 #define SENSOR_20_IN			4096
@@ -73,6 +74,10 @@ enum {
 #define SENSOR_ACCELEROMETER	51200
 #define SENSOR_ACC_832M1_0200	(80000 / ACC_832M1_SCALER) // Divide by 832M1 scaler to keep value within 65536 limit of 16-bit storage (must remove scaler on display side)
 #define SENSOR_ACC_832M1_0500	(200000 / ACC_832M1_SCALER) // Divide by 832M1 scaler to keep value within 65536 limit of 16-bit storage (must remove scaler on display side)
+#define SENSOR_ACC_INT_8G		1600
+#define SENSOR_ACC_INT_16G		3200
+#define SENSOR_ACC_INT_32G		6400
+#define SENSOR_ACC_INT_64G		12800
 
 #define SENSOR_ACC_RANGE_DIVIDER	(SENSOR_ACC_832M1_0200 - 1)
 

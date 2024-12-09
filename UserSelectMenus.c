@@ -1256,7 +1256,12 @@ void BarResultMenuHandler(uint8 keyPressed, void* data)
 		if (g_triggerRecord.opMode == COMBO_MODE)
 		{
 #if VT_FEATURE_DISABLED // Original
-			if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER)
+			if (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType))
+			{
+				USER_MENU_DEFAULT_TYPE(seismicTriggerMenu) = G_TYPE;
+				USER_MENU_ALT_TYPE(seismicTriggerMenu) = G_TYPE;
+			}
+			else if (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType))
 			{
 				USER_MENU_DEFAULT_TYPE(seismicTriggerMenu) = MG_TYPE;
 				USER_MENU_ALT_TYPE(seismicTriggerMenu) = MG_TYPE;
@@ -2020,7 +2025,12 @@ void ExternalTriggerMenuHandler(uint8 keyPressed, void* data)
 			sprintf((char*)g_spareBuffer, "%s. %s", getLangText(NO_TRIGGER_SOURCE_SELECTED_TEXT), getLangText(PLEASE_CHANGE_TEXT));
 			MessageBox(getLangText(WARNING_TEXT), (char*)g_spareBuffer, MB_OK);
 
-			if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER)
+			if (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType))
+			{
+				USER_MENU_DEFAULT_TYPE(seismicTriggerMenu) = G_TYPE;
+				USER_MENU_ALT_TYPE(seismicTriggerMenu) = G_TYPE;
+			}
+			else if (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType))
 			{
 				USER_MENU_DEFAULT_TYPE(seismicTriggerMenu) = MG_TYPE;
 				USER_MENU_ALT_TYPE(seismicTriggerMenu) = MG_TYPE;
@@ -3305,7 +3315,12 @@ void SensitivityMenuHandler(uint8 keyPressed, void* data)
 #if VT_FEATURE_DISABLED // Normal
 		if (g_triggerRecord.opMode == WAVEFORM_MODE)
 		{
-			if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER)
+			if (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType))
+			{
+				USER_MENU_DEFAULT_TYPE(seismicTriggerMenu) = G_TYPE;
+				USER_MENU_ALT_TYPE(seismicTriggerMenu) = G_TYPE;
+			}
+			else if (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType))
 			{
 				USER_MENU_DEFAULT_TYPE(seismicTriggerMenu) = MG_TYPE;
 				USER_MENU_ALT_TYPE(seismicTriggerMenu) = MG_TYPE;
@@ -3397,17 +3412,20 @@ void AcousticSensorTypeMenuHandler(uint8 keyPressed, void* data)
 // Seismic Sensor Type Menu
 //=============================================================================
 //*****************************************************************************
-#define SEISMIC_SENSOR_TYPE_MENU_ENTRIES 9
+#define SEISMIC_SENSOR_TYPE_MENU_ENTRIES 12
 USER_MENU_STRUCT seismicSensorTypeMenu[SEISMIC_SENSOR_TYPE_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, SEISMIC_GAIN_TYPE_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, SEISMIC_SENSOR_TYPE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_4)}},
-{ITEM_1, 0, X025_80_IPS_TEXT,	NO_TAG, {SENSOR_80_IN}},
-{ITEM_2, 0, X05_40_IPS_TEXT,	NO_TAG, {SENSOR_40_IN}},
-{ITEM_3, 0, X1_20_IPS_TEXT,		NO_TAG, {SENSOR_20_IN}},
-{ITEM_4, 0, X2_10_IPS_TEXT,		NO_TAG, {SENSOR_10_IN}},
-{ITEM_5, 0, X4_5_IPS_TEXT,		NO_TAG, {SENSOR_5_IN}},
-{ITEM_6, 0, X8_2_5_IPS_TEXT,	NO_TAG, {SENSOR_2_5_IN}},
-{ITEM_7, 0, ACC_793L_TEXT,		NO_TAG, {SENSOR_ACCELEROMETER}},
+{NO_TAG, 0, X025_80_IPS_TEXT,	NO_TAG, {SENSOR_80_IN}},
+{NO_TAG, 0, X05_40_IPS_TEXT,	NO_TAG, {SENSOR_40_IN}},
+{NO_TAG, 0, X1_20_IPS_TEXT,		NO_TAG, {SENSOR_20_IN}},
+{NO_TAG, 0, X2_10_IPS_TEXT,		NO_TAG, {SENSOR_10_IN}},
+{NO_TAG, 0, X4_5_IPS_TEXT,		NO_TAG, {SENSOR_5_IN}},
+{NO_TAG, 0, X8_2_5_IPS_TEXT,	NO_TAG, {SENSOR_2_5_IN}},
+{NO_TAG, 0, ACC_INT_8G_TEXT,	NO_TAG, {SENSOR_ACC_INT_8G}},
+{NO_TAG, 0, ACC_INT_16G_TEXT,	NO_TAG, {SENSOR_ACC_INT_16G}},
+{NO_TAG, 0, ACC_INT_32G_TEXT,	NO_TAG, {SENSOR_ACC_INT_32G}},
+{NO_TAG, 0, ACC_INT_64G_TEXT,	NO_TAG, {SENSOR_ACC_INT_64G}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&SeismicSensorTypeMenuHandler}}
 };
 
@@ -3423,7 +3441,8 @@ void SeismicSensorTypeMenuHandler(uint8 keyPressed, void* data)
 	{
 		g_factorySetupRecord.seismicSensorType = (uint16)seismicSensorTypeMenu[newItemIndex].data;
 
-		if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER) { debug("Factory Setup: New Seismic sensor type: Accelerometer\r\n"); }
+		if (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType)) { debug("Factory Setup: New Seismic sensor type: Internal Accelerometer\r\n"); }
+		else if (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType)) { debug("Factory Setup: New Seismic sensor type: Accelerometer\r\n"); }
 		else { debug("Factory Setup: New Seismic sensor type: %3.1f in\r\n", (double)((float)g_factorySetupRecord.seismicSensorType / (float)204.8)); }
 
 		SETUP_USER_MENU_MSG(&acousticSensorTypeMenu, g_factorySetupRecord.acousticSensorType);
@@ -3506,7 +3525,12 @@ void SeismicTriggerTypeMenuHandler(uint8 keyPressed, void* data)
 		{
 			g_triggerRecord.trec.variableTriggerEnable = NO;
 
-			if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER)
+			if (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType))
+			{
+				USER_MENU_DEFAULT_TYPE(seismicTriggerMenu) = G_TYPE;
+				USER_MENU_ALT_TYPE(seismicTriggerMenu) = G_TYPE;
+			}
+			else if (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType))
 			{
 				USER_MENU_DEFAULT_TYPE(seismicTriggerMenu) = MG_TYPE;
 				USER_MENU_ALT_TYPE(seismicTriggerMenu) = MG_TYPE;

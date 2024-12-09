@@ -1583,6 +1583,10 @@ void DisplaySensorType(void)
 			case SENSOR_5_IN			: sensorTypeTextElement = X4_5_IPS_TEXT; break;
 			case SENSOR_2_5_IN			: sensorTypeTextElement = X8_2_5_IPS_TEXT; break;
 			case SENSOR_ACCELEROMETER	: sensorTypeTextElement = ACC_793L_TEXT; break;
+			case SENSOR_ACC_INT_8G		: sensorTypeTextElement = ACC_INT_8G_TEXT; break;
+			case SENSOR_ACC_INT_16G		: sensorTypeTextElement = ACC_INT_16G_TEXT; break;
+			case SENSOR_ACC_INT_32G		: sensorTypeTextElement = ACC_INT_32G_TEXT; break;
+			case SENSOR_ACC_INT_64G		: sensorTypeTextElement = ACC_INT_64G_TEXT; break;
 		}
 
 		if (sensorType == SENSOR_ACC_832M1_0200)
