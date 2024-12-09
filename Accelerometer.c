@@ -190,6 +190,33 @@ void SetAccRegister(uint8_t registerAddress, uint8_t registerData)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+int SetAccFullScaleRange(uint16_t rangeInGravity)
+{
+    uint8_t controlReg1;
+    uint8_t rangeBitSelection;
+
+    // Range check and conversion from 8G, 16G, 32G and 64G to 0x00, 0x08, 0x10 and 0x18 bits respectively
+    if (rangeInGravity == 16) { rangeBitSelection = 0x00; }
+    else if (rangeInGravity == 16) { rangeBitSelection = 0x08; }
+    else if (rangeInGravity == 32) { rangeBitSelection = 0x10; }
+    else if (rangeInGravity == 64) { rangeBitSelection = 0x18; }
+    else return (E_BAD_PARAM);
+
+    GetAccRegister(ACC_CONTROL_1_REGISTER, &controlReg1);
+    controlReg1 &= 0xE7; // Clear GSEL1 and GSEL0 bits
+    controlReg1 |= rangeInGravity;
+    SetAccRegister(ACC_CONTROL_1_REGISTER, controlReg1);
+
+    // Verify
+    controlReg1 = 0;
+    GetAccRegister(ACC_CONTROL_1_REGISTER, &controlReg1);
+    if ((controlReg1 & 0x18) == rangeBitSelection) { return (E_SUCCESS); }
+    else return (E_FAIL);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 uint8_t VerifyAccManuIDAndPartID(void)
 {
     uint8_t manuIDAndPartID[6];
