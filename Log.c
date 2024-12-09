@@ -452,7 +452,7 @@ void AppendMonitorLogEntryFile(void)
 			else unitsDiv = (float)(g_bitAccuracyMidpoint * SENSOR_ACCURACY_100X_SHIFT * ((g_triggerRecord.srec.sensitivity == LOW) ? 2 : 4)) / (float)(g_factorySetupRecord.seismicSensorType);
 
 			tempSesmicTriggerInUnits = (float)(g_triggerRecord.trec.seismicTriggerLevel >> g_bitShiftForAccuracy) / (float)unitsDiv;
-			if ((g_factorySetupRecord.seismicSensorType < SENSOR_ACC_RANGE_DIVIDER) && (g_unitConfig.unitsOfMeasure == METRIC_TYPE)) { tempSesmicTriggerInUnits *= (float)METRIC; }
+			if ((IsSeismicSensorAGeophone(g_factorySetupRecord.seismicSensorType)) && (g_unitConfig.unitsOfMeasure == METRIC_TYPE)) { tempSesmicTriggerInUnits *= (float)METRIC; }
 
 			sprintf((char*)seisString, "%05.2f %s", (double)tempSesmicTriggerInUnits, (g_unitConfig.unitsOfMeasure == METRIC_TYPE ? "mm" : "in"));
 		}
@@ -466,7 +466,7 @@ void AppendMonitorLogEntryFile(void)
 			else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf((char*)airString, "%d dB", (uint16)airInUnits); }
 		}
 
-		if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER) { strcpy((char*)&seisSensorString, "Acc"); }
+		if (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType)) { strcpy((char*)&seisSensorString, "Acc"); }
 		else { sprintf((char*)&seisSensorString, "%3.1f in", (double)g_factorySetupRecord.seismicSensorType / (double)204.8); }
 
 		if (g_factorySetupRecord.acousticSensorType == SENSOR_MIC_160_DB) { strcpy((char*)&airSensorString, "Mic 160 dB"); }

@@ -533,18 +533,10 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 	//-------------------------------------------------------------
 	// Units inches or millimeters LABEL
 	memset(&buff[0], 0, sizeof(buff));
-	if (g_summaryList.cachedEntry.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER)
-	{
-		sprintf(buff, "mg/s");
-	}
-	else if (g_sensorInfo.unitsFlag == IMPERIAL_TYPE)
-	{
-		sprintf(buff, "in/s");
-	}
-	else
-	{
-		sprintf(buff, "mm/s");
-	}
+	if (IsSeismicSensorInternalAccelerometer(g_summaryList.cachedEntry.seismicSensorType)) { sprintf(buff, "g/s");}
+	else if (IsSeismicSensorAnAccelerometer(g_summaryList.cachedEntry.seismicSensorType)) { sprintf(buff, "mg/s"); }
+	else if (g_sensorInfo.unitsFlag == IMPERIAL_TYPE) {	sprintf(buff, "in/s"); }
+	else { sprintf(buff, "mm/s"); }
 
 	// Setup current column, Write string to screen, Advance to next row
 	wnd_layout_ptr->curr_col = (uint16)(wnd_layout_ptr->next_col + 12);
@@ -572,7 +564,7 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 		calResults = FAILED;
 	}
 
-	if ((g_summaryList.cachedEntry.seismicSensorType < SENSOR_ACC_RANGE_DIVIDER) && (g_unitConfig.unitsOfMeasure == METRIC_TYPE))
+	if ((IsSeismicSensorAGeophone(g_summaryList.cachedEntry.seismicSensorType)) && (g_unitConfig.unitsOfMeasure == METRIC_TYPE))
 	{
 		normalize_max_peak *= (float)METRIC;
 	}
@@ -599,7 +591,7 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 		calResults = FAILED;
 	}
 
-	if ((g_summaryList.cachedEntry.seismicSensorType < SENSOR_ACC_RANGE_DIVIDER) && (g_unitConfig.unitsOfMeasure == METRIC_TYPE))
+	if ((IsSeismicSensorAGeophone(g_summaryList.cachedEntry.seismicSensorType)) && (g_unitConfig.unitsOfMeasure == METRIC_TYPE))
 	{
 		normalize_max_peak *= (float)METRIC;
 	}
@@ -626,7 +618,7 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 		calResults = FAILED;
 	}
 
-	if ((g_summaryList.cachedEntry.seismicSensorType < SENSOR_ACC_RANGE_DIVIDER) && (g_unitConfig.unitsOfMeasure == METRIC_TYPE))
+	if ((IsSeismicSensorAGeophone(g_summaryList.cachedEntry.seismicSensorType)) && (g_unitConfig.unitsOfMeasure == METRIC_TYPE))
 	{
 		normalize_max_peak *= (float)METRIC;
 	}
@@ -675,12 +667,11 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 		tempVS = sqrtf((float)g_summaryList.cachedEntry.vectorSumPeak) / (float)div;
 
-		if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (g_summaryList.cachedEntry.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER))
+		if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (IsSeismicSensorAnAccelerometer(g_summaryList.cachedEntry.seismicSensorType)))
 		{
-			if (g_summaryList.cachedEntry.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER)
-				strcpy(displayFormat, "mg/s");
-			else
-				strcpy(displayFormat, "in/s");
+			if (IsSeismicSensorInternalAccelerometer(g_summaryList.cachedEntry.seismicSensorType)) { strcpy(displayFormat, "g/s"); }
+			else if (IsSeismicSensorAnAccelerometer(g_summaryList.cachedEntry.seismicSensorType)) { strcpy(displayFormat, "mg/s"); }
+			else { strcpy(displayFormat, "in/s"); }
 		}
 		else // Metric
 		{
@@ -726,12 +717,11 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 		tempPeakDisp = (float)tempPeakDisp / (float)1000000 / (float)div;
 
-		if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (g_summaryList.cachedEntry.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER))
+		if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (IsSeismicSensorAnAccelerometer(g_summaryList.cachedEntry.seismicSensorType)))
 		{
-			if (g_summaryList.cachedEntry.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER)
-				strcpy(displayFormat, "mg");
-			else
-				strcpy(displayFormat, "in");
+			if (IsSeismicSensorInternalAccelerometer(g_summaryList.cachedEntry.seismicSensorType)) { strcpy(displayFormat, "g"); }
+			else if (IsSeismicSensorAnAccelerometer(g_summaryList.cachedEntry.seismicSensorType)) { strcpy(displayFormat, "mg"); }
+			else { strcpy(displayFormat, "in"); }
 		}
 		else // Metric
 		{
@@ -773,7 +763,7 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 		tempPeakAcc = (float)tempPeakAcc / (float)1000 / (float)div;
 
-		if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (g_summaryList.cachedEntry.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER))
+		if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (IsSeismicSensorAnAccelerometer(g_summaryList.cachedEntry.seismicSensorType)))
 		{
 			tempPeakAcc /= (float)ONE_GRAVITY_IN_INCHES;
 		}

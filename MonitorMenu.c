@@ -712,12 +712,11 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 				tempV = ((float)g_vImpulsePeak / (float)div);
 			}
 
-			if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER))
+			if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType)))
 			{
-				if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER)
-					strcpy(buff, "mg/s   ");
-				else
-					strcpy(buff, "in/s   ");
+				if (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType)) { strcpy(buff, "g/s    "); }
+				else if (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType)) { strcpy(buff, "mg/s   "); }
+				else { strcpy(buff, "in/s   "); }
 			}
 			else // g_sensorInfo.unitsFlag == METRIC_TYPE
 			{
@@ -847,12 +846,11 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			}			
 			else if (g_displayBargraphResultsMode == JOB_PEAK_RESULTS) { tempVS = sqrtf((float)g_vsJobPeak) / (float)div; }
 
-			if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER))
+			if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType)))
 			{
-				if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER)
-					strcpy(displayFormat, "mg/s");
-				else
-					strcpy(displayFormat, "in/s");
+				if (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType)) { strcpy(buff, "g/s"); }
+				else if (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType)) { strcpy(buff, "mg/s"); }
+				else { strcpy(buff, "in/s"); }
 			}
 			else // Metric
 			{
@@ -925,9 +923,9 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 			tempPeakDisp = (float)normalize_max_peak / ((float)2 * (float)PI * (float)tempFreq);
 
-			if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER))
+			if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType)))
 			{
-				if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER)
+				if (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType))
 					strcpy(displayFormat, "mg");
 				else
 					strcpy(displayFormat, "in");
@@ -1000,7 +998,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 			tempPeakAcc = (float)normalize_max_peak * (float)2 * (float)PI * (float)tempFreq;
 
-			if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER))
+			if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType)))
 			{
 				tempPeakAcc /= (float)ONE_GRAVITY_IN_INCHES;
 			}
@@ -1010,7 +1008,8 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 				tempPeakAcc /= (float)ONE_GRAVITY_IN_MM;
 			}
 
-			if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER) { strcpy(displayFormat, "mg/s2"); }
+			if (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType)) { strcpy(buff, "g/s2"); }
+			else if (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType)) { strcpy(displayFormat, "mg/s2"); }
 			else { strcpy(displayFormat, "g"); }
 
 			sprintf(buff,"PEAK ACC  %5.4f  %s", (double)tempPeakAcc, displayFormat);
