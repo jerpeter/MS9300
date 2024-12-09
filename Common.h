@@ -1134,4 +1134,9 @@ void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeasser
 void SetupSPI3_ExternalADC(uint32_t clockSpeed);
 void SetupSPI2_LCD(void);
 
+// Helper routines
+uint8_t IsSeismicSensorAGeophone(uint16_t seismicSensorType);
+uint8_t IsSeismicSensorInternalAccelerometer(uint16_t seismicSensorType);
+uint8_t IsSeismicSensorAnAccelerometer(uint16_t seismicSensorType);
+
 #endif // _COMMON_H_

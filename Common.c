@@ -1061,6 +1061,34 @@ void ProcessUsbCoreHandling(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint8_t IsSeismicSensorAGeophone(uint16_t seismicSensorType)
+{
+	if ((seismicSensorType == SENSOR_80_IN) || (seismicSensorType == SENSOR_40_IN) || (seismicSensorType == SENSOR_20_IN) || (seismicSensorType == SENSOR_10_IN) ||
+		(seismicSensorType == SENSOR_5_IN) || (seismicSensorType == SENSOR_2_5_IN)) { return (YES); }
+	else { return (NO); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t IsSeismicSensorInternalAccelerometer(uint16_t seismicSensorType)
+{
+	if ((seismicSensorType == SENSOR_ACC_INT_8G) || (seismicSensorType == SENSOR_ACC_INT_16G) || (seismicSensorType == SENSOR_ACC_INT_32G) || (seismicSensorType == SENSOR_ACC_INT_64G)) { return (YES); }
+	else { return (NO); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t IsSeismicSensorAnAccelerometer(uint16_t seismicSensorType)
+{
+	if ((IsSeismicSensorInternalAccelerometer(seismicSensorType)) || (seismicSensorType > SENSOR_ACC_RANGE_DIVIDER)) { return (YES); }
+	else { return (NO); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 uint8_t GetExpandedBatteryPresenceState(void)
 {
 #if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
