@@ -1962,7 +1962,15 @@ int WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* write
 	if (slaveAddr == I2C_ADDR_EEPROM_ID) { masterRequest.restart = 1; }
 #endif
 
+#if /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PROTOTYPE_1)
+	// Test interrupt isolation (for Acc data collection)
+	__disable_irq();
+#endif
     status = MXC_I2C_MasterTransaction(&masterRequest);
+#if /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PROTOTYPE_1)
+	// Test interrupt isolation (for Acc data collection)
+	__enable_irq();
+#endif
 	if (status != E_SUCCESS) { debugErr("I2C%d Master transaction to Slave (%02x) failed with code: %d\r\n", ((i2cChannel == MXC_I2C0) ? 0 : 1), slaveAddr, status); }
 
 	return (status);
