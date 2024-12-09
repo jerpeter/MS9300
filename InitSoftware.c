@@ -260,7 +260,7 @@ void LoadFactorySetupRecord(void)
 		ConvertCalDatetoDateTime(&tempTime, &g_currentCalibration.date);
 		ConvertTimeStampToString(buff, &tempTime, REC_DATE_TYPE);
 
-		if (g_factorySetupRecord.seismicSensorType > SENSOR_ACC_RANGE_DIVIDER) { strcpy((char*)&g_spareBuffer, "Acc"); }
+		if (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType)) { strcpy((char*)&g_spareBuffer, "Acc"); }
 		else { sprintf((char*)&g_spareBuffer, "%3.1f in", (double)((float)g_factorySetupRecord.seismicSensorType / (float)204.8)); }
 
 		debug("Factory Setup: Serial #: %s\r\n", g_factorySetupRecord.unitSerialNumber);
@@ -293,7 +293,7 @@ void InitSensorParameters(uint16 seismicSensorType, uint8 sensitivity)
 	}
 	else g_sensorInfo.sensorTypeNormalized = (float)(seismicSensorType)/(float)(gainFactor * SENSOR_ACCURACY_100X_SHIFT);
 
-	if ((IMPERIAL_TYPE == g_unitConfig.unitsOfMeasure) || (seismicSensorType > SENSOR_ACC_RANGE_DIVIDER))
+	if ((IMPERIAL_TYPE == g_unitConfig.unitsOfMeasure) || IsSeismicSensorAnAccelerometer(seismicSensorType))
 	{
 		g_sensorInfo.measurementRatio = (float)IMPERIAL; 				// 1 = SAE; 25.4 = Metric
 	}
@@ -515,6 +515,7 @@ void InitSoftwareSettings_MS9300(void)
 
 	if (GET_HARDWARE_ID == HARDWARE_ID_REV_8_WITH_GPS_MOD)
 	{
+		debug("Enabling GPS...\r\n");
 		EnableGps();
 	}
 
