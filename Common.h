@@ -76,7 +76,7 @@ enum {
 	HARDWARE_ID_REV_8_WITH_GPS_MOD = 0x28 // Old hardware
 };
 
-#define HARDWARE_BOARD_REVISION		1
+#define HARDWARE_BOARD_REVISION		2 // Beta re-spin
 
 enum {
 	ACTIVE_MODE = 0,
