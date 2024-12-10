@@ -24,6 +24,9 @@
 #include "tmr.h"
 #include "mxc_delay.h"
 
+#include "lcd.h"
+#include "spi.h"
+
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
@@ -161,30 +164,71 @@ Address	Register Name	R/W
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void GetAccRegister(uint8_t registerAddress, uint8_t* registerData)
+int GetAccRegister(uint8_t registerAddress, uint8_t* registerData, uint8_t dataSize)
 {
+    int status = E_SUCCESS;
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutClr(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
+	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, registerData, dataSize, BLOCKING);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutSet(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
+#else /* HARDWARE_ID_REV_PROTOTYPE_1 */
 #if 0 /* Original */
-    WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddress, sizeof(uint8_t), registerData, sizeof(uint8_t));
+    status = WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddress, sizeof(uint8_t), registerData, sizeof(uint8_t));
 #else /* Use variable address since the Acc slave address sometimes changes */
-    WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddress, sizeof(uint8_t), registerData, sizeof(uint8_t));
+    status = WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddress, sizeof(uint8_t), registerData, dataSize);
 #endif
+#endif
+    return (status);
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SetAccRegister(uint8_t registerAddress, uint8_t registerData)
+int SetAccRegister(uint8_t registerAddress, uint8_t registerData)
 {
     uint8_t writeData[2];
+    int status = E_SUCCESS;
 
     writeData[0] = registerAddress;
     writeData[1] = registerData;
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutClr(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
+	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, &writeData[0], sizeof(writeData), NULL, 0, BLOCKING);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutSet(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
+#else /* HARDWARE_ID_REV_PROTOTYPE_1 */
 #if 0 /* Original */
-    WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, writeData, sizeof(writeData), NULL, 0);
+    status = WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, writeData, sizeof(writeData), NULL, 0);
 #else /* Use variable address since the Acc slave address sometimes changes */
-    WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, writeData, sizeof(writeData), NULL, 0);
+    status = WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, writeData, sizeof(writeData), NULL, 0);
 #endif
+#endif
+    return (status);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int SetAndReadAccRegister(uint8_t registerAddress, uint8_t registerData, uint8_t* readData, uint8_t dataSize)
+{
+    uint8_t writeData[2];
+    int status = E_SUCCESS;
+
+    writeData[0] = registerAddress;
+    writeData[1] = registerData;
+
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutClr(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
+	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, &writeData[0], sizeof(writeData), readData, dataSize, BLOCKING);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutSet(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
+#else /* HARDWARE_ID_REV_PROTOTYPE_1 */
+#if 0 /* Original */
+    status = WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, writeData, sizeof(writeData), NULL, 0);
+#else /* Use variable address since the Acc slave address sometimes changes */
+    status = WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, writeData, sizeof(writeData), readData, dataSize);
+#endif
+#endif
+    return (status);
 }
 
 ///----------------------------------------------------------------------------
@@ -202,14 +246,14 @@ int SetAccFullScaleRange(uint16_t rangeInGravity)
     else if (rangeInGravity == 64) { rangeBitSelection = 0x18; }
     else return (E_BAD_PARAM);
 
-    GetAccRegister(ACC_CONTROL_1_REGISTER, &controlReg1);
+    GetAccRegister(ACC_CONTROL_1_REGISTER, &controlReg1, sizeof(uint8_t));
     controlReg1 &= 0xE7; // Clear GSEL1 and GSEL0 bits
     controlReg1 |= rangeInGravity;
     SetAccRegister(ACC_CONTROL_1_REGISTER, controlReg1);
 
     // Verify
     controlReg1 = 0;
-    GetAccRegister(ACC_CONTROL_1_REGISTER, &controlReg1);
+    GetAccRegister(ACC_CONTROL_1_REGISTER, &controlReg1, sizeof(uint8_t));
     if ((controlReg1 & 0x18) == rangeBitSelection) { return (E_SUCCESS); }
     else return (E_FAIL);
 }
@@ -226,7 +270,8 @@ uint8_t VerifyAccManuIDAndPartID(void)
 #if 0 /* Original */
     WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddress, sizeof(uint8_t), manuIDAndPartID, sizeof(manuIDAndPartID));
 #else /* Use variable address since the Acc slave address sometimes changes */
-    WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddress, sizeof(uint8_t), manuIDAndPartID, sizeof(manuIDAndPartID));
+    //WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddress, sizeof(uint8_t), manuIDAndPartID, sizeof(manuIDAndPartID));
+    GetAccRegister(registerAddress, &manuIDAndPartID[0], sizeof(manuIDAndPartID));
 #endif
 
     if ((manuIDAndPartID[0] == 'K') && (manuIDAndPartID[1] == 'i') && (manuIDAndPartID[2] == 'o') && (manuIDAndPartID[3] == 'n'))
@@ -254,7 +299,8 @@ void GetAccChannelData(ACC_DATA_STRUCT* channelData)
 #if 0 /* Original */
     WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddress, sizeof(uint8_t), chanDataBytePtr, ACC_CHANNEL_DATA_SIZE);
 #else /* Use variable address since the Acc slave address sometimes changes */
-    WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddress, sizeof(uint8_t), chanDataBytePtr, ACC_CHANNEL_DATA_SIZE);
+    //WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddress, sizeof(uint8_t), chanDataBytePtr, ACC_CHANNEL_DATA_SIZE);
+    GetAccRegister(registerAddress, chanDataBytePtr, ACC_CHANNEL_DATA_SIZE);
 #endif
 
 #if 0 /* Should be unnecessary since data comes across Little Endian */
@@ -279,22 +325,22 @@ uint8_t VerifyAccCommandTestResponse(void)
     uint8_t registerData;
 
     // Read CTR register
-    GetAccRegister(ACC_COMMAND_TEST_RESPONSE_REGISTER, &ctrData);
+    GetAccRegister(ACC_COMMAND_TEST_RESPONSE_REGISTER, &ctrData, sizeof(uint8_t));
 
     if (ctrData == 0x55)
     {
         // Write COTC bit in Control 2 register
-        GetAccRegister(ACC_CONTROL_2_REGISTER, &registerData);
+        GetAccRegister(ACC_CONTROL_2_REGISTER, &registerData, sizeof(uint8_t));
         registerData |= 0x40; // Enable PC1 bit
         SetAccRegister(ACC_CONTROL_2_REGISTER, registerData);
 
         // Read CTR register again
-        GetAccRegister(ACC_COMMAND_TEST_RESPONSE_REGISTER, &ctrData);
+        GetAccRegister(ACC_COMMAND_TEST_RESPONSE_REGISTER, &ctrData, sizeof(uint8_t));
 
         if (ctrData == 0xAA)
         {
             // Read CTR register again
-            GetAccRegister(ACC_COMMAND_TEST_RESPONSE_REGISTER, &ctrData);
+            GetAccRegister(ACC_COMMAND_TEST_RESPONSE_REGISTER, &ctrData, sizeof(uint8_t));
 
             if (ctrData == 0x55)
             {
@@ -314,13 +360,13 @@ void StartAccAquisition(void)
     uint8_t registerData;
 
     // Set the ODR
-    GetAccRegister(ACC_OUTPUT_DATA_CONTROL_REGISTER, &registerData);
+    GetAccRegister(ACC_OUTPUT_DATA_CONTROL_REGISTER, &registerData, sizeof(uint8_t));
     registerData &= 0xF0; // Clear out OSA bits
     registerData |= ACC_ODR_1600; // Enable the output data rate
     SetAccRegister(ACC_OUTPUT_DATA_CONTROL_REGISTER, registerData);
 
     // Start operating mode and high performance
-    GetAccRegister(ACC_CONTROL_1_REGISTER, &registerData);
+    GetAccRegister(ACC_CONTROL_1_REGISTER, &registerData, sizeof(uint8_t));
     registerData |= 0xC0; // Enable PC1 and RES bits
     SetAccRegister(ACC_CONTROL_1_REGISTER, registerData);
 }
@@ -332,7 +378,7 @@ void StopAccAquisition(void)
 {
     uint8_t registerData;
 
-    GetAccRegister(ACC_CONTROL_1_REGISTER, &registerData);
+    GetAccRegister(ACC_CONTROL_1_REGISTER, &registerData, sizeof(uint8_t));
     registerData &= 0x7F; // Disable PC1 bit
     SetAccRegister(ACC_CONTROL_1_REGISTER, registerData);
 }
@@ -344,7 +390,7 @@ void InitAccControl(void)
 {
     uint8_t registerData;
 
-    GetAccRegister(ACC_CONTROL_1_REGISTER, &registerData);
+    GetAccRegister(ACC_CONTROL_1_REGISTER, &registerData, sizeof(uint8_t));
 
     // Check if PC1 shows in operation
     if (registerData & 0x80)
@@ -391,19 +437,22 @@ void IssueAccSoftwareReset(void)
     debug("Accelerometer: Attempting software reset to get slave address back to it's default...\r\n");
 
     // Write 0x00 to addr 0x7F for ack/nack
-    if (WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) == E_SUCCESS)
+    //if (WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) == E_SUCCESS)
+    if (SetAccRegister(registerAddrAndData[0], registerAddrAndData[1]) == E_SUCCESS)
     {
         // Write 0x00 to addr 0x1C looking for ack
         registerAddrAndData[0] = 0x1C;
         registerAddrAndData[1] = 0x00;
 
-        if (WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) == E_SUCCESS)
+        //if (WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) == E_SUCCESS)
+        if (SetAccRegister(registerAddrAndData[0], registerAddrAndData[1]) == E_SUCCESS)
         {
             // Write 0x80 to addr 0x1C looking for ack
             registerAddrAndData[0] = 0x1C;
             registerAddrAndData[1] = 0x80;
 
-            if (WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) == E_SUCCESS)
+            //if (WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddrAndData[0], sizeof(registerAddrAndData), NULL, 0) == E_SUCCESS)
+            if (SetAccRegister(registerAddrAndData[0], registerAddrAndData[1]) == E_SUCCESS)
             {
                 // Wait for device reset
                 MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
@@ -411,7 +460,8 @@ void IssueAccSoftwareReset(void)
                 // Read addr 0x13
                 registerAddrAndData[0] = 0x13;
 
-                if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddrAndData[0], sizeof(uint8_t), &readVal, sizeof(uint8_t)) == E_SUCCESS)
+                //if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddrAndData[0], sizeof(uint8_t), &readVal, sizeof(uint8_t)) == E_SUCCESS)
+                if (SetAndReadAccRegister(I2C_ADDR_ACCELEROMETER, registerAddrAndData[0], &readVal, sizeof(uint8_t)) == E_SUCCESS)
                 {
                     if (readVal == 0x46)
                     {
@@ -420,7 +470,8 @@ void IssueAccSoftwareReset(void)
 
                         registerAddrAndData[0] = 0x12;
 
-                        if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddrAndData[0], sizeof(uint8_t), &readVal, sizeof(uint8_t)) == E_SUCCESS)
+                        //if (WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddrAndData[0], sizeof(uint8_t), &readVal, sizeof(uint8_t)) == E_SUCCESS)
+                        if (SetAndReadAccRegister(I2C_ADDR_ACCELEROMETER, registerAddrAndData[0], &readVal, sizeof(uint8_t)) == E_SUCCESS)
                         {
                             if (readVal == 0x55)
                             {
@@ -446,6 +497,9 @@ void IssueAccSoftwareReset(void)
 ///----------------------------------------------------------------------------
 void AccelerometerInit(void)
 {
+    g_spi2State |= SPI2_ACC_ON;
+    if ((g_spi2State & SPI2_OPERAITONAL) == NO) { SetupSPI2_LCDAndAcc(); g_spi2State |= SPI2_OPERAITONAL; }
+
 #if 1 /* Test issuing software reset if the Acc slave address is anything other than the primary defualt 0x1E */
     if (1) //(accelerometerI2CAddr != I2C_ADDR_ACCELEROMETER)
     {
@@ -466,20 +520,20 @@ void AccelerometerInit(void)
 #endif
 
         uint8_t testData;
-        GetAccRegister(ACC_CONTROL_2_REGISTER, &testData);
+        GetAccRegister(ACC_CONTROL_2_REGISTER, &testData, sizeof(uint8_t));
         if (testData == 0x3F) { debug("Accelerometer: Ctrl2 is default value\r\n"); }
         else { debug("Accelerometer: Ctrl2 is non-default value of 0x%x\r\n", testData); }
 
-        GetAccRegister(ACC_CONTROL_3_REGISTER, &testData);
+        GetAccRegister(ACC_CONTROL_3_REGISTER, &testData, sizeof(uint8_t));
         if (testData == 0xA8) { debug("Accelerometer: Ctrl3 is default value\r\n"); }
         else { debug("Accelerometer: Ctrl3 is non-default value of 0x%x\r\n", testData); }
         SetAccRegister(ACC_CONTROL_3_REGISTER, 0x00);
-        GetAccRegister(ACC_CONTROL_3_REGISTER, &testData);
+        GetAccRegister(ACC_CONTROL_3_REGISTER, &testData, sizeof(uint8_t));
         if (testData == 0) { debug("Accelerometer: Ctrl3 was changed successfully\r\n"); }
         else { debug("Accelerometer: Ctrl3 not changed correctly, returns a non-zero value of 0x%x\r\n", testData); }
         //SetAccRegister(ACC_CONTROL_3_REGISTER, 0xA8);
 
-        GetAccRegister(ACC_CONTROL_4_REGISTER, &testData);
+        GetAccRegister(ACC_CONTROL_4_REGISTER, &testData, sizeof(uint8_t));
         if (testData == 0x40) { debug("Accelerometer: Ctrl4 is default value\r\n"); }
         else { debug("Accelerometer: Ctrl4 is non-default value of 0x%x\r\n", testData); }
 
@@ -508,11 +562,11 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
         // 2. Set PC1 bit to 1 in CNTL1 register to enable KX134-1211.
         // 3. Write 0xCA to this register to enable the MEMS self-test function.
         debug("Accelerometer: Starting Self-test...\r\n");
-        GetAccRegister(ACC_INTERRUPT_CONTROL_1_REGISTER, &testData);
+        GetAccRegister(ACC_INTERRUPT_CONTROL_1_REGISTER, &testData, sizeof(uint8_t));
         testData |= 0x02;
         SetAccRegister(ACC_INTERRUPT_CONTROL_1_REGISTER, testData);
 
-        GetAccRegister(ACC_CONTROL_1_REGISTER, &testData);
+        GetAccRegister(ACC_CONTROL_1_REGISTER, &testData, sizeof(uint8_t));
         testData |= 0x80;
         SetAccRegister(ACC_CONTROL_1_REGISTER, testData);
 
@@ -563,7 +617,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
         GetAccRegister(ACC_INTERRUPT_RELEASE_REGISTER, &testData);
 
         debug("Accelerometer: Start operating...\r\n");
-        GetAccRegister(ACC_CONTROL_1_REGISTER, &testData);
+        GetAccRegister(ACC_CONTROL_1_REGISTER, &testData, sizeof(uint8_t));
         testData |= 0xE5;
         SetAccRegister(ACC_CONTROL_1_REGISTER, testData);
 
@@ -577,10 +631,10 @@ extern volatile uint8_t testAccInt;
         {
             if (testAccInt)
             {
-                GetAccRegister(ACC_INTERRUPT_SOURCE_1_REGISTER, &is1);
-                GetAccRegister(ACC_INTERRUPT_SOURCE_2_REGISTER, &is2);
-                GetAccRegister(ACC_INTERRUPT_SOURCE_3_REGISTER, &is3);
-                GetAccRegister(ACC_INTERRUPT_RELEASE_REGISTER, &testData);
+                GetAccRegister(ACC_INTERRUPT_SOURCE_1_REGISTER, &is1, sizeof(uint8_t));
+                GetAccRegister(ACC_INTERRUPT_SOURCE_2_REGISTER, &is2, sizeof(uint8_t));
+                GetAccRegister(ACC_INTERRUPT_SOURCE_3_REGISTER, &is3, sizeof(uint8_t));
+                GetAccRegister(ACC_INTERRUPT_RELEASE_REGISTER, &testData, sizeof(uint8_t));
                 debug("Accelerometer: Interrupt source regs: 0x%x 0x%x 0x%x\r\n", is1, is2, is3);
                 testAccInt = 0;
 
@@ -599,4 +653,8 @@ extern volatile uint8_t testAccInt;
         SetAccRegister(ACC_CONTROL_5_REGISTER, 0x01);
         debug("Accelerometer: Manual sleep engaged\r\n");
     }
+
+    g_spi2State &= ~SPI2_ACC_ON;
+	// Check if SPI2 is not active for the LCD
+	if ((g_spi2State & SPI2_LCD_ON) == NO) { MXC_SPI_Shutdown(MXC_SPI2); g_spi2State &= ~SPI2_OPERAITONAL; } // Mark SPI2 state shutdown
 }
