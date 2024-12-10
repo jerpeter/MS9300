@@ -195,6 +195,7 @@ extern uint8 g_summaryListMenuActive;
 extern uint8 g_summaryListArrowChar;
 extern uint8 g_disableDebugPrinting;
 extern uint8 g_lowBatteryState;
+extern uint8 g_spi2State;
 extern USER_MENU_CACHE_STRUCT g_userMenuCache[36];
 extern USER_MENU_CACHE_STRUCT* g_userMenuCachePtr;
 extern USER_MENU_CACHE_DATA g_userMenuCacheData;

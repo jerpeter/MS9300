@@ -304,11 +304,25 @@ void LcdPowerGpioSetup(uint8_t mode)
 {
 	if (mode == ON)
 	{
-		SetupSPI2_LCD();
+		// Mark SPI2 state that LCD is active
+		g_spi2State |= SPI2_LCD_ON;
+
+		// Check if SPI2 is not operational and setup if necessary
+		if ((g_spi2State & SPI2_OPERAITONAL) == NO) { SetupSPI2_LCDAndAcc(); g_spi2State |= SPI2_OPERAITONAL; } // Mark SPI2 state operational
+
+		// Setup the SPI2 Slave Select since the driver init call does not initialize the GPIO
+		mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { GPIO_SPI2_SS0_LCD_PORT, GPIO_SPI2_SS0_LCD_PIN, MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
+		if (FT81X_SPI_2_SS_CONTROL_MANUAL == NO) { spi2SlaveSelect0GpioConfig.func = MXC_GPIO_FUNC_ALT1; } // SPI2 Slave Select controlled by the SPI driver
+		MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig);
 	}
 	else // (mode == OFF)
 	{
-		MXC_SPI_Shutdown(MXC_SPI2);
+		// Clear SPI2 state for LCD active
+		g_spi2State &= ~SPI2_LCD_ON;
+
+		// Check if SPI2 is not active for the Accelerometer
+		if ((g_spi2State & SPI2_ACC_ON) == NO) { MXC_SPI_Shutdown(MXC_SPI2); g_spi2State &= ~SPI2_OPERAITONAL; } // Mark SPI2 state shutdown
+
 		mxc_gpio_cfg_t gpio_cfg_spi2 = { MXC_GPIO2, (GPIO_SPI2_SCK_PIN | GPIO_SPI2_MISO_PIN | GPIO_SPI2_MOSI_PIN | GPIO_SPI2_SS0_LCD_PIN), MXC_GPIO_FUNC_IN, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
 		MXC_GPIO_Config(&gpio_cfg_spi2);
 	}

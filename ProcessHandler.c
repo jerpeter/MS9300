@@ -31,6 +31,8 @@
 #include "RealTimeClock.h"
 #include "RemoteOperation.h"
 
+#include "spi.h"
+
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
@@ -295,6 +297,9 @@ void StartDataCollection(uint32 sampleRate)
 	{
 		debug("Start data collection: Using Accelerometer\r\n");
 
+		g_spi2State |= SPI2_ACC_ON;
+		if ((g_spi2State & SPI2_OPERAITONAL) == NO) { SetupSPI2_LCDAndAcc(); g_spi2State |= SPI2_OPERAITONAL; }
+
 void StartAccAquisition(void);
 		StartAccAquisition();
 
@@ -423,6 +428,19 @@ void StopMonitoring(uint8 mode, uint8 operation)
 
 		// Stop the data transfers
 		StopDataCollection();
+
+#if 1 /* Test Accelerometer */
+	if (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType))
+	{
+		debug("Stop data collection: Accelerometer\r\n");
+
+void StopAccAquisition(void);
+		StopAccAquisition();
+
+		g_spi2State &= ~SPI2_ACC_ON;
+		if ((g_spi2State & SPI2_LCD_ON) == NO) { MXC_SPI_Shutdown(MXC_SPI2); g_spi2State &= ~SPI2_OPERAITONAL; } // Mark SPI2 state shutdown
+	}
+#endif
 
 		// Reset the Waveform flag
 		g_doneTakingEvents = NO;
