@@ -1300,10 +1300,12 @@ extern void External_rtc_periodic_timer(void);
 	//----------------------------------------------------------------------------------------------------------------------
 	setupGPIO.port = GPIO_SPI2_SS1_ACC_PORT;
 	setupGPIO.mask = GPIO_SPI2_SS1_ACC_PIN;
-	setupGPIO.func = MXC_GPIO_FUNC_ALT1;
+	//setupGPIO.func = MXC_GPIO_FUNC_ALT1; // SPI2 Master would control, but setup for LCD uses manual control
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as inactive
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// LCD Power Down: Port 2, Pin 1, Output, External pulldown, Active low, 1.8V (minimum 1.7V)
@@ -2211,15 +2213,11 @@ void SetupSPI3_ExternalADC(uint32_t clockSpeed)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SetupSPI2_LCD(void)
+void SetupSPI2_LCDAndAcc(void)
 {
 	int status;
 
-	// Setup the SPI2 Slave Select since the driver init call does not initialize the GPIO
-	mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { GPIO_SPI2_SS0_LCD_PORT, GPIO_SPI2_SS0_LCD_PIN, MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_SPI2->ctrl0 &= ~MXC_F_SPI_CTRL0_SS_SEL; } // Clear Master SS select control
-	else { spi2SlaveSelect0GpioConfig.func = MXC_GPIO_FUNC_ALT1; } // SPI2 Slave Select controlled by the SPI driver
-	MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig);
 
 	status = MXC_SPI_Init(MXC_SPI2, YES, NO, 1, LOW, SPI_SPEED_LCD);
 	if (status != E_SUCCESS) { debugErr("SPI2 (LCD) Init failed with code: %d\r\n", status); }
@@ -5313,7 +5311,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	SetupSPI3_ExternalADC(30 * 1000000);
 #if 0 /* Only initializing when the power domain is activated */
-	SetupSPI2_LCD();
+	SetupSPI2_LCDAndAcc();
 #endif
 
 	//-------------------------------------------------------------------------
@@ -5418,8 +5416,10 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initalize the Accelerometer
 	//-------------------------------------------------------------------------
-#if 1 /* Normal */
+#if 0 /* Normal */
 	AccelerometerInit(); debug("Accelerometer: Init complete\r\n");
+#else
+	debugWarn("Accelerometer: Init skipped for now\r\n");
 #endif
 
 	//-------------------------------------------------------------------------
