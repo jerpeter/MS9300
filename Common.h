@@ -68,15 +68,21 @@ enum {
 #define GET_HARDWARE_ID					(g_shadowFactorySetupRecord.hardwareID) // Factory setup location of Hardware ID
 #define GET_BUILD_ID					(g_shadowFactorySetupRecord.buildID) // Factory setup location of Build ID
 
+#if 0 /* enum doesn't seem to work for directives */
 enum {
-	HARDWARE_ID_REV_PROTOTYPE_1 = 1,
-	HARDWARE_ID_REV_BETA_RESPIN = 2,
 	HARDWARE_ID_REV_8_NORMAL = 0x08, // Old hardware
 	HARDWARE_ID_REV_8_WITH_USART = 0x18, // Old hardware
 	HARDWARE_ID_REV_8_WITH_GPS_MOD = 0x28 // Old hardware
 };
+#else
+#define HARDWARE_ID_REV_PROTOTYPE_1		1
+#define HARDWARE_ID_REV_BETA_RESPIN		2
+#define HARDWARE_ID_REV_8_NORMAL		0x08 // Old hardware
+#define HARDWARE_ID_REV_8_WITH_USART	0x18 // Old hardware
+#define HARDWARE_ID_REV_8_WITH_GPS_MOD	0x28 // Old hardware
+#endif
 
-#define HARDWARE_BOARD_REVISION		2 // Beta re-spin
+#define HARDWARE_BOARD_REVISION		HARDWARE_ID_REV_BETA_RESPIN
 
 enum {
 	ACTIVE_MODE = 0,
@@ -115,6 +121,10 @@ typedef struct
 	uint16_t y;
 	uint16_t z;
 } ACC_DATA_STRUCT;
+
+#define SPI2_OPERAITONAL 	0x80
+#define SPI2_ACC_ON			0x02
+#define SPI2_LCD_ON			0x01
 
 typedef struct
 {
@@ -1132,7 +1142,7 @@ void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeasser
 // SPI Init wrappers
 //void SetupSPI3_ExternalADC(void);
 void SetupSPI3_ExternalADC(uint32_t clockSpeed);
-void SetupSPI2_LCD(void);
+void SetupSPI2_LCDAndAcc(void);
 
 // Helper routines
 uint8_t IsSeismicSensorAGeophone(uint16_t seismicSensorType);
