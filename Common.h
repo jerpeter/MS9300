@@ -126,6 +126,15 @@ typedef struct
 #define SPI2_ACC_ON			0x02
 #define SPI2_LCD_ON			0x01
 
+#define SPI2_LCD_STREAM		0x80
+#define SPI2_ACTIVE			0x01
+
+enum {
+	SPI_ADC = 1,
+	SPI_LCD,
+	SPI_ACC
+};
+
 typedef struct
 {
 	uint8 year;
@@ -1137,7 +1146,7 @@ void ProcessUsbCoreHandling(void);
 int WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize);
 
 // Wrapper to help SPI transactions
-void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeassert, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method);
+void SpiTransaction(uint8_t spiDevice, uint8_t dataBits, uint8_t ssDeassert, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method);
 
 // SPI Init wrappers
 //void SetupSPI3_ExternalADC(void);
@@ -1148,5 +1157,8 @@ void SetupSPI2_LCDAndAcc(void);
 uint8_t IsSeismicSensorAGeophone(uint16_t seismicSensorType);
 uint8_t IsSeismicSensorInternalAccelerometer(uint16_t seismicSensorType);
 uint8_t IsSeismicSensorAnAccelerometer(uint16_t seismicSensorType);
+
+// Internal Accelerometer
+void GetAccChannelData(ACC_DATA_STRUCT* channelData);
 
 #endif // _COMMON_H_
