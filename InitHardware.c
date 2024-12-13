@@ -2076,7 +2076,8 @@ void SetupWatchdog(void)
 //#define SPI_SPEED_ADC 3000000 // Bit Rate
 #define SPI_SPEED_ADC 60000000 // Bit Rate
 #endif
-#define SPI_SPEED_LCD 10000000 //12000000 // Bit Rate
+//#define SPI_SPEED_LCD 10000000 //12000000 // Bit Rate
+#define SPI_SPEED_LCD 30000000 //12000000 // Bit Rate // Try 30 MHz
 //#define SPI_WIDTH_DUAL	2
 
 ///----------------------------------------------------------------------------
@@ -2129,13 +2130,14 @@ void SPI_Callback(mxc_spi_req_t *req, int result)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeassert, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method)
+void SpiTransaction(uint8_t spiDevice, uint8_t dataBits, uint8_t ssDeassert, uint8_t* writeData, uint32_t writeSize, uint8_t* readData, uint32_t readSize, uint8_t method)
 {
 	mxc_spi_req_t spiRequest;
 	IRQn_Type spiIrq;
 	void (*irqHandler)(void);
 
-	spiRequest.spi = spiPort;
+	if (spiDevice == SPI_ADC) { spiRequest.spi = MXC_SPI3; }
+	else /* LCD or Acc */ { spiRequest.spi = MXC_SPI2; }
 	spiRequest.txData = writeData;
 	spiRequest.txLen = writeSize;
 	spiRequest.rxData = readData;
@@ -2153,17 +2155,31 @@ void SpiTransaction(mxc_spi_regs_t* spiPort, uint8_t dataBits, uint8_t ssDeasser
 
 	if (method == BLOCKING)
 	{
+		if (spiDevice == SPI_LCD)
+		{
+			// Check if the SPI2 is not actively handling an LCD stream and actively sampling and the sensor is the internal Acc
+			if ((!g_spi2InUseByLCD) && (g_sampleProcessing == ACTIVE_STATE) && (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType)))
+			{
+				// Pre cache an internal Acc sample to be picked up by the sampling ISR if the SPI2 resource is busy
+				GetAccChannelData(&g_accDataCache);
+			}
+
+			g_spi2InUseByLCD |= SPI2_ACTIVE;
+		}
+
 		MXC_SPI_MasterTransaction(&spiRequest);
+
+		if (spiDevice == SPI_LCD) { g_spi2InUseByLCD &= ~SPI2_ACTIVE; }
 	}
 	else if (method == ASYNC_ISR)
 	{
 		// Check if selecting the ADC
-		if (spiPort == MXC_SPI3)
+		if (spiDevice == SPI_ADC)
 		{
 			spiIrq = SPI3_IRQn;
 			irqHandler = SPI3_IRQHandler;
 		}
-		else // Selecting the LCD
+		else // Selecting the LCD or Accelerometer (beta/re-spin)
 		{
 			spiIrq = SPI2_IRQn;
 			irqHandler = SPI2_IRQHandler;
