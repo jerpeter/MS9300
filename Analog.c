@@ -90,47 +90,47 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 		// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
 
 		// Chan 0 - Geo1/R
-		if (chanActive[0]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		if (chanActive[0]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 			dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 0) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 0, (chanDataRaw[2] & 0x0F)); }
 			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
 		// Chan 1 - Geo1/T
-		if (chanActive[1]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		if (chanActive[1]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 			dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 1) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 1, (chanDataRaw[2] & 0x0F)); }
 			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
 		// Chan 2 - Geo1/V
-		if (chanActive[2]){ SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		if (chanActive[2]){ SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 			dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 2) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 2, (chanDataRaw[2] & 0x0F)); }
 			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
 		// Chan 3 - AOP1/A
-		if (chanActive[3]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		if (chanActive[3]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 			dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 3) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 3, (chanDataRaw[2] & 0x0F)); }
 			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
 		// Chan 4 - Geo2/R
-		if (chanActive[4]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		if (chanActive[4]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 			dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 4) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 4, (chanDataRaw[2] & 0x0F)); }
 			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
 		// Chan 5 - Geo2/T
-		if (chanActive[5]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		if (chanActive[5]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 			dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 5) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 5, (chanDataRaw[2] & 0x0F)); }
 			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
 		// Chan 6 - Geo2/V
-		if (chanActive[6]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		if (chanActive[6]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 			dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 6) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 6, (chanDataRaw[2] & 0x0F)); }
 			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
 		// Chan 7 - AOP2/A
-		if (chanActive[7]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		if (chanActive[7]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 			dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 7) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 7, (chanDataRaw[2] & 0x0F)); }
 			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
 
 		// Temp
-		SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+		SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 #if 1 /* Test */
 		dataTemperature = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 #endif
@@ -146,23 +146,23 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 		// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
 
 		// Chan 0
-		SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+		SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 		dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 		// Chan 1
-		SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+		SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 		dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 		// Chan 2
-		SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+		SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 		dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 		// Chan 3
-		SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+		SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 		dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 		// Temp
-		SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+		SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 #if 1 /* Test */
 		dataTemperature = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 #endif
@@ -170,19 +170,19 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 	else // FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP
 	{
 		// Chan 0
-		SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+		SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 		dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 		// Chan 1
-		SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+		SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 		dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 		// Chan 2
-		SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+		SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 		dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 		// Chan 3
-		SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+		SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 		dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 	}
 }
@@ -507,7 +507,6 @@ void GetChannelOffsets(uint32 sampleRate)
 #if 1 /* Test Accelerometer */
 		if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
 		{
-extern void GetAccChannelData(ACC_DATA_STRUCT* channelData);
 			ACC_DATA_STRUCT accData;
 			GetAccChannelData(&accData);
 			s_tempData.a = 0x8000; s_tempData.r = accData.x; s_tempData.t = accData.y; s_tempData.v = accData.z;
@@ -533,7 +532,6 @@ extern void GetAccChannelData(ACC_DATA_STRUCT* channelData);
 #if 1 /* Test Accelerometer */
 		if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
 		{
-extern void GetAccChannelData(ACC_DATA_STRUCT* channelData);
 			ACC_DATA_STRUCT accData;
 			GetAccChannelData(&accData);
 			s_tempData.a = 0x8000; s_tempData.r = accData.x; s_tempData.t = accData.y; s_tempData.v = accData.z;
@@ -579,7 +577,6 @@ extern void GetAccChannelData(ACC_DATA_STRUCT* channelData);
 #if 1 /* Test Accelerometer */
 		if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
 		{
-extern void GetAccChannelData(ACC_DATA_STRUCT* channelData);
 			ACC_DATA_STRUCT accData;
 			GetAccChannelData(&accData);
 			s_tempData.a = 0x8000; s_tempData.r = accData.x; s_tempData.t = accData.y; s_tempData.v = accData.z;
@@ -909,7 +906,7 @@ void AD4695_SpiWriteRegister(uint16_t reg_addr, uint8_t reg_data)
 	writeData[1] = 0xFF & reg_addr;
 	writeData[2] = reg_data;
 
-	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 }
 
 ///----------------------------------------------------------------------------
@@ -924,7 +921,7 @@ void AD4695_SpiReadRegister(uint16_t reg_addr, uint8_t* reg_data)
 	writeData[1] = 0xFF & reg_addr;
 	writeData[2] = 0xFF;
 
-	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
+	SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
 	*reg_data = readData[2];
 }
 
@@ -1221,7 +1218,7 @@ void AD4695_ExitConversionMode()
 	command[0] = AD4695_CMD_REG_CONFIG_MODE;
 
 	SetAdcConversionState(ON);
-	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, command, 3, NULL, 0, BLOCKING);
+	SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, command, 3, NULL, 0, BLOCKING);
 	SetAdcConversionState(OFF);
 
 	debug("External ADC: Exit Conversion mode...\r\n");

@@ -169,7 +169,7 @@ int GetAccRegister(uint8_t registerAddress, uint8_t* registerData, uint8_t dataS
     int status = E_SUCCESS;
 #if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutClr(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, registerData, dataSize, BLOCKING);
+	SpiTransaction(SPI_ACC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, registerData, dataSize, BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutSet(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
 #else /* HARDWARE_ID_REV_PROTOTYPE_1 */
 #if 0 /* Original */
@@ -194,7 +194,7 @@ int SetAccRegister(uint8_t registerAddress, uint8_t registerData)
 
 #if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutClr(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, &writeData[0], sizeof(writeData), NULL, 0, BLOCKING);
+	SpiTransaction(SPI_ACC, SPI_8_BIT_DATA_SIZE, YES, &writeData[0], sizeof(writeData), NULL, 0, BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutSet(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
 #else /* HARDWARE_ID_REV_PROTOTYPE_1 */
 #if 0 /* Original */
@@ -219,7 +219,7 @@ int SetAndReadAccRegister(uint8_t registerAddress, uint8_t registerData, uint8_t
 
 #if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutClr(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, YES, &writeData[0], sizeof(writeData), readData, dataSize, BLOCKING);
+	SpiTransaction(SPI_ACC, SPI_8_BIT_DATA_SIZE, YES, &writeData[0], sizeof(writeData), readData, dataSize, BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutSet(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
 #else /* HARDWARE_ID_REV_PROTOTYPE_1 */
 #if 0 /* Original */
