@@ -1590,7 +1590,7 @@ void test_black_screen()
 
 void test_white_screen()
 {
-	// Build a black display and display it
+	// Build a white display and display it
 	ft81x_stream_start(); // Start streaming
 	ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
 	ft81x_cmd_swap();     // Set AUTO swap at end of display list
@@ -1600,6 +1600,133 @@ void test_white_screen()
 	ft81x_getfree(0);     // trigger FT81x to read the command buffer
 	ft81x_stream_stop();  // Finish streaming to command buffer
 	ft81x_wait_finish();  // Wait till the GPU is finished processing the commands
+
+	// Sleep a little (100ms)
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(3000));
+}
+
+void test_white_screen_no_stream(void)
+{
+	uint32_t lcdSpiTiming[14];
+
+	// Build a white display and display it
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	ft81x_stream_start(); // Start streaming
+	ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
+	lcdSpiTiming[0] = (0xffffff - SysTick->VAL);
+    SysTick->CTRL = 0; /* Disable */
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	ft81x_stream_start(); // Start streaming
+	ft81x_cmd_swap();     // Set AUTO swap at end of display list
+	lcdSpiTiming[1] = (0xffffff - SysTick->VAL);
+    SysTick->CTRL = 0; /* Disable */
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	ft81x_stream_start(); // Start streaming
+	ft81x_clear_color_rgb32(0xFFFFFF);
+	lcdSpiTiming[2] = (0xffffff - SysTick->VAL);
+    SysTick->CTRL = 0; /* Disable */
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	ft81x_stream_start(); // Start streaming
+	ft81x_clear();
+	lcdSpiTiming[3] = (0xffffff - SysTick->VAL);
+    SysTick->CTRL = 0; /* Disable */
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	ft81x_stream_start(); // Start streaming
+	ft81x_cmd_button(12, 220, 132, 55, 29, 0, "LCD OFF");
+	lcdSpiTiming[4] = (0xffffff - SysTick->VAL);
+    SysTick->CTRL = 0; /* Disable */
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	ft81x_stream_start(); // Start streaming
+	ft81x_cmd_button(225, 220, 132, 55, 29, 0, "BACKLIGHT");
+	lcdSpiTiming[5] = (0xffffff - SysTick->VAL);
+    SysTick->CTRL = 0; /* Disable */
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	ft81x_stream_start(); // Start streaming
+	ft81x_cmd_button(432, 220, 132, 55, 29, 0, "CONFIG");
+	lcdSpiTiming[6] = (0xffffff - SysTick->VAL);
+    SysTick->CTRL = 0; /* Disable */
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	ft81x_stream_start(); // Start streaming
+	ft81x_cmd_button(650, 220, 132, 55, 29, 0, "ESCAPE");
+	// Swap back to default blue text
+	lcdSpiTiming[7] = (0xffffff - SysTick->VAL);
+    SysTick->CTRL = 0; /* Disable */
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	ft81x_stream_start(); // Start streaming
+	ft81x_color_rgb32(0x0000ff);
+	lcdSpiTiming[8] = (0xffffff - SysTick->VAL);
+    SysTick->CTRL = 0; /* Disable */
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	ft81x_stream_start(); // Start streaming
+	ft81x_cmd_text(180, 80, 28, 0, "Test with a longer string for the difference in timing");
+	lcdSpiTiming[9] = (0xffffff - SysTick->VAL);
+    SysTick->CTRL = 0; /* Disable */
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	ft81x_stream_start(); // Start streaming
+	ft81x_display();
+	lcdSpiTiming[10] = (0xffffff - SysTick->VAL);
+    SysTick->CTRL = 0; /* Disable */
+
+	ft81x_stream_start(); // Start streaming
+	ft81x_getfree(0);     // trigger FT81x to read the command buffer
+	ft81x_stream_stop();  // Finish streaming to command buffer
+
+	ft81x_wait_finish();  // Wait till the GPU is finished processing the commands
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_USEC(100));
+	lcdSpiTiming[11] = (0xffffff - SysTick->VAL);
+    SysTick->CTRL = 0; /* Disable */
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1));
+	lcdSpiTiming[12] = (0xffffff - SysTick->VAL);
+    SysTick->CTRL = 0; /* Disable */
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(10));
+	lcdSpiTiming[13] = (0xffffff - SysTick->VAL);
+    SysTick->CTRL = 0; /* Disable */
+
+	debug("LCD SPI2 timing test 0: %d ticks\r\n", lcdSpiTiming[0]);
+	debug("LCD SPI2 timing test 1: %d ticks\r\n", lcdSpiTiming[1]);
+	debug("LCD SPI2 timing test 2: %d ticks\r\n", lcdSpiTiming[2]);
+	debug("LCD SPI2 timing test 3: %d ticks\r\n", lcdSpiTiming[3]);
+	debug("LCD SPI2 timing test 4: %d ticks\r\n", lcdSpiTiming[4]);
+	debug("LCD SPI2 timing test 5: %d ticks\r\n", lcdSpiTiming[5]);
+	debug("LCD SPI2 timing test 6: %d ticks\r\n", lcdSpiTiming[6]);
+	debug("LCD SPI2 timing test 7: %d ticks\r\n", lcdSpiTiming[7]);
+	debug("LCD SPI2 timing test 8: %d ticks\r\n", lcdSpiTiming[8]);
+	debug("LCD SPI2 timing test 9: %d ticks\r\n", lcdSpiTiming[9]);
+	debug("LCD SPI2 timing test 10: %d ticks\r\n", lcdSpiTiming[10]);
+
+	debug("Tick timing test 100us: %d ticks\r\n", lcdSpiTiming[11]);
+	debug("Tick timing test 1ms: %d ticks\r\n", lcdSpiTiming[12]);
+	debug("Tick timing test 10ms: %d ticks\r\n", lcdSpiTiming[13]);
 
 	// Sleep a little (100ms)
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(3000));
@@ -2249,7 +2376,7 @@ void ft81x_hostcmd_param(uint8_t command, uint8_t args)
 	writeData[2] = 0x00; // Dummy byte
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	SpiTransaction(SPI_LCD, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 }
 
@@ -2270,7 +2397,7 @@ uint8_t ft81x_rd(uint32_t addr)
 	writeData[4] = 0x00; // Swap byte for data read 1
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
+	SpiTransaction(SPI_LCD, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 
 	return (readData[4]);
@@ -2295,7 +2422,7 @@ uint16_t ft81x_rd16(uint32_t addr)
 	writeData[5] = 0x00; // Swap byte for data read 2
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
+	SpiTransaction(SPI_LCD, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 
 #if 0 /* Original */
@@ -2327,7 +2454,7 @@ uint32_t ft81x_rd32(uint32_t addr)
 	writeData[7] = 0x00; // Swap byte for data read 4
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
+	SpiTransaction(SPI_LCD, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), readData, sizeof(readData), BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 
 #if 0 /* Original */
@@ -2355,7 +2482,7 @@ void ft81x_wr(uint32_t addr, uint8_t byteVal)
 	writeData[3] = byteVal;
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	SpiTransaction(SPI_LCD, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 }
 
@@ -2381,7 +2508,7 @@ void ft81x_wr16(uint32_t addr, uint16_t wordVal)
 #endif
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	SpiTransaction(SPI_LCD, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 }
 
@@ -2411,7 +2538,7 @@ void ft81x_wr32(uint32_t addr, uint32_t longVal)
 #endif
 
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	SpiTransaction(SPI_LCD, SPI_8_BIT_DATA_SIZE, LCD_SPI_DEASERT, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(NO); }
 }
 
@@ -2431,7 +2558,7 @@ void ft81x_wrA(uint32_t addr)
 
 	// SPI write but leave slave selected for future write data
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { ft81x_assert_cs(YES); }
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, NO, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	SpiTransaction(SPI_LCD, SPI_8_BIT_DATA_SIZE, NO, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 }
 
 /*
@@ -2440,7 +2567,7 @@ void ft81x_wrA(uint32_t addr)
 void ft81x_wrN(uint8_t *buffer, uint8_t size)
 {
 	// SPI write with slave select still active from before, write more data
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, NO, buffer, size, NULL, 0, BLOCKING);
+	SpiTransaction(SPI_LCD, SPI_8_BIT_DATA_SIZE, NO, buffer, size, NULL, 0, BLOCKING);
 }
 
 void ft81x_wrE(uint32_t addr)
@@ -2658,6 +2785,19 @@ void ft81x_stream_start()
 {
   // be sure we ended the last tranaction
   ft81x_stream_stop();
+
+#if 1 /* Added logic to handle SPI2 resource access issue between LCD and Acc */
+	// Check if the actively sampling and the sensor is the internal Acc
+	if ((g_sampleProcessing == ACTIVE_STATE) && (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType)))
+	{
+		// Pre cache an internal Acc sample to be picked up by the sampling ISR if the SPI2 resource is busy
+		GetAccChannelData(&g_accDataCache);
+	}
+
+	// Update resource flag
+	g_spi2InUseByLCD |= SPI2_LCD_STREAM;
+#endif
+
   // begin a new write transaction.
   ft81x_wrA(RAM_CMD + (ft81x_fifo_wp & 0xffc));
 }
@@ -2670,6 +2810,11 @@ void ft81x_stream_stop()
 {
   // end the transaction
 	ft81x_assert_cs(NO);
+
+#if 1 /* Added logic to handle SPI2 resource access issue between LCD and Acc */
+	// Update resource flag
+	g_spi2InUseByLCD &= ~SPI2_LCD_STREAM;
+#endif
 }
 
 /*
@@ -2768,7 +2913,7 @@ void ft81x_cmd32(uint32_t word)
 	writeData[3] = ((word >> 24) & 0xFF);
 #endif
 
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, NO, writeData, sizeof(writeData), NULL, 0, BLOCKING);
+	SpiTransaction(SPI_LCD, SPI_8_BIT_DATA_SIZE, NO, writeData, sizeof(writeData), NULL, 0, BLOCKING);
 #endif
 }
 
@@ -2802,7 +2947,7 @@ void ft81x_cN(uint8_t *buffer, uint16_t size)
   // transmit our transaction to the ISR
   spi_device_transmit(ft81x_spi, (spi_transaction_t*)&trans);
 #else
-	SpiTransaction(MXC_SPI2, SPI_8_BIT_DATA_SIZE, NO, buffer, size, NULL, 0, BLOCKING);
+	SpiTransaction(SPI_LCD, SPI_8_BIT_DATA_SIZE, NO, buffer, size, NULL, 0, BLOCKING);
 #endif
 }
 

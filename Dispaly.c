@@ -381,45 +381,50 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 	if (g_lcdPowerFlag == DISABLED) { return; }
 
 	// Swap to white text
-	ft81x_color_rgb32(0xffffff);
+	ft81x_stream_start(); ft81x_color_rgb32(0xffffff); ft81x_stream_stop();
 
 	// If the special message box for leaving monitoring is displayed, grey out the soft keys
-	if (g_promtForLeavingMonitorMode == TRUE) { ft81x_fgcolor_rgb32(0x525252); } // Grey foreground
+	if (g_promtForLeavingMonitorMode == TRUE) { ft81x_stream_start(); ft81x_fgcolor_rgb32(0x525252); ft81x_stream_stop(); } // Grey foreground
 
-	ft81x_cmd_button(12, 420, 132, 55, 29, 0, "LCD OFF");
-	ft81x_cmd_button(225, 420, 132, 55, 29, 0, "BACKLIGHT");
-	ft81x_cmd_button(432, 420, 132, 55, 29, 0, "CONFIG");
-	ft81x_cmd_button(650, 420, 132, 55, 29, 0, "ESCAPE");
+	ft81x_stream_start(); ft81x_cmd_button(12, 420, 132, 55, 29, 0, "LCD OFF"); ft81x_stream_stop();
+	ft81x_stream_start(); ft81x_cmd_button(225, 420, 132, 55, 29, 0, "BACKLIGHT"); ft81x_stream_stop();
+	ft81x_stream_start(); ft81x_cmd_button(432, 420, 132, 55, 29, 0, "CONFIG"); ft81x_stream_stop();
+	ft81x_stream_start(); ft81x_cmd_button(650, 420, 132, 55, 29, 0, "ESCAPE"); ft81x_stream_stop();
 
 	// Swap back to default blue text
-	ft81x_color_rgb32(0x0000ff);
+	ft81x_stream_start(); ft81x_color_rgb32(0x0000ff); ft81x_stream_stop();
 
 #if 1 /* Test display of Battery information */
 	if (g_promtForLeavingMonitorMode != TRUE)
 	{
 		char debugInfo[32];
 		sprintf(debugInfo, "Battery: %0.3fV", (double)((float)FuelGaugeGetVoltage() / 1000));
-		ft81x_cmd_text(580, 40, 28, 0, debugInfo);
+		ft81x_stream_start(); ft81x_cmd_text(580, 40, 28, 0, debugInfo); ft81x_stream_stop();
 
 		sprintf(debugInfo, "Current: %0.3fmA", (double)((float)FuelGaugeGetCurrent() / 1000));
-		if (FuelGaugeGetCurrent() > 0) { ft81x_color_rgb32(0x068c3b); ft81x_cmd_text(580, 60, 28, 0, debugInfo); ft81x_color_rgb32(0x0000ff); }
-		else { ft81x_cmd_text(580, 60, 28, 0, debugInfo); }
+		if (FuelGaugeGetCurrent() > 0)
+		{
+			ft81x_stream_start(); ft81x_color_rgb32(0x068c3b); ft81x_stream_stop();
+			ft81x_stream_start(); ft81x_cmd_text(580, 60, 28, 0, debugInfo); ft81x_stream_stop();
+			ft81x_stream_start(); ft81x_color_rgb32(0x0000ff); ft81x_stream_stop();
+		}
+		else { ft81x_stream_start(); ft81x_cmd_text(580, 60, 28, 0, debugInfo); ft81x_stream_stop(); }
 
 		sprintf(debugInfo, "Temperature: %dF", FuelGaugeGetTemperature());
-		ft81x_cmd_text(580, 80, 28, 0, debugInfo);
+		ft81x_stream_start(); ft81x_cmd_text(580, 80, 28, 0, debugInfo); ft81x_stream_stop();
 
 		sprintf(debugInfo, "Avg Current: %.0fmA", (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount));
-		ft81x_cmd_text(580, 120, 28, 0, debugInfo);
+		ft81x_stream_start(); ft81x_cmd_text(580, 120, 28, 0, debugInfo); ft81x_stream_stop();
 
 		uint32_t runTime = g_lifetimeHalfSecondTickCount >> 1;
 		if (runTime < (60 * 60)) { sprintf(debugInfo, "Run Time: %dm %ds", ((runTime) / 60), (runTime % 60)); }
 		else if (runTime < (60 * 60 * 24)) { sprintf(debugInfo, "Run Time: %dh %dm %ds", ((runTime) / 3600), ((runTime % 3600) / 60), (runTime % 60)); }
 		else { sprintf(debugInfo, "Run Time: %dd %dh %dm", ((runTime) / (3600 * 24)), ((runTime % (3600 * 24)) / 3600), ((runTime % 3600) / 60)); }
-		ft81x_cmd_text(580, 140, 28, 0, debugInfo);
+		ft81x_stream_start(); ft81x_cmd_text(580, 140, 28, 0, debugInfo); ft81x_stream_stop();
 	}
 #endif
 
-	ft81x_display(); // End the display list started with the ClearLcdMap function
+	ft81x_stream_start(); ft81x_display(); ft81x_stream_stop(); // End the display list started with the ClearLcdMap function
 	ft81x_getfree(0); // Trigger FT81x to read the command buffer
 	ft81x_stream_stop(); // Finish streaming to command buffer
 
@@ -456,16 +461,15 @@ void ClearLcdMap(void)
 #else
 		if (g_lcdPowerFlag == DISABLED) { return; }
 #endif
-		ft81x_stream_start(); // Start streaming
-		ft81x_cmd_dlstart(); // Set REG_CMD_DL when done?
-		ft81x_cmd_swap(); // Set AUTO swap at end of display list?
-		ft81x_clear_color_rgb32(0xfdfdfd); // Todo: Determine color? (datasheet example shows this order, clear color before clear)
-		ft81x_clear();
-		ft81x_color_rgb32(0x101010); // Todo: Determine palatte color
-		ft81x_bgcolor_rgb32(0xff0000); // Todo: Determine background color of graphics objects
-		ft81x_fgcolor_rgb32(0x0000ff); // Todo: Determine foreground color of graphics objects
+		ft81x_stream_start(); ft81x_cmd_dlstart(); ft81x_stream_stop(); // Set REG_CMD_DL when done?
+		ft81x_stream_start(); ft81x_cmd_swap(); ft81x_stream_stop(); // Set AUTO swap at end of display list?
+		ft81x_stream_start(); ft81x_clear_color_rgb32(0xfdfdfd); ft81x_stream_stop(); // Todo: Determine color? (datasheet example shows this order, clear color before clear)
+		ft81x_stream_start(); ft81x_clear(); ft81x_stream_stop();
+		ft81x_stream_start(); ft81x_color_rgb32(0x101010); ft81x_stream_stop(); // Todo: Determine palatte color
+		ft81x_stream_start(); ft81x_bgcolor_rgb32(0xff0000); ft81x_stream_stop(); // Todo: Determine background color of graphics objects
+		ft81x_stream_start(); ft81x_fgcolor_rgb32(0x0000ff); ft81x_stream_stop(); // Todo: Determine foreground color of graphics objects
 
-		ft81x_tag_mask(0); // Turn off tagging
+		ft81x_stream_start(); ft81x_tag_mask(0); ft81x_stream_stop(); // Turn off tagging
 
 		// Todo: clear soft key map until the new screen has been written (changed)
 		//memset(&g_softKeyTranslation[0], 0, sizeof(g_softKeyTranslation));
