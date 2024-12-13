@@ -2227,8 +2227,20 @@ void ProcessSensorCalibrationData(void)
 
 #if 1 /* Test */
 	ACC_DATA_STRUCT channelData;
-extern void GetAccChannelData(ACC_DATA_STRUCT* channelData);
+#if 0 /* Original */
 	GetAccChannelData(&channelData);
+#else
+	if (g_spi2InUseByLCD)
+	{
+		// Hopefully an updated Acc data cache is available (executed just prior to LCD write), otherwise it's worst case with no ability to get current Acc data so duplicate last sample
+		channelData = g_accDataCache;
+	}
+	else
+	{
+		GetAccChannelData(&channelData);
+		g_accDataCache = channelData;
+	}
+#endif
 
 	if (channelData.x < s_tempChanMin[4]) { s_tempChanMin[4] = channelData.x; }
 	if (channelData.x > s_tempChanMax[4]) { s_tempChanMax[4] = channelData.x; }
@@ -2297,61 +2309,61 @@ static inline void getChannelDataWithReadbackWithTemp_ISR_Inline(void)
 
 #if 0 /* Original */
 	// Chan 0 - R
-	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 	s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 	if ((chanDataRaw[2] & 0x0F) != 0) { s_channelSyncError = YES; }
 
 	// Chan 1 - T
-	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 	s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 	if ((chanDataRaw[2] & 0x0F) != 1) { s_channelSyncError = YES; }
 
 	// Chan 2 - V
-	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 	if ((chanDataRaw[2] & 0x0F) != 2) { s_channelSyncError = YES; }
 
 	// Chan 3 - A
-	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 	s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 	if ((chanDataRaw[2] & 0x0F) != 3) { s_channelSyncError = YES; }
 #elif 0 /* Try active channels */
 extern uint8_t chanActive[8];
-	if (chanActive[0]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[0]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 0) { s_channelSyncError = YES; } }
-	if (chanActive[1]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[1]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 1) { s_channelSyncError = YES; } }
-	if (chanActive[2]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[2]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 2) { s_channelSyncError = YES; } }
-	if (chanActive[3]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[3]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 3) { s_channelSyncError = YES; } }
 
-	if (chanActive[4]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[4]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 4) { s_channelSyncError = YES; } }
-	if (chanActive[5]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[5]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 5) { s_channelSyncError = YES; } }
-	if (chanActive[6]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[6]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 6) { s_channelSyncError = YES; } }
-	if (chanActive[7]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[7]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 7) { s_channelSyncError = YES; } }
 #else /* Try active channels and monitor Over voltage Alert */
 extern uint8_t chanActive[8];
-	if (chanActive[0]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[0]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 0) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
-	if (chanActive[1]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[1]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 1) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
-	if (chanActive[2]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[2]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 2) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
-	if (chanActive[3]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[3]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 3) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
 
-	if (chanActive[4]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[4]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 4) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
-	if (chanActive[5]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[5]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 5) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
-	if (chanActive[6]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[6]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 6) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
-	if (chanActive[7]) { SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[7]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
 		s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 7) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
 
 	if (overVoltageAlert) { debugErr("AD Over Voltage Alert: Channel bit mask 0x%x\r\n", ovAlertChannels); }
@@ -2359,7 +2371,7 @@ extern uint8_t chanActive[8];
 
 	// Temperature
 	SetAdcConversionState(ON);
-	SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
+	SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
 	SetAdcConversionState(OFF);
 	g_currentTempReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 	if ((chanDataRaw[2] & 0x0F) != 15) { s_channelSyncError = YES; } // An INx value of 15 corresponds to either IN15 or the temperature sensor
@@ -2377,23 +2389,23 @@ static inline void getChannelDataNoReadbackWithTemp_ISR_Inline(void)
 	// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
 
 	// Chan 0 - R?
-	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 	s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 	// Chan 1 - T?
-	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 	s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 	// Chan 2 - V?
-	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 	// Chan 3 - A
-	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 	s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 	// Temp
-	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 	g_currentTempReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 }
 
@@ -2409,28 +2421,28 @@ static inline void getChannelDataNoReadbackNoTemp_ISR_Inline(void)
 	// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
 
 	// Chan 0 - R?
-	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 	s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 	// Chan 1 - T?
-	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 	s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 	// Chan 2 - V?
-	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 
 	// Chan 3 - A
-	SetAdcConversionState(ON); SpiTransaction(MXC_SPI3, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
 	s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-extern void GetAccChannelData(ACC_DATA_STRUCT* channelData);
 static inline void getChannelDataAcc_ISR_Inline(void)
 {
+#if 0 /* Original */
 	ACC_DATA_STRUCT accData;
 	GetAccChannelData(&accData);
 
@@ -2438,6 +2450,25 @@ static inline void getChannelDataAcc_ISR_Inline(void)
 	s_T_channelReading = accData.y;
 	s_V_channelReading = accData.z;
 	s_A_channelReading = 0x8000;
+#else
+	ACC_DATA_STRUCT accData;
+
+	if (g_spi2InUseByLCD)
+	{
+		// Hopefully an updated Acc data cache is available (executed just prior to LCD write), otherwise it's worst case with no ability to get current Acc data so duplicate last sample
+		accData = g_accDataCache;
+	}
+	else
+	{
+		GetAccChannelData(&accData);
+		g_accDataCache = accData;
+	}
+
+	s_R_channelReading = accData.x;
+	s_T_channelReading = accData.y;
+	s_V_channelReading = accData.z;
+	s_A_channelReading = 0x8000;
+#endif
 }
 
 ///----------------------------------------------------------------------------
