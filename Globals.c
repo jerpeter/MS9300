@@ -285,6 +285,7 @@ uint16 g_eventDataBuffer[EVENT_BUFF_SIZE_IN_WORDS_PLUS_EVT_RECORD]; // ~600K
 EVENT_LIST_ENTRY_STRUCT g_eventListCache[EVENT_LIST_CACHE_ENTRIES_LIMIT]; // 32K
 uint8 g_serialNumberCache[SERIAL_NUMBER_CACHE_ENTRIES][SERIAL_NUMBER_STRING_SIZE]; // 5K
 uint32 g_execCycles = 0;
+ACC_DATA_STRUCT g_accDataCache;
 FLASH_USAGE_STRUCT g_sdCardUsageStats;
 SUMMARY_LIST_FILE_DETAILS g_summaryList;
 volatile uint32 g_sampleCount = 0;
@@ -296,6 +297,7 @@ uint8 g_usbMassStorageState = USB_INIT_DRIVER;
 uint8 g_usbMode;
 uint8 g_usbThumbDriveWasConnected = NO;
 uint8 g_syncFileExistsAction = 0;
+uint8 g_spi2InUseByLCD = NO;
 uint8 g_calibrationGeneratePulse = NO;
 uint8 g_bargraphLiveMonitoringBISendActive = NO;
 uint8 g_blmAlertAlarmStatus = 0;

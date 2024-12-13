@@ -236,6 +236,7 @@ extern EVENT_TIMESTAMP_STRUCT g_eventDateTimeStampBuffer[MAX_EVENT_TIMESTAMP_BUF
 extern uint16 g_eventDataBuffer[];
 extern EVENT_LIST_ENTRY_STRUCT g_eventListCache[EVENT_LIST_CACHE_ENTRIES_LIMIT];
 extern uint8 g_serialNumberCache[SERIAL_NUMBER_CACHE_ENTRIES][SERIAL_NUMBER_STRING_SIZE];
+extern ACC_DATA_STRUCT g_accDataCache;
 extern const char g_buildVersion[];
 extern const char g_buildDate[];
 extern uint32 g_execCycles;
@@ -248,6 +249,7 @@ extern uint8 g_usbMassStorageState;
 extern uint8 g_usbMode;
 extern uint8 g_usbThumbDriveWasConnected;
 extern uint8 g_syncFileExistsAction;
+extern uint8 g_spi2InUseByLCD;
 extern uint8 g_calibrationGeneratePulse;
 extern uint8 g_bargraphLiveMonitoringBISendActive;
 extern uint8 g_blmAlertAlarmStatus;
