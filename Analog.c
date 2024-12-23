@@ -192,8 +192,8 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
 ///----------------------------------------------------------------------------
 void AnalogControlInit(void)
 {
-	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K);
-	debug("Analog Control: Cutoff Freq set @ 1K\r\n");
+	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_500);
+	debug("Analog Control: Cutoff Freq set @ 500 Hz\r\n");
 	SetSeismicGainSelect(SEISMIC_GAIN_NORMAL);
 	debug("Analog Control: Seismic gain set as Normal\r\n");
 	SetAcousticPathSelect(ACOUSTIC_PATH_AOP);
@@ -325,11 +325,11 @@ void SetAnalogCutoffFrequency(uint8 freq)
 {
 	switch (freq)
 	{
-		case ANALOG_CUTOFF_FREQ_1K: /* A1:X A0:X EN:0 */ SetNyquist1State(OFF); SetNyquist0State(OFF); SetNyquist2EnableState(OFF); break; // ~960 Hz
-		case ANALOG_CUTOFF_FREQ_2K: /* A1:0 A0:0 EN:1 */ SetNyquist1State(OFF); SetNyquist0State(OFF); SetNyquist2EnableState(ON); break; // ~2.1 kHz
-		case ANALOG_CUTOFF_FREQ_4K: /* A1:0 A0:1 EN:1 */ SetNyquist1State(OFF); SetNyquist0State(ON); SetNyquist2EnableState(ON); break; // ~3.9 kHz
-		case ANALOG_CUTOFF_FREQ_8K: /* A1:1 A0:0 EN:1 */ SetNyquist1State(ON); SetNyquist0State(OFF); SetNyquist2EnableState(ON); break; // ~8.0 kHz
-		case ANALOG_CUTOFF_FREQ_16K: /* A1:1 A0:1 EN:1 */ SetNyquist1State(ON); SetNyquist0State(ON); SetNyquist2EnableState(ON); break; // ~15.8 kHz
+		case ANALOG_CUTOFF_FREQ_500: /* A1:X A0:X EN:0 */ SetNyquist1State(OFF); SetNyquist0State(OFF); SetNyquist2EnableState(OFF); break; // ~500 Hz
+		case ANALOG_CUTOFF_FREQ_1K: /* A1:0 A0:0 EN:1 */ SetNyquist1State(OFF); SetNyquist0State(OFF); SetNyquist2EnableState(ON); break; // ~1 kHz
+		case ANALOG_CUTOFF_FREQ_2K: /* A1:0 A0:1 EN:1 */ SetNyquist1State(OFF); SetNyquist0State(ON); SetNyquist2EnableState(ON); break; // ~2 kHz
+		case ANALOG_CUTOFF_FREQ_4K: /* A1:1 A0:0 EN:1 */ SetNyquist1State(ON); SetNyquist0State(OFF); SetNyquist2EnableState(ON); break; // ~4 kHz
+		case ANALOG_CUTOFF_FREQ_8K: /* A1:1 A0:1 EN:1 */ SetNyquist1State(ON); SetNyquist0State(ON); SetNyquist2EnableState(ON); break; // ~8 kHz
 	}
 }
 

@@ -253,15 +253,15 @@ void StartMonitoring(uint8 operationMode, TRIGGER_EVENT_DATA_STRUCT* opModeParam
 	// Set the cutoff frequency based on sample rate
 	switch (opModeParamsPtr->sample_rate)
 	{
-		case SAMPLE_RATE_1K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
+		case SAMPLE_RATE_1K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_500); break;
 		case SAMPLE_RATE_2K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
 		case SAMPLE_RATE_4K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_2K); break;
 		case SAMPLE_RATE_8K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_4K); break;
 		case SAMPLE_RATE_16K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_8K); break;
-		case SAMPLE_RATE_32K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_16K); break;
+		case SAMPLE_RATE_32K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_8K); break;
 
 		// Default just in case it's a custom frequency
-		default: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
+		default: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_500); break;
 	}
 
 	// Set the sensitivity (aka gain) based on the current settings
@@ -324,15 +324,15 @@ void SetupAccChannelConfig(uint32 sampleRate);
 	// Set the cutoff frequency based on sample rate
 	switch (sampleRate)
 	{
-		case SAMPLE_RATE_1K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
+		case SAMPLE_RATE_1K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_500); break;
 		case SAMPLE_RATE_2K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
 		case SAMPLE_RATE_4K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_2K); break;
 		case SAMPLE_RATE_8K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_4K); break;
 		case SAMPLE_RATE_16K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_8K); break;
-		case SAMPLE_RATE_32K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_16K); break;
+		case SAMPLE_RATE_32K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_8K); break;
 
 		// Default just in case it's a custom frequency
-		default: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
+		default: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_500); break;
 	}
 
 	// Set the sensitivity (aka gain) based on the current settings
@@ -627,7 +627,7 @@ void GetManualCalibration(void)
 	g_manualCalSampleCount = MAX_CAL_SAMPLES;
 
 	// Set the analog cutoff for low (for fixed Cal 1K sample rate)
-	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K);
+	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_500);
 
 	// Set the seismic gain to low (part of the fixed Calibration settings)
 	SetSeismicGainSelect(SEISMIC_GAIN_NORMAL);
@@ -716,15 +716,15 @@ void HandleManualCalibration(void)
 				switch (g_triggerRecord.trec.sample_rate)
 				{
 					// Set the cutoff frequency based on sample rate
-					case SAMPLE_RATE_1K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
+					case SAMPLE_RATE_1K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_500); break;
 					case SAMPLE_RATE_2K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
 					case SAMPLE_RATE_4K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_2K); break;
 					case SAMPLE_RATE_8K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_4K); break;
 					case SAMPLE_RATE_16K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_8K); break;
-					case SAMPLE_RATE_32K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_16K); break;
+					case SAMPLE_RATE_32K: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_8K); break;
 
 					// Default just in case it's a custom frequency
-					default: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K); break;
+					default: SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_500); break;
 				}
 
 				// Set the sensitivity (aka gain) based on the current settings

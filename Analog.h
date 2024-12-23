@@ -59,11 +59,12 @@ enum {
 };
 
 enum {
-	ANALOG_CUTOFF_FREQ_1K,	// Filters ~960 Hz and above
-	ANALOG_CUTOFF_FREQ_2K,	// Filters ~2.1 kHz and above
-	ANALOG_CUTOFF_FREQ_4K,	// Filters ~3.9 kHz and above
-	ANALOG_CUTOFF_FREQ_8K,	// Filters ~8.0 kHz and above
-	ANALOG_CUTOFF_FREQ_16K	// Filters ~15.8 kHz and above
+	ANALOG_CUTOFF_FREQ_500,	// Filters ~500 Hz and above
+	ANALOG_CUTOFF_FREQ_1K,	// Filters ~1 KHz and above
+	ANALOG_CUTOFF_FREQ_2K,	// Filters ~2 kHz and above
+	ANALOG_CUTOFF_FREQ_4K,	// Filters ~4 kHz and above
+	ANALOG_CUTOFF_FREQ_8K,	// Filters ~8 kHz and above
+	ANALOG_CUTOFF_FREQ_16K	// Filters ~16 kHz and above
 };
 
 enum {
