@@ -81,6 +81,10 @@ void MainMenu(INPUT_MSG_STRUCT msg)
 ///----------------------------------------------------------------------------
 #if 1 /* Test */
 #include "usb.h"
+#include "PowerManagement.h"
+static uint8_t g_led1State = ON;
+static uint8_t g_led2State = ON;
+
 extern void SetupUSBComposite(void);
 extern void USBCPortControllerInit(void);
 extern void USBCPortControllerSwapToHost(void);
@@ -201,16 +205,53 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 #if 0 /* Original */
 					AdjustLcdContrast(DARKER);
 #else /* Test */
-					debug("USB: Manually disconnecting (resource)...\r\n");
-					MXC_USB_Disconnect();
+					//debug("USB: Manually disconnecting (resource)...\r\n");
+					//MXC_USB_Disconnect();
+					if (GetPowerOnButtonState() == OFF)
+					{
+						debug("USB: Manually disconnecting and shutting down\r\n");
+						MXC_USB_Disconnect();
+						MXC_USB_Shutdown();
+
+						// Disable power blocks
+						debug("Power blocks: ADC, LCD, 12V, Cell, Expansion disabled\r\n");
+						PowerControl(ADC_RESET, ON);
+						PowerControl(LCD_POWER_ENABLE, OFF); g_lcdPowerFlag = DISABLED;
+						PowerControl(ENABLE_12V, OFF);
+						PowerControl(CELL_ENABLE, OFF);
+						PowerControl(EXPANSION_ENABLE, OFF);
+					}
+					else
+					{
+						g_led1State ^= ON;
+						debug("LED1: Toggling %s\r\n", ((g_led1State == ON) ? "On" : "Off"));
+						PowerControl(LED_1, g_led1State);
+					}
 #endif
 					break;
 				case (RIGHT_ARROW_KEY):
 #if 0 /* Original */
 					AdjustLcdContrast(LIGHTER);
 #else /* Test */
-					debug("USB: Manually connecting (resource)...\r\n");
-					MXC_USB_Connect();
+					//debug("USB: Manually connecting (resource)...\r\n");
+					//MXC_USB_Connect();
+					if (GetPowerOnButtonState() == OFF)
+					{
+						PowerControl(EXPANSION_RESET, ON);
+						PowerControl(EXPANSION_ENABLE, OFF);
+						debug("Expansion: Sleep activated\r\n");
+						SetSmartSensorSleepState(ON);
+						debug("Smart sensor: Sleep activated\r\n");
+						PowerControl(LED_1, OFF);
+						PowerControl(LED_2, OFF);
+						debug("Keypad LEDs: Off\r\n");
+					}
+					else
+					{
+						g_led2State ^= ON;
+						debug("LED2: Toggling %s\r\n", ((g_led2State == ON) ? "On" : "Off"));
+						PowerControl(LED_2, g_led2State);
+					}
 #endif
 					break;
 				case (ESC_KEY):
