@@ -1063,6 +1063,16 @@ void ExpansionBridgeInit(void)
 	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
 	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
 #endif
+
+#if 0 /* Test with scope */
+	debug("Testing spam write out Expansion serial...\r\n");
+	while (1)
+	{
+		Expansion_UART_WriteCharacter(0x55);
+		SoftUsecWait(5 * SOFT_MSECS);
+	}
+#endif
+
 extern uint8_t g_expansionIrqActive;
 	g_expansionIrqActive = 0;
 #endif
