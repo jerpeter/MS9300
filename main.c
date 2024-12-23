@@ -223,6 +223,12 @@ extern uint32_t testLifetimeCurrentAvgCount;
 			debug("(Cyclic Event) (%s) (%.0fmA avg) SPT: %lu, SPS: %d, Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), CycleCountToMicroseconds(sampleProcessTiming, SYS_CLK), (g_sampleCountHold / 4), (char*)g_spareBuffer);
 		}
 		else { debug("(Cyclic Event) (%s) (%.0fmA avg) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer); }
+
+#if 0 /* Test Exp serial */
+		// Test write out U8 every cycle (4 secs)
+		Expansion_UART_WriteCharacter(0x55);
+		Expansion_UART_WriteCharacter(0x38);
+#endif
 #if 0 /* Test 1 */
 extern void tps25750_int_status_and_clear(void);
 		tps25750_int_status_and_clear();
@@ -644,23 +650,28 @@ extern uint8_t ExpansionBridgeRxCountFifo(void);
 			//debugRaw("<E-rc>");
 
 extern uint8_t Expansion_UART_ReadCharacter(void);
-			uint8_t recieveData = Expansion_UART_ReadCharacter();
+				uint8_t recieveData = Expansion_UART_ReadCharacter();
 
-			// Raise the Craft Data flag
-			g_modemStatus.craftPortRcvFlag = YES;
+#if 0 /* Normal */
+				// Raise the Craft Data flag
+				g_modemStatus.craftPortRcvFlag = YES;
 
-			// Write the received data into the buffer
-			*g_isrMessageBufferPtr->writePtr = recieveData;
+				// Write the received data into the buffer
+				*g_isrMessageBufferPtr->writePtr = recieveData;
 
-			// Advance the buffer pointer
-			g_isrMessageBufferPtr->writePtr++;
+				// Advance the buffer pointer
+				g_isrMessageBufferPtr->writePtr++;
 
-			// Check if buffer pointer goes beyond the end
-			if (g_isrMessageBufferPtr->writePtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE))
-			{
-				// Reset the buffer pointer to the beginning of the buffer
-				g_isrMessageBufferPtr->writePtr = g_isrMessageBufferPtr->msg;
-			}
+				// Check if buffer pointer goes beyond the end
+				if (g_isrMessageBufferPtr->writePtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE))
+				{
+					// Reset the buffer pointer to the beginning of the buffer
+					g_isrMessageBufferPtr->writePtr = g_isrMessageBufferPtr->msg;
+				}
+#else /* Test remote loopback */
+extern void Expansion_UART_WriteCharacter(uint8_t data);
+				Expansion_UART_WriteCharacter(recieveData);
+#endif
 			}
 		}
 
