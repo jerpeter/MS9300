@@ -923,7 +923,7 @@ void SetupAccChannelConfig(uint32 sampleRate);
 	AD4695_Init();
 
 	// Setup Analog controls
-	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_1K);
+	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_500);
 	SetSeismicGainSelect(SEISMIC_GAIN_NORMAL);
 	SetAcousticPathSelect(ACOUSTIC_PATH_AOP);
 
