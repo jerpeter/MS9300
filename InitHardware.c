@@ -1150,7 +1150,8 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
-	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
+	//MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as on
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// LED 2: Port 1, Pin 25, Output, No external pull, Active high, 3.3V
@@ -1174,7 +1175,8 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
-	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
+	//MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as on
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// LED 3: Port 1, Pin 26, Output, No external pull, Active high, 3.3V
@@ -2077,7 +2079,8 @@ void SetupWatchdog(void)
 #define SPI_SPEED_ADC 60000000 // Bit Rate
 #endif
 //#define SPI_SPEED_LCD 10000000 //12000000 // Bit Rate
-#define SPI_SPEED_LCD 30000000 //12000000 // Bit Rate // Try 30 MHz
+//#define SPI_SPEED_LCD 30000000 //12000000 // Bit Rate // Try 30 MHz
+#define SPI_SPEED_LCD 1000000 // Bit Rate
 //#define SPI_WIDTH_DUAL	2
 
 ///----------------------------------------------------------------------------
@@ -5527,4 +5530,19 @@ void InitSystemHardware_MS9300(void)
 	// Hardware initialization complete
 	//-------------------------------------------------------------------------
 	debug("Hardware Init complete\r\n");
+
+#if 0 /* Test LED 1 & 2 states */
+	debug("LED 1 & 2 State test...\r\n");
+	while (1)
+	{
+		PowerControl(LED_1, ON);
+		SoftUsecWait(3 * SOFT_SECS);
+		PowerControl(LED_2, ON);
+		SoftUsecWait(3 * SOFT_SECS);
+		PowerControl(LED_1, OFF);
+		SoftUsecWait(3 * SOFT_SECS);
+		PowerControl(LED_2, OFF);
+		SoftUsecWait(3 * SOFT_SECS);
+	}
+#endif
 }
