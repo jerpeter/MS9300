@@ -158,7 +158,12 @@ extern uint32_t testLifetimeCurrentAvgCount;
 				else /* Key press found */ { SoftUsecWait(250 * SOFT_MSECS); } // Generic delay to prevent processing the same key twice
 
 #if 1 /* Test */
-static uint8_t aCutoffState = ANALOG_CUTOFF_FREQ_1K;
+				// Check if the LCD Power was turned off
+				if ((key != KEY_NONE) && (g_lcdPowerFlag == DISABLED)) { KeypressEventMgr(); key = KEY_NONE; }
+#endif
+
+#if 1 /* Test */
+static uint8_t aCutoffState = ANALOG_CUTOFF_FREQ_500;
 static uint8_t gainState = SEISMIC_GAIN_NORMAL;
 static uint8_t pathState = ACOUSTIC_PATH_AOP;
 //static uint8_t scState = 0;
@@ -379,18 +384,26 @@ char filterText[16];
 
 					case KB_SK_1:
 #if 1 /* Test */
-						if (aCutoffState == ANALOG_CUTOFF_FREQ_1K) { aCutoffState = ANALOG_CUTOFF_FREQ_2K; strcpy(filterText, "2K"); }
+						if (GetPowerOnButtonState() == ON)
+						{
+							LcdPwTimerCallBack();
+							SoftUsecWait(1 * SOFT_SECS);
+							break;
+						}
+#endif
+#if 1 /* Test */
+						if (aCutoffState == ANALOG_CUTOFF_FREQ_500) { aCutoffState = ANALOG_CUTOFF_FREQ_1K; strcpy(filterText, "1K"); }
+						else if (aCutoffState == ANALOG_CUTOFF_FREQ_1K) { aCutoffState = ANALOG_CUTOFF_FREQ_2K; strcpy(filterText, "2K"); }
 						else if (aCutoffState == ANALOG_CUTOFF_FREQ_2K) { aCutoffState = ANALOG_CUTOFF_FREQ_4K; strcpy(filterText, "4K"); }
 						else if (aCutoffState == ANALOG_CUTOFF_FREQ_4K) { aCutoffState = ANALOG_CUTOFF_FREQ_8K; strcpy(filterText, "8K"); }
-						else if (aCutoffState == ANALOG_CUTOFF_FREQ_8K) { aCutoffState = ANALOG_CUTOFF_FREQ_16K; strcpy(filterText, "16K"); }
-						else if (aCutoffState == ANALOG_CUTOFF_FREQ_16K) { aCutoffState = ANALOG_CUTOFF_FREQ_1K; strcpy(filterText, "1K"); }
+						else if (aCutoffState == ANALOG_CUTOFF_FREQ_8K) { aCutoffState = ANALOG_CUTOFF_FREQ_500; strcpy(filterText, "500"); }
+						//else if (aCutoffState == ANALOG_CUTOFF_FREQ_16K) { aCutoffState = ANALOG_CUTOFF_FREQ_1K; strcpy(filterText, "1K"); }
 						sprintf((char*)g_debugBuffer, "Cal Setup: Changing Nyquist filter (%s)", filterText);
 						debug("%s\r\n", (char*)g_debugBuffer);
 						OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
 						SetAnalogCutoffFrequency(aCutoffState);
 #endif
 						break;
-
 					case KB_SK_2:
 #if 1 /* Test */
 						if (GetPowerOnButtonState() == ON)
