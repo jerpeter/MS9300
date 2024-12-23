@@ -275,7 +275,7 @@ __attribute__((__interrupt__))
 void Sensor_detect_1_irq(void)
 {
 	//debugRaw("+");
-	debugWarn("-(ISR) Sensor Detect 1-\r\n");
+	debugWarn("-(ISR) Sensor Detect 1: %s-\r\n", ((MXC_GPIO_OutGet(GPIO_SENSOR_DETECT_1_PORT, GPIO_SENSOR_DETECT_1_PIN) == 0) ? "Removed" : "Added"));
 
 	// Clear Sensor Detect 1 flag (Port 0, Pin 7)
 #if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
@@ -290,7 +290,7 @@ __attribute__((__interrupt__))
 void Sensor_detect_2_irq(void)
 {
 	//debugRaw("+");
-	debugWarn("-(ISR) Sensor Detect 2-\r\n");
+	debugWarn("-(ISR) Sensor Detect 2: %s -\r\n", ((MXC_GPIO_OutGet(GPIO_SENSOR_DETECT_2_PORT, GPIO_SENSOR_DETECT_2_PIN) == 0) ? "Removed" : "Added"));
 
 	// Clear Sensor Detect 2 flag (Port 1, Pin 2)
 #if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
@@ -305,7 +305,7 @@ __attribute__((__interrupt__))
 void Sensor_detect_3_irq(void)
 {
 	//debugRaw("+");
-	debugWarn("-(ISR) Sensor Detect 3-\r\n");
+	debugWarn("-(ISR) Sensor Detect 3: %s -\r\n", ((MXC_GPIO_OutGet(GPIO_SENSOR_DETECT_3_PORT, GPIO_SENSOR_DETECT_3_PIN) == 0) ? "Removed" : "Added"));
 
 	// Clear Sensor Detect 3 flag (Port 1, Pin 13)
 #if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
@@ -320,7 +320,7 @@ __attribute__((__interrupt__))
 void Sensor_detect_4_irq(void)
 {
 	//debugRaw("+");
-	debugWarn("-(ISR) Sensor Detect 4-\r\n");
+	debugWarn("-(ISR) Sensor Detect 4: %s -\r\n", ((MXC_GPIO_OutGet(GPIO_SENSOR_DETECT_1_PORT, GPIO_SENSOR_DETECT_1_PIN) == 0) ? "Removed" : "Added"));
 
 	// Clear Sensor Detect 4 flag (Port 1, Pin 27)
 #if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
@@ -545,7 +545,11 @@ void System_power_button_irq(void)
 		}
 
 		// Check if the power off timer is disabled
+#if 0 /* Normal */
 		if (IsSoftTimerActive(POWER_OFF_TIMER_NUM) == NO)
+#else
+		if ((IsSoftTimerActive(POWER_OFF_TIMER_NUM) == NO) || (g_activeMenu == CAL_SETUP_MENU))
+#endif
 		{
 			// Reset count
 			onKeyCount = 0;
@@ -607,6 +611,9 @@ void System_power_button_irq(void)
 			PowerControl(EXPANSION_ENABLE, OFF);
 
 			SoftUsecWait(1 * SOFT_SECS);
+#if 1 /* Test disabling interrupts to prevent unit powering right back on */
+			__disable_irq();
+#endif
 			PowerControl(MCU_POWER_LATCH, OFF);
 		}
 
@@ -2230,7 +2237,8 @@ void ProcessSensorCalibrationData(void)
 #if 0 /* Original */
 	GetAccChannelData(&channelData);
 #else
-	if (g_spi2InUseByLCD)
+	//if (g_spi2InUseByLCD)
+	if (1)
 	{
 		// Hopefully an updated Acc data cache is available (executed just prior to LCD write), otherwise it's worst case with no ability to get current Acc data so duplicate last sample
 		channelData = g_accDataCache;
@@ -2453,7 +2461,8 @@ static inline void getChannelDataAcc_ISR_Inline(void)
 #else
 	ACC_DATA_STRUCT accData;
 
-	if (g_spi2InUseByLCD)
+	//if (g_spi2InUseByLCD)
+	if (1)
 	{
 		// Hopefully an updated Acc data cache is available (executed just prior to LCD write), otherwise it's worst case with no ability to get current Acc data so duplicate last sample
 		accData = g_accDataCache;
