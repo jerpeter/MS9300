@@ -817,6 +817,14 @@ void TestEEPROM(void)
 
 	memset(testMem, 0, sizeof(testMem));
 
+#if 0 /* Test I2C0 lines */
+	debug("EEPROM: Testing I2C0 lines...\r\n");
+	while (1)
+	{
+		GetParameterMemory(&testMem[0], 0, sizeof(testMem));
+	}
+#endif
+
 #if 1 /* Test 8-byte operation */
 	GetParameterMemory(&testMem[0], 0, sizeof(testMem));
 	debug("EEPROM: Mem @ Addr 0 is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", testMem[0], testMem[1], testMem[2], testMem[3], testMem[4], testMem[5], testMem[6], testMem[7]);
