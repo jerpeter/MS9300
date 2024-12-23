@@ -201,7 +201,8 @@ void DisplayTimerCallBack(void)
 	SetLcdBacklightState(BACKLIGHT_SUPER_LOW);
 #endif
 #else /* Updated method to make sure the LCD resource is available before adjusting */
-	if (g_lcdBacklightFlag == ENABLED)
+	//if (g_lcdBacklightFlag == ENABLED)
+	if ((g_lcdBacklightFlag == ENABLED) && (GetPowerControlState(LCD_POWER_ENABLE) == ON))
 	{
 		g_lcdBacklightFlag = DISABLED; // Now treating BACKLIGHT_SUPER_LOW as disabled since the LCD really can't be seen with the backlight on at some level
 		SetLcdBacklightState(BACKLIGHT_SUPER_LOW);
