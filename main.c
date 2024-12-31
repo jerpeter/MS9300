@@ -214,6 +214,7 @@ extern uint16_t USBCPortControllerPStatus(void);
 extern uint32_t USBCPortControllerPDStatus(void);
 extern int32_t testLifetimeCurrentAvg;
 extern uint32_t testLifetimeCurrentAvgCount;
+//extern volatile uint32_t g_lifetimePeriodicSecondCount;
 		UNUSED(sampleProcessTiming);
 		//debug("(Cyclic Event) (%s) (USB: %08x %04x %08x) Exe/s: %s\r\n", FuelGaugeDebugString(), USBCPortControllerStatus(), USBCPortControllerPStatus(), USBCPortControllerPDStatus(), (char*)g_spareBuffer);
 		testLifetimeCurrentAvg += (FuelGaugeGetCurrent() / 1000);
@@ -223,6 +224,7 @@ extern uint32_t testLifetimeCurrentAvgCount;
 			debug("(Cyclic Event) (%s) (%.0fmA avg) SPT: %lu, SPS: %d, Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), CycleCountToMicroseconds(sampleProcessTiming, SYS_CLK), (g_sampleCountHold / 4), (char*)g_spareBuffer);
 		}
 		else { debug("(Cyclic Event) (%s) (%.0fmA avg) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer); }
+		//else { debug("(Cyclic Event) (%d) (%s) (%.0fmA avg) Exe/s: %s\r\n", g_lifetimePeriodicSecondCount, FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer); }
 
 #if 0 /* Test Exp serial */
 		// Test write out U8 every cycle (4 secs)
@@ -1707,8 +1709,9 @@ void PowerManager(void)
 			sleepStateNeeded = SLEEP_MODE;
 		}
 
-#if 0 /* Test not going so deep to sleep due to lack of a wake up source at the moment */
-		if (g_sleepModeState > SLEEP_MODE) { g_sleepModeState = SLEEP_MODE; }
+#if 1 /* Test not going so deep to sleep due to lack of a wake up source at the moment */
+		if (sleepStateNeeded > SLEEP_MODE) { sleepStateNeeded = SLEEP_MODE; }
+		//if (sleepStateNeeded > SLEEP_MODE) { sleepStateNeeded = DEEPSLEEP_MODE; }
 #endif
 		// Check if sleep mode changed
 		if (g_sleepModeState != sleepStateNeeded)
@@ -1735,7 +1738,7 @@ void PowerManager(void)
 					optimal mix of high-performance and power conservation. Internal RAM that can be enabled, disabled, or placed in low-
 					power RAM Retention Mode include data SRAM memory blocks, on-chip caches, and on-chip FIFOs.
 				*/
-				MXC_GCR->pmr = ((MXC_GCR->pmr & ~(MXC_F_GCR_PMR_MODE)) | MXC_S_GCR_PMR_MODE_ACTIVE); // Not necessary since this is done automatically by the MPU coming out of sleep
+				//MXC_GCR->pmr = ((MXC_GCR->pmr & ~(MXC_F_GCR_PMR_MODE)) | MXC_S_GCR_PMR_MODE_ACTIVE); // Not necessary since this is done automatically by the MPU coming out of sleep
 				break;
 
 			//---------------------------------------------------------------------------------------------
@@ -2233,7 +2236,7 @@ extern void UsbReportEvents(void);
 		FactorySetupManager();
 
 		// Check if able to go to sleep
-#if 0 /* Can't run PowerManager while using JTAG */
+#if 1 /* Can't run PowerManager while using JTAG on Alpha boards with SBU */
 		PowerManager();
 #endif
 		// Count Exec cycles
