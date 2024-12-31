@@ -75,6 +75,12 @@ void CalSetupMn(INPUT_MSG_STRUCT);
 void CalSetupMnDsply(WND_LAYOUT_STRUCT*);
 void CalSetupMnProc(INPUT_MSG_STRUCT, WND_LAYOUT_STRUCT*, MN_LAYOUT_STRUCT*);
 
+#if 1 /* Test */
+static uint8_t aCutoffState = ANALOG_CUTOFF_FREQ_500;
+static uint8_t gainState = SEISMIC_GAIN_NORMAL;
+static uint8_t pathState = ACOUSTIC_PATH_AOP;
+#endif
+
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -163,12 +169,7 @@ extern uint32_t testLifetimeCurrentAvgCount;
 #endif
 
 #if 1 /* Test */
-static uint8_t aCutoffState = ANALOG_CUTOFF_FREQ_500;
-static uint8_t gainState = SEISMIC_GAIN_NORMAL;
-static uint8_t pathState = ACOUSTIC_PATH_AOP;
-//static uint8_t scState = 0;
-//static uint8_t scEnable = 0;
-char filterText[16];
+				char filterText[16];
 #endif
 				switch (key)
 				{
@@ -408,20 +409,6 @@ char filterText[16];
 #if 1 /* Test */
 						if (GetPowerOnButtonState() == ON)
 						{
-							if (pathState == ACOUSTIC_PATH_AOP) { pathState = ACOUSTIC_PATH_A_WEIGHTED; } else { pathState = ACOUSTIC_PATH_AOP; }
-							if ((g_currentSensorGroup == SENSOR_GROUP_A_1) || (g_currentSensorGroup == SENSOR_GROUP_BOTH))
-							{
-								if (pathState == ACOUSTIC_PATH_AOP){ strcpy(filterText, "AOP"); SetPathSelectAop1State(HIGH); } else { strcpy(filterText, "A-weight"); SetPathSelectAop1State(LOW); }
-								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP1 path (%s)", filterText);
-							}
-							else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
-							{
-								if (pathState == ACOUSTIC_PATH_AOP){ strcpy(filterText, "AOP"); SetPathSelectAop2State(HIGH); } else { strcpy(filterText, "A-weight"); SetPathSelectAop2State(LOW); }
-								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP2 path (%s)", filterText);
-							}
-						}
-						else
-						{
 							if (gainState == SEISMIC_GAIN_NORMAL) { gainState = SEISMIC_GAIN_HIGH; } else { gainState = SEISMIC_GAIN_NORMAL; }
 							if ((g_currentSensorGroup == SENSOR_GROUP_A_1) || (g_currentSensorGroup == SENSOR_GROUP_BOTH))
 							{
@@ -432,6 +419,20 @@ char filterText[16];
 							{
 								if (gainState == SEISMIC_GAIN_NORMAL){ strcpy(filterText, "Normal"); SetGainGeo2State(HIGH); } else { strcpy(filterText, "High"); SetGainGeo2State(LOW); }
 								sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo2 gain (%s)", filterText);
+							}
+						}
+						else
+						{
+							if (pathState == ACOUSTIC_PATH_AOP) { pathState = ACOUSTIC_PATH_A_WEIGHTED; } else { pathState = ACOUSTIC_PATH_AOP; }
+							if ((g_currentSensorGroup == SENSOR_GROUP_A_1) || (g_currentSensorGroup == SENSOR_GROUP_BOTH))
+							{
+								if (pathState == ACOUSTIC_PATH_AOP) { strcpy(filterText, "AOP"); SetPathSelectAop1State(HIGH); } else { strcpy(filterText, "C-weight"); SetPathSelectAop1State(LOW); }
+								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP1 path (%s)", filterText);
+							}
+							else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
+							{
+								if (pathState == ACOUSTIC_PATH_AOP) { strcpy(filterText, "AOP"); SetPathSelectAop2State(HIGH); } else { strcpy(filterText, "A-weight"); SetPathSelectAop2State(LOW); }
+								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP2 path (%s)", filterText);
 							}
 						}
 
@@ -666,6 +667,13 @@ extern void StartAccAquisition(void);
 			// Hand setup A/D data collection and start the data clock
 			StartADDataCollectionForCalibration(CALIBRATION_FIXED_SAMPLE_RATE);
 
+#if 1 /* Test addition */
+			// Reset static state on for re-entry
+			aCutoffState = ANALOG_CUTOFF_FREQ_500;
+			gainState = SEISMIC_GAIN_NORMAL;
+			pathState = ACOUSTIC_PATH_AOP;
+#endif
+
 			// Set the Cal Mux to the correct sensor group
 			if (g_currentSensorGroup == SENSOR_GROUP_A_1) { SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); cmState = CAL_MUX_SELECT_SENSOR_GROUP_A; }
 			else if (g_currentSensorGroup == SENSOR_GROUP_B_2) { SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B); cmState = CAL_MUX_SELECT_SENSOR_GROUP_B; }
@@ -795,12 +803,29 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 		wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_ONE;
 		WndMpWrtString(buff,wnd_layout_ptr, SIX_BY_EIGHT_FONT,REG_LN);
 
+#if 1 /* Test addition */
+		char filterText[8];
+		char weightText[8];
+		if (aCutoffState == ANALOG_CUTOFF_FREQ_500) { strcpy(filterText, "5H"); }
+		if (aCutoffState == ANALOG_CUTOFF_FREQ_1K) { strcpy(filterText, "1K"); }
+		if (aCutoffState == ANALOG_CUTOFF_FREQ_2K) { strcpy(filterText, "2K"); }
+		if (aCutoffState == ANALOG_CUTOFF_FREQ_4K) { strcpy(filterText, "4K"); }
+		if (aCutoffState == ANALOG_CUTOFF_FREQ_8K) { strcpy(filterText, "8K"); }
+
+		if (g_currentSensorGroup == SENSOR_GROUP_A_1) { if (pathState == ACOUSTIC_PATH_AOP) { strcpy(weightText, "AOP"); } else { strcpy(weightText, "C-W"); } }
+		if (g_currentSensorGroup == SENSOR_GROUP_B_2) { if (pathState == ACOUSTIC_PATH_AOP) { strcpy(weightText, "AOP"); } else { strcpy(weightText, "A-W"); } }
+#endif
+
 		if (s_calDisplayScreen == CAL_MENU_DEFAULT_NON_CALIBRATED_DISPLAY)
 		{
 			// PRINT Table separator
 			memset(&buff[0], 0, sizeof(buff));
 			//sprintf((char*)buff, "--------------------");
+#if 0 /* Normal */
 			sprintf((char*)buff, "-----RAW NO CAL-----");
+#else
+			sprintf((char*)buff, "-----RAW NO CAL----- (%s/%s)", filterText, weightText);
+#endif
 			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_TWO;
 			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT,REG_LN);
 		}
@@ -809,7 +834,11 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			// PRINT Table separator
 			memset(&buff[0], 0, sizeof(buff));
 			//sprintf((char*)buff, "--------------------");
+#if 0 /* Normal */
 			sprintf((char*)buff, "-----CALIBRATED-----");
+#else
+			sprintf((char*)buff, "-----CALIBRATED----- (%s/%s)", filterText, weightText);
+#endif
 			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_TWO;
 			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT,REG_LN);
 		}
@@ -972,7 +1001,11 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			// PRINT Table header
 			memset(&buff[0], 0, sizeof(buff));
 			//sprintf((char*)buff, "C|  Min|  Max|  Avg|");
+#if 0 /* Normal */
 			sprintf((char*)buff, "Chan   Min   Max   Units   Acc");
+#else /* Test Addition */
+			sprintf((char*)buff, "Chan Min Max Units Acc (%c/CM:%s)", ((gainState == SEISMIC_GAIN_NORMAL) ? 'N' : 'H'), ((cmState == OFF) ? "OFF" : "ON"));
+#endif
 			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_THREE;
 			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT,REG_LN);
 
