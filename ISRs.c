@@ -271,6 +271,7 @@ void Battery_charger_irq(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 __attribute__((__interrupt__))
 void Sensor_detect_1_irq(void)
 {
@@ -282,10 +283,12 @@ void Sensor_detect_1_irq(void)
 	GPIO_SENSOR_DETECT_1_PORT->int_clr = GPIO_SENSOR_DETECT_1_PIN;
 #endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 __attribute__((__interrupt__))
 void Sensor_detect_2_irq(void)
 {
@@ -297,10 +300,12 @@ void Sensor_detect_2_irq(void)
 	GPIO_SENSOR_DETECT_2_PORT->int_clr = GPIO_SENSOR_DETECT_2_PIN;
 #endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 __attribute__((__interrupt__))
 void Sensor_detect_3_irq(void)
 {
@@ -312,10 +317,12 @@ void Sensor_detect_3_irq(void)
 	GPIO_SENSOR_DETECT_3_PORT->int_clr = GPIO_SENSOR_DETECT_3_PIN;
 #endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 __attribute__((__interrupt__))
 void Sensor_detect_4_irq(void)
 {
@@ -327,6 +334,7 @@ void Sensor_detect_4_irq(void)
 	GPIO_SENSOR_DETECT_4_PORT->int_clr = GPIO_SENSOR_DETECT_4_PIN;
 #endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
