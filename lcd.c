@@ -1513,6 +1513,7 @@ void ft81x_init_display_settings()
 	ft81x_wr(REG_ROTATE, 0);
 	ft81x_wr(REG_SWIZZLE, 0);
 #else /* Following datasheet */
+#if 1 /* Normal */
 	ft81x_wr16(REG_HCYCLE, 928);
 	ft81x_wr16(REG_HOFFSET, 88);
 	ft81x_wr16(REG_HSIZE, FT81X_DISPLAY_WIDTH);
@@ -1527,6 +1528,22 @@ void ft81x_init_display_settings()
 	ft81x_wr16(REG_PCLK_POL, 1);
 	ft81x_wr(REG_ROTATE, 0);
 	ft81x_wr(REG_SWIZZLE, 0);
+#else /* Maybe Try max values? */
+	ft81x_wr16(REG_HCYCLE, 1088);
+	ft81x_wr16(REG_HOFFSET, 88);
+	ft81x_wr16(REG_HSIZE, FT81X_DISPLAY_WIDTH);
+	ft81x_wr16(REG_HSYNC0, 0);
+	ft81x_wr16(REG_HSYNC1, 87);
+	ft81x_wr16(REG_VCYCLE, 613);
+	ft81x_wr16(REG_VOFFSET, 32);
+	ft81x_wr16(REG_VSIZE, FT81X_DISPLAY_HEIGHT);
+	ft81x_wr16(REG_VSYNC0, 0);
+	ft81x_wr16(REG_VSYNC1, 3);
+	ft81x_wr16(REG_DITHER, 1);
+	ft81x_wr16(REG_PCLK_POL, 1);
+	ft81x_wr(REG_ROTATE, 0);
+	ft81x_wr(REG_SWIZZLE, 0);
+#endif
 #endif
 
 #if 0 /* Test */
@@ -2104,7 +2121,7 @@ uint16_t sampleCountTiming[10];
 	{
 		sampleCountTiming[1] = g_sampleCount;
 		PowerControl(LCD_POWER_DOWN, OFF);
-		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20)); // Per datasheet: From Sleep state, the host needs to wait at least 20ms before accessing any registers or commands
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(25)); // Was 20, but may be right at the edge // Per datasheet: From Sleep state, the host needs to wait at least 20ms before accessing any registers or commands
 		sampleCountTiming[2] = g_sampleCount;
 		g_lcdPowerFlag = ENABLED;
 	}
@@ -2333,6 +2350,7 @@ void ft81x_wake(uint8_t pwm)
 #endif
 #if 1 /* From NHD-4.3-800480FT-CSXP-CTP reference */
 	ft81x_wr32(REG_PCLK, 2);
+	//ft81x_wr32(REG_PCLK, 3); // Try what should be a shorter pixel clock
 #endif
 
   // Set backlight PWM to pwm
@@ -2755,6 +2773,8 @@ uint16_t ft81x_fifo_rp(
 	if (rp == DL_CMD_FAULT) {
 		debugErr("FT81X COPROCESSOR EXCEPTION\r\n");
 		// Delay 50ms?
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
+
 		// Resetting co-processor sets REG_CMD_READ to zero.
 		ft81x_wr(REG_CPURESET, 1);
 		ft81x_wr16(REG_CMD_READ, 0);
