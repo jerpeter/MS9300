@@ -448,6 +448,12 @@ void InitSoftwareSettings_MS9300(void)
 	GetSDCardUsageStats(); debug("Flash Usage Stats updated (Cluster size: %d bytes)\r\n", g_sdCardUsageStats.clusterSizeInBytes);
 
 	//-------------------------------------------------------------------------
+	// Create Battery log
+	//-------------------------------------------------------------------------
+extern void StartBatteryLog(void);
+	StartBatteryLog();
+
+	//-------------------------------------------------------------------------
 	// Check for Timer mode activation
 	//-------------------------------------------------------------------------
 	if (TimerModeActiveCheck() == TRUE)
