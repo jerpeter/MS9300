@@ -483,7 +483,7 @@ void LoadUnitConfigDefaults(UNIT_CONFIG_STRUCT* unitConfigPtr)
 	unitConfigPtr->autoPrint = OFF;
 	unitConfigPtr->barLiveMonitor = NO;
 	unitConfigPtr->baudRate = BAUD_RATE_115200;
-	unitConfigPtr->copies = 1;
+	unitConfigPtr->copies = 5; // Temp re-purposing copies as a Battery Log Timer value
 	unitConfigPtr->externalTrigger = ENABLED;
 	unitConfigPtr->flashWrapping = NO;
 	unitConfigPtr->freqPlotMode = OFF;
