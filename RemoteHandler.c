@@ -104,6 +104,10 @@ static const COMMAND_MESSAGE_STRUCT s_cmdMessageTable[ TOTAL_COMMAND_MESSAGES ] 
 	{ 'N', 'A', 'K', HandleNAK },		// Nack
 	{ 'C', 'A', 'N', HandleCAN },		// Cancel
 
+#if 1 /* Test */
+	{ 'D', 'B', 'L', HandleDBL },		// Cancel
+#endif
+
 	{ 'Z', 'Z', 'Z', HandleAAA }		// Help on menus.
 };
 

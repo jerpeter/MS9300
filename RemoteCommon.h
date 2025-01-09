@@ -555,6 +555,9 @@ enum CMD_MESSAGE_INDEX {
 	ACK,		// Acknowledge
 	NAK,		// Nack
 	CAN,		// Cancel
+#if 1 /* Test */
+	DBL,
+#endif
 	ZZZ,
 	TOTAL_COMMAND_MESSAGES
 };

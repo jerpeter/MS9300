@@ -447,6 +447,52 @@ void handleTRG(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void HandleDBL(CMD_BUFFER_STRUCT* inCmd)
+{
+	UNUSED(inCmd);
+
+	FIL file;
+	uint32_t writeSize;
+	char pathAndFilename[] = LOGS_PATH BATTERY_LOG_FILE;
+	char logData;
+
+	// Check if the Battery Log file does not exit
+    if (f_stat((const TCHAR*)pathAndFilename, NULL) == FR_OK)
+	{
+		// Try to create new Battery log file
+		if ((f_open(&file, (const TCHAR*)pathAndFilename, FA_READ)) != FR_OK)
+		{
+			debugErr("FAT file system: Unable to open file: %s\r\n", pathAndFilename);
+		}
+		else // File opened successfully
+		{
+			sprintf((char*)g_spareBuffer, "\r\n-------- <Start of Battery Log file> --------\r\n");
+			ModemPuts((uint8*)&g_spareBuffer, strlen((char*)g_spareBuffer), NO_CONVERSION);
+
+			uint32_t i = 0;
+			while (i++ < f_size(&file))
+			{
+				// Read Battery log by char
+				f_read(&file, &logData, sizeof(logData), (UINT*)&writeSize);
+				ModemPutc(logData, NO_CONVERSION);
+			}
+
+			// Done reading, close the monitor log file
+			f_close(&file);
+
+			sprintf((char*)g_spareBuffer, "-------- <End of Battery Log file> --------\r\n");
+			ModemPuts((uint8*)&g_spareBuffer, strlen((char*)g_spareBuffer), NO_CONVERSION);
+		}
+	}
+	else
+	{
+		debugErr("Battery log: Dump failed, no file found\r\n");
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void HandleVML(CMD_BUFFER_STRUCT* inCmd)
 {
 	// Set the data pointer to start after the VML character data bytes

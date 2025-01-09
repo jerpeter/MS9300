@@ -90,5 +90,9 @@ void HandleDLM(CMD_BUFFER_STRUCT* inCmd);
 // Function: SendLMA - Live Monitoring Available status
 void SendLMA(void);
 
+#if 1 /* Test */
+void HandleDBL(CMD_BUFFER_STRUCT* inCmd);
+#endif
+
 #endif // _REMOTE_IMMEDIATE_H_
 
