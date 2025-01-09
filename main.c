@@ -654,7 +654,7 @@ extern uint8_t ExpansionBridgeRxCountFifo(void);
 extern uint8_t Expansion_UART_ReadCharacter(void);
 				uint8_t recieveData = Expansion_UART_ReadCharacter();
 
-#if 0 /* Normal */
+#if 1 /* Normal */
 				// Raise the Craft Data flag
 				g_modemStatus.craftPortRcvFlag = YES;
 
@@ -671,7 +671,6 @@ extern uint8_t Expansion_UART_ReadCharacter(void);
 					g_isrMessageBufferPtr->writePtr = g_isrMessageBufferPtr->msg;
 				}
 #else /* Test remote loopback */
-extern void Expansion_UART_WriteCharacter(uint8_t data);
 				Expansion_UART_WriteCharacter(recieveData);
 #endif
 			}
