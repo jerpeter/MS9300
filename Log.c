@@ -20,6 +20,7 @@
 #include "Common.h"
 
 #include "ff.h"
+#include "PowerManagement.h"
 //#include "navigation.h"
 
 ///----------------------------------------------------------------------------
@@ -688,4 +689,141 @@ void FillInAdditionalExceptionReportInfo(FIL file)
 	sprintf((char*)g_spareBuffer, "Error time: %02d-%02d-%02d %02d:%02d:%02d\r\n", exceptionTime.day, exceptionTime.month, exceptionTime.year,
 			exceptionTime.hour, exceptionTime.min, exceptionTime.sec);
 	f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AppendBatteryLogEntryFile(void)
+{
+	FIL file;
+	uint32_t writeSize;
+	char pathAndFilename[] = LOGS_PATH BATTERY_LOG_FILE;
+#if 0 /* Test */
+	int length;
+#endif
+
+    if ((f_open(&file, (const TCHAR*)pathAndFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
+	{
+		debugErr("FAT file system: Unable to open file: %s\r\n", pathAndFilename);
+	}
+	else // File created or exists
+	{
+		if (f_size(&file) == 0)
+		{
+			sprintf((char*)g_spareBuffer, "%s %s on %d/%d/20%d @ %02d:%02d:%02d\r\n", getLangText(BATTERY_TEXT), "LOG CREATION", g_lastReadExternalRtcTime.day, g_lastReadExternalRtcTime.month, g_lastReadExternalRtcTime.year,
+					g_lastReadExternalRtcTime.hour, g_lastReadExternalRtcTime.min, g_lastReadExternalRtcTime.sec);
+			f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
+
+			sprintf((char*)g_spareBuffer, "--- Unit already running: %d/%d/20%d @ %02d:%02d:%02d\r\n", g_lastReadExternalRtcTime.day, g_lastReadExternalRtcTime.month, g_lastReadExternalRtcTime.year,
+					g_lastReadExternalRtcTime.hour, g_lastReadExternalRtcTime.min, g_lastReadExternalRtcTime.sec);
+			f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
+		}
+
+extern int32_t testLifetimeCurrentAvg;
+extern uint32_t testLifetimeCurrentAvgCount;
+		sprintf((char*)g_spareBuffer, "%d/%d/20%d @ %02d:%02d:%02d: %s, %.0fmA avg\r\n", g_lastReadExternalRtcTime.day, g_lastReadExternalRtcTime.month, g_lastReadExternalRtcTime.year,
+					g_lastReadExternalRtcTime.hour, g_lastReadExternalRtcTime.min, g_lastReadExternalRtcTime.sec,
+					FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount));
+		f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
+
+		// Done writing, close the monitor log file
+		f_close(&file);
+
+		debug("Battery log: Updated\r\n");
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void StartBatteryLog(void)
+{
+	FIL file;
+	uint32_t writeSize;
+	char pathAndFilename[] = LOGS_PATH BATTERY_LOG_FILE;
+
+    if ((f_open(&file, (const TCHAR*)pathAndFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
+	{
+		debugErr("FAT file system: Unable to open file: %s\r\n", pathAndFilename);
+	}
+	else // File created or exists
+	{
+		if (f_size(&file) == 0)
+		{
+			sprintf((char*)g_spareBuffer, "%s %s on %d/%d/20%d @ %02d:%02d:%02d\r\n", getLangText(BATTERY_TEXT), "LOG CREATION", g_lastReadExternalRtcTime.day, g_lastReadExternalRtcTime.month, g_lastReadExternalRtcTime.year,
+					g_lastReadExternalRtcTime.hour, g_lastReadExternalRtcTime.min, g_lastReadExternalRtcTime.sec);
+			f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
+
+			debug("Battery log: File created\r\n");
+		}
+
+		sprintf((char*)g_spareBuffer, "--- Unit startup: %d/%d/20%d @ %02d:%02d:%02d\r\n", g_lastReadExternalRtcTime.day, g_lastReadExternalRtcTime.month, g_lastReadExternalRtcTime.year,
+					g_lastReadExternalRtcTime.hour, g_lastReadExternalRtcTime.min, g_lastReadExternalRtcTime.sec);
+
+		// Write Battery log initial creation line
+		f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
+
+		// Done writing, close the monitor log file
+		f_close(&file);
+	}
+
+	AppendBatteryLogEntryFile();
+
+	AssignSoftTimer(BATTERY_LOG_TIMER_NUM, (g_unitConfig.copies * TICKS_PER_MIN), BatteryLogTimerCallback);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void DumpBatteryLog(void)
+{
+	FIL file;
+	uint32_t writeSize;
+	char pathAndFilename[] = LOGS_PATH BATTERY_LOG_FILE;
+	char logData;
+
+	// Check if the Battery Log file does not exit
+    if (f_stat((const TCHAR*)pathAndFilename, NULL) == FR_OK)
+	{
+		// Try to create new Battery log file
+		if ((f_open(&file, (const TCHAR*)pathAndFilename, FA_READ)) != FR_OK)
+		{
+			debugErr("FAT file system: Unable to open file: %s\r\n", pathAndFilename);
+		}
+		else // File opened successfully
+		{
+			debug("Battery log: File...\r\n\r\n");
+
+			uint32_t i = 0;
+			while (i++ < f_size(&file))
+			{
+				// Read Battery log by char
+				f_read(&file, &logData, sizeof(logData), (UINT*)&writeSize);
+				debugRaw("%c", logData);
+			}
+
+			// Done reading, close the monitor log file
+			f_close(&file);
+		}
+
+		if (MessageBox(getLangText(STATUS_TEXT), "BATTERY LOG DUMPED TO DEBUG PORT", MB_OK) == MB_SPECIAL_ACTION)
+		{
+			if (f_unlink((const TCHAR*)pathAndFilename) != FR_OK)
+			{
+				sprintf((char*)g_spareBuffer, "%s %s", getLangText(UNABLE_TO_DELETE_TEXT), getLangText(EVENT_TEXT));
+				OverlayMessage(pathAndFilename, (char*)g_spareBuffer, 3 * SOFT_SECS);
+			}
+			else
+			{
+				debug("Debug file: Deleted\r\n");
+				sprintf((char*)g_spareBuffer, "DELETED BATTERY LOG");
+				OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 2 * SOFT_SECS);
+			}
+		}
+	}
+	else
+	{
+		debugErr("Battery log: Dump failed, no file found\r\n");
+	}
 }
