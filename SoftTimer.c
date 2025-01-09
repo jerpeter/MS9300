@@ -589,3 +589,14 @@ void GpsPowerOnTimerCallBack(void)
 {
 	EnableGps();
 }
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+extern void AppendBatteryLogEntryFile(void);
+void BatteryLogTimerCallback(void)
+{
+	AppendBatteryLogEntryFile();
+
+	AssignSoftTimer(BATTERY_LOG_TIMER_NUM, (g_unitConfig.copies * TICKS_PER_MIN), BatteryLogTimerCallback);
+}

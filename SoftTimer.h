@@ -37,6 +37,7 @@ enum {
 	GPS_POWER_ON_TIMER_NUM,
 	LOOSE_EVENT_MIGRATION_TIMER_NUM,
 	AUTO_DIAL_OUT_CYCLE_TIMER_NUM,
+	BATTERY_LOG_TIMER_NUM,
 	// Add new timers here
 	NUM_OF_SOFT_TIMERS
 };
@@ -94,5 +95,6 @@ void ModemResetTimerCallback(void);
 void GpsPowerOffTimerCallBack(void);
 void GpsPowerOnTimerCallBack(void);
 void LooseEventMigrationTimerCallBack(void);
+void BatteryLogTimerCallback(void);
 
 #endif // _SOFT_TIMER_H_
