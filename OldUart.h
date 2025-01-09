@@ -117,4 +117,7 @@ void UartWrite(void* b, int32 n, int32 channel);
 void UartPutc(uint8 c, int32 channel);
 uint8 UartCharWaiting(int32 channel);
 
+uint8_t Expansion_UART_ReadCharacter(void);
+void Expansion_UART_WriteCharacter(uint8_t data);
+
 #endif // _UART_H_
