@@ -1454,7 +1454,7 @@ void BitAccuracyMenuHandler(uint8 keyPressed, void* data)
 // Config Menu
 //=============================================================================
 //*****************************************************************************
-#define CONFIG_MENU_ENTRIES 38
+#define CONFIG_MENU_ENTRIES 39
 USER_MENU_STRUCT configMenu[CONFIG_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, CONFIG_OPTIONS_MENU_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, CONFIG_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
@@ -1465,6 +1465,7 @@ USER_MENU_STRUCT configMenu[CONFIG_MENU_ENTRIES] = {
 {NO_TAG, 0, AUTO_MONITOR_TEXT,			NO_TAG, {AUTO_MONITOR}},
 {NO_TAG, 0, BAR_LIVE_MONITOR_TEXT,		NO_TAG, {BAR_LIVE_MONITOR}},
 {NO_TAG, 0, BATTERY_TEXT,				NO_TAG, {BATTERY}},
+{NO_TAG, 0, NULL_TEXT,			BATTERY_LOG_TAG, {BATTERY_LOG_TIMER}},
 {NO_TAG, 0, BAUD_RATE_TEXT,				NO_TAG, {BAUD_RATE}},
 {NO_TAG, 0, CALIBRATION_DATE_TEXT,		NO_TAG, {CALIBRATION_DATE}},
 {NO_TAG, 0, CHAN_VERIFICATION_TEXT,		NO_TAG, {CHANNEL_VERIFICATION}},
@@ -1546,6 +1547,10 @@ void ConfigMenuHandler(uint8 keyPressed, void* data)
 
 			case (BATTERY):
 				SETUP_MENU_MSG(BATTERY_MENU);
+			break;
+
+			case (BATTERY_LOG_TIMER):
+				SETUP_USER_MENU_FOR_INTEGERS_MSG(&copiesMenu, &g_unitConfig.copies, 5, 1, 255);
 			break;
 
 			case (BAUD_RATE):
@@ -2265,7 +2270,7 @@ void HardwareIDMenuHandler(uint8 keyPressed, void* data)
 // Help Menu
 //=============================================================================
 //*****************************************************************************
-#define HELP_MENU_ENTRIES 7
+#define HELP_MENU_ENTRIES 8
 USER_MENU_STRUCT helpMenu[HELP_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, HELP_MENU_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, HELP_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
@@ -2274,6 +2279,7 @@ USER_MENU_STRUCT helpMenu[HELP_MENU_ENTRIES] = {
 {ITEM_3, 0, SENSOR_CHECK_TEXT,			NO_TAG, {SENSOR_CHECK_CHOICE}},
 {ITEM_4, 0, GPS_LOCATION_TEXT,			NO_TAG, {GPS_LOCATION_DISPLAY_CHOICE}},
 {ITEM_5, 0, CHECK_SUMMARY_FILE_TEXT,	NO_TAG, {CHECK_SUMMARY_FILE_CHOICE}},
+{ITEM_6, 0, NULL_TEXT,	DUMP_BATTERY_LOG_TAG, {TESTING_CHOICE}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&HelpMenuHandler}}
 };
 
@@ -2335,7 +2341,9 @@ void HelpMenuHandler(uint8 keyPressed, void* data)
 		}
 		else // Testing
 		{
-#if 1 /* Smart Sensor testing */
+extern void DumpBatteryLog(void);
+			DumpBatteryLog();
+#if 0 /* Smart Sensor testing */
 			SmartSensorTest();
 #endif
 		}

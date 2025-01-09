@@ -581,7 +581,7 @@ void CompanyMenuHandler(uint8 keyPressed, void* data)
 	JUMP_TO_ACTIVE_MENU();
 }
 
-#if 0 /* Unused */
+#if 1 /* Unused */
 //*****************************************************************************
 //=============================================================================
 // Copies Menu
@@ -589,7 +589,7 @@ void CompanyMenuHandler(uint8 keyPressed, void* data)
 //*****************************************************************************
 #define COPIES_MENU_ENTRIES 4
 USER_MENU_STRUCT copiesMenu[COPIES_MENU_ENTRIES] = {
-{TITLE_PRE_TAG, 0, COPIES_TEXT, TITLE_POST_TAG,
+{BATTERY_LOG_TAG, 0, NULL_TEXT, NO_TAG,
 	{INSERT_USER_MENU_INFO(INTEGER_BYTE_TYPE, COPIES_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(NO_TYPE, NO_ALT_TYPE)}},
 {NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
@@ -605,20 +605,12 @@ void CopiesMenuHandler(uint8 keyPressed, void* data)
 	
 	if (keyPressed == ENTER_KEY)
 	{	
-		// Check if the user is printing an event from the summary list
-		if (g_summaryListMenuActive == YES)
-		{
-			SETUP_MENU_MSG(SUMMARY_MENU); mn_msg.data[0] = ESC_KEY;
-		}
-		else // g_summaryListMenuActive == NO
-		{
-			g_unitConfig.copies = *((uint8*)data);
-			debug("Copies: %d\r\n", g_unitConfig.copies);
+		g_unitConfig.copies = *((uint8*)data);
+		debug("Battery Log Timer: %d\r\n", g_unitConfig.copies);
 
-			SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
+		SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
 
-			SETUP_USER_MENU_MSG(&configMenu, DEFAULT_ITEM_1);
-		}
+		SETUP_USER_MENU_MSG(&configMenu, DEFAULT_ITEM_1);
 	}
 	else if (keyPressed == ESC_KEY)
 	{
