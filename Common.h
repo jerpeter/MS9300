@@ -38,6 +38,7 @@
 #define MONITOR_LOG_READABLE_FILE	"MonitorLogReadable.txt"
 #define ON_OFF_READABLE_FILE		"OnOffLogReadable.txt"
 #define EXCEPTION_REPORT_FILE		"ExceptionReport.txt"
+#define BATTERY_LOG_FILE			"BatteryLogReadable.txt"
 
 #define MAX_FILE_NAME_CHARS		255
 #define MAX_TEXT_LINE_CHARS		255
@@ -62,7 +63,7 @@ enum {
 
 #define VT_FEATURE_DISABLED			NO
 
-#define LCD_RESOURCE_UNAVAILABLE	NO
+#define LCD_RESOURCE_UNAVAILABLE	0
 
 #define FLASH_USER_PAGE_BASE_ADDRESS	(0x0000)
 #define GET_HARDWARE_ID					(g_shadowFactorySetupRecord.hardwareID) // Factory setup location of Hardware ID
