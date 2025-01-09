@@ -200,7 +200,6 @@ void UartPutc(uint8 c, int32 channel)
 #else /* Test Expansion RS232 */
 		else
 		{
-extern void Expansion_UART_WriteCharacter(uint8_t data);
 			Expansion_UART_WriteCharacter(c);
 		}
 #endif
@@ -1062,6 +1061,45 @@ void ExpansionBridgeInit(void)
 	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
 	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
 	if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); }
+
+#if 1 /* Extra Test FIFO depth at 12 bytes */
+	testChar = 0x00;
+	debug("Expansion RS232: Tx (0x%x inc) x32\r\n", testChar);
+	for (uint8_t i = 0; i < 32; i++) { Expansion_UART_WriteCharacter(i); }
+	ExpansionBridgeStatus();
+	for (uint8_t i = 0; i < 32; i++) { if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); } }
+
+	debug("Expansion RS232: Tx (0x%x inc) x64\r\n", testChar);
+	for (uint8_t i = 0; i < 64; i++) { Expansion_UART_WriteCharacter(i); }
+	ExpansionBridgeStatus();
+	for (uint8_t i = 0; i < 64; i++) { if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); } }
+
+	debug("Expansion RS232: Tx (0x%x inc) x80\r\n", testChar);
+	for (uint8_t i = 0; i < 80; i++) { Expansion_UART_WriteCharacter(i); }
+	ExpansionBridgeStatus();
+	for (uint8_t i = 0; i < 80; i++) { if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); } }
+
+	debug("Expansion RS232: Tx (0x%x inc) FIFO partial read and write\r\n", testChar);
+	for (uint8_t i = 0; i < 64; i++) { Expansion_UART_WriteCharacter(i); }
+	ExpansionBridgeStatus();
+	for (uint8_t i = 0; i < 32; i++) { if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); } }
+	for (uint8_t i = 64; i < 128; i++) { Expansion_UART_WriteCharacter(i); }
+	ExpansionBridgeStatus();
+	for (uint8_t i = 0; i < 64; i++) { if (ReadUartBridgeControlRegister(PI7C9X760_REG_LSR) & 0x01) { debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter()); } else { debug("Expansion RS232: No Rx char to read\r\n"); } }
+
+	debug("Expansion RS232: Tx (0x%x inc) x32 testing normal data receive\r\n", testChar);
+	for (uint8_t i = 0; i < 32; i++) { Expansion_UART_WriteCharacter(i); }
+	uint8_t status = ExpansionBridgeReadInterruptStatus();
+	uint8_t intStatus = ExpansionBridgeInterruptStatusAndClear();
+	uint8_t lsrStatus = ExpansionBridgeReadLSRStatus();
+	if ((status & 0x0C) || ((intStatus & 0x04) || (intStatus & 0x04)) || (lsrStatus & 0x01)) // Check if Rx timeout, or interrupt status is either Rx timeout or RHR, or LSR shows data received and saved in Rx FIFO
+	{
+		while (ExpansionBridgeRxCountFifo())
+		{
+			debug("Expansion RS232: Rx (0x%x)\r\n", Expansion_UART_ReadCharacter());
+		}
+	}
+#endif
 #endif
 
 #if 0 /* Test with scope */
