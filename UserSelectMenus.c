@@ -1312,7 +1312,7 @@ void BarResultMenuHandler(uint8 keyPressed, void* data)
 // Baud Rate Menu
 //=============================================================================
 //*****************************************************************************
-#define BAUD_RATE_MENU_ENTRIES 7
+#define BAUD_RATE_MENU_ENTRIES 10
 USER_MENU_STRUCT baudRateMenu[BAUD_RATE_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, BAUD_RATE_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, BAUD_RATE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
@@ -1321,6 +1321,9 @@ USER_MENU_STRUCT baudRateMenu[BAUD_RATE_MENU_ENTRIES] = {
 {ITEM_3, 38400, BAUD_RATE_TEXT,	NO_TAG, {BAUD_RATE_38400}},
 {ITEM_4, 19200, BAUD_RATE_TEXT,	NO_TAG, {BAUD_RATE_19200}},
 {ITEM_5, 9600, BAUD_RATE_TEXT,	NO_TAG, {BAUD_RATE_9600}},
+{ITEM_6, 0, BAUD_RATE_115200_TEXT,	ALTERNATE_TAG, {BAUD_RATE_115200_A}},
+{ITEM_7, 57600, BAUD_RATE_TEXT,	ALTERNATE_TAG, {BAUD_RATE_57600_A}},
+{ITEM_8, 38400, BAUD_RATE_TEXT,	ALTERNATE_TAG, {BAUD_RATE_38400_A}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&BaudRateMenuHandler}}
 };
 
@@ -1338,6 +1341,7 @@ void BaudRateMenuHandler(uint8 keyPressed, void* data)
 
 	if (keyPressed == ENTER_KEY)
 	{
+#if 0 /* Original/Todo */
 		if (g_unitConfig.baudRate != baudRateMenu[newItemIndex].data)
 		{
 			g_unitConfig.baudRate = (uint8)baudRateMenu[newItemIndex].data;
@@ -1365,6 +1369,30 @@ void BaudRateMenuHandler(uint8 keyPressed, void* data)
 
 			SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
 		}
+#else /* Test */
+		g_unitConfig.baudRate = (uint8)baudRateMenu[newItemIndex].data;
+
+#if 0 /* Test debug */
+		char baudSelect[20]; memset(baudSelect, 0, 20);
+		switch (g_unitConfig.baudRate)
+		{
+			case BAUD_RATE_115200: strcpy(baudSelect, "115200"); break;
+			case BAUD_RATE_115200_A: strcpy(baudSelect, "115200 (A)"); break;
+			case BAUD_RATE_57600: strcpy(baudSelect, "57600"); break;
+			case BAUD_RATE_57600_A: strcpy(baudSelect, "57600 (A)"); break;
+			case BAUD_RATE_38400: strcpy(baudSelect, "38400"); break;
+			case BAUD_RATE_38400_A: strcpy(baudSelect, "38400 (A)"); break;
+			case BAUD_RATE_19200: strcpy(baudSelect, "19200"); break;
+			case BAUD_RATE_9600: strcpy(baudSelect, "9600"); break;
+		}
+		debug("Baud menu: changing to Baud selection (%d / %s)\r\n", g_unitConfig.baudRate, baudSelect);
+#else
+		debug("Baud menu: changing to Baud selection (%d)\r\n", g_unitConfig.baudRate);
+#endif
+#endif
+		ExpansionBridgeChangeBaud(g_unitConfig.baudRate);
+
+		SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
 
 		SETUP_USER_MENU_MSG(&configMenu, DEFAULT_ITEM_1);
 	}

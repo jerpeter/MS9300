@@ -119,5 +119,6 @@ uint8 UartCharWaiting(int32 channel);
 
 uint8_t Expansion_UART_ReadCharacter(void);
 void Expansion_UART_WriteCharacter(uint8_t data);
+void ExpansionBridgeChangeBaud(uint32_t baud);
 
 #endif // _UART_H_

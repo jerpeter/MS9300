@@ -904,6 +904,70 @@ uint8_t ExpansionBridgeRxCountFifo(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void ExpansionBridgeChangeBaud(uint32_t baudSelect)
+{
+	uint8_t dll = 0;
+	uint8_t cprn = 0;
+	uint32_t baud = 0;
+	uint8_t alt = 0;
+
+	PowerControl(EXPANSION_ENABLE, ON);
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
+
+	PowerControl(EXPANSION_RESET, OFF);
+
+	if ((GetPowerControlState(EXPANSION_ENABLE) != ON) && (GetPowerControlState(EXPANSION_RESET) != OFF))
+	{
+		debugErr("Expansion RS232: Can't change BAUD, either no power or device in reset\r\n");
+		return;
+	}
+
+	switch (baudSelect)
+	{
+		case BAUD_RATE_115200: dll = 13; cprn = 0; baud = 115200; break;
+		case BAUD_RATE_115200_A: dll = 11; cprn = 3; baud = 115200; alt = 1; break;
+		case BAUD_RATE_57600: dll = 26; cprn = 0; baud = 57600; break;
+		case BAUD_RATE_57600_A: dll = 22; cprn = 3; baud = 57600; alt = 1; break;
+		case BAUD_RATE_38400: dll = 39; cprn = 0; baud = 38400; break;
+		case BAUD_RATE_38400_A: dll = 25; cprn = 9; baud = 38400; alt = 1; break;
+		case BAUD_RATE_19200: dll = 50; cprn = 9; baud = 19200; break;
+		case BAUD_RATE_9600: dll = 100; cprn = 9; baud = 9600; break;
+	}
+
+	// Set Baud
+	// Set LCR[7]=1 to access the divisor latches/registers
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x93); // Divisor latch enabled, parity is not forced, even parity, parity disabled, 1 stop bit, 8 bits
+
+	// MSB bits of divisor for baud rate generator, default = 0x00 which is desired
+	// LSB bits of divisor for baud rate generator, needs change from default
+	WriteUartBridgeControlRegister(PI7C9X760_REG_DLL, dll);
+
+	// SCR - Sample Clock value used in the Baud Rate Generator, default = 0 which is desired
+
+	// CPRN - N number in calculating the prescaler,which is used to generate Baud Rate, needs change from default
+	// Clock Prescale Register (CPR). Accessible when LCR=0xBF and SFR[2]=1
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0xBF);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SFREN, 0x5A);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x04);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_CPR, (0x10 | cprn)); // Set CPR N (botton 4 bits)
+
+#if 0 /* Leave SFR and SFREN enabled */
+	// Unwind special access
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x00);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SFREN, 0x00);
+#endif
+	// LCR set just below
+
+	// Set 8N1
+	// Make sure LCR[7]=0
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x13); // Parity is not forced, even parity, parity disabled, 1 stop bit, 8 bits
+
+	debug("Expansion RS232: Set baud to %d %s\r\n", baud, ((alt == 1) ? "Alt" : ""));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void ExpansionBridgeSetupRS232(void)
 {
 	// Set Baud 115200 (Divisor = 8, Sample rate = 26, % error in clock = 0.16)
