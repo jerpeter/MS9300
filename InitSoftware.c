@@ -169,6 +169,8 @@ void LoadUnitConfig(void)
 		{
 			// Re-Initialize the RS232 with the stored baud rate
 		}
+#else /* Test */
+		ExpansionBridgeChangeBaud(g_unitConfig.baudRate);
 #endif
 	}
 }
