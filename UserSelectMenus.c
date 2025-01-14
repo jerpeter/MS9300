@@ -2305,7 +2305,11 @@ USER_MENU_STRUCT helpMenu[HELP_MENU_ENTRIES] = {
 {ITEM_1, 0, CONFIG_AND_OPTIONS_TEXT,	NO_TAG, {CONFIG_CHOICE}},
 {ITEM_2, 0, HELP_INFORMATION_TEXT,		NO_TAG, {INFORMATION_CHOICE}},
 {ITEM_3, 0, SENSOR_CHECK_TEXT,			NO_TAG, {SENSOR_CHECK_CHOICE}},
+#if 0 /* Original */
 {ITEM_4, 0, GPS_LOCATION_TEXT,			NO_TAG, {GPS_LOCATION_DISPLAY_CHOICE}},
+#else
+{ITEM_4, 0, AUX_POWER_BYPASS_TEXT,		NO_TAG, {GPS_LOCATION_DISPLAY_CHOICE}},
+#endif
 {ITEM_5, 0, CHECK_SUMMARY_FILE_TEXT,	NO_TAG, {CHECK_SUMMARY_FILE_CHOICE}},
 {ITEM_6, 0, NULL_TEXT,	DUMP_BATTERY_LOG_TAG, {TESTING_CHOICE}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&HelpMenuHandler}}
@@ -2346,6 +2350,7 @@ void HelpMenuHandler(uint8 keyPressed, void* data)
 		}
 		else if (helpMenu[newItemIndex].data == GPS_LOCATION_DISPLAY_CHOICE)
 		{
+#if 0 /* Original */
 			if (GET_HARDWARE_ID == HARDWARE_ID_REV_8_WITH_GPS_MOD)
 			{
 				sprintf((char*)g_spareBuffer, "LAT %02d%02d.%04d(%c) LON %02d%02d.%04d(%c)", g_gpsPosition.latDegrees, g_gpsPosition.latMinutes, g_gpsPosition.latSeconds, g_gpsPosition.northSouth,
@@ -2362,6 +2367,15 @@ void HelpMenuHandler(uint8 keyPressed, void* data)
 				sprintf((char*)g_spareBuffer, "GPS OUTPUT TO CRAFT <%s>", ((g_gpsOutputToCraft == YES) ? "YES" : "NO"));
 				OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, (2 * SOFT_SECS));
 			}
+#else
+			if (GetPowerControlState(USB_AUX_POWER_ENABLE) == OFF) { sprintf((char*)g_spareBuffer, "AUX POWER BYPASS IS DISABLED. DO YOU WANT TO ENABLE BYPASS?"); }
+			else { sprintf((char*)g_spareBuffer, "AUX POWER BYPASS IS ENABLED. DO YOU WANT TO DISABLE BYPASS?"); }
+			if (MessageBox(getLangText(AUX_POWER_BYPASS_TEXT), (char*)g_spareBuffer, MB_YESNO) == MB_FIRST_CHOICE)
+			{
+				if (GetPowerControlState(USB_AUX_POWER_ENABLE) == OFF) { PowerControl(USB_AUX_POWER_ENABLE, ON); }
+				else { PowerControl(USB_AUX_POWER_ENABLE, OFF); }
+			}
+#endif
 		}
 		else if (helpMenu[newItemIndex].data == CHECK_SUMMARY_FILE_CHOICE)
 		{
