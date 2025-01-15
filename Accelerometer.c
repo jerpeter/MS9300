@@ -168,9 +168,17 @@ int GetAccRegister(uint8_t registerAddress, uint8_t* registerData, uint8_t dataS
 {
     int status = E_SUCCESS;
 #if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+    if (dataSize > 7) { return (E_BAD_PARAM); }
+    uint8_t readData[8];
+    uint8_t writeData[8];
+    writeData[0] = registerAddress | 0x80; // Set the MSB to 1 to signify a read
+    memset(&writeData[1], 0, dataSize);
+
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutClr(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
-	SpiTransaction(SPI_ACC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, registerData, dataSize, BLOCKING);
+    SpiTransaction(SPI_ACC, SPI_8_BIT_DATA_SIZE, YES, &writeData[0], sizeof(writeData), readData, sizeof(readData), BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutSet(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
+
+    memcpy(registerData, &readData[1], dataSize);
 #else /* HARDWARE_ID_REV_PROTOTYPE_1 */
 #if 0 /* Original */
     status = WriteI2CDevice(MXC_I2C0, I2C_ADDR_ACCELEROMETER, &registerAddress, sizeof(uint8_t), registerData, sizeof(uint8_t));
@@ -186,9 +194,9 @@ int GetAccRegister(uint8_t registerAddress, uint8_t* registerData, uint8_t dataS
 ///----------------------------------------------------------------------------
 int SetAccRegister(uint8_t registerAddress, uint8_t registerData)
 {
-    uint8_t writeData[2];
     int status = E_SUCCESS;
 
+    uint8_t writeData[2];
     writeData[0] = registerAddress;
     writeData[1] = registerData;
 
@@ -301,6 +309,8 @@ void GetAccChannelData(ACC_DATA_STRUCT* channelData)
 #else /* Use variable address since the Acc slave address sometimes changes */
     //WriteI2CDevice(MXC_I2C0, accelerometerI2CAddr, &registerAddress, sizeof(uint8_t), chanDataBytePtr, ACC_CHANNEL_DATA_SIZE);
     GetAccRegister(registerAddress, chanDataBytePtr, ACC_CHANNEL_DATA_SIZE);
+    //UNUSED(registerAddress);
+    //UNUSED(chanDataBytePtr);
 #endif
 
 #if 0 /* Should be unnecessary since data comes across Little Endian */
@@ -500,11 +510,64 @@ void AccelerometerInit(void)
     g_spi2State |= SPI2_ACC_ON;
     if ((g_spi2State & SPI2_OPERAITONAL) == NO) { SetupSPI2_LCDAndAcc(); g_spi2State |= SPI2_OPERAITONAL; }
 
-#if 1 /* Test issuing software reset if the Acc slave address is anything other than the primary defualt 0x1E */
-    if (1) //(accelerometerI2CAddr != I2C_ADDR_ACCELEROMETER)
+#if /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PROTOTYPE_1)
+    // Issue software reset if the Acc slave address is anything other than the primary defualt 0x1E */
+    if (accelerometerI2CAddr != I2C_ADDR_ACCELEROMETER)
     {
+        debug("Accelerometer: Attempting software reset...\r\n");
         IssueAccSoftwareReset();
     }
+#endif
+
+#if 0 /* Test */
+    //while (1)
+    {
+        VerifyAccManuIDAndPartID();
+        SoftUsecWait(1 * SOFT_SECS);
+    }
+#endif
+
+#if 0 /* Test */
+    uint8_t manuIDAndPartID[6];
+    uint8_t registerAddress = ACC_MAN_ID_REGISTER;
+    //uint8_t status = FAILED;
+
+    debug("Accelerometer: Attempting read of ManID...\r\n");
+    while (1)
+    {
+        VerifyAccManuIDAndPartID();
+        SoftUsecWait(1 * SOFT_SECS);
+#if 0
+    MXC_SPI_SetMode(MXC_SPI2, SPI_MODE_0);
+    GetAccRegister(registerAddress, &manuIDAndPartID[0], sizeof(uint8_t));
+    if (manuIDAndPartID[0] == 'K') { debug("Accelerometer: ManID first letter read successfully\r\n"); }
+    else { debug("Accelerometer: ManID first letter read failed with 0x%02x\r\n", manuIDAndPartID[0]); }
+    SoftUsecWait(1 * SOFT_SECS);
+#endif
+#if 0
+    MXC_SPI_SetMode(MXC_SPI2, SPI_MODE_1);
+    GetAccRegister(registerAddress, &manuIDAndPartID[0], sizeof(uint8_t));
+    if (manuIDAndPartID[0] == 'K') { debug("Accelerometer: ManID first letter read successfully\r\n"); }
+    else { debug("Accelerometer: ManID first letter read failed with 0x%02x\r\n", manuIDAndPartID[0]); }
+    SoftUsecWait(1 * SOFT_SECS);
+#endif
+#if 0
+    MXC_SPI_SetMode(MXC_SPI2, SPI_MODE_2);
+    GetAccRegister(registerAddress, &manuIDAndPartID[0], sizeof(uint8_t));
+    if (manuIDAndPartID[0] == 'K') { debug("Accelerometer: ManID first letter read successfully\r\n"); }
+    else { debug("Accelerometer: ManID first letter read failed with 0x%02x\r\n", manuIDAndPartID[0]); }
+    SoftUsecWait(1 * SOFT_SECS);
+#endif
+#if 0
+    MXC_SPI_SetMode(MXC_SPI2, SPI_MODE_3);
+    GetAccRegister(registerAddress, &manuIDAndPartID[0], sizeof(uint8_t));
+    if (manuIDAndPartID[0] == 'K') { debug("Accelerometer: ManID first letter read successfully\r\n"); }
+    else { debug("Accelerometer: ManID first letter read failed with 0x%02x\r\n", manuIDAndPartID[0]); }
+    SoftUsecWait(1 * SOFT_SECS);
+#endif
+    }
+    // LCD controller uses SPI Mode 0 only, so reset
+    MXC_SPI_SetMode(MXC_SPI2, SPI_MODE_0);
 #endif
 
     // Attempt to verify the part is present
