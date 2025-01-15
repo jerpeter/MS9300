@@ -902,22 +902,15 @@ uint16_t GetBattChargerJunctionTemperature(void)
 {
 	uint16_t registerValue;
 	float result = 0;
-	uint8_t i;
 
 	GetBattChargerRegister(BATT_CHARGER_ADC_RESULT_OF_THE_JUNCTION_TEMPERATURE, &registerValue);
 
-	for (i = 0; i < 10; i++)
-	{
-		if (registerValue & 0x0001)
-		{
-			result += (1 * (2^i));
-			registerValue >>= 1;
-		}
-	}
+	// Temperature conversion equation (in C)
+	result = (314 - (0.5703 * registerValue));
 
-	// Temperature conversion equation
-	result = (314 - (0.5703 * result));
-	// Result units: Assume temp in C and not F, unconfirmed
+	// Convert to Fahrenheit
+	result = ((((result * 9) / 5)) + 32);
+
 	return ((uint16_t)result);
 }
 
@@ -1644,7 +1637,7 @@ int Ltc2944_get_temperature(int* val)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int Ltc2944_get_temperature_farenheit(int* val)
+int Ltc2944_get_temperature_fahrenheit(int* val)
 {
 	int ret;
 	uint8_t datar[2];
@@ -1686,7 +1679,7 @@ int Ltc2944_set_temp_thr(int tempHigh, int tempLow)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int Ltc2944_set_temp_thr_farenheit(int tempHigh, int tempLow)
+int Ltc2944_set_temp_thr_fahrenheit(int tempHigh, int tempLow)
 {
 	uint8_t dataWrite[2];
 	uint16_t tempHighThr;
@@ -1827,7 +1820,7 @@ void TestFuelGauge(void)
 	Ltc2944_get_current(info.r_sense, &val);
 	debug("Fuel Gauge: Current is %d (uA)\r\n", val);
 
-	Ltc2944_get_temperature_farenheit(&val);
+	Ltc2944_get_temperature_fahrenheit(&val);
 	debug("Fuel Gauge: Temperature is %d (degrees F)\r\n", val);
 }
 
@@ -1839,7 +1832,7 @@ void FuelGaugeDebugInfo(void)
 	int vVal, cVal, tVal;
 	Ltc2944_get_voltage(&vVal);
 	Ltc2944_get_current(Ltc2944_device.r_sense, &cVal);
-	Ltc2944_get_temperature_farenheit(&tVal);
+	Ltc2944_get_temperature_fahrenheit(&tVal);
 	debug("Fuel Gauge: %0.3fV, %0.3fmA, %dF\r\n", (double)((float)vVal / 1000), (double)((float)cVal / 1000), tVal);
 }
 
@@ -1848,11 +1841,12 @@ void FuelGaugeDebugInfo(void)
 ///----------------------------------------------------------------------------
 char* FuelGaugeDebugString(void)
 {
-	int vVal, cVal, tVal;
+	int vVal, cVal, tVal, bc_tVal;
 	Ltc2944_get_voltage(&vVal);
 	Ltc2944_get_current(Ltc2944_device.r_sense, &cVal);
-	Ltc2944_get_temperature_farenheit(&tVal);
-	sprintf((char*)g_debugBuffer, "Batt: %0.3fV, %0.3fmA, %dF", (double)((float)vVal / 1000), (double)((float)cVal / 1000), tVal);
+	Ltc2944_get_temperature_fahrenheit(&tVal);
+	bc_tVal = GetBattChargerJunctionTemperature();
+	sprintf((char*)g_debugBuffer, "Batt: %0.3fV, %0.3fmA, %dF, %dF", (double)((float)vVal / 1000), (double)((float)cVal / 1000), tVal, bc_tVal);
 	return ((char*)g_debugBuffer);
 }
 
@@ -1892,7 +1886,7 @@ int FuelGaugeGetCurrentAbs(void)
 int FuelGaugeGetTemperature(void)
 {
 	int tVal;
-	Ltc2944_get_temperature_farenheit(&tVal);
+	Ltc2944_get_temperature_fahrenheit(&tVal);
 	return (tVal);
 }
 
@@ -2106,7 +2100,7 @@ void FuelGaugeInit(void)
 	Ltc2944_get_current(Ltc2944_device.r_sense, &val);
 	debug("Fuel Gauge: Current is %d (uA)\r\n", val);
 
-	Ltc2944_get_temperature_farenheit(&val);
+	Ltc2944_get_temperature_fahrenheit(&val);
 	debug("Fuel Gauge: Temperature is %d (degrees F)\r\n", val);
 
 	debug("Fuel Gauge: Re-enabling conversions (Scan mode)\r\n");
