@@ -2245,8 +2245,7 @@ void ProcessSensorCalibrationData(void)
 #if 0 /* Original */
 	GetAccChannelData(&channelData);
 #else
-	//if (g_spi2InUseByLCD)
-	if (1)
+	if (g_spi2InUseByLCD)
 	{
 		// Hopefully an updated Acc data cache is available (executed just prior to LCD write), otherwise it's worst case with no ability to get current Acc data so duplicate last sample
 		channelData = g_accDataCache;
@@ -2469,8 +2468,7 @@ static inline void getChannelDataAcc_ISR_Inline(void)
 #else
 	ACC_DATA_STRUCT accData;
 
-	//if (g_spi2InUseByLCD)
-	if (1)
+	if (g_spi2InUseByLCD)
 	{
 		// Hopefully an updated Acc data cache is available (executed just prior to LCD write), otherwise it's worst case with no ability to get current Acc data so duplicate last sample
 		accData = g_accDataCache;
