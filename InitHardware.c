@@ -2078,10 +2078,7 @@ void SetupWatchdog(void)
 //#define SPI_SPEED_ADC 3000000 // Bit Rate
 #define SPI_SPEED_ADC 60000000 // Bit Rate
 #endif
-//#define SPI_SPEED_LCD 10000000 //12000000 // Bit Rate
-//#define SPI_SPEED_LCD 30000000 //12000000 // Bit Rate // Try 30 MHz
-#define SPI_SPEED_LCD 1000000 // Bit Rate
-//#define SPI_WIDTH_DUAL	2
+#define SPI_SPEED_LCD 12000000 // Bit Rate, LCD can go up but Accelerometer won't work at 16 MHz and above
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -2145,7 +2142,7 @@ void SpiTransaction(uint8_t spiDevice, uint8_t dataBits, uint8_t ssDeassert, uin
 	spiRequest.txLen = writeSize;
 	spiRequest.rxData = readData;
 	spiRequest.rxLen = readSize;
-	spiRequest.ssIdx = 0; // Both ADC and LCD Slave Selects are 0
+	if (spiDevice == SPI_ACC) { spiRequest.ssIdx = 1; } else { spiRequest.ssIdx = 0; } // Both ADC and LCD Slave Selects are 0
 	spiRequest.ssDeassert = ssDeassert;
 	spiRequest.txCnt = 0;
 	spiRequest.rxCnt = 0;
@@ -5435,7 +5432,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initalize the Accelerometer
 	//-------------------------------------------------------------------------
-#if 0 /* Normal */
+#if 1 /* Normal */
 	AccelerometerInit(); debug("Accelerometer: Init complete\r\n");
 #else
 	debugWarn("Accelerometer: Init skipped for now\r\n");
