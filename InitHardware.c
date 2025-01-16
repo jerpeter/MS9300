@@ -1147,11 +1147,11 @@ void SetupAllGPIO(void)
 	setupGPIO.port = GPIO_LED_1_PORT;
 	setupGPIO.mask = GPIO_LED_1_PIN;
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
-	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.pad = MXC_GPIO_PAD_WEAK_PULL_UP;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
 	//MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
-	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as on
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as off (Beta/re-spin reversed)
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// LED 2: Port 1, Pin 25, Output, No external pull, Active high, 3.3V
@@ -1172,11 +1172,11 @@ void SetupAllGPIO(void)
 	setupGPIO.port = GPIO_LED_2_PORT;
 	setupGPIO.mask = GPIO_LED_2_PIN;
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
-	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.pad = MXC_GPIO_PAD_WEAK_PULL_UP;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
 	//MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
-	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as on
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as off (Beta/re-spin reversed)
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// LED 3: Port 1, Pin 26, Output, No external pull, Active high, 3.3V
@@ -2167,8 +2167,13 @@ void SpiTransaction(uint8_t spiDevice, uint8_t dataBits, uint8_t ssDeassert, uin
 			g_spi2InUseByLCD |= SPI2_ACTIVE;
 		}
 
+#if 1 /* Test interrupt isolation */
+		__disable_irq();
+#endif
 		MXC_SPI_MasterTransaction(&spiRequest);
-
+#if 1 /* Test interrupt isolation */
+		__enable_irq();
+#endif
 		if (spiDevice == SPI_LCD) { g_spi2InUseByLCD &= ~SPI2_ACTIVE; }
 	}
 	else if (method == ASYNC_ISR)
