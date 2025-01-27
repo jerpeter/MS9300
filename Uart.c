@@ -28,6 +28,8 @@
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
+//#define LCR_DEFAULT		0x13 // 8N1
+#define LCR_DEFAULT		0x17 // 8N2
 
 ///----------------------------------------------------------------------------
 ///	Externs
@@ -791,7 +793,7 @@ void SleepUartBridgeDevice(void)
 	// Reset FIFO's
 	//Offset 02H: FIFO Control Register (FCR). Accessible when LCR[7]=0. Default=00
 	//	Bits 1 & 2 setting logic 1 resets Tx/Rx FIFOs
-	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x1D);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, LCR_DEFAULT);
 	WriteUartBridgeControlRegister(PI7C9X760_REG_FCR, 0x06);
 
 	// Enable access to sleep mode (IER bit 4)
@@ -804,7 +806,7 @@ void SleepUartBridgeDevice(void)
 	// Enable sleep
 	//Offset 01H: Interrupt Enable Register (IER). Accessible when LCR[7]=0. Default=00
 	//	Bit 4 set to logic 1
-	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x1D);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, LCR_DEFAULT);
 	WriteUartBridgeControlRegister(PI7C9X760_REG_IER, 0x10);
 }
 
@@ -833,6 +835,17 @@ void TestExpansionI2CBridge(void)
 ///----------------------------------------------------------------------------
 void Expansion_UART_WriteCharacter(uint8_t data)
 {
+	// Check if there is no room in the Tx FIFO
+	if (ExpansionBridgeTxLevelFifo() == 0)
+	{
+		uint32_t timeout = 50000;
+		while (ExpansionBridgeTxLevelFifo() == 0)
+		{
+			SoftUsecWait(1);
+			if (--timeout == 0) { break; }
+		}
+	}
+
 	// Expectation that LCR[7]=0 to write the THR
 	WriteUartBridgeControlRegister(PI7C9X760_REG_THR, data);
 }
@@ -874,7 +887,7 @@ uint8_t ExpansionBridgeInterruptStatusAndClear(void)
 	WriteUartBridgeControlRegister(PI7C9X760_REG_ISCR, 0x01);
 
 	// Reset LCR for normal function
-	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x13);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, LCR_DEFAULT);
 
 	return (intStatus);
 }
@@ -893,12 +906,57 @@ void ExpansionBridgeStatus(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint8_t ExpansionBridgeRxLevelFifo(void)
+{
+	uint8_t rxCount = ReadUartBridgeControlRegister(PI7C9X760_REG_RXLVL);
+	return (rxCount);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t ExpansionBridgeTxLevelFifo(void)
+{
+	uint8_t txCount = ReadUartBridgeControlRegister(PI7C9X760_REG_TXLVL);
+	return (txCount);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 uint8_t ExpansionBridgeRxCountFifo(void)
 {
 	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0xBF);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x04);
+
 	uint8_t rxCount = ReadUartBridgeControlRegister(PI7C9X760_REG_RFD);
-	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x13); // Parity is not forced, even parity, parity disabled, 1 stop bit, 8 bits
+
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x00);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, LCR_DEFAULT);
 	return (rxCount);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t ExpansionBridgeTxCountFifo(void)
+{
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0xBF);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x04);
+
+	uint8_t txCount = ReadUartBridgeControlRegister(PI7C9X760_REG_TFD);
+
+	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x00);
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, LCR_DEFAULT);
+	return (txCount);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t ExpansionBridgeReadLCR(void)
+{
+	return (ReadUartBridgeControlRegister(PI7C9X760_REG_LCR));
 }
 
 ///----------------------------------------------------------------------------
@@ -924,6 +982,7 @@ void ExpansionBridgeChangeBaud(uint32_t baudSelect)
 
 	switch (baudSelect)
 	{
+#if 1 /* Normal */
 		case BAUD_RATE_115200: dll = 13; cprn = 0; baud = 115200; break;
 		case BAUD_RATE_115200_A: dll = 11; cprn = 3; baud = 115200; alt = 1; break;
 		case BAUD_RATE_57600: dll = 26; cprn = 0; baud = 57600; break;
@@ -932,11 +991,21 @@ void ExpansionBridgeChangeBaud(uint32_t baudSelect)
 		case BAUD_RATE_38400_A: dll = 25; cprn = 9; baud = 38400; alt = 1; break;
 		case BAUD_RATE_19200: dll = 50; cprn = 9; baud = 19200; break;
 		case BAUD_RATE_9600: dll = 100; cprn = 9; baud = 9600; break;
+#else
+		case BAUD_RATE_115200: dll = 13; cprn = 0; baud = 115200; break;
+		case BAUD_RATE_115200_A: dll = 12; cprn = 1; baud = 115200; alt = 1; break;
+		case BAUD_RATE_57600: dll = 12; cprn = 2; baud = 57600; break;
+		case BAUD_RATE_57600_A: dll = 10; cprn = 4; baud = 57600; alt = 1; break;
+		case BAUD_RATE_38400: dll = 9; cprn = 6; baud = 38400; break;
+		case BAUD_RATE_38400_A: dll = 7; cprn = 12; baud = 38400; alt = 1; break;
+		case BAUD_RATE_19200: dll = 7; cprn = 13; baud = 19200; break;
+		case BAUD_RATE_9600: dll = 7; cprn = 15; baud = 9600; break;
+#endif
 	}
 
 	// Set Baud
 	// Set LCR[7]=1 to access the divisor latches/registers
-	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x93); // Divisor latch enabled, parity is not forced, even parity, parity disabled, 1 stop bit, 8 bits
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, (0x80 | LCR_DEFAULT)); // Divisor latch enabled with Line Control default
 
 	// MSB bits of divisor for baud rate generator, default = 0x00 which is desired
 	// LSB bits of divisor for baud rate generator, needs change from default
@@ -951,16 +1020,17 @@ void ExpansionBridgeChangeBaud(uint32_t baudSelect)
 	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x04);
 	WriteUartBridgeControlRegister(PI7C9X760_REG_CPR, (0x10 | cprn)); // Set CPR N (botton 4 bits)
 
-#if 0 /* Leave SFR and SFREN enabled */
+#if 1 /* Revert SFR and SFREN */
 	// Unwind special access
 	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x00);
-	WriteUartBridgeControlRegister(PI7C9X760_REG_SFREN, 0x00);
+	//WriteUartBridgeControlRegister(PI7C9X760_REG_SFREN, 0x00);
+#else /* Leave SFR and SFREN enabled */
 #endif
 	// LCR set just below
 
 	// Set 8N1
 	// Make sure LCR[7]=0
-	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x13); // Parity is not forced, even parity, parity disabled, 1 stop bit, 8 bits
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, LCR_DEFAULT);
 
 	debug("Expansion RS232: Set baud to %d %s\r\n", baud, ((alt == 1) ? "Alt" : ""));
 }
@@ -972,7 +1042,7 @@ void ExpansionBridgeSetupRS232(void)
 {
 	// Set Baud 115200 (Divisor = 8, Sample rate = 26, % error in clock = 0.16)
 	// Set LCR[7]=1 to access the divisor latches/registers
-	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x93); // Divisor latch enabled, parity is not forced, even parity, parity disabled, 1 stop bit, 8 bits
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, (0x80 | LCR_DEFAULT)); // Divisor latch enabled with Line Control default
 
 	// MSB bits of divisor for baud rate generator, default = 0x00 which is desired
 	// LSB bits of divisor for baud rate generator, needs change from default
@@ -987,16 +1057,17 @@ void ExpansionBridgeSetupRS232(void)
 	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x04);
 	WriteUartBridgeControlRegister(PI7C9X760_REG_CPR, 0x1A); // Set CPR N to 10
 
-#if 0 /* Leave SFR and SFREN enabled */
+#if 1 /* Revert SFR and SFREN */
 	// Unwind special access
 	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x00);
-	WriteUartBridgeControlRegister(PI7C9X760_REG_SFREN, 0x00);
+	//WriteUartBridgeControlRegister(PI7C9X760_REG_SFREN, 0x00);
+#else /* Leave SFR and SFREN enabled */
 #endif
 	// LCR set just below
 
 	// Set 8N1
 	// Make sure LCR[7]=0
-	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0x13); // Parity is not forced, even parity, parity disabled, 1 stop bit, 8 bits
+	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, LCR_DEFAULT);
 
 	// Enable Rx/Tx FIFO
 	WriteUartBridgeControlRegister(PI7C9X760_REG_FCR, 0x01);
