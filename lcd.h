@@ -256,8 +256,15 @@ void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 #define REG_VSYNC1           0x302050UL // 10RW Vertical sync rise offset
 #define REG_ROTATE           0x302058UL //  3RW Screen rot control. norm, invert, mirror portrait etc.
 
+// Added
+#define REG_OUTBITS          0x30205CUL //  9RW Output bit resolution
+
 #define REG_DITHER           0x302060UL //  1RW Output dither enable
 #define REG_SWIZZLE          0x302064UL //  4RW Output RGB signal swizzle
+
+// Added
+#define REG_CSPREAD          0x302068UL //  1RW Output clock spreading enable
+
 #define REG_PCLK_POL         0x30206cUL //  1RW PCLK Polarity out on edge 0=rise 1=fall
 
 #define REG_PCLK             0x302070UL //  8RW PCLK frequency divider, 0=disable
@@ -282,10 +289,14 @@ void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
 #define REG_PLAYBACK_LOOP    0x3020c8UL //  1RW Loop back to start if 1
 #define REG_PLAYBACK_PLAY    0x3020ccUL //  1RW Start when 1 is written
 
-#define REG_PWM_DUTY         0x3020d4UL //  8RW Back-light PWM duty cycle
 #define REG_PWM_HZ           0x3020d0UL // 14RW PWM output frequencey 250Hz-10000Hz
+#define REG_PWM_DUTY         0x3020d4UL //  8RW Back-light PWM duty cycle
 #define REG_CMD_READ         0x3020f8UL // 12RW Command buffer read pointer
 #define REG_CMD_WRITE        0x3020fcUL // 12RW Command buffer write pointer
+
+// Added
+#define REG_CMD_DL           0x302574UL // 13RW Command display list offset
+
 #define REG_CMDB_SPACE       0x302574UL // 12RW Free space in RAM_CMD
 #define REG_CMDB_WRITE       0x302578UL // 32WO Data or Command to be written to RAM_CMD
 
