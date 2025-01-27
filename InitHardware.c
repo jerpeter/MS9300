@@ -2078,7 +2078,8 @@ void SetupWatchdog(void)
 //#define SPI_SPEED_ADC 3000000 // Bit Rate
 #define SPI_SPEED_ADC 60000000 // Bit Rate
 #endif
-#define SPI_SPEED_LCD 12000000 // Bit Rate, LCD can go up but Accelerometer won't work at 16 MHz and above
+//#define SPI_SPEED_LCD 12000000 // Bit Rate, LCD can go up but Accelerometer won't work at 16 MHz and above
+#define SPI_SPEED_LCD 10000000 // Bit Rate, Trying LCD at less than 11 MHz per odd note in programmers guide, LCD can go up but Accelerometer won't work at 16 MHz and above
 
 ///----------------------------------------------------------------------------
 ///	Function Break
