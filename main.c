@@ -637,7 +637,6 @@ extern uint8_t ExpansionBridgeReadLSRStatus(void);
 			//debugRaw("\r\nExp RS232: Status (0x%x), Int Status (0x%x)", status, intStatus);
 #endif
 
-extern uint8_t ExpansionBridgeRxCountFifo(void);
 		//debugRaw("\r\n<E-f%d>", ExpansionBridgeRxCountFifo());
 		//debugRaw("\n\n<E-f%d>", ExpansionBridgeRxCountFifo());
 
@@ -647,12 +646,42 @@ extern uint8_t ExpansionBridgeRxCountFifo(void);
 		//if ((status & 0x3F) == 0x04)
 		if ((status & 0x0C) || ((intStatus & 0x04) || (intStatus & 0x04)) || (lsrStatus & 0x01)) // Check if Rx timeout, or interrupt status is either Rx timeout or RHR, or LSR shows data received and saved in Rx FIFO
 		{
-			while (ExpansionBridgeRxCountFifo())
+#if 0 /* Test */
+			debug("Exp RS232: LCR is 0x%02x\r\n", ExpansionBridgeReadLCR());
+#endif
+
+#if 0 /* Test */
+			//if (lsrStatus & 0x9E) { debug("Exp RS232: LSR shows error 0x%02x\r\n", lsrStatus); }
+			if (lsrStatus & 0x80) { debug("Exp RS232: LSR shows Rx FIFO Data error\r\n"); }
+			if (lsrStatus & 0x10) { debug("Exp RS232: LSR shows Rx Break error\r\n"); }
+			if (lsrStatus & 0x08) { debug("Exp RS232: LSR shows Rx Data Framing error\r\n"); }
+			if (lsrStatus & 0x04) { debug("Exp RS232: LSR shows Rx Data Parity error\r\n"); }
+			if (lsrStatus & 0x02) { debug("Exp RS232: LSR shows Rx Overrun error\r\n"); }
+#endif
+			uint8_t breakErrors = 0, framingErrors = 0, parityErrors = 0, overrunErrors = 0;
+
+#if 0 /* Faster single command */
+			uint8_t fifoCount = ExpansionBridgeRxLevelFifo();
+#else /* Longer different method */
+			uint8_t fifoCount = ExpansionBridgeRxCountFifo();
+#endif
+			uint16_t rxCount = 0;
+			//uint8_t currentFifoCount = 0;
+			//while (ExpansionBridgeRxLevelFifo())
+			while (fifoCount)
 			{
 			//debugRaw("<E-rc>");
 
-extern uint8_t Expansion_UART_ReadCharacter(void);
 				uint8_t recieveData = Expansion_UART_ReadCharacter();
+				rxCount++;
+#if 0 /* Test */
+				lsrStatus = ExpansionBridgeReadLSRStatus();
+				if (lsrStatus & 0x10) { breakErrors++; }
+				if (lsrStatus & 0x08) { framingErrors++; }
+				//if (lsrStatus & 0x04) { currentFifoCount = ExpansionBridgeRxCountFifo(); if (((fifoCount - currentFifoCount) != 10) && ((fifoCount - currentFifoCount) != 11)) { parityErrors++; } }
+				if (lsrStatus & 0x04) { parityErrors++; }
+				if (lsrStatus & 0x02) { overrunErrors++; }
+#endif
 
 #if 1 /* Normal */
 				// Raise the Craft Data flag
@@ -673,7 +702,22 @@ extern uint8_t Expansion_UART_ReadCharacter(void);
 #else /* Test remote loopback */
 				Expansion_UART_WriteCharacter(recieveData);
 #endif
+
+				fifoCount--;
+#if 0 /* Faster single command */
+				if (fifoCount == 0) { fifoCount = ExpansionBridgeRxLevelFifo(); }
+#else /* Longer different method */
+				if (fifoCount == 0) { fifoCount = ExpansionBridgeRxCountFifo(); }
+#endif
 			}
+
+#if 1 /* Test */
+			if (breakErrors) { debug("Exp RS232: Rx Break error (%d Total)\r\n", breakErrors); }
+			if (framingErrors) { debug("Exp RS232: Rx Data Framing error (%d Total)\r\n", framingErrors); }
+			if (parityErrors) { debug("Exp RS232: Rx Data Parity error (%d Total)\r\n", parityErrors); }
+			if (overrunErrors) { debug("Exp RS232: Overrun error (%d Total)\r\n", overrunErrors); }
+			if (rxCount) { debug("Exp RS232: Rx Count %d\r\n", rxCount); }
+#endif
 		}
 
 		// Check if THR Int flagged
