@@ -119,17 +119,17 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 	if (keyMapRead) { debugRaw(" (Key Pressed: %x)", keyMapRead); }
 	else { debugRaw(" (Key Release)"); }
 #else
-	char keyName[8];
-	if (keyMapRead == 0x0001) { sprintf(keyName, "SK 4"); }
-	if (keyMapRead == 0x0002) { sprintf(keyName, "SK 3"); }
-	if (keyMapRead == 0x0004) { sprintf(keyName, "SK 2"); }
-	if (keyMapRead == 0x0008) { sprintf(keyName, "SK 1"); }
-	if (keyMapRead == 0x0010) { sprintf(keyName, "Enter"); }
-	if (keyMapRead == 0x0020) { sprintf(keyName, "Right"); }
-	if (keyMapRead == 0x0040) { sprintf(keyName, "Left"); }
-	if (keyMapRead == 0x0080) { sprintf(keyName, "Down"); }
-	if (keyMapRead == 0x0100) { sprintf(keyName, "Up"); }
-	if (keyMapRead) { debugRaw(" (Key Pressed: %s)", keyName); }
+	char keyName[50]; memset(keyName, 0, sizeof(keyName));
+	if (keyMapRead & 0x0001) { strcat(keyName, "(SK 4)"); }
+	if (keyMapRead & 0x0002) { strcat(keyName, "(SK 3)"); }
+	if (keyMapRead & 0x0004) { strcat(keyName, "(SK 2)"); }
+	if (keyMapRead & 0x0008) { strcat(keyName, "(SK 1)"); }
+	if (keyMapRead & 0x0010) { strcat(keyName, "(Enter)"); }
+	if (keyMapRead & 0x0020) { strcat(keyName, "(Right)"); }
+	if (keyMapRead & 0x0040) { strcat(keyName, "(Left)"); }
+	if (keyMapRead & 0x0080) { strcat(keyName, "(Down)"); }
+	if (keyMapRead & 0x0100) { strcat(keyName, "(Up)"); }
+	if (keyMapRead) { debugRaw(" Key Pressed: %s", keyName); }
 	else { debugRaw(" (Key Release)"); }
 #endif
 
@@ -279,7 +279,19 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 			{
 				ClearSoftTimer(LCD_BACKLIGHT_ON_OFF_TIMER_NUM);
 				ClearSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM);
-				LcdPwTimerCallBack();
+
+				if (GetPowerOnButtonState() == ON)
+				{
+					// Special LCD Display turn off only
+					g_lcdPowerFlag = DISABLED;
+					g_lcdBacklightFlag = DISABLED; // Added disabling the Backlight flag since it goes down when power removed
+extern void ft81x_sleep();
+					ft81x_sleep();
+				}
+				else // Normal LCD power down
+				{
+					LcdPwTimerCallBack();
+				}
 			}
 			else // All other keys
 			{
