@@ -1524,10 +1524,12 @@ void ft81x_init_display_settings()
 	ft81x_wr16(REG_VSIZE, FT81X_DISPLAY_HEIGHT);
 	ft81x_wr16(REG_VSYNC0, 0);
 	ft81x_wr16(REG_VSYNC1, 3);
-	ft81x_wr16(REG_DITHER, 1);
-	ft81x_wr16(REG_PCLK_POL, 1);
+	ft81x_wr(REG_DITHER, 1);
+	ft81x_wr(REG_PCLK_POL, 1);
 	ft81x_wr(REG_ROTATE, 0);
 	ft81x_wr(REG_SWIZZLE, 0);
+	ft81x_wr(REG_CSPREAD, 1);
+	ft81x_wr16(REG_OUTBITS, 0x1B6);
 #else /* Maybe Try max values? */
 	ft81x_wr16(REG_HCYCLE, 1088);
 	ft81x_wr16(REG_HOFFSET, 88);
@@ -1547,22 +1549,23 @@ void ft81x_init_display_settings()
 #endif
 
 #if 0 /* Test */
-	rData = ft81x_rd16(REG_HCYCLE); debug("LCD Controller: Hcycle is 0x%x\r\n", rData);
-	rData = ft81x_rd16(REG_HOFFSET); debug("LCD Controller: Hoffset is 0x%x\r\n", rData);
-	rData = ft81x_rd16(REG_HSIZE); debug("LCD Controller: Hsize is 0x%x\r\n", rData);
-	rData = ft81x_rd16(REG_HSYNC0); debug("LCD Controller: Hsync0 is 0x%x\r\n", rData);
-	rData = ft81x_rd16(REG_HSYNC1); debug("LCD Controller: Hsync1 is 0x%x\r\n", rData);
-	rData = ft81x_rd16(REG_VCYCLE); debug("LCD Controller: Vcycle is 0x%x\r\n", rData);
-	rData = ft81x_rd16(REG_VOFFSET); debug("LCD Controller: Voffest is 0x%x\r\n", rData);
-	rData = ft81x_rd16(REG_VSIZE); debug("LCD Controller: Vsize is 0x%x\r\n", rData);
-	rData = ft81x_rd16(REG_VSYNC0); debug("LCD Controller: Vsync0 is 0x%x\r\n", rData);
-	rData = ft81x_rd16(REG_VSYNC1); debug("LCD Controller: Vsync1 is 0x%x\r\n", rData);
-	rData = ft81x_rd16(REG_DITHER); debug("LCD Controller: Dither is 0x%x\r\n", rData);
-	rData = ft81x_rd16(REG_PCLK_POL); debug("LCD Controller: PCLK pol is 0x%x\r\n", rData);
-	rData = ft81x_rd(REG_ROTATE); debug("LCD Controller: Rotate is 0x%x\r\n", rData);
-	rData = ft81x_rd(REG_SWIZZLE); debug("LCD Controller: Swizzle is 0x%x\r\n", rData);
-	rData = ft81x_rd(REG_HCYCLE); debug("LCD Controller: Hcycle+0 is 0x%x\r\n", rData);
-	rData = ft81x_rd(REG_HCYCLE + 1); debug("LCD Controller: Hcycle+1 is 0x%x\r\n", rData);
+	uint16_t rData;
+	rData = ft81x_rd16(REG_HCYCLE); debug("LCD Controller: Hcycle is 0x%x (%d)\r\n", rData, rData);
+	rData = ft81x_rd16(REG_HOFFSET); debug("LCD Controller: Hoffset is 0x%x (%d)\r\n", rData, rData);
+	//rData = ft81x_rd16(REG_HSIZE); debug("LCD Controller: Hsize is 0x%x (%d)\r\n", rData, rData);
+	rData = ft81x_rd16(REG_HSYNC0); debug("LCD Controller: Hsync0 is 0x%x (%d)\r\n", rData, rData);
+	rData = ft81x_rd16(REG_HSYNC1); debug("LCD Controller: Hsync1 is 0x%x (%d)\r\n", rData, rData);
+	rData = ft81x_rd16(REG_VCYCLE); debug("LCD Controller: Vcycle is 0x%x (%d)\r\n", rData, rData);
+	rData = ft81x_rd16(REG_VOFFSET); debug("LCD Controller: Voffest is 0x%x (%d)\r\n", rData, rData);
+	//rData = ft81x_rd16(REG_VSIZE); debug("LCD Controller: Vsize is 0x%x (%d)\r\n", rData, rData);
+	rData = ft81x_rd16(REG_VSYNC0); debug("LCD Controller: Vsync0 is 0x%x (%d)\r\n", rData, rData);
+	rData = ft81x_rd16(REG_VSYNC1); debug("LCD Controller: Vsync1 is 0x%x (%d)\r\n", rData, rData);
+	rData = ft81x_rd(REG_DITHER); debug("LCD Controller: Dither is 0x%x (%d)\r\n", rData, rData);
+	rData = ft81x_rd(REG_PCLK_POL); debug("LCD Controller: PCLK pol is 0x%x (%d)\r\n", rData, rData);
+	rData = ft81x_rd(REG_ROTATE); debug("LCD Controller: Rotate is 0x%x (%d)\r\n", rData, rData);
+	rData = ft81x_rd(REG_SWIZZLE); debug("LCD Controller: Swizzle is 0x%x (%d)\r\n", rData, rData);
+	rData = ft81x_rd(REG_CSPREAD); debug("LCD Controller: CSpread is 0x%x (%d)\r\n", rData, rData);
+	rData = ft81x_rd16(REG_OUTBITS); debug("LCD Controller: Outbits is 0x%x (%d)\r\n", rData, rData);
 #endif
 
 	// Get screen size W,H to confirm
@@ -1581,7 +1584,7 @@ void ft81x_init_gpio()
 	//ft81x_wr16(REG_GPIOX, 0x8000);
 
 	// Sleep a little (100ms)
-	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(100));
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(3));
 }
 
 #if 1 // Test with black screen before starting display clock
@@ -2098,8 +2101,6 @@ uint8_t ft81x_init(void)
 	return false;
 #endif
 
-uint16_t sampleCountTiming[10];
-
 #if 0 /* LCD Slave Select 0 Setup moved to LCD Power GPIO init */
 	mxc_gpio_cfg_t setupGPIO;
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL)
@@ -2115,29 +2116,26 @@ uint16_t sampleCountTiming[10];
 #endif
 
 #if 1 /* Normal */
-	sampleCountTiming[0] = g_sampleCount;
     if (GetPowerControlState(LCD_POWER_ENABLE) == OFF) { PowerControl(LCD_POWER_ENABLE, ON); }
+#if 1 /* Test letting power come up and settle before bringing Display controller out of reset */
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(5));
+#endif
     if (GetPowerControlState(LCD_POWER_DOWN) == ON)
 	{
-		sampleCountTiming[1] = g_sampleCount;
 		PowerControl(LCD_POWER_DOWN, OFF);
-		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(25)); // Was 20, but may be right at the edge // Per datasheet: From Sleep state, the host needs to wait at least 20ms before accessing any registers or commands
-		sampleCountTiming[2] = g_sampleCount;
+		//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20)); // Per datasheet: From Sleep state, the host needs to wait at least 20ms before accessing any registers or commands
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(55)); // Was 20, but may be right at the edge // Per datasheet: From Sleep state, the host needs to wait at least 20ms before accessing any registers or commands
 		g_lcdPowerFlag = ENABLED;
 	}
 #else /* Test */
-	sampleCountTiming[0] = g_sampleCount;
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20));
-	sampleCountTiming[1] = g_sampleCount;
 	MXC_GPIO_OutSet(GPIO_LCD_POWER_ENABLE_PORT, GPIO_LCD_POWER_ENABLE_PIN);
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20));
-	sampleCountTiming[2] = g_sampleCount;
 	LcdPowerGpioSetup(ON);
 	MXC_GPIO_OutSet(GPIO_LCD_POWER_DOWN_PORT, GPIO_LCD_POWER_DOWN_PIN);
 	LcdControllerGpioSetup(ON);
 	g_lcdPowerFlag = ENABLED;
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20));
-	sampleCountTiming[3] = g_sampleCount;
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20));
 #endif
 
@@ -2155,17 +2153,27 @@ uint16_t sampleCountTiming[10];
 
 	// Bring LCD Controller active, done by issuing two read commands of address 0, per datasheet "The boot-up may take up to 300ms to complete"
 	debug("LCD Controller: Going Active...\r\n");
-	sampleCountTiming[3] = g_sampleCount;
 	ft81x_rd(CMD_ACTIVE);
 	ft81x_rd(CMD_ACTIVE);
-	sampleCountTiming[4] = g_sampleCount;
+#if 0 /* Original */
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(300));
-	sampleCountTiming[5] = g_sampleCount;
 
 	if (ft81x_rd(REG_ID) != 0x7C) { debugErr("LCD Controller: Failed to read reg ID after going active\r\n"); }
 	else { debug("LCD Controller: Reg ID verified after going active\r\n"); }
+#else
+	uint16_t bootupDelay = 0;
+	while (ft81x_rd(REG_ID) != 0x7C)
+	{
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1));
+		if (bootupDelay++ == 300) { break; }
+	}
 
-	restart_core();
+	debug("LCD Controller: Bootup time %d ms\r\n", bootupDelay);
+	if (ft81x_rd(REG_ID) != 0x7C) { debugErr("LCD Controller: Failed to read reg ID after going active\r\n"); }
+	else { debug("LCD Controller: Reg ID verified after going active\r\n"); }
+#endif
+
+	//restart_core(); // Needed if getting stuck in quad byte mode
 	if (!read_chip_id()) { debugErr("LCD Controller: Failed to read chip ID\r\n"); return false; }
 	else { debug("LCD Controller: Chip ID verified\r\n"); }
 	select_spi_byte_width();
@@ -2192,24 +2200,19 @@ uint16_t sampleCountTiming[10];
 	debug("LCD Controller: Seting backlight level to 25%%\r\n");
 	ft81x_set_backlight_level(32);
 #endif
-	sampleCountTiming[6] = g_sampleCount;
+	ft81x_init_gpio();
+
 	ft81x_fifo_reset();
 	ft81x_init_display_settings();
 	test_black_screen();
-	ft81x_init_gpio();
 
 #if 1 /* Original */
 	ft81x_wake(32);
-	sampleCountTiming[7] = g_sampleCount;
-	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(100));
 
 	// Set backlight PWM to pwm
 	ft81x_set_backlight_level(0);
-	sampleCountTiming[8] = g_sampleCount;
-	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(100));
 
 	ft81x_set_backlight_level(32);
-	sampleCountTiming[9] = g_sampleCount;
 #else /* Test breakout for timing */
 	// Turn the pixel clock on
 	ft81x_wr32(REG_PCLK, 2);
@@ -2219,16 +2222,13 @@ uint16_t sampleCountTiming[10];
 
 	// Turn the display on
 	ft81x_wr16(REG_GPIOX, ft81x_rd16(REG_GPIOX) | 0x8000);
-	sampleCountTiming[7] = g_sampleCount;
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
 
 	ft81x_set_backlight_level(32);
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
-	sampleCountTiming[8] = g_sampleCount;
 
 	ft81x_set_backlight_level(0);
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
-	sampleCountTiming[9] = g_sampleCount;
 
 	ft81x_set_backlight_level(32);
 #endif
@@ -2259,8 +2259,6 @@ uint16_t sampleCountTiming[10];
 	ft81x_wr(REG_INT_MASK, 0x00);
 #endif
 
-	debug("LCD Power: Timing array %d, %d, %d, %d, %d, %d, %d, %d, %d, %d\r\n", sampleCountTiming[0], sampleCountTiming[1], sampleCountTiming[2], sampleCountTiming[3], sampleCountTiming[4],
-			sampleCountTiming[5], sampleCountTiming[6], sampleCountTiming[7], sampleCountTiming[8], sampleCountTiming[9]);
 	return true;
 }
 
@@ -2326,6 +2324,9 @@ uint8_t ft81x_get_backlight_level(void)
  */
 void ft81x_sleep()
 {
+#if 0 /* Normal */
+	debug("LCD Controller: Sleep (Disable PCLK, BL Off, Display off)\r\n");
+
   // Disable the pixel clock
   ft81x_wr32(REG_PCLK, 0);
 
@@ -2333,7 +2334,13 @@ void ft81x_sleep()
   ft81x_backlight_off();
 
   // Turn the display off
-  ft81x_wr16(REG_GPIOX, ft81x_rd16(REG_GPIOX) | 0x7fff);
+  ft81x_wr16(REG_GPIOX, ft81x_rd16(REG_GPIOX) & 0x7fff);
+#else
+	debug("LCD Controller: Display off\r\n");
+
+  // Turn the display off
+  ft81x_wr16(REG_GPIOX, ft81x_rd16(REG_GPIOX) & 0x7fff);
+#endif
 }
 
 /*
