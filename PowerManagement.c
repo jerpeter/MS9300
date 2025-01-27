@@ -180,19 +180,29 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			break;
 
 		//----------------------------------------------------------------------------
-		case LED_1: // Active high (Red)
+		case LED_1: // Active low (Blue)
 		//----------------------------------------------------------------------------
 			debug("LED 1: %s\r\n", mode == ON ? "On" : "Off");
+#if 0 /* Original Active high */
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_LED_1_PORT, GPIO_LED_1_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_LED_1_PORT, GPIO_LED_1_PIN); }
+#else /* Active low */
+			if (mode == ON) { MXC_GPIO_OutClr(GPIO_LED_1_PORT, GPIO_LED_1_PIN); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutSet(GPIO_LED_1_PORT, GPIO_LED_1_PIN); }
+#endif
 			break;
 
 		//----------------------------------------------------------------------------
-		case LED_2: // Active high (Red)
+		case LED_2: // Active low (Green)
 		//----------------------------------------------------------------------------
 			debug("LED 2: %s\r\n", mode == ON ? "On" : "Off");
+#if 0 /* Original Active high */
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_LED_2_PORT, GPIO_LED_2_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_LED_2_PORT, GPIO_LED_2_PIN); }
+#else /* Active low */
+			if (mode == ON) { MXC_GPIO_OutClr(GPIO_LED_2_PORT, GPIO_LED_2_PIN); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutSet(GPIO_LED_2_PORT, GPIO_LED_2_PIN); }
+#endif
 			break;
 	}
 
@@ -598,6 +608,7 @@ void InitBattChargerRegisters(void)
 	//	Default Ext Temp is enabled, OPT action is deliver INT and take TS action, TS OT threshold is 80C, NTC protect is on
 	//	Default NTC protect action is deliver INT and take JEITA action, NTC hot thr is 60C, NTC warm thr is 45C, NTC cool thr is 10C, NTC cold thr is 0C
 	//  Change Vts_hot to 65C
+	//  Todo: Change V_hot to 50C ??
 	SetBattChargerRegister(BATT_CHARGER_TEMPERATURE_PROTECTION_SETTING, 0xBF99);
 
 	// Config Reg 0
