@@ -660,19 +660,44 @@ extern uint8_t ExpansionBridgeReadLSRStatus(void);
 #endif
 			uint8_t breakErrors = 0, framingErrors = 0, parityErrors = 0, overrunErrors = 0;
 
-#if 0 /* Faster single command */
-			uint8_t fifoCount = ExpansionBridgeRxLevelFifo();
+#if 1 /* Faster single command */
+			uint8_t fifoLevel = ExpansionBridgeRxLevelFifo();
 #else /* Longer different method */
 			uint8_t fifoCount = ExpansionBridgeRxCountFifo();
+#endif
+#if 0 /* Test */
+			uint8_t fifoLevel = ExpansionBridgeRxLevelFifo();
+			if (fifoLevel != fifoCount) { debugErr("Expansion: Rx Level (%d) does not match Rx Count (%d)\r\n", fifoLevel, fifoCount); }
+			//else { debug("Expansion: Rx Level and Rx Count match\r\n"); }
 #endif
 			uint16_t rxCount = 0;
 			//uint8_t currentFifoCount = 0;
 			//while (ExpansionBridgeRxLevelFifo())
+
+			uint8_t rxBuffer[64];
+			uint8_t rxIndex = 0;
+			uint32_t baudDelayUs = 2000; //100;
+#if 0
+			switch (g_unitConfig.baudRate)
+			{
+				//case BAUD_RATE_115200: case BAUD_RATE_115200_A: baudDelayUs = 100; break;
+				case BAUD_RATE_57600: case BAUD_RATE_57600_A: baudDelayUs = 200; break;
+				case BAUD_RATE_38400: case BAUD_RATE_38400_A: baudDelayUs = 300; break;
+				case BAUD_RATE_19200: baudDelayUs = 600; break;
+				case BAUD_RATE_9600: baudDelayUs = 1200; break;
+			}
+#endif
+extern void ReadUartBridgeRxFIFO(uint8_t* readData, uint8_t count);
+			ReadUartBridgeRxFIFO(rxBuffer, fifoLevel);
+#if 1 /* Faster single command */
+			while (fifoLevel)
+#else /* Longer different method */
 			while (fifoCount)
+#endif
 			{
 			//debugRaw("<E-rc>");
 
-				uint8_t recieveData = Expansion_UART_ReadCharacter();
+				//uint8_t recieveData = Expansion_UART_ReadCharacter();
 				rxCount++;
 #if 0 /* Test */
 				lsrStatus = ExpansionBridgeReadLSRStatus();
@@ -688,7 +713,8 @@ extern uint8_t ExpansionBridgeReadLSRStatus(void);
 				g_modemStatus.craftPortRcvFlag = YES;
 
 				// Write the received data into the buffer
-				*g_isrMessageBufferPtr->writePtr = recieveData;
+				//*g_isrMessageBufferPtr->writePtr = recieveData;
+				*g_isrMessageBufferPtr->writePtr = rxBuffer[rxIndex++];
 
 				// Advance the buffer pointer
 				g_isrMessageBufferPtr->writePtr++;
@@ -703,10 +729,29 @@ extern uint8_t ExpansionBridgeReadLSRStatus(void);
 				Expansion_UART_WriteCharacter(recieveData);
 #endif
 
-				fifoCount--;
-#if 0 /* Faster single command */
-				if (fifoCount == 0) { fifoCount = ExpansionBridgeRxLevelFifo(); }
+#if 1 /* Faster single command */
+				fifoLevel--;
+				//if (fifoLevel == 0) { fifoLevel = ExpansionBridgeRxLevelFifo(); }
+				if (fifoLevel == 0)
+				{
+					fifoLevel = ExpansionBridgeRxLevelFifo();
+
+					// Check if no new data, possibly still coming across
+					if (fifoLevel == 0)
+					{
+						// Wait the space of 1 Rx byte if remote side streaming to catch now since interrupt flag and non-ISR data capture resume is too slow
+						SoftUsecWait(baudDelayUs);
+						fifoLevel = ExpansionBridgeRxLevelFifo();
+					}
+
+					if (fifoLevel)
+					{
+						ReadUartBridgeRxFIFO(&rxBuffer[0], fifoLevel);
+						rxIndex = 0;
+					}
+				}
 #else /* Longer different method */
+				fifoCount--;
 				if (fifoCount == 0) { fifoCount = ExpansionBridgeRxCountFifo(); }
 #endif
 			}
