@@ -949,8 +949,9 @@ void DisplayLogoToLcd(void)
 
 	ft81x_stream_start(); // Start streaming
 	ft81x_cmd_dlstart(); // Set REG_CMD_DL when done?
+#if 0 /* Moved to the end of the display list */
 	ft81x_cmd_swap(); // Set AUTO swap at end of display list?
-
+#endif
 	ft81x_bitmap_handle(1);
 	ft81x_bitmap_source(0x9000);
 	ft81x_bitmap_layout(L2, 16, 64);
@@ -963,6 +964,9 @@ void DisplayLogoToLcd(void)
 	ft81x_end();
 
 	ft81x_display();
+#if 1 /* Moved to the end of the display list */
+	ft81x_cmd_swap(); // Set AUTO swap at end of display list?
+#endif
 	ft81x_getfree(0);
 	ft81x_stream_stop();
 	ft81x_wait_finish();
@@ -985,8 +989,9 @@ void BitmapDisplayToLcd(void)
 
 	ft81x_stream_start(); // Start streaming
 	ft81x_cmd_dlstart(); // Set REG_CMD_DL when done?
+#if 0 /* Moved to the end of the display list */
 	ft81x_cmd_swap(); // Set AUTO swap at end of display list?
-
+#endif
 	ft81x_bitmap_handle(0);
 	ft81x_bitmap_source(0x8000);
 	ft81x_bitmap_layout(L1, 16, 64);
@@ -999,6 +1004,9 @@ void BitmapDisplayToLcd(void)
 	ft81x_end();
 
 	ft81x_display();
+#if 1 /* Moved to the end of the display list */
+	ft81x_cmd_swap(); // Set AUTO swap at end of display list?
+#endif
 	ft81x_getfree(0);
 	ft81x_stream_stop();
 	ft81x_wait_finish();
@@ -1130,6 +1138,9 @@ void MessageDisplayToLcd(char* titleString, char* textString, MB_CHOICE_TYPE cho
 
 		//WriteMapToLcd(NULL);
 		ft81x_stream_start(); ft81x_display(); ft81x_stream_stop(); // End the display list started with the ClearLcdMap function
+#if 1 /* Moved to the end of the display list */
+		ft81x_stream_start(); ft81x_cmd_swap(); ft81x_stream_stop(); // Set AUTO swap at end of display list?
+#endif
 		ft81x_getfree(0); // Trigger FT81x to read the command buffer
 		ft81x_stream_stop(); // Finish streaming to command buffer
 		ft81x_wait_finish(); // Wait till the GPU is finished? (or delay at start of next display interaction?)
@@ -1150,8 +1161,9 @@ void MessageChoiceSwapToLcd(MB_CHOICE_TYPE choiceType, uint8_t activeChoice)
 	char secondChoiceText[30];
 
 	ft81x_stream_start(); ft81x_cmd_dlstart(); ft81x_stream_stop(); // Set REG_CMD_DL when done?
+#if 0 /* Moved to the end of the display list */
 	ft81x_stream_start(); ft81x_cmd_swap(); ft81x_stream_stop(); // Set AUTO swap at end of display list?
-
+#endif
 	ft81x_stream_start(); ft81x_color_rgb32(0xffffff); ft81x_stream_stop(); // White text
 	ft81x_stream_start(); ft81x_fgcolor_rgb32(0x0000ff); ft81x_stream_stop(); // Blue foreground
 
@@ -1177,6 +1189,9 @@ void MessageChoiceSwapToLcd(MB_CHOICE_TYPE choiceType, uint8_t activeChoice)
 	}
 
 	ft81x_stream_start(); ft81x_display(); ft81x_stream_stop(); // End the display list started with the ClearLcdMap function
+#if 1 /* Moved to the end of the display list */
+	ft81x_stream_start(); ft81x_cmd_swap(); ft81x_stream_stop(); // Set AUTO swap at end of display list?
+#endif
 	ft81x_getfree(0); // Trigger FT81x to read the command buffer
 	ft81x_stream_stop(); // Finish streaming to command buffer
 	ft81x_wait_finish(); // Wait till the GPU is finished? (or delay at start of next display interaction?)
