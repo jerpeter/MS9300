@@ -205,7 +205,7 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 		}	
 		else
 		{
-#if 0 /* Normal */
+#if 1 /* Normal */
 			debug("System IS Locked\r\n");
 #else
 			char keyName[20];
@@ -410,8 +410,8 @@ void ProcessCraftData()
 #if 0 /* Normal */
 		debugRaw("<%c>", *g_isrMessageBufferPtr->readPtr);
 #else /* Adjust to show non-printable chars */
-		if((*g_isrMessageBufferPtr->readPtr > 0x1F) && (*g_isrMessageBufferPtr->readPtr < 0x7F)) { debugRaw("<%c>", *g_isrMessageBufferPtr->readPtr); }
-		else { debugRaw("<%02x>", *g_isrMessageBufferPtr->readPtr); }
+		//if((*g_isrMessageBufferPtr->readPtr > 0x1F) && (*g_isrMessageBufferPtr->readPtr < 0x7F)) { debugRaw("<%c>", *g_isrMessageBufferPtr->readPtr); }
+		//else { debugRaw("<%02x>", *g_isrMessageBufferPtr->readPtr); }
 #endif
 
 		if ((*g_isrMessageBufferPtr->readPtr != 0x0A) &&
