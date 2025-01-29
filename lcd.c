@@ -1593,16 +1593,16 @@ void test_black_screen()
 	// Build a black display and display it
 	ft81x_stream_start(); // Start streaming
 	ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
-	ft81x_cmd_swap();     // Set AUTO swap at end of display list
 	ft81x_clear_color_rgb32(0x000000);
 	ft81x_clear();
 	ft81x_display();
+	ft81x_cmd_swap();     // Set AUTO swap at end of display list
 	ft81x_getfree(0);     // trigger FT81x to read the command buffer
 	ft81x_stream_stop();  // Finish streaming to command buffer
 	ft81x_wait_finish();  // Wait till the GPU is finished processing the commands
 
 	// Sleep a little (100ms)
-	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(100));
+	//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(100));
 }
 #else
 #define test_black_screen()
@@ -1613,10 +1613,10 @@ void test_white_screen()
 	// Build a white display and display it
 	ft81x_stream_start(); // Start streaming
 	ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
-	ft81x_cmd_swap();     // Set AUTO swap at end of display list
 	ft81x_clear_color_rgb32(0xFFFFFF);
 	ft81x_clear();
 	ft81x_display();
+	ft81x_cmd_swap();     // Set AUTO swap at end of display list
 	ft81x_getfree(0);     // trigger FT81x to read the command buffer
 	ft81x_stream_stop();  // Finish streaming to command buffer
 	ft81x_wait_finish();  // Wait till the GPU is finished processing the commands
@@ -1635,13 +1635,6 @@ void test_white_screen_no_stream(void)
 	ft81x_stream_start(); // Start streaming
 	ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
 	lcdSpiTiming[0] = (0xffffff - SysTick->VAL);
-    SysTick->CTRL = 0; /* Disable */
-
-	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
-	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
-	ft81x_stream_start(); // Start streaming
-	ft81x_cmd_swap();     // Set AUTO swap at end of display list
-	lcdSpiTiming[1] = (0xffffff - SysTick->VAL);
     SysTick->CTRL = 0; /* Disable */
 
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
@@ -1706,6 +1699,13 @@ void test_white_screen_no_stream(void)
 	ft81x_stream_start(); // Start streaming
 	ft81x_display();
 	lcdSpiTiming[10] = (0xffffff - SysTick->VAL);
+    SysTick->CTRL = 0; /* Disable */
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	ft81x_stream_start(); // Start streaming
+	ft81x_cmd_swap();     // Set AUTO swap at end of display list
+	lcdSpiTiming[1] = (0xffffff - SysTick->VAL);
     SysTick->CTRL = 0; /* Disable */
 
 	ft81x_stream_start(); // Start streaming
@@ -1873,7 +1873,6 @@ void test_load_image(void)
 
 		// Define the bitmap we want to draw
 		ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
-		ft81x_cmd_swap();     // Set AUTO swap at end of display list
 
 		// Clear the display
 		ft81x_clear_color_rgb32(0xfdfdfd);
@@ -1897,6 +1896,7 @@ void test_load_image(void)
 		// end of commands
 		ft81x_end();
 		ft81x_display();
+		ft81x_cmd_swap();     // Set AUTO swap at end of display list
 
 		// Trigger FT81x to read the command buffer
 		ft81x_getfree(0);
@@ -1962,7 +1962,6 @@ void test_display(
 
 		ft81x_stream_start(); // Start streaming
 		ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
-		ft81x_cmd_swap();     // Set AUTO swap at end of display list
 		ft81x_clear_color_rgb32(0xfdfdfd);
 		ft81x_clear();
 		ft81x_color_rgb32(0x101010);
@@ -2006,6 +2005,7 @@ void test_display(
 		ft81x_cmd_spinner(80, 80, 3, 0);
 
 		ft81x_display();
+		ft81x_cmd_swap();     // Set AUTO swap at end of display list
 		ft81x_getfree(0);     // trigger FT81x to read the command buffer
 		ft81x_stream_stop();  // Finish streaming to command buffer
 
@@ -2026,13 +2026,13 @@ void test_cycle_colors(
 	for (int x=0; x<300; x++) {
 		ft81x_stream_start(); // Start streaming
 		ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
-		ft81x_cmd_swap();     // Set AUTO swap at end of display list
 		ft81x_clear_color_rgb32(rgb);
 		ft81x_clear();
 		ft81x_color_rgb32(0xffffff);
 		ft81x_bgcolor_rgb32(0xffffff);
 		ft81x_fgcolor_rgb32(0xffffff);
 		ft81x_display();
+		ft81x_cmd_swap();     // Set AUTO swap at end of display list
 		ft81x_getfree(0);     // trigger FT81x to read the command buffer
 		ft81x_stream_stop();  // Finish streaming to command buffer
 
@@ -2059,7 +2059,6 @@ void test_dots(
 		ft81x_bitmap_layout(0b11111, 0x00, 0x00);
 
 		ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
-		ft81x_cmd_swap();     // Set AUTO swap at end of display list
 		ft81x_clear_color_rgb32(0x000000);
 		ft81x_clear();
 
@@ -2078,6 +2077,7 @@ void test_dots(
 		ft81x_point_size(size);
 		ft81x_vertex2f(rndx<<4,rndy<<4); // defaut is 1/16th pixel precision
 		ft81x_display();
+		ft81x_cmd_swap();     // Set AUTO swap at end of display list
 		ft81x_getfree(0);     // trigger FT81x to read the command buffer
 		ft81x_stream_stop();  // Finish streaming to command buffer
 
@@ -2204,15 +2204,19 @@ uint8_t ft81x_init(void)
 
 	ft81x_fifo_reset();
 	ft81x_init_display_settings();
-	test_black_screen();
+	//test_black_screen();
+
+#if 1 /* Test */
+	test_memory_ops();
+#endif
 
 #if 1 /* Original */
 	ft81x_wake(32);
 
 	// Set backlight PWM to pwm
-	ft81x_set_backlight_level(0);
+	//ft81x_set_backlight_level(0); // Why reset to zero?
 
-	ft81x_set_backlight_level(32);
+	//ft81x_set_backlight_level(32); // Already set in Wake call
 #else /* Test breakout for timing */
 	// Turn the pixel clock on
 	ft81x_wr32(REG_PCLK, 2);
@@ -2233,7 +2237,7 @@ uint8_t ft81x_init(void)
 	ft81x_set_backlight_level(32);
 #endif
 
-#if 1 /* Test */
+#if 0 /* Test */
 	test_memory_ops();
 #endif
 
@@ -4641,7 +4645,9 @@ void ft81x_logo()
   ft81x_stream_start(); // Start streaming
   ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
   ft81x_cFFFFFF(0x31);  // Logo command
+#if 1 /* Does work without having to swap display list */
   ft81x_cmd_swap();     // Set AUTO swap at end of display list
+#endif
   ft81x_getfree(0);     // trigger FT81x to read the command buffer
   ft81x_stream_stop();  // Finish streaming to command buffer
   // Wait till the Logo is finished
