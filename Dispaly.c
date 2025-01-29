@@ -425,10 +425,17 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 #endif
 
 	ft81x_stream_start(); ft81x_display(); ft81x_stream_stop(); // End the display list started with the ClearLcdMap function
+#if 1 /* Moved to swap at the end of the display */
+	ft81x_stream_start(); ft81x_cmd_swap(); ft81x_stream_stop(); // Set AUTO swap at end of display list?
+#endif
 	ft81x_getfree(0); // Trigger FT81x to read the command buffer
 	ft81x_stream_stop(); // Finish streaming to command buffer
 
 	ft81x_wait_finish(); // Wait till the GPU is finished? (or delay at start of next display interaction?)
+#if 0 /* Test */
+	// Add delay to allow LCD Controller more time
+	SoftUsecWait(10 * SOFT_MSECS);
+#endif
 #endif
 
 #if 0 /* Test disable of LCD for now */
@@ -461,8 +468,19 @@ void ClearLcdMap(void)
 #else
 		if (g_lcdPowerFlag == DISABLED) { return; }
 #endif
+#if 0 /* Test resetting the fifo write and read pointers */
+		// force command to complete write to CMD_WRITE
+extern uint16_t ft81x_fifo_wp;
+		ft81x_wr(REG_CPURESET, 1);
+		ft81x_fifo_wp = 0;
+		ft81x_wr16(REG_CMD_WRITE, ft81x_fifo_wp);
+		ft81x_wr16(REG_CMD_READ, ft81x_fifo_wp);
+		ft81x_wr(REG_CPURESET, 0);
+#endif
 		ft81x_stream_start(); ft81x_cmd_dlstart(); ft81x_stream_stop(); // Set REG_CMD_DL when done?
+#if 0 /* Moved to the end of the display list */
 		ft81x_stream_start(); ft81x_cmd_swap(); ft81x_stream_stop(); // Set AUTO swap at end of display list?
+#endif
 		ft81x_stream_start(); ft81x_clear_color_rgb32(0xfdfdfd); ft81x_stream_stop(); // Todo: Determine color? (datasheet example shows this order, clear color before clear)
 		ft81x_stream_start(); ft81x_clear(); ft81x_stream_stop();
 		ft81x_stream_start(); ft81x_color_rgb32(0x101010); ft81x_stream_stop(); // Todo: Determine palatte color
