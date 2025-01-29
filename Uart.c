@@ -189,6 +189,13 @@ void UartPutc(uint8 c, int32 channel)
 	// Check if channel is USB CDC/ACM serial
 	if (channel == CRAFT_COM_PORT)
 	{
+#if 0 /* Test */
+		if (GLOBAL_DEBUG_PRINT_PORT == 4)
+		{
+			MXC_UART_WriteCharacter(MXC_UART2, c);
+		}
+		else
+#endif
         // Verfiy USB serial channel is available
 		if (acm_present())
 		{
@@ -208,6 +215,19 @@ void UartPutc(uint8 c, int32 channel)
 	}
 	else // channel is UART serial
 	{
+#if 0 /* Test */
+		if (GLOBAL_DEBUG_PRINT_PORT == 4)
+		{
+extern uint8_t g_expansionActive;
+			if (g_expansionActive)
+			{
+				Expansion_UART_WriteCharacter(c);
+			}
+
+			return;
+		}
+#endif
+
 		if (channel == LTE_COM_PORT) { port = MXC_UART0; }
 		else if (channel == BLE_COM_PORT) { port = MXC_UART1; }
 		else /* (channel == GLOBAL_DEBUG_PRINT_PORT) */ { port = MXC_UART2; }
@@ -699,6 +719,19 @@ uint8_t ReadUartBridgeControlRegister(uint8_t registerAddress)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void ReadUartBridgeRxFIFO(uint8_t* readData, uint8_t count)
+{
+	uint8_t registerAddress = PI7C9X760_REG_RHR;
+
+    // I2C Sub-Address (Register Address) is moved to Bits 6:3 (UART Internal Register Address A3:A0)
+    registerAddress <<= 3;
+
+    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, &registerAddress, sizeof(registerAddress), readData, count);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void TestUartBridgeScratchpad(void)
 {
 	uint8_t reg;
@@ -1096,6 +1129,7 @@ void ExpansionBridgeSetupRS232(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint8_t g_expansionActive = 0;
 void ExpansionBridgeInit(void)
 {
 	PowerControl(EXPANSION_ENABLE, ON);
@@ -1245,6 +1279,8 @@ void ExpansionBridgeInit(void)
 		SoftUsecWait(5 * SOFT_MSECS);
 	}
 #endif
+
+	g_expansionActive = YES;
 
 extern uint8_t g_expansionIrqActive;
 	g_expansionIrqActive = 0;
