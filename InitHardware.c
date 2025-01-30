@@ -1758,7 +1758,38 @@ extern mxc_uart_req_t uart1ReadRequest;
 ///----------------------------------------------------------------------------
 void UART2_Read_Callback(mxc_uart_req_t *req, int error)
 {
+	 uint16_t rxIndex = 0;
+
+	//debugRaw("<'>");
+
     // UART2 receive processing
+#if 1 /* Test */
+	while (rxIndex != req->rxLen)
+	{
+		// Raise the Craft Data flag (only once needed)
+		if (!rxIndex) { g_modemStatus.craftPortRcvFlag = YES; }
+
+		// Write the received data into the buffer
+		*g_isrMessageBufferPtr->writePtr = req->rxData[rxIndex++];
+
+		// Advance the buffer pointer
+		g_isrMessageBufferPtr->writePtr++;
+
+		// Check if buffer pointer goes beyond the end
+		if (g_isrMessageBufferPtr->writePtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE))
+		{
+			// Reset the buffer pointer to the beginning of the buffer
+			g_isrMessageBufferPtr->writePtr = g_isrMessageBufferPtr->msg;
+		}
+	}
+
+	// Clearing of flags should be handled by the driver
+
+	// Async handler only seems to run once and shuts down, so need to re-register
+extern mxc_uart_req_t uart2ReadRequest;
+	uint8_t status = MXC_UART_TransactionAsync(&uart2ReadRequest);
+	if (status != E_SUCCESS) { debugErr("Uart2 Read setup (async) failed with code: %d\r\n", status); }
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -1842,6 +1873,7 @@ void SetupUART(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+mxc_uart_req_t uart2ReadRequest; // Needs persistant storage because Maxim UART driver grabs only a reference to the request object
 void SetupDebugUART(void)
 {
 	int status;
@@ -1849,6 +1881,7 @@ void SetupDebugUART(void)
     status = MXC_UART_Init(MXC_UART2, UART_BAUD);
     if (status != E_SUCCESS) { } // Where to report?
 
+#if 0 /* Rx Interrupt setup, however due to MCU errata it's possible to lock up the UART with simultaneous Tx/Rx */
     // Move to Interrupt init
 	NVIC_ClearPendingIRQ(UART2_IRQn);
     NVIC_DisableIRQ(UART2_IRQn);
@@ -1856,15 +1889,15 @@ void SetupDebugUART(void)
     NVIC_EnableIRQ(UART2_IRQn);
 
     // Setup the asynchronous request
-    mxc_uart_req_t uart2ReadRequest;
-    uart2ReadRequest.uart = MXC_UART0;
+    uart2ReadRequest.uart = MXC_UART2;
     uart2ReadRequest.rxData = g_Uart2_RxBuffer;
-    uart2ReadRequest.rxLen = UART_BUFFER_SIZE;
+    uart2ReadRequest.rxLen = 1; // Turns out this is not buffer space but trigger level //UART_BUFFER_SIZE;
     uart2ReadRequest.txLen = 0;
     uart2ReadRequest.callback = UART2_Read_Callback;
 
     status = MXC_UART_TransactionAsync(&uart2ReadRequest);
     if (status != E_NO_ERROR) { debugErr("Debug Uart2 Read setup (async) failed with code: %d\r\n", status); }
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -5447,11 +5480,12 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initalize the Expansion I2C UART Bridge
 	//-------------------------------------------------------------------------
-#if 1 /* New modded board I2C doesn't work if epxansion powered */
+#if 1 /* Normal */
 	ExpansionBridgeInit(); debug("Expansion I2C Uart Bridge: Init complete\r\n");
+#else /* New modded Alpha board I2C doesn't work if epxansion powered */
 #endif
 
-#if 1 /* Test */
+#if 0 /* Test */
 	//-------------------------------------------------------------------------
 	// Test EERPOM (No specific init needed, only I2C comms)
 	//-------------------------------------------------------------------------
