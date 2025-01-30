@@ -1341,9 +1341,12 @@ FRESULT RecursiveDeleteDirectoryContents(char* path)
 	DIR dir;
 	UINT i;
 	static FILINFO fno;
+	char newPathWithSub[80];
 
 	// Open directory
 	res = f_opendir(&dir, path);
+
+	//debug("eMMC Flash: Recursive Delete path: %s\r\n", path);
 
 	if (res == FR_OK)
 	{
@@ -1362,10 +1365,13 @@ FRESULT RecursiveDeleteDirectoryContents(char* path)
 				i = strlen(path);
 
 				// Add sub-directory to path
-				sprintf(&path[i], "/%s", fno.fname);
+				//sprintf(&path[i], "/%s", fno.fname);
+				sprintf(newPathWithSub, "%s%s%s", path, ((path[(strlen(path) - 1)] == '/') ? "" : "/"), fno.fname);
+
+				//debug("eMMC Flash: Sub dir: %s, new path: %s\r\n", fno.fname, newPathWithSub);
 
 				// Enter sub-directory to repeat process
-				res = RecursiveDeleteDirectoryContents(path);
+				res = RecursiveDeleteDirectoryContents(newPathWithSub);
 				if (res != FR_OK) { break; }
 
 				// Delete sub-directory
@@ -1380,8 +1386,12 @@ FRESULT RecursiveDeleteDirectoryContents(char* path)
 				sprintf((char*)g_spareBuffer, "%s %s", getLangText(REMOVING_TEXT), fno.fname);
 				OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
 #endif
-				// Delete, need full path?
-				if (f_unlink(fno.fname) != FR_OK) { break; }
+				sprintf(newPathWithSub, "%s%s%s", path, ((path[(strlen(path) - 1)] == '/') ? "" : "/"), fno.fname);
+
+				//debug("eMMC Flash: Delete file: %s\r\n", newPathWithSub);
+
+				// Delete, needs full path
+				if (f_unlink(newPathWithSub) != FR_OK) { break; }
 				s_filesDeleted++;
 			}
 		}
@@ -1466,6 +1476,8 @@ FRESULT RecursiveDeleteDirectoryContentsSpecial(char* path, char* matchingSubStr
 ///----------------------------------------------------------------------------
 void DeleteEventFileRecords(void)
 {
+	FILINFO fno;
+
 	debug("Deleting Events...\r\n");
 
 	s_filesDeleted = 0;
@@ -1480,9 +1492,13 @@ void DeleteEventFileRecords(void)
 	//-----------------------------------------------------------------------------
 	RecursiveDeleteDirectoryContents(ER_DATA_PATH);
 
-	if (f_unlink(s_summaryListFileName) != FR_OK)
+	// Check if the Summary List file is created
+	if ((f_stat(s_summaryListFileName, &fno)) == FR_OK)
 	{
-		ReportFileSystemAccessProblem("Unable to delete Summary List");
+		if (f_unlink(s_summaryListFileName) != FR_OK)
+		{
+			ReportFileSystemAccessProblem("Unable to delete Summary List");
+		}
 	}
 
 	sprintf((char*)g_spareBuffer, "%s %d %s", getLangText(REMOVED_TEXT), s_filesDeleted, getLangText(EVENTS_TEXT));
