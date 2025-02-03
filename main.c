@@ -2330,7 +2330,7 @@ extern void UsbReportEvents(void);
 		// Count Exec cycles
 		g_execCycles++;
 
-#if 1 /* Test */
+#if 0 /* Test */
 		if (strlen((char*)g_blmBuffer)) { debug("%s", (char*)g_blmBuffer); memset(g_blmBuffer, 0, sizeof(g_blmBuffer)); }
 #endif
 
