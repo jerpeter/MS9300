@@ -274,7 +274,11 @@ uint8 CheckBargraphLiveMonitoringAuthorizedToSend(void)
 	if ((g_unitConfig.barLiveMonitor || g_modemStatus.barLiveMonitorOverride == YES) && (g_modemStatus.barLiveMonitorOverride != BAR_LIVE_MONITORING_OVERRIDE_STOP))
 	{
 		// Make sure not actively handling a remote command response transfer of data
+#if 0 /* Normal */
 		if ((g_modemStatus.xferMutex == NO) && (READ_DCD == CONNECTION_ESTABLISHED) && (g_modemStatus.systemIsLockedFlag == NO) && (g_bargraphLiveMonitoringBISendActive != YES))
+#else /* Ignore modem control signal for DCD */
+		if ((g_modemStatus.xferMutex == NO) && (g_modemStatus.systemIsLockedFlag == NO) && (g_bargraphLiveMonitoringBISendActive != YES))
+#endif
 		{
 			return (YES);
 		}
