@@ -655,7 +655,7 @@ void External_trigger_irq(void)
 	PowerControl(TRIGGER_OUT, OFF);
 
 	//debugRaw("-ET-");
-	debugWarn("-(ISR) External Trigger-");
+	//debugWarn("-(ISR) External Trigger-");
 
 	// Check if monitoring and not bargraph and not processing an event
 	if (((g_sampleProcessing == ACTIVE_STATE)) && (g_triggerRecord.opMode != BARGRAPH_MODE) && (g_busyProcessingEvent == NO))
@@ -1510,9 +1510,11 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 		//___Check if either a seismic or acoustic trigger threshold condition was achieved or an external trigger was found
 		if ((s_consecSeismicTriggerCount == CONSECUTIVE_TRIGGERS_THRESHOLD) || (s_consecAirTriggerCount == CONSECUTIVE_TRIGGERS_THRESHOLD) || (g_externalTrigger))
 		{
+#if 0 /* Test */
 			if (g_externalTrigger == EXTERNAL_TRIGGER_EVENT) { sprintf((char*)g_blmBuffer, "--> (ISR) External Trigger Found (ET: %d)\r\n", g_externalTrigger); } else
 			sprintf((char*)g_blmBuffer, "(ISR) --> %s Trigger Found, %x %x %x (%x), %x (%x)\r\n", (g_externalTrigger == VARIABLE_TRIGGER_EVENT) ? "VT" : "Normal", s_R_channelReading, s_V_channelReading, s_T_channelReading,
 					g_triggerRecord.trec.seismicTriggerLevel, s_A_channelReading, g_triggerRecord.trec.airTriggerLevel);
+#endif
 			//usart_write_char(&AVR32_USART1, '$');
 			g_testTimeSinceLastTrigger = g_lifetimeHalfSecondTickCount;
 			
