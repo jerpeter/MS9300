@@ -405,13 +405,19 @@ void ProcessCraftData()
 	}
 #endif
 
+	uint16_t i = 0;
 	while (g_isrMessageBufferPtr->readPtr != g_isrMessageBufferPtr->writePtr)
 	{
 #if 0 /* Normal */
 		debugRaw("<%c>", *g_isrMessageBufferPtr->readPtr);
-#else /* Adjust to show non-printable chars */
-		//if((*g_isrMessageBufferPtr->readPtr > 0x1F) && (*g_isrMessageBufferPtr->readPtr < 0x7F)) { debugRaw("<%c>", *g_isrMessageBufferPtr->readPtr); }
-		//else { debugRaw("<%02x>", *g_isrMessageBufferPtr->readPtr); }
+#elif 1 /* Adjust to show non-printable chars */
+		if (i < 10)
+		{
+			if((*g_isrMessageBufferPtr->readPtr > 0x1F) && (*g_isrMessageBufferPtr->readPtr < 0x7F)) { debugRaw("<%c>", *g_isrMessageBufferPtr->readPtr); }
+			else { debugRaw("<%02x>", *g_isrMessageBufferPtr->readPtr); }
+		}
+		else if (i == 10) { debugRaw("<...>"); }
+		i++;
 #endif
 
 		if ((*g_isrMessageBufferPtr->readPtr != 0x0A) &&
