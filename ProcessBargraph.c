@@ -24,6 +24,7 @@
 
 #include "ff.h"
 #include "cdc_acm.h"
+#include "PowerManagement.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -337,6 +338,14 @@ void ChecksumAndSetupBargraphLiveMonitorDataForISRTransfer(void)
 	if (acm_present())
 	{
 		acm_write(g_blmBuffer, (unsigned int)strlen((char*)g_blmBuffer));
+	}
+	else // Send out the Expansion RS232
+	{
+		// Check that the Expansion is powered and the IC isn't in reset
+		if ((GetPowerControlState(EXPANSION_ENABLE) == ON) && (GetPowerControlState(EXPANSION_RESET) == OFF))
+		{
+			ModemPuts(g_blmBuffer, strlen((char*)g_blmBuffer), NO_CONVERSION);
+		}
 	}
 
 	// Done immediately with USB CDC/ACM blocking send so clear flag
