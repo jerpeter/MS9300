@@ -565,6 +565,8 @@ void LoadModemSetupRecordDefaults()
 
 	// New request to set the init string to point to Nomis servers
 	strcpy(g_modemSetupRecord.dial, "ATDTONLINE.NOMIS.COM/8005");
+
+	ClearSoftTimer(SYSTEM_LOCK_TIMER_NUM);
 }
 
 ///----------------------------------------------------------------------------

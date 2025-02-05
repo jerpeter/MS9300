@@ -2007,6 +2007,7 @@ void EraseSettingsMenuHandler(uint8 keyPressed, void* data)
 			// Clear out modem setup and save
 			memset(&g_modemSetupRecord, 0, sizeof(g_modemSetupRecord));
 			g_modemSetupRecord.modemStatus = NO;
+			ClearSoftTimer(SYSTEM_LOCK_TIMER_NUM);
 			SaveRecordData(&g_modemSetupRecord, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
 
 			// Clear out Monitor Log unique ID
@@ -2715,7 +2716,7 @@ void ModemSetupMenuHandler(uint8 keyPressed, void* data)
 		if (g_modemSetupRecord.modemStatus == YES)
 		{
 			SETUP_USER_MENU_MSG(&modemInitMenu, &g_modemSetupRecord.init);
-
+			AssignSoftTimer(SYSTEM_LOCK_TIMER_NUM, REMOTE_SYSTEM_LOCK_TIMEOUT, SystemLockTimerCallback);
 		}
 		else // Modem Setup is NO
 		{
@@ -2728,6 +2729,8 @@ void ModemSetupMenuHandler(uint8 keyPressed, void* data)
 			g_modemStatus.systemIsLockedFlag = YES;
 
 			g_modemStatus.ringIndicator = 0;
+
+			ClearSoftTimer(SYSTEM_LOCK_TIMER_NUM);
 
 			SaveRecordData(&g_modemSetupRecord, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
 			SETUP_USER_MENU_MSG(&configMenu, DEFAULT_ITEM_1);
