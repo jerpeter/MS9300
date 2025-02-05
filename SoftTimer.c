@@ -25,6 +25,7 @@
 #include "ProcessBargraph.h"
 #include "TextTypes.h"
 #include "EventProcessing.h"
+#include "RemoteHandler.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -288,7 +289,8 @@ void MenuUpdateTimerCallBack(void)
 ///----------------------------------------------------------------------------
 void KeypadLedUpdateTimerCallBack(void)
 {
-	static uint8 ledState = KEYPAD_LED_STATE_UNKNOWN;
+	static uint8 s_ledState = KEYPAD_LED_STATE_UNKNOWN;
+	static uint8 s_repeatCount = 0;
 	uint8 lastLedState;
 	BOOLEAN externalChargePresent = CheckExternalChargeVoltagePresent();
 
@@ -298,74 +300,94 @@ void KeypadLedUpdateTimerCallBack(void)
 	// 3) Init complete, monitoring, not charging --> Flashing Green (state transition)
 	// 4) Init complete, monitoring, charging --> Alternate Flashing Green/Red (state transition)
 
+	// States (on prior 8100 unit)
+	// 1) Init complete, not monitoring, not charging, LCD on --> Static Green
+	// 2) Init complete, not monitoring, not charging, LCD off --> Pulse Green 0.5s every 4s
+	// 3) Init complete, not monitoring, charging, LCD on --> Static Blue
+	// 4) Init complete, not monitoring, charging, LCD off --> Pulse Blue 0.5s every 4s
+	// 5) Init complete, monitoring, not charging, LCD on --> Static Green
+	// 6) Init complete, monitoring, not charging, LCD off --> Pulse Green 0.5s every 2s
+	// 7) Init complete, monitoring, charging, LCD on --> Static Blue
+	// 8) Init complete, monitoring, charging, LCD off --> Pulse Blue 0.5s every 4s
+
+	// Temp for field test
+	// 1) Not monitoring, not charging, Pulse Green 0.5 ever 4s
+	// 2) Not monitoring, charging, Pulse Blue 0.5 ever 4s
+	// 3) Monitoring, not charging, Pulse Green 0.5 ever 2s
+	// 4) Monitoring, charging, Pulse Blue 0.5 ever 2s
+
 	// Hold the last state
-	lastLedState = ledState;
+	lastLedState = s_ledState;
 
 	if ((g_sampleProcessing == IDLE_STATE) && (externalChargePresent == FALSE))
 	{
 		//debug("Keypad LED: State 1\r\n");
-		
-		ledState = KEYPAD_LED_STATE_IDLE_GREEN_ON;
+		if (lastLedState == KEYPAD_LED_STATE_PULSE_GREEN_SLOW_ON) { s_ledState = KEYPAD_LED_STATE_PULSE_GREEN_SLOW_OFF; s_repeatCount = 0; }
+		else if (lastLedState == KEYPAD_LED_STATE_PULSE_GREEN_SLOW_OFF) { if (++s_repeatCount == 7) { s_ledState = KEYPAD_LED_STATE_PULSE_GREEN_SLOW_ON; } }
+		else { s_ledState = KEYPAD_LED_STATE_PULSE_GREEN_SLOW_ON; }
 	}
 	else if ((g_sampleProcessing == IDLE_STATE) && (externalChargePresent == TRUE))
 	{
 		//debug("Keypad LED: State 2\r\n");
-
-		ledState = KEYPAD_LED_STATE_CHARGE_RED_ON;
+		if (lastLedState == KEYPAD_LED_STATE_PULSE_BLUE_SLOW_ON) { s_ledState = KEYPAD_LED_STATE_PULSE_BLUE_SLOW_OFF; s_repeatCount = 0; }
+		else if (lastLedState == KEYPAD_LED_STATE_PULSE_BLUE_SLOW_OFF) { if (++s_repeatCount == 7) { s_ledState = KEYPAD_LED_STATE_PULSE_BLUE_SLOW_ON; } }
+		else { s_ledState = KEYPAD_LED_STATE_PULSE_BLUE_SLOW_ON; }
 	}
 	else if ((g_sampleProcessing == ACTIVE_STATE) && (externalChargePresent == FALSE))
 	{
 		//debug("Keypad LED: State 3\r\n");
-
-		if (ledState == KEYPAD_LED_STATE_ACTIVE_GREEN_ON)
-		{
-			ledState = KEYPAD_LED_STATE_ACTIVE_GREEN_OFF;
-		}
-		else
-		{
-			ledState = KEYPAD_LED_STATE_ACTIVE_GREEN_ON;
-		}
+		if (lastLedState == KEYPAD_LED_STATE_PULSE_GREEN_FAST_ON) { s_ledState = KEYPAD_LED_STATE_PULSE_GREEN_FAST_OFF; s_repeatCount = 0; }
+		else if (lastLedState == KEYPAD_LED_STATE_PULSE_GREEN_FAST_OFF) { if (++s_repeatCount == 3) { s_ledState = KEYPAD_LED_STATE_PULSE_GREEN_FAST_ON; } }
+		else { s_ledState = KEYPAD_LED_STATE_PULSE_GREEN_FAST_ON; }
 	}		
 	else // ((g_sampleProcessing == ACTIVE_STATE) && (externalChargePresent == TRUE))
 	{
 		//debug("Keypad LED: State 4\r\n");
-
-		if (ledState == KEYPAD_LED_STATE_ACTIVE_CHARGE_GREEN_ON)
-		{
-			ledState = KEYPAD_LED_STATE_ACTIVE_CHARGE_RED_ON;
-		}
-		else
-		{
-			ledState = KEYPAD_LED_STATE_ACTIVE_CHARGE_GREEN_ON;
-		}
+		if (lastLedState == KEYPAD_LED_STATE_PULSE_BLUE_FAST_ON) { s_ledState = KEYPAD_LED_STATE_PULSE_BLUE_FAST_OFF; s_repeatCount = 0; }
+		else if (lastLedState == KEYPAD_LED_STATE_PULSE_BLUE_FAST_OFF) { if (++s_repeatCount == 3) { s_ledState = KEYPAD_LED_STATE_PULSE_BLUE_FAST_ON; } }
+		else { s_ledState = KEYPAD_LED_STATE_PULSE_BLUE_FAST_ON; }
 	}
 	
-	// Check if the state changed
-	if (ledState != lastLedState)
+	switch (s_ledState)
 	{
-		// Todo: Possibly read current LED's into config state?
-		
-		switch (ledState)
-		{
-			case KEYPAD_LED_STATE_BOTH_OFF:
-			case KEYPAD_LED_STATE_ACTIVE_GREEN_OFF:
-				// Todo: Set the correct state or LED's
-				break;
-				
-			case KEYPAD_LED_STATE_IDLE_GREEN_ON:
-			case KEYPAD_LED_STATE_ACTIVE_GREEN_ON:
-			case KEYPAD_LED_STATE_ACTIVE_CHARGE_GREEN_ON:
-				// Todo: Set the correct state or LED's
-				break;
-				
-			case KEYPAD_LED_STATE_CHARGE_RED_ON:
-			case KEYPAD_LED_STATE_ACTIVE_CHARGE_RED_ON:
-				// Todo: Set the correct state or LED's
-				break;
-		}
+		case KEYPAD_LED_STATE_BOTH_OFF:
+		case KEYPAD_LED_STATE_ACTIVE_GREEN_OFF:
+			// Todo: Set the correct state or LED's
+			break;
+
+		case KEYPAD_LED_STATE_IDLE_GREEN_ON:
+		case KEYPAD_LED_STATE_ACTIVE_GREEN_ON:
+		case KEYPAD_LED_STATE_ACTIVE_CHARGE_GREEN_ON:
+			// Todo: Set the correct state or LED's
+			break;
+
+		case KEYPAD_LED_STATE_CHARGE_RED_ON:
+		case KEYPAD_LED_STATE_ACTIVE_CHARGE_RED_ON:
+			// Todo: Set the correct state or LED's
+			break;
+
+		case KEYPAD_LED_STATE_PULSE_GREEN_SLOW_ON:
+		case KEYPAD_LED_STATE_PULSE_GREEN_FAST_ON:
+			PowerControl(LED_2, ON); PowerControl(LED_1, OFF);
+			break;
+
+		case KEYPAD_LED_STATE_PULSE_GREEN_SLOW_OFF:
+		case KEYPAD_LED_STATE_PULSE_GREEN_FAST_OFF:
+			PowerControl(LED_2, OFF); PowerControl(LED_1, OFF);
+			break;
+
+		case KEYPAD_LED_STATE_PULSE_BLUE_SLOW_ON:
+		case KEYPAD_LED_STATE_PULSE_BLUE_FAST_ON:
+			PowerControl(LED_1, ON); PowerControl(LED_2, OFF);
+			break;
+
+		case KEYPAD_LED_STATE_PULSE_BLUE_SLOW_OFF:
+		case KEYPAD_LED_STATE_PULSE_BLUE_FAST_OFF:
+			PowerControl(LED_1, OFF); PowerControl(LED_2, OFF);
+			break;
 	}
 
-	AssignSoftTimer(KEYPAD_LED_TIMER_NUM, ONE_SECOND_TIMEOUT, KeypadLedUpdateTimerCallBack);
+	AssignSoftTimer(KEYPAD_LED_TIMER_NUM, HALF_SECOND_TIMEOUT, KeypadLedUpdateTimerCallBack);
 }
 
 ///----------------------------------------------------------------------------
@@ -461,7 +483,11 @@ void ModemDelayTimerCallback(void)
 {
 	if (YES == g_modemStatus.modemAvailable)
 	{
+#if 0 /* Orignal */
 		if ((READ_DSR == MODEM_CONNECTED) && (READ_DCD == NO_CONNECTION))
+#else /* No modem controls to utilize */
+		if (1)
+#endif
 		{
 			ModemInitProcess();
 		}
@@ -599,4 +625,12 @@ void BatteryLogTimerCallback(void)
 	AppendBatteryLogEntryFile();
 
 	AssignSoftTimer(BATTERY_LOG_TIMER_NUM, (g_unitConfig.copies * TICKS_PER_MIN), BatteryLogTimerCallback);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SystemLockTimerCallback(void)
+{
+	RemoteSystemLock(YES);
 }
