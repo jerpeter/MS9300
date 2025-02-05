@@ -499,7 +499,7 @@ extern void StartBatteryLog(void);
 	//-------------------------------------------------------------------------
 	// Assign a one second keypad led update timer
 	//-------------------------------------------------------------------------
-	AssignSoftTimer(KEYPAD_LED_TIMER_NUM, ONE_SECOND_TIMEOUT, KeypadLedUpdateTimerCallBack); debug("Keypad LED Timer initialized\r\n");
+	AssignSoftTimer(KEYPAD_LED_TIMER_NUM, HALF_SECOND_TIMEOUT, KeypadLedUpdateTimerCallBack); debug("Keypad LED Timer initialized\r\n");
 
 	//-------------------------------------------------------------------------
 	// Jump to the true main menu
