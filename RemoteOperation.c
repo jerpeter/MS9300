@@ -19,6 +19,7 @@
 #include "SysEvents.h"
 #include "PowerManagement.h"
 #include "Crc.h"
+#include "RemoteHandler.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -1929,7 +1930,11 @@ void ModemInitProcess(void)
 
 	debug("ModemInitProcess\r\n");
 
+#if 0 /* Orignal */
 	if (READ_DCD == NO_CONNECTION)
+#else
+	if (g_modemStatus.systemIsLockedFlag == YES)
+#endif
 	{
 		if (strlen(g_modemSetupRecord.reset) != 0)
 		{
@@ -1964,7 +1969,7 @@ void ModemResetProcess(void)
 
 	WaitForBargraphLiveMonitoringDataToFinishSendingWithTimeout();
 
-	g_modemStatus.systemIsLockedFlag = YES;
+	RemoteSystemLock(YES);
 
 	if (g_autoRetries == 0)
 	{
@@ -1982,7 +1987,7 @@ void HandleMRS(CMD_BUFFER_STRUCT* inCmd)
 {
 	UNUSED(inCmd);
 
-	g_modemStatus.systemIsLockedFlag = YES;
+	RemoteSystemLock(YES);
 
 	if (YES == g_modemSetupRecord.modemStatus)
 	{
