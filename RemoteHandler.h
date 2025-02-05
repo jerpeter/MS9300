@@ -35,6 +35,7 @@ void RemoteCmdMessageProcessing(void);
 void ProcessCraftData(void);
 void CraftInitStatusFlags(void);
 void InitCraftInterruptBuffers(void);
+void RemoteSystemLock(uint8_t lockState);
 
 #endif // _REMOTE_COMMON_H_
 
