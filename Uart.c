@@ -162,6 +162,9 @@ uint8 ModemPuts(uint8* byteData, uint32 dataLength, uint8 convertAsciiFlag)
 
 	// Sending modem data, signal that data is being transfered
 	g_modemDataTransfered = YES;
+#if 1 /* New timeout for System lock */
+	ResetSoftTimer(SYSTEM_LOCK_TIMER_NUM);
+#endif
 
 	for (dataDex = 0; dataDex < dataLength; dataDex++)
 	{
@@ -999,6 +1002,7 @@ void ExpansionBridgeChangeBaud(uint32_t baudSelect)
 {
 	uint8_t dll = 0;
 	uint8_t cprn = 0;
+	uint8_t scr = 0;
 	uint32_t baud = 0;
 	uint8_t alt = 0;
 
@@ -1052,6 +1056,8 @@ void ExpansionBridgeChangeBaud(uint32_t baudSelect)
 	WriteUartBridgeControlRegister(PI7C9X760_REG_SFREN, 0x5A);
 	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x04);
 	WriteUartBridgeControlRegister(PI7C9X760_REG_CPR, (0x10 | cprn)); // Set CPR N (botton 4 bits)
+
+	WriteUartBridgeControlRegister(PI7C9X760_REG_TRCTL, ((scr << 4) | 0x06)); // Set SCR (top 4 bits)
 
 #if 1 /* Revert SFR and SFREN */
 	// Unwind special access
