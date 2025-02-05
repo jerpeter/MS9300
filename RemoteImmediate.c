@@ -24,6 +24,7 @@
 #include "Minilzo.h"
 #include "TextTypes.h"
 
+#include "RemoteHandler.h"
 #include "fastmath.h"
 #include "ff.h"
 
@@ -86,7 +87,7 @@ void HandleUNL(CMD_BUFFER_STRUCT* inCmd)
 		memset(&sendStr[0], 0, sizeof(sendStr));
 		if (YES == g_modemStatus.systemIsLockedFlag)
 		{
-			g_modemStatus.systemIsLockedFlag = NO;
+			RemoteSystemLock(NO);
 			sprintf(sendStr,"%s0", tempStr);
 
 			// Check to see if there is a binary flag set.
@@ -107,7 +108,7 @@ void HandleUNL(CMD_BUFFER_STRUCT* inCmd)
 		}
 		else
 		{
-			g_modemStatus.systemIsLockedFlag = YES;
+			RemoteSystemLock(YES);
 			g_binaryXferFlag = CONVERT_DATA_TO_ASCII;
 			sprintf(sendStr,"%s1", tempStr);
 		}
