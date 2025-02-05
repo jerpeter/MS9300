@@ -182,7 +182,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 		//----------------------------------------------------------------------------
 		case LED_1: // Active low (Blue)
 		//----------------------------------------------------------------------------
-			debug("LED 1: %s\r\n", mode == ON ? "On" : "Off");
+			//debug("LED 1: %s\r\n", mode == ON ? "On" : "Off");
 #if 0 /* Original Active high */
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_LED_1_PORT, GPIO_LED_1_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_LED_1_PORT, GPIO_LED_1_PIN); }
@@ -195,7 +195,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 		//----------------------------------------------------------------------------
 		case LED_2: // Active low (Green)
 		//----------------------------------------------------------------------------
-			debug("LED 2: %s\r\n", mode == ON ? "On" : "Off");
+			//debug("LED 2: %s\r\n", mode == ON ? "On" : "Off");
 #if 0 /* Original Active high */
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_LED_2_PORT, GPIO_LED_2_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_LED_2_PORT, GPIO_LED_2_PIN); }
