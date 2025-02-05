@@ -87,7 +87,7 @@ void HandleUNL(CMD_BUFFER_STRUCT* inCmd)
 		memset(&sendStr[0], 0, sizeof(sendStr));
 		if (YES == g_modemStatus.systemIsLockedFlag)
 		{
-			RemoteSystemLock(NO);
+			RemoteSystemLock(CLEAR);
 			sprintf(sendStr,"%s0", tempStr);
 
 			// Check to see if there is a binary flag set.
@@ -108,7 +108,7 @@ void HandleUNL(CMD_BUFFER_STRUCT* inCmd)
 		}
 		else
 		{
-			RemoteSystemLock(YES);
+			RemoteSystemLock(SET);
 			g_binaryXferFlag = CONVERT_DATA_TO_ASCII;
 			sprintf(sendStr,"%s1", tempStr);
 		}

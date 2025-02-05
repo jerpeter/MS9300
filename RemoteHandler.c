@@ -552,7 +552,7 @@ void CraftInitStatusFlags(void)
 	g_modemStatus.craftPortRcvFlag = NO;	// Flag to indicate that incomming data has been received.
 	g_modemStatus.xferState = NOP_CMD;		// Flag for xmitting data to the craft.
 	g_modemStatus.xferMutex = NO;			// Flag to stop other message command from executing.
-	RemoteSystemLock(YES);
+	RemoteSystemLock(SET);
 
 	g_modemStatus.ringIndicator = 0;
 	g_modemStatus.xferPrintState = NO;
@@ -568,14 +568,18 @@ void CraftInitStatusFlags(void)
 ///----------------------------------------------------------------------------
 void RemoteSystemLock(uint8_t lockState)
 {
-	if (lockState == YES)
+	if (lockState == SET)
 	{
 		g_modemStatus.systemIsLockedFlag = YES;
 		ClearSoftTimer(SYSTEM_LOCK_TIMER_NUM);
 	}
-	else // (lockState == NO)
+	else // (lockState == CLEAR)
 	{
 		g_modemStatus.systemIsLockedFlag = NO;
-		AssignSoftTimer(SYSTEM_LOCK_TIMER_NUM, REMOTE_SYSTEM_LOCK_TIMEOUT, SystemLockTimerCallback);
+
+		if (g_modemSetupRecord.modemStatus == YES)
+		{
+			AssignSoftTimer(SYSTEM_LOCK_TIMER_NUM, REMOTE_SYSTEM_LOCK_TIMEOUT, SystemLockTimerCallback);
+		}
 	}
 }

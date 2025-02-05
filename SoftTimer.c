@@ -632,5 +632,5 @@ void BatteryLogTimerCallback(void)
 ///----------------------------------------------------------------------------
 void SystemLockTimerCallback(void)
 {
-	RemoteSystemLock(YES);
+	RemoteSystemLock(SET);
 }

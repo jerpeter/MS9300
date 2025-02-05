@@ -1969,7 +1969,7 @@ void ModemResetProcess(void)
 
 	WaitForBargraphLiveMonitoringDataToFinishSendingWithTimeout();
 
-	RemoteSystemLock(YES);
+	RemoteSystemLock(SET);
 
 	if (g_autoRetries == 0)
 	{
@@ -1987,7 +1987,7 @@ void HandleMRS(CMD_BUFFER_STRUCT* inCmd)
 {
 	UNUSED(inCmd);
 
-	RemoteSystemLock(YES);
+	RemoteSystemLock(SET);
 
 	if (YES == g_modemSetupRecord.modemStatus)
 	{
