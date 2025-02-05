@@ -323,13 +323,23 @@ extern uint32_t testLifetimeCurrentAvgCount;
 						else
 						if (g_currentSensorGroup == SENSOR_GROUP_A_1)
 						{
+#if 0 /* Original, Geo + AOP on one sensor group */
 							sprintf((char*)g_debugBuffer, "Cal Setup: AOP1 Sensor disabled");
 							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
+#else /* Standard config, Geo + Aop on separate sensors */
+							sprintf((char*)g_debugBuffer, "Cal Setup: AOP2 Sensor disabled");
+							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+#endif
 						}
 						else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
 						{
+#if 0 /* Original, Geo + AOP on one sensor group */
 							sprintf((char*)g_debugBuffer, "Cal Setup: AOP2 Sensor disabled");
 							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+#else /* Standard config, Geo + Aop on separate sensors */
+							sprintf((char*)g_debugBuffer, "Cal Setup: AOP1 Sensor disabled");
+							MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
+#endif
 						}
 						else // (g_currentSensorGroup == SENSOR_GROUP_BOTH)
 						{
@@ -359,15 +369,27 @@ extern uint32_t testLifetimeCurrentAvgCount;
 						else
 						if (g_currentSensorGroup == SENSOR_GROUP_A_1)
 						{
+#if 0 /* Original, Geo + AOP on one sensor group */
 							sprintf((char*)g_debugBuffer, "Cal Setup: Geo1 + AOP1 Sensors enabled");
 							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
 							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
+#else /* Standard config, Geo + Aop on separate sensors */
+							sprintf((char*)g_debugBuffer, "Cal Setup: Geo1 + AOP2 Sensors enabled");
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+#endif
 						}
 						else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
 						{
+#if 0 /* Original, Geo + AOP on one sensor group */
 							sprintf((char*)g_debugBuffer, "Cal Setup: Geo2 + AOP2 Sensors enabled");
 							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
 							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+#else /* Standard config, Geo + Aop on separate sensors */
+							sprintf((char*)g_debugBuffer, "Cal Setup: Geo2 + AOP1 Sensors enabled");
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
+							MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
+#endif
 						}
 						else // (g_currentSensorGroup == SENSOR_GROUP_BOTH)
 						{
@@ -426,13 +448,23 @@ extern uint32_t testLifetimeCurrentAvgCount;
 							if (pathState == ACOUSTIC_PATH_AOP) { pathState = ACOUSTIC_PATH_A_WEIGHTED; } else { pathState = ACOUSTIC_PATH_AOP; }
 							if ((g_currentSensorGroup == SENSOR_GROUP_A_1) || (g_currentSensorGroup == SENSOR_GROUP_BOTH))
 							{
+#if 0 /* Original, Geo + AOP on one sensor group */
 								if (pathState == ACOUSTIC_PATH_AOP) { strcpy(filterText, "AOP"); SetPathSelectAop1State(HIGH); } else { strcpy(filterText, "C-weight"); SetPathSelectAop1State(LOW); }
 								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP1 path (%s)", filterText);
+#else /* Standard config, Geo + Aop on separate sensors */
+								if (pathState == ACOUSTIC_PATH_AOP) { strcpy(filterText, "AOP"); SetPathSelectAop2State(HIGH); } else { strcpy(filterText, "A-weight"); SetPathSelectAop2State(LOW); }
+								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP2 path (%s)", filterText);
+#endif
 							}
 							else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
 							{
+#if 0 /* Original, Geo + AOP on one sensor group */
 								if (pathState == ACOUSTIC_PATH_AOP) { strcpy(filterText, "AOP"); SetPathSelectAop2State(HIGH); } else { strcpy(filterText, "A-weight"); SetPathSelectAop2State(LOW); }
 								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP2 path (%s)", filterText);
+#else /* Standard config, Geo + Aop on separate sensors */
+								if (pathState == ACOUSTIC_PATH_AOP) { strcpy(filterText, "AOP"); SetPathSelectAop1State(HIGH); } else { strcpy(filterText, "C-weight"); SetPathSelectAop1State(LOW); }
+								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP1 path (%s)", filterText);
+#endif
 							}
 						}
 
@@ -478,6 +510,7 @@ extern uint32_t testLifetimeCurrentAvgCount;
 							}
 						}
 						else
+#if 0 /* Original */
 						if (cmState) // Check if on
 						{
 							cmState = OFF; SetCalMuxPreADEnableState(OFF);
@@ -509,6 +542,31 @@ extern uint32_t testLifetimeCurrentAvgCount;
 								OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
 							}
 						}
+#else /* Cycle through CM states */
+						{
+							if (cmState == OFF)
+							{
+								cmState = CAL_MUX_SELECT_SENSOR_GROUP_A; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); SetCalMuxPreADEnableState(ON);
+								sprintf((char*)g_debugBuffer, "Cal Setup: Enabling Cal Mux Sensor Group A/1");
+								debug("%s\r\n", (char*)g_debugBuffer);
+								OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+							}
+							else if (cmState == CAL_MUX_SELECT_SENSOR_GROUP_A)
+							{
+								cmState = CAL_MUX_SELECT_SENSOR_GROUP_B; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B); SetCalMuxPreADEnableState(ON);
+								sprintf((char*)g_debugBuffer, "Cal Setup: Enabling Cal Mux Sensor Group B/2");
+								debug("%s\r\n", (char*)g_debugBuffer);
+								OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+							}
+							else // (cmState == CAL_MUX_SELECT_SENSOR_GROUP_B)
+							{
+								cmState = OFF; SetCalMuxPreADEnableState(OFF);
+								sprintf((char*)g_debugBuffer, "Cal Setup: Turning Cal Mux Enable Off");
+								debug("%s\r\n", (char*)g_debugBuffer);
+								OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+							}
+						}
+#endif
 #endif
 						break;
 
@@ -530,6 +588,9 @@ extern uint32_t testLifetimeCurrentAvgCount;
 extern void StopAccAquisition(void);
 			StopAccAquisition();
 #endif
+			// Reset the current sensor group selection to the default
+			g_currentSensorGroup = SENSOR_GROUP_A_1;
+
 			// Reestablish the previously stored sample rate
 			g_triggerRecord.trec.sample_rate = s_calSavedSampleRate;
 
@@ -665,7 +726,11 @@ extern void StartAccAquisition(void);
 			SensorCalibrationDataInit();
 
 			// Hand setup A/D data collection and start the data clock
+#if 1 /* Normal */
 			StartADDataCollectionForCalibration(CALIBRATION_FIXED_SAMPLE_RATE);
+#else /* Test */
+			StartADDataCollectionForCalibration(SAMPLE_RATE_8K);
+#endif
 
 #if 1 /* Test addition */
 			// Reset static state on for re-entry
