@@ -257,6 +257,8 @@ enum {
 
 #define BAR_LIVE_MONITORING_OVERRIDE_STOP	2
 
+#define REMOTE_SYSTEM_LOCK_TIMEOUT	(10 * TICKS_PER_MIN)
+
 typedef struct
 {
 	uint8 modemAvailable;		// Flag to indicate modem is available.
