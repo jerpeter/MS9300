@@ -38,6 +38,7 @@ enum {
 	LOOSE_EVENT_MIGRATION_TIMER_NUM,
 	AUTO_DIAL_OUT_CYCLE_TIMER_NUM,
 	BATTERY_LOG_TIMER_NUM,
+	SYSTEM_LOCK_TIMER_NUM,
 	// Add new timers here
 	NUM_OF_SOFT_TIMERS
 };
@@ -49,6 +50,7 @@ enum {
 #define TICKS_PER_MIN	(TICKS_PER_SEC * 60) // Number of ticks per minute
 #define TICKS_PER_HOUR	(TICKS_PER_MIN * 60) // Number of ticks per hour
 
+#define HALF_SECOND_TIMEOUT		1 // 0.5 secs
 #define ONE_SECOND_TIMEOUT		1 * TICKS_PER_SEC // secs * ticks
 
 #define TIMEOUT_DISABLED		0 // secs
@@ -96,5 +98,6 @@ void GpsPowerOffTimerCallBack(void);
 void GpsPowerOnTimerCallBack(void);
 void LooseEventMigrationTimerCallBack(void);
 void BatteryLogTimerCallback(void);
+void SystemLockTimerCallback(void);
 
 #endif // _SOFT_TIMER_H_
