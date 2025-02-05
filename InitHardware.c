@@ -1150,7 +1150,7 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_WEAK_PULL_UP;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
-	//MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
+	//MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as on (Beta/re-spin reversed)
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as off (Beta/re-spin reversed)
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1175,8 +1175,8 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_WEAK_PULL_UP;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
-	//MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
-	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as off (Beta/re-spin reversed)
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as on (Beta/re-spin reversed)
+	//MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as off (Beta/re-spin reversed)
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	//----------------------------------------------------------------------------------------------------------------------
 	// LED 3: Port 1, Pin 26, Output, No external pull, Active high, 3.3V
