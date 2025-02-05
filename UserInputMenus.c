@@ -1759,7 +1759,11 @@ void UnlockCodeMenuHandler(uint8 keyPressed, void* data)
 
 		SaveRecordData(&g_modemSetupRecord, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
 
+#if 0 /* Original */
 		if (READ_DCD == NO_CONNECTION)
+#else /* No modem controls, utilize system lock flag */
+		if (g_modemStatus.systemIsLockedFlag == YES)
+#endif
 		{
 			CraftInitStatusFlags();
 		}
