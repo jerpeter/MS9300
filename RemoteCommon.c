@@ -408,8 +408,12 @@ void InitAutoDialout(void)
 uint8 CheckAutoDialoutStatusAndFlagIfAvailable(void)
 {
 	// Check that Dial Out state is currently idle, there is no active modem connection, a modem reset is not in progress, Modem Setup is enabled and the Modem Setup Dial string is not empty
+#if 0 /* Original */
 	if ((g_autoDialoutState == AUTO_DIAL_IDLE) && (READ_DCD == NO_CONNECTION) && (g_modemResetStage == 0) &&
 		(g_modemSetupRecord.modemStatus == YES) && strlen((char*)&(g_modemSetupRecord.dial[0])) != 0)
+#else /* No modem controls, utilize system lock flag */
+	if ((g_autoDialoutState == AUTO_DIAL_IDLE) && (g_modemStatus.systemIsLockedFlag == YES) && (g_modemResetStage == 0) && (g_modemSetupRecord.modemStatus == YES) && strlen((char*)&(g_modemSetupRecord.dial[0])) != 0)
+#endif
 	{
 		raiseSystemEventFlag(AUTO_DIALOUT_EVENT);
 		return (YES);
@@ -423,7 +427,11 @@ uint8 CheckAutoDialoutStatusAndFlagIfAvailable(void)
 ///----------------------------------------------------------------------------
 void StartAutoDialoutProcess(void)
 {
+#if 0 /* Original */
 	if (READ_DCD == NO_CONNECTION)
+#else /* No modem controls, utilize system lock flag */
+	if (g_modemStatus.systemIsLockedFlag == YES)
+#endif
 	{
 		g_autoRetries = g_modemSetupRecord.retries;
 		g_autoDialoutState = AUTO_DIAL_INIT;
@@ -464,7 +472,11 @@ void AutoDialoutStateMachine(void)
 		//----------------------------------------------------------------
 		case AUTO_DIAL_CONNECTING:
 			// Check if a remote connection has been established
+#if 0 /* Original */
 			if (READ_DCD == CONNECTION_ESTABLISHED)
+#else /* No modem controls, use static delay hoping for connection */
+			if ((g_lifetimeHalfSecondTickCount - timer) > (5 * TICKS_PER_SEC))
+#endif
 			{
 				// Update timer to current tick count
 				timer = g_lifetimeHalfSecondTickCount;
@@ -504,12 +516,14 @@ void AutoDialoutStateMachine(void)
 				// Advance to Response state
 				g_autoDialoutState = AUTO_DIAL_RESPONSE;
 			}
+#if 0 /* Orignal */
 			// Check if we lose the remote connection
 			else if (READ_DCD == NO_CONNECTION)
 			{
 				// Advance to Retry state
 				g_autoDialoutState = AUTO_DIAL_RETRY;
 			}
+#endif
 		break;
 
 		//----------------------------------------------------------------
@@ -537,12 +551,14 @@ void AutoDialoutStateMachine(void)
 				// Advance to Wait state
 				g_autoDialoutState = AUTO_DIAL_WAIT;
 			}
+#if 0 /* Orignal */
 			// Check if we lose the remote connection
 			else if (READ_DCD == NO_CONNECTION)
 			{
 				// Advance to Retry state
 				g_autoDialoutState = AUTO_DIAL_RETRY;
 			}
+#endif
 		break;
 
 		//----------------------------------------------------------------
@@ -567,12 +583,14 @@ void AutoDialoutStateMachine(void)
 				// Advance to Retry state
 				g_autoDialoutState = AUTO_DIAL_RETRY;
 			}
+#if 0 /* Orignal */
 			// Check if we lose the remote connection
 			else if (READ_DCD == NO_CONNECTION)
 			{
 				// Advance to Retry state
 				g_autoDialoutState = AUTO_DIAL_RETRY;
 			}
+#endif
 		break;
 
 		//----------------------------------------------------------------
@@ -637,12 +655,14 @@ void AutoDialoutStateMachine(void)
 				// Advance to Finish state
 				g_autoDialoutState = AUTO_DIAL_FINISH;
 			}
+#if 0 /* Orignal */
 			// Check if we lose the remote connection
 			else if (READ_DCD == NO_CONNECTION)
 			{
 				// Advance to Finish state
 				g_autoDialoutState = AUTO_DIAL_FINISH;
 			}
+#endif
 		break;
 
 		//----------------------------------------------------------------
