@@ -175,7 +175,9 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 					{
 						// Command successfully decoded, signal that data has been transfered
 						g_modemDataTransfered = YES;
-
+#if 1 /* New timeout for System lock */
+						ResetSoftTimer(SYSTEM_LOCK_TIMER_NUM);
+#endif
 						WaitForBargraphLiveMonitoringDataToFinishSendingWithTimeout();
 
 #if 1 /* Test */
@@ -196,7 +198,9 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 					{
 						// Command successfully decoded, signal that data has been transfered
 						g_modemDataTransfered = YES;
-
+#if 1 /* New timeout for System lock */
+						ResetSoftTimer(SYSTEM_LOCK_TIMER_NUM);
+#endif
 						s_cmdMessageTable[ cmdIndex ].cmdFunction(cmdMsg);
 						break;
 					}
@@ -548,7 +552,7 @@ void CraftInitStatusFlags(void)
 	g_modemStatus.craftPortRcvFlag = NO;	// Flag to indicate that incomming data has been received.
 	g_modemStatus.xferState = NOP_CMD;		// Flag for xmitting data to the craft.
 	g_modemStatus.xferMutex = NO;			// Flag to stop other message command from executing.
-	g_modemStatus.systemIsLockedFlag = YES;
+	RemoteSystemLock(YES);
 
 	g_modemStatus.ringIndicator = 0;
 	g_modemStatus.xferPrintState = NO;
@@ -559,3 +563,19 @@ void CraftInitStatusFlags(void)
 	g_modemStatus.testingFlag = OFF;
 }
 
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void RemoteSystemLock(uint8_t lockState)
+{
+	if (lockState == YES)
+	{
+		g_modemStatus.systemIsLockedFlag = YES;
+		ClearSoftTimer(SYSTEM_LOCK_TIMER_NUM);
+	}
+	else // (lockState == NO)
+	{
+		g_modemStatus.systemIsLockedFlag = NO;
+		AssignSoftTimer(SYSTEM_LOCK_TIMER_NUM, REMOTE_SYSTEM_LOCK_TIMEOUT, SystemLockTimerCallback);
+	}
+}
