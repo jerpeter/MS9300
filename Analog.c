@@ -210,13 +210,23 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 	// Enabled the specific sensor blocks
 	if (g_currentSensorGroup == SENSOR_GROUP_A_1)
 	{
+#if 0 /* Original, Geo + AOP on one sensor group */
 		MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
 		MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
+#else /* Standard config, Geo + AOP split on two sensor groups */
+		MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
+		MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+#endif
 	}
 	else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
 	{
+#if 0 /* Original, Geo + AOP on one sensor group */
 		MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
 		MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+#else /* Standard config, Geo + AOP split on two sensor groups */
+		MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
+		MXC_GPIO_OutSet(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
+#endif
 	}
 	else // (g_currentSensorGroup == SENSOR_GROUP_BOTH)
 	{
@@ -229,11 +239,19 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 	// Setup the stantard sequence channels to be monitored
 	if (g_currentSensorGroup == SENSOR_GROUP_A_1)
 	{
+#if 0 /* Original, Geo + AOP on one sensor group */
 		AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_AOP_1));
+#else /* Standard config, Geo + AOP split on two sensor groups */
+		AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_AOP_2));
+#endif
 	}
 	else // SENSOR_GROUP_B_2
 	{
+#if 0 /* Original, Geo + AOP on one sensor group */
 		AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_2 | ANALOG_AOP_2));
+#else /* Standard config, Geo + AOP split on two sensor groups */
+		AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_2 | ANALOG_AOP_1));
+#endif
 	}
 
 	// For any sample rate 8K and below
@@ -1176,11 +1194,19 @@ void AD4695_Init()
 	// Enable selected channels
 	if (g_currentSensorGroup == SENSOR_GROUP_A_1)
 	{
+#if 0 /* Original, Geo + AOP on one sensor group */
 		AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_AOP_1));
+#else /* Standard config, Geo + AOP split on two sensor groups */
+		AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_AOP_2));
+#endif
 	}
 	else // SENSOR_GROUP_B_2
 	{
+#if 0 /* Original, Geo + AOP on one sensor group */
 		AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_2 | ANALOG_AOP_2));
+#else /* Standard config, Geo + AOP split on two sensor groups */
+		AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_2 | ANALOG_AOP_1));
+#endif
 	}
 
 #if 0 /* Not ready to enter conversion mode at this time */
