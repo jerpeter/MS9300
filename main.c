@@ -479,7 +479,7 @@ void CraftManager(void)
 			g_modemStatus.ringIndicator = (uint8)READ_RI;
 
 			// Relock the system
-			g_modemStatus.systemIsLockedFlag = YES;
+			RemoteSystemLock(YES);
 
 #if 1 /* New BLM feature */
 			if (g_bargraphLiveMonitoringBISendActive == YES)
@@ -510,7 +510,7 @@ void CraftManager(void)
 		if ((YES == g_modemSetupRecord.modemStatus) && (CONNECTED == g_modemStatus.connectionState))
 		{
 			g_modemStatus.connectionState = NOP_CMD;
-			g_modemStatus.systemIsLockedFlag = YES;
+			RemoteSystemLock(YES);
 			AssignSoftTimer(MODEM_DELAY_TIMER_NUM, MODEM_ATZ_DELAY, ModemDelayTimerCallback);
 
 #if 1 /* New addition to make sure the Auto Monitor Timer is refreshed in case it was changed via UCM */
