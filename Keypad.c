@@ -277,20 +277,16 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 			}
 			else if (keyPressed == LCD_OFF_KEY)
 			{
-				ClearSoftTimer(LCD_BACKLIGHT_ON_OFF_TIMER_NUM);
-				ClearSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM);
-
-				if (GetPowerOnButtonState() == ON)
+				// Check if the LCD is currently powered
+				if (g_lcdPowerFlag == ENABLED)
 				{
-					// Special LCD Display turn off only
-					g_lcdPowerFlag = DISABLED;
-					g_lcdBacklightFlag = DISABLED; // Added disabling the Backlight flag since it goes down when power removed
-extern void ft81x_sleep();
-					ft81x_sleep();
-				}
-				else // Normal LCD power down
-				{
+					ClearSoftTimer(LCD_BACKLIGHT_ON_OFF_TIMER_NUM);
+					ClearSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM);
 					LcdPwTimerCallBack();
+				}
+				else // Allow LCD Off key to wake the unit when the LCD is off
+				{
+					keyPressed = ESC_KEY;
 				}
 			}
 			else // All other keys
