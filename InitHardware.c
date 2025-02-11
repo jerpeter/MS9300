@@ -1557,7 +1557,8 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
 	MXC_GPIO_Config(&setupGPIO);
-	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+	//MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as enabled
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Sensor Enable Aop1: Port 3, Pin 2, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
@@ -1568,7 +1569,8 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
 	MXC_GPIO_Config(&setupGPIO);
-	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+	//MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as enabled
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Sensor Enable Geo2: Port 3, Pin 3, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
@@ -1579,7 +1581,8 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
 	MXC_GPIO_Config(&setupGPIO);
-	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+	//MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as enabled
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Sensor Enable Aop2: Port 3, Pin 4, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
@@ -1590,7 +1593,8 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
 	MXC_GPIO_Config(&setupGPIO);
-	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+	//MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as enabled
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Gain Select Geo1: Port 3, Pin 5, Output, External pulldown, Select, 1.8V (minimum 0.5V)
@@ -2195,7 +2199,7 @@ void SpiTransaction(uint8_t spiDevice, uint8_t dataBits, uint8_t ssDeassert, uin
 			if ((!g_spi2InUseByLCD) && (g_sampleProcessing == ACTIVE_STATE) && (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType)))
 			{
 				// Pre cache an internal Acc sample to be picked up by the sampling ISR if the SPI2 resource is busy
-				GetAccChannelData(&g_accDataCache);
+				GetAccelerometerChannelData(&g_accDataCache);
 			}
 
 			g_spi2InUseByLCD |= SPI2_ACTIVE;

@@ -1168,6 +1168,8 @@ uint8_t IsSeismicSensorInternalAccelerometer(uint16_t seismicSensorType);
 uint8_t IsSeismicSensorAnAccelerometer(uint16_t seismicSensorType);
 
 // Internal Accelerometer
-void GetAccChannelData(ACC_DATA_STRUCT* channelData);
+void GetAccelerometerChannelData(ACC_DATA_STRUCT* channelData);
+void StartAccelerometerAquisition(void);
+void StopAccelerometerAquisition(void);
 
 #endif // _COMMON_H_

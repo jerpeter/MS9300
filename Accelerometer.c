@@ -298,7 +298,7 @@ uint8_t VerifyAccManuIDAndPartID(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void GetAccChannelData(ACC_DATA_STRUCT* channelData)
+void GetAccelerometerChannelData(ACC_DATA_STRUCT* channelData)
 {
     uint8_t registerAddress = ACC_CHANNEL_DATA_START_REGISTER;
     uint8_t* chanDataBytePtr = (uint8_t*)channelData;
@@ -365,9 +365,11 @@ uint8_t VerifyAccCommandTestResponse(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void StartAccAquisition(void)
+void StartAccelerometerAquisition(void)
 {
     uint8_t registerData;
+
+    SetupSPI2_Accelerometer(ON);
 
     // Set the ODR
     GetAccRegister(ACC_OUTPUT_DATA_CONTROL_REGISTER, &registerData, sizeof(uint8_t));
@@ -384,13 +386,15 @@ void StartAccAquisition(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void StopAccAquisition(void)
+void StopAccelerometerAquisition(void)
 {
     uint8_t registerData;
 
     GetAccRegister(ACC_CONTROL_1_REGISTER, &registerData, sizeof(uint8_t));
     registerData &= 0x7F; // Disable PC1 bit
     SetAccRegister(ACC_CONTROL_1_REGISTER, registerData);
+
+    SetupSPI2_Accelerometer(OFF);
 }
 
 ///----------------------------------------------------------------------------
@@ -507,8 +511,7 @@ void IssueAccSoftwareReset(void)
 ///----------------------------------------------------------------------------
 void AccelerometerInit(void)
 {
-    g_spi2State |= SPI2_ACC_ON;
-    if ((g_spi2State & SPI2_OPERAITONAL) == NO) { SetupSPI2_LCDAndAcc(); g_spi2State |= SPI2_OPERAITONAL; }
+    SetupSPI2_Accelerometer(ON);
 
 #if /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PROTOTYPE_1)
     // Issue software reset if the Acc slave address is anything other than the primary defualt 0x1E */
@@ -601,7 +604,7 @@ void AccelerometerInit(void)
         else { debug("Accelerometer: Ctrl4 is non-default value of 0x%x\r\n", testData); }
 
 #if 0 /* Test max Acc sample rate over I2C */
-        StartAccAquisition();
+        StartAccelerometerAquisition();
 extern volatile uint32_t g_lifetimePeriodicSecondCount;
         volatile uint32_t secCount = g_lifetimePeriodicSecondCount;
         uint32_t loopCount = 0;
@@ -612,10 +615,10 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 
         while (secCount != g_lifetimePeriodicSecondCount)
         {
-            GetAccChannelData(&channelData);
+            GetAccelerometerChannelData(&channelData);
             loopCount++;
         }
-        StopAccAquisition();
+        StopAccelerometerAquisition();
 
         debug("Accelerometer: Fastest sample rate is %0.2f\r\n", (double)((float)loopCount / (float)3));
 #endif
@@ -644,18 +647,18 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 #endif
 
 #if 0 /* Test reading data */
-        StartAccAquisition();
+        StartAccelerometerAquisition();
         ACC_DATA_STRUCT channelData;
 
         //for (uint8_t i = 0; i < 4; i++)
         while (1)
         {
-            GetAccChannelData(&channelData);
+            GetAccelerometerChannelData(&channelData);
             debug("Accelerometer (%s): X:%04x Y:%04x Z:%04x\r\n", FuelGaugeDebugString(), channelData.x, channelData.y, channelData.z);
             MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(250));
         }
 
-        StopAccAquisition();
+        StopAccelerometerAquisition();
 #endif
 
 #if 0 /* Test Accel Trig control */
@@ -717,7 +720,5 @@ extern volatile uint8_t testAccInt;
         debug("Accelerometer: Manual sleep engaged\r\n");
     }
 
-    g_spi2State &= ~SPI2_ACC_ON;
-	// Check if SPI2 is not active for the LCD
-	if ((g_spi2State & SPI2_LCD_ON) == NO) { MXC_SPI_Shutdown(MXC_SPI2); g_spi2State &= ~SPI2_OPERAITONAL; } // Mark SPI2 state shutdown
+    SetupSPI2_Accelerometer(OFF);
 }

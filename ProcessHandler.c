@@ -297,11 +297,7 @@ void StartDataCollection(uint32 sampleRate)
 	{
 		debug("Start data collection: Using Accelerometer\r\n");
 
-		g_spi2State |= SPI2_ACC_ON;
-		if ((g_spi2State & SPI2_OPERAITONAL) == NO) { SetupSPI2_LCDAndAcc(); g_spi2State |= SPI2_OPERAITONAL; }
-
-void StartAccAquisition(void);
-		StartAccAquisition();
+		StartAccelerometerAquisition();
 
 void SetupAccChannelConfig(uint32 sampleRate);
 		if (sampleRate > SAMPLE_RATE_4K) { sampleRate = SAMPLE_RATE_1K; }
@@ -352,8 +348,9 @@ void SetupAccChannelConfig(uint32 sampleRate);
 	// Setup the A/D Channel configuration
 	SetupADChannelConfig(sampleRate, UNIT_CONFIG_CHANNEL_VERIFICATION);
 
-#if 1 /* Test adding delay for Analog stabilization before zeroing */
-	SoftUsecWait(3 * SOFT_SECS);
+#if 0 /* Delay needed for Analog channel enables to stabilize before zeroing */
+	SoftUsecWait(8 * SOFT_SECS);
+#else /* Testing leaving Analog channel enabled from startup */
 #endif
 #if 1 /* Test Accelerometer */
 	} // Ending section
@@ -382,6 +379,9 @@ void SetupAccChannelConfig(uint32 sampleRate);
 #elif EXTERNAL_SAMPLING_SOURCE
 	StartExternalRtcClock(sampleRate);
 #endif
+
+	// Wait for pretrigger buffer to fill up
+	SoftUsecWait(((sampleRate / g_unitConfig.pretrigBufferDivider) * SOFT_MSECS));
 
 	// Change state to start processing the samples
 	debug("Raise signal to start sampling\r\n");
@@ -434,11 +434,7 @@ void StopMonitoring(uint8 mode, uint8 operation)
 	{
 		debug("Stop data collection: Accelerometer\r\n");
 
-void StopAccAquisition(void);
-		StopAccAquisition();
-
-		g_spi2State &= ~SPI2_ACC_ON;
-		if ((g_spi2State & SPI2_LCD_ON) == NO) { MXC_SPI_Shutdown(MXC_SPI2); g_spi2State &= ~SPI2_OPERAITONAL; } // Mark SPI2 state shutdown
+		StopAccelerometerAquisition();
 	}
 #endif
 
@@ -906,8 +902,7 @@ void StartADDataCollectionForCalibration(uint16 sampleRate)
 	{
 		debug("A/D data collection: Using Internal Accelerometer\r\n");
 
-void StartAccAquisition(void);
-		StartAccAquisition();
+		StartAccelerometerAquisition();
 
 void SetupAccChannelConfig(uint32 sampleRate);
 		if (sampleRate > SAMPLE_RATE_4K) { sampleRate = SAMPLE_RATE_1K; }
@@ -927,11 +922,13 @@ void SetupAccChannelConfig(uint32 sampleRate);
 	SetSeismicGainSelect(SEISMIC_GAIN_NORMAL);
 	SetAcousticPathSelect(ACOUSTIC_PATH_AOP);
 
-	// Delay to allow AD to power up/stabilize
-	SoftUsecWait(50 * SOFT_MSECS);
-
 	// Setup AD Channel config
 	SetupADChannelConfig(sampleRate, OVERRIDE_ENABLE_CHANNEL_VERIFICATION);
+
+#if 0 /* Delay needed for Analog channel enables to stabilize before zeroing */
+	SoftUsecWait(8 * SOFT_SECS);
+#else /* Testing leaving Analog channel enabled from startup */
+#endif
 #if 1 /* Test Accelerometer */
 	} // Ending section
 #endif
@@ -950,6 +947,9 @@ void SetupAccChannelConfig(uint32 sampleRate);
 #elif EXTERNAL_SAMPLING_SOURCE
 	StartExternalRtcClock(sampleRate);
 #endif
+
+	// Wait for pretrigger buffer to fill up
+	SoftUsecWait(((sampleRate / g_unitConfig.pretrigBufferDivider) * SOFT_MSECS));
 }
 
 ///----------------------------------------------------------------------------

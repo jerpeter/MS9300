@@ -294,10 +294,13 @@ void SetupAccChannelConfig(uint32 sampleRate)
 ///----------------------------------------------------------------------------
 void DisableSensorBlocks(void)
 {
+#if 0 /* Normal */
 	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO1_PORT, GPIO_SENSOR_ENABLE_GEO1_PIN);
 	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP1_PORT, GPIO_SENSOR_ENABLE_AOP1_PIN);
 	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_GEO2_PORT, GPIO_SENSOR_ENABLE_GEO2_PIN);
 	MXC_GPIO_OutClr(GPIO_SENSOR_ENABLE_AOP2_PORT, GPIO_SENSOR_ENABLE_AOP2_PIN);
+#else /* Test leaving the sensor channels enabled */
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -526,7 +529,7 @@ void GetChannelOffsets(uint32 sampleRate)
 		if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
 		{
 			ACC_DATA_STRUCT accData;
-			GetAccChannelData(&accData);
+			GetAccelerometerChannelData(&accData);
 			s_tempData.a = 0x8000; s_tempData.r = accData.x; s_tempData.t = accData.y; s_tempData.v = accData.z;
 		}
 		else { ReadAnalogData(&s_tempData); }
@@ -551,7 +554,7 @@ void GetChannelOffsets(uint32 sampleRate)
 		if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
 		{
 			ACC_DATA_STRUCT accData;
-			GetAccChannelData(&accData);
+			GetAccelerometerChannelData(&accData);
 			s_tempData.a = 0x8000; s_tempData.r = accData.x; s_tempData.t = accData.y; s_tempData.v = accData.z;
 		}
 		else { ReadAnalogData(&s_tempData); }
@@ -596,7 +599,7 @@ void GetChannelOffsets(uint32 sampleRate)
 		if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
 		{
 			ACC_DATA_STRUCT accData;
-			GetAccChannelData(&accData);
+			GetAccelerometerChannelData(&accData);
 			s_tempData.a = 0x8000; s_tempData.r = accData.x; s_tempData.t = accData.y; s_tempData.v = accData.z;
 		}
 		else { ReadAnalogData(&s_tempData); }
@@ -699,7 +702,7 @@ void ZeroSensors(void)
 				s_workingChannelOffset.aTotal += s_tempData.a;
 				s_workingChannelCounts.aCount++;
 			}
-			
+
 			// Done gathering offset data
 			if (--g_updateOffsetCount == 0)
 			{
@@ -744,7 +747,7 @@ void ZeroSensors(void)
 						memset(&s_compareChannelOffset, 0, sizeof(s_compareChannelOffset));
 					}
 				}
-				// else with the flag UPDATE_OFFSET_EVENT still set and g_updateOffsetCount == 0, the process will start over
+				// else with the flag UPDATE_OFFSET_EVENT still set and g_updateOffsetCount == 0, the process will start over since majority of samples not within band (~94%)
 			}
 		}
 	}
@@ -789,20 +792,13 @@ void ZeroingSensorCalibration(void)
 	uint32 startZeroSensorTime;
 	uint32 lastHalfSecondTime;
 	uint16 rDiff, vDiff, tDiff, aDiff;
-#if 1 /* Test stack string buffer since spare buffer looks to be stepped on while zeroing */
-	char spareBuffer[128];
-#endif
+	char spareBuffer[128]; // Using stack string buffer since prior use of the global spare buffer looks to be stepped on while zeroing
 
 	//=========================================================================
 	// Zero Sensor Calibration
 	//-------------------------------------------------------------------------
-#if 0 /* Normal */
-	sprintf((char*)g_spareBuffer, "%s (%s %d %s) ", getLangText(ZEROING_SENSORS_TEXT), getLangText(MAX_TEXT), ZERO_SENSOR_MAX_TIME_IN_SECONDS, getLangText(SEC_TEXT));
-	OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
-#else /* Test stack string buffer */
 	sprintf(spareBuffer, "%s (%s %d %s) ", getLangText(ZEROING_SENSORS_TEXT), getLangText(MAX_TEXT), ZERO_SENSOR_MAX_TIME_IN_SECONDS, getLangText(SEC_TEXT));
 	OverlayMessage(getLangText(STATUS_TEXT), spareBuffer, 0);
-#endif
 
 	// Fool system and initialize buffers and pointers as if a waveform
 	InitDataBuffs(WAVEFORM_MODE);
@@ -815,9 +811,6 @@ void ZeroingSensorCalibration(void)
 
 	while (g_lifetimeHalfSecondTickCount < (startZeroSensorTime + (ZERO_SENSOR_MAX_TIME_IN_SECONDS * 2)))
 	{
-#if 1 /* Test breaking out of loop until hardware is stable enough to find a zero level */
-		if (GetKeypadKey(CHECK_ONCE_FOR_KEY) == ON_ESC_KEY) { break; }
-#endif
 		ZeroSensors();
 
 		// Check if the time changed, used for display purposes
@@ -827,13 +820,8 @@ void ZeroingSensorCalibration(void)
 
 			if (lastHalfSecondTime % 4 == 0)
 			{
-#if 0 /* Normal */
-				strcat((char*)g_spareBuffer, ".");
-				OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
-#else /* Test stack string buffer */
 				strcat(spareBuffer, ".");
 				OverlayMessage(getLangText(STATUS_TEXT), spareBuffer, 0);
-#endif
 			}
 		}
 
@@ -859,9 +847,12 @@ void ZeroingSensorCalibration(void)
 				if ((rDiff < 2) && (vDiff < 2) && (tDiff < 2) && (aDiff < 2))
 				{
 					// Found a match close enough to proceed
+					debug("Zero Sensor: 3 consecutive cycle match found\r\n");
 					break;
 				}
+				else { debug("Zero Sensor: Greater than 2 count differential with a channel for previous two cycles\r\n"); }
 			}
+			else { debug("Zero Sensor: Greater than 2 count differential with a channel for current and previous cycle\r\n"); }
 
 			// Save current Zero Sensor comparison next time
 			zeroCheckCompare = zeroCheck;

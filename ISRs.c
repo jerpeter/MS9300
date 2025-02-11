@@ -2245,7 +2245,7 @@ void ProcessSensorCalibrationData(void)
 #if 1 /* Test */
 	ACC_DATA_STRUCT channelData;
 #if 0 /* Original */
-	GetAccChannelData(&channelData);
+	GetAccelerometerChannelData(&channelData);
 #else
 	if (g_spi2InUseByLCD)
 	{
@@ -2254,7 +2254,7 @@ void ProcessSensorCalibrationData(void)
 	}
 	else
 	{
-		GetAccChannelData(&channelData);
+		GetAccelerometerChannelData(&channelData);
 		g_accDataCache = channelData;
 	}
 #endif
@@ -2461,7 +2461,7 @@ static inline void getChannelDataAcc_ISR_Inline(void)
 {
 #if 0 /* Original */
 	ACC_DATA_STRUCT accData;
-	GetAccChannelData(&accData);
+	GetAccelerometerChannelData(&accData);
 
 	s_R_channelReading = accData.x;
 	s_T_channelReading = accData.y;
@@ -2477,7 +2477,7 @@ static inline void getChannelDataAcc_ISR_Inline(void)
 	}
 	else
 	{
-		GetAccChannelData(&accData);
+		GetAccelerometerChannelData(&accData);
 		g_accDataCache = accData;
 	}
 

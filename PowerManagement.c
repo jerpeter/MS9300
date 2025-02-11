@@ -318,12 +318,16 @@ void LcdPowerGpioSetup(uint8_t mode)
 		g_spi2State |= SPI2_LCD_ON;
 
 		// Check if SPI2 is not operational and setup if necessary
-		if ((g_spi2State & SPI2_OPERAITONAL) == NO) { SetupSPI2_LCDAndAcc(); g_spi2State |= SPI2_OPERAITONAL; } // Mark SPI2 state operational
+		if ((g_spi2State & SPI2_OPERAITONAL) == NO)
+		{
+			SetupSPI2_LCDAndAcc();
+			g_spi2State |= SPI2_OPERAITONAL; // Mark SPI2 state is operational
 
-		// Setup the SPI2 Slave Select since the driver init call does not initialize the GPIO
-		mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { GPIO_SPI2_SS0_LCD_PORT, GPIO_SPI2_SS0_LCD_PIN, MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
-		if (FT81X_SPI_2_SS_CONTROL_MANUAL == NO) { spi2SlaveSelect0GpioConfig.func = MXC_GPIO_FUNC_ALT1; } // SPI2 Slave Select controlled by the SPI driver
-		MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig);
+			// Setup the SPI2 Slave Select since the driver init call does not initialize the GPIO
+			mxc_gpio_cfg_t spi2SlaveSelect0GpioConfig = { GPIO_SPI2_SS0_LCD_PORT, GPIO_SPI2_SS0_LCD_PIN, MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
+			if (FT81X_SPI_2_SS_CONTROL_MANUAL == NO) { spi2SlaveSelect0GpioConfig.func = MXC_GPIO_FUNC_ALT1; } // SPI2 Slave Select controlled by the SPI driver
+			MXC_GPIO_Config(&spi2SlaveSelect0GpioConfig);
+		}
 	}
 	else // (mode == OFF)
 	{
@@ -331,10 +335,15 @@ void LcdPowerGpioSetup(uint8_t mode)
 		g_spi2State &= ~SPI2_LCD_ON;
 
 		// Check if SPI2 is not active for the Accelerometer
-		if ((g_spi2State & SPI2_ACC_ON) == NO) { MXC_SPI_Shutdown(MXC_SPI2); g_spi2State &= ~SPI2_OPERAITONAL; } // Mark SPI2 state shutdown
+		if ((g_spi2State & SPI2_ACC_ON) == NO)
+		{
+			MXC_SPI_Shutdown(MXC_SPI2);
+			g_spi2State &= ~SPI2_OPERAITONAL; // Mark SPI2 state is shutdown
 
-		mxc_gpio_cfg_t gpio_cfg_spi2 = { MXC_GPIO2, (GPIO_SPI2_SCK_PIN | GPIO_SPI2_MISO_PIN | GPIO_SPI2_MOSI_PIN | GPIO_SPI2_SS0_LCD_PIN), MXC_GPIO_FUNC_IN, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
-		MXC_GPIO_Config(&gpio_cfg_spi2);
+			// Change the SPI2 GPIO config to inputs to disable (for back powering concerns)
+			mxc_gpio_cfg_t gpio_cfg_spi2 = { MXC_GPIO2, (GPIO_SPI2_SCK_PIN | GPIO_SPI2_MISO_PIN | GPIO_SPI2_MOSI_PIN | GPIO_SPI2_SS0_LCD_PIN), MXC_GPIO_FUNC_IN, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
+			MXC_GPIO_Config(&gpio_cfg_spi2);
+		}
 	}
 }
 
@@ -404,6 +413,39 @@ void CellPowerGpioSetup(uint8_t mode)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void SetupSPI2_Accelerometer(uint8_t mode)
+{
+	if (mode == ON)
+	{
+	    g_spi2State |= SPI2_ACC_ON;
+
+		// Check if SPI2 is not already active
+		if ((g_spi2State & SPI2_OPERAITONAL) == NO)
+		{
+			SetupSPI2_LCDAndAcc();
+			g_spi2State |= SPI2_OPERAITONAL; // Mark SPI2 state is active
+		}
+	}
+	else // (mode == OFF)
+	{
+	    g_spi2State &= ~SPI2_ACC_ON;
+
+		// Check if SPI2 is not still active for the LCD
+		if ((g_spi2State & SPI2_LCD_ON) == NO)
+		{
+			MXC_SPI_Shutdown(MXC_SPI2);
+			g_spi2State &= ~SPI2_OPERAITONAL; // Mark SPI2 state is shutdown
+
+			// Change the SPI2 GPIO config to inputs to disable (for back powering concerns)
+			mxc_gpio_cfg_t gpio_cfg_spi2 = { MXC_GPIO2, (GPIO_SPI2_SCK_PIN | GPIO_SPI2_MISO_PIN | GPIO_SPI2_MOSI_PIN), MXC_GPIO_FUNC_IN, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
+			MXC_GPIO_Config(&gpio_cfg_spi2);
+		}
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 uint8_t GetCurrentLedStates(void)
 {
 	uint8_t state;
@@ -464,11 +506,10 @@ void PowerUnitOff(uint8 powerOffMode)
 		Disable_global_interrupt();
 		AVR32_WDT.ctrl |= 0x00000001;
 #else /* Updated method */
-		// Use the External RTC
-		SetTimeOfDayAlarmNearFuture(2);
+		// Can't use the External RTC and MCU latch since there is no source to wake the unit back up
 
-		// Shutdown application
-		PowerControl(MCU_POWER_LATCH, OFF);
+		// Toggle MCU system reset
+		MXC_GCR->rst0 |= MXC_F_GCR_RST0_SYS;
 #endif
 	}
 

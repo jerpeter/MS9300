@@ -585,8 +585,7 @@ extern uint32_t testLifetimeCurrentAvgCount;
 
 			StopADDataCollectionForCalibration();
 #if 1 /* Test */
-extern void StopAccAquisition(void);
-			StopAccAquisition();
+			StopAccelerometerAquisition();
 #endif
 			// Reset the current sensor group selection to the default
 			g_currentSensorGroup = SENSOR_GROUP_A_1;
@@ -716,8 +715,7 @@ void CalSetupMnProc(INPUT_MSG_STRUCT msg,
 			g_triggerRecord.trec.sample_rate = SAMPLE_RATE_1K;
 
 #if 1 /* Test starting the Accelerometer */
-extern void StartAccAquisition(void);
-			StartAccAquisition();
+			StartAccelerometerAquisition();
 #endif
 			// Fool system and initialize buffers and pointers as if a waveform
 			InitDataBuffs(WAVEFORM_MODE);

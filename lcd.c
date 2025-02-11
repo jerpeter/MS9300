@@ -2822,7 +2822,7 @@ void ft81x_stream_start()
 	if ((g_sampleProcessing == ACTIVE_STATE) && (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType)))
 	{
 		// Pre cache an internal Acc sample to be picked up by the sampling ISR if the SPI2 resource is busy
-		GetAccChannelData(&g_accDataCache);
+		GetAccelerometerChannelData(&g_accDataCache);
 	}
 
 	// Update resource flag
