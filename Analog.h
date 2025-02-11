@@ -38,8 +38,8 @@
 
 #define	MAX_TEMPERATURE_JUMP_PER_SAMPLE	4		// Check for A/D temperature sample that is bogus
 
-#define SENSOR_WARMUP_DELAY_IN_SECONDS	120 //90		// Was 60 seconds, but not long enough for most sensors to stabilize from cold start, can take upwards of 120 seconds (this is where Zero Sensors comes in)
-#define ZERO_SENSOR_MAX_TIME_IN_SECONDS	120 //90		// Maximum time allowed for zero sensors before monitoring
+#define SENSOR_WARMUP_DELAY_IN_SECONDS	90		// Was 60 seconds, but not long enough for most sensors to stabilize from cold start, can take upwards of 120 seconds (this is where Zero Sensors comes in)
+#define ZERO_SENSOR_MAX_TIME_IN_SECONDS	90		// Maximum time allowed for zero sensors before monitoring
 
 #define AD_NORMALIZED_NOISE_THRESHOLD_START	7
 #define AD_NORMALIZED_NOISE_THRESHOLD		3
