@@ -240,8 +240,6 @@ void MoveManualCalToFile(void)
 				}
 			}
 			//==========================================================================================================
-			ReleaseSpi1MutexLock();
-
 			debug("Manual Cal Event file closed\r\n");
 
 			AddEventToSummaryList(&g_pendingEventRecord);

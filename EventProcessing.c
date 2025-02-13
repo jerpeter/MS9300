@@ -2478,7 +2478,6 @@ void ValidateSummaryListFileWithEventCache(void)
 						GetEventFileRecord(i, &tempEventRecord);
 
 						AddEventToSummaryList(&tempEventRecord);
-						ReleaseSpi1MutexLock();
 						g_eventNumberCache[i] = EVENT_REFERENCE_VALID;
 						validEventFileCount--;
 					}
