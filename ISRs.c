@@ -1834,11 +1834,11 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 	//___Check if handling cal pulse samples
 	else if ((s_calPulse == YES) && (s_calSampleCount))
 	{
-		// Check if the SPI is available to access or already locked to handle a Cal pulse
-		if ((g_spi1AccessLock == AVAILABLE) || (g_spi1AccessLock == CAL_PULSE_LOCK))
+		// Check if the I2C1 is available to access the External RTC for changing sample rate to perform a Cal pulse
+		if ((g_i2c1AccessLock == AVAILABLE) || (g_i2c1AccessLock == SENSOR_CHECK_LOCK))
 		{
-			// If SPI lock is available, grab it and flag for cal pulse
-			if (g_spi1AccessLock == AVAILABLE) { g_spi1AccessLock = CAL_PULSE_LOCK;	}
+			// Grab I2C1 lock
+			if (g_i2c1AccessLock == AVAILABLE) { g_i2c1AccessLock = SENSOR_CHECK_LOCK; }
 							
 			// Check for the start of the Cal pulse and set low sensitivity and swap clock source for 1024 sample rate
 			if (s_calSampleCount == START_CAL_SIGNAL)
@@ -1925,7 +1925,7 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 					// Invalidate the Pretrigger buffer until it's filled again
 					s_pretriggerFull = NO;
 
-					g_spi1AccessLock = AVAILABLE;
+					g_i2c1AccessLock = AVAILABLE;
 				}																
 			}
 		}

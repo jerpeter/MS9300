@@ -248,7 +248,7 @@ uint16 g_resultsEventIndex;
 uint32 g_summaryEventNumber;
 uint8 g_summaryListMenuActive = NO;
 uint8 g_summaryListArrowChar = BOTH_ARROWS_CHAR;
-volatile uint8 g_spi1AccessLock = AVAILABLE;
+volatile uint8 g_i2c1AccessLock = AVAILABLE;
 volatile uint8 g_fileAccessLock = AVAILABLE;
 volatile uint8 g_externalTrigger = NO;
 uint8 g_lcdContrastChanged = NO;

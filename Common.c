@@ -1007,19 +1007,19 @@ void CheckForCycleChange(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void GetSpi1MutexLock(SPI1_LOCK_TYPE spi1LockType)
+void GetI2C1MutexLock(uint8_t i2c1LockType)
 {
-	while (g_spi1AccessLock != AVAILABLE) { /* spin and wait */ }
+	while (g_i2c1AccessLock != AVAILABLE) { /* spin and wait */ }
 
-	g_spi1AccessLock = spi1LockType;
+	g_i2c1AccessLock = i2c1LockType;
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void ReleaseSpi1MutexLock(void)
+void ReleaseI2C1MutexLock()
 {
-	g_spi1AccessLock = AVAILABLE;
+	g_i2c1AccessLock = AVAILABLE;
 }
 
 ///----------------------------------------------------------------------------
