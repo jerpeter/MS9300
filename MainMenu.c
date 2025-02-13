@@ -82,9 +82,10 @@ void MainMenu(INPUT_MSG_STRUCT msg)
 #if 1 /* Test */
 #include "usb.h"
 #include "PowerManagement.h"
+#if 0 /* Test */
 static uint8_t g_led1State = ON;
 static uint8_t g_led2State = ON;
-
+#endif
 extern void SetupUSBComposite(void);
 extern void USBCPortControllerInit(void);
 extern void USBCPortControllerSwapToHost(void);
@@ -202,7 +203,7 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 #endif
 					break;
 				case (LEFT_ARROW_KEY):
-#if 0 /* Original */
+#if 1 /* Original */
 					AdjustLcdContrast(DARKER);
 #else /* Test */
 					//debug("USB: Manually disconnecting (resource)...\r\n");
@@ -230,7 +231,7 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 #endif
 					break;
 				case (RIGHT_ARROW_KEY):
-#if 0 /* Original */
+#if 1 /* Original */
 					AdjustLcdContrast(LIGHTER);
 #else /* Test */
 					//debug("USB: Manually connecting (resource)...\r\n");
@@ -255,12 +256,14 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 #endif
 					break;
 				case (ESC_KEY):
+#if 0 /* Test */
 					if (GetPowerOnButtonState() == ON)
 					{
 						g_mscDelayState ^= ON;
 						debug("USB: Toggling MSC delay (%s)\r\n", ((g_mscDelayState == ON) ? "On" : "Off"));
 					}
 					else
+#endif
 					// Reset the current line to tbe the top line	
 					mn_layout_ptr->curr_ln = 3;
 					break;
