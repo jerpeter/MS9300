@@ -290,7 +290,8 @@ void MoveWaveformEventToFile(void)
 					EndianSwapDataX16(tempDataPtr, g_wordSizeInEvent);
 #endif
 
-#if 0 /* Bypassing chunk write since new filesystem should not have a 16K size limit */
+#if 1 /* Chunk write */
+					// New filesystem should not have a write limit, however Waveform saves that cross the 0x20080000 Int RAM boundary hang the SDHC Fat driver if the write size is greater than the eMMC Flash sector side
 					while (remainingDataLength)
 					{
 						if (remainingDataLength > WAVEFORM_FILE_WRITE_CHUNK_SIZE)

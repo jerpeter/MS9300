@@ -142,7 +142,7 @@ enum
 #define ACCURACY_12_BIT_MIDPOINT 0x800
 #define ACCURACY_10_BIT_MIDPOINT 0x200
 
-#define WAVEFORM_FILE_WRITE_CHUNK_SIZE	16384
+#define WAVEFORM_FILE_WRITE_CHUNK_SIZE	512 // Flash sector size needed to get past 0x2008000 boundary that hangs the SDHC Fat driver (to eMMC Flash), any value above shows problems saving Waveform events while monitoring
 #define ATMEL_FILESYSTEM_ACCESS_LIMIT	16384
 
 ///----------------------------------------------------------------------------
