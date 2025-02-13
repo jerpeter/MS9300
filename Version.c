@@ -1,6 +1,6 @@
 ///----------------------------------------------------------------------------
 ///	Nomis Seismograph, Inc.
-///	Copyright 2003-2014, All Rights Reserved
+///	Copyright 2003-2025, All Rights Reserved
 ///
 ///	Author: Jeremy Peterson
 ///----------------------------------------------------------------------------
