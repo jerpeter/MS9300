@@ -593,67 +593,74 @@ extern uint32_t testLifetimeCurrentAvgCount;
 			// Reestablish the previously stored sample rate
 			g_triggerRecord.trec.sample_rate = s_calSavedSampleRate;
 
-			if (MessageBox(getLangText(CONFIRM_TEXT), getLangText(DO_YOU_WANT_TO_SAVE_THE_CAL_DATE_Q_TEXT), MB_YESNO) == MB_FIRST_CHOICE)
+			// Check if going through Factory Setup to allow the following operations
+			if (g_factorySetupSequence != SEQ_NOT_STARTED)
 			{
-				// Store Calibration Date
-				tempTime = GetCurrentTime();
-				ConvertDateTimeToCalDate(&g_factorySetupRecord.calDate, &tempTime);
-			}
-			// Check if no Smart sensor is connected
-			else if (CheckIfNoSmartSensorsPresent() == YES)
-			{
-				if (MessageBox(getLangText(CONFIRM_TEXT), getLangText(ERASE_FACTORY_SETUP_Q_TEXT), MB_YESNO) == MB_FIRST_CHOICE)
+				if (MessageBox(getLangText(CONFIRM_TEXT), getLangText(DO_YOU_WANT_TO_SAVE_THE_CAL_DATE_Q_TEXT), MB_YESNO) == MB_FIRST_CHOICE)
 				{
-					if (MessageBox(getLangText(CONFIRM_TEXT), getLangText(ALSO_ERASE_THE_REST_OF_THE_EEPROM_Q_TEXT), MB_YESNO) == MB_FIRST_CHOICE)
-					{
-						// Erase entire EEPROM
-						memset(g_spareBuffer, 0xFF, sizeof(g_spareBuffer));
-						SaveParameterMemory(g_spareBuffer, 0, EEPROM_AT25640_TOTAL_BYTES);
-					}
-					else
-					{
-						memset(&g_factorySetupRecord, 0xFF, sizeof(g_factorySetupRecord));
-						SaveRecordData(&g_factorySetupRecord, DEFAULT_RECORD, REC_FACTORY_SETUP_CLEAR_TYPE);
-					}
-
-					if (MessageBox(getLangText(CONFIRM_TEXT), getLangText(ERASE_FACTORY_SETUP_SHADOW_COPY_Q_TEXT), MB_YESNO) == MB_FIRST_CHOICE)
-					{
-						// Erase Factory Setup shadow copy in the Flash User Page
-						EraseFlashUserPageFactorySetup();
-					}
-
-					clearedFSRecord = YES;
+					// Store Calibration Date
+					tempTime = GetCurrentTime();
+					ConvertDateTimeToCalDate(&g_factorySetupRecord.calDate, &tempTime);
 				}
-
-				if (MessageBox(getLangText(CONFIRM_TEXT), getLangText(ERASE_ALL_NON_ESSENTIAL_SYSTEM_FILES_Q_TEXT), MB_YESNO) == MB_FIRST_CHOICE)
+				// Check if no Smart sensor is connected
+				else if (CheckIfNoSmartSensorsPresent() == YES)
 				{
-					// Delete Non-Essential files
-					DeleteNonEssentialFiles();
+					if (MessageBox(getLangText(CONFIRM_TEXT), getLangText(ERASE_FACTORY_SETUP_Q_TEXT), MB_YESNO) == MB_FIRST_CHOICE)
+					{
+						if (MessageBox(getLangText(CONFIRM_TEXT), getLangText(ALSO_ERASE_THE_REST_OF_THE_EEPROM_Q_TEXT), MB_YESNO) == MB_FIRST_CHOICE)
+						{
+							// Erase entire EEPROM
+							memset(g_spareBuffer, 0xFF, sizeof(g_spareBuffer));
+							SaveParameterMemory(g_spareBuffer, 0, EEPROM_AT25640_TOTAL_BYTES);
+						}
+						else
+						{
+							memset(&g_factorySetupRecord, 0xFF, sizeof(g_factorySetupRecord));
+							SaveRecordData(&g_factorySetupRecord, DEFAULT_RECORD, REC_FACTORY_SETUP_CLEAR_TYPE);
+						}
+
+						if (MessageBox(getLangText(CONFIRM_TEXT), getLangText(ERASE_FACTORY_SETUP_SHADOW_COPY_Q_TEXT), MB_YESNO) == MB_FIRST_CHOICE)
+						{
+							// Erase Factory Setup shadow copy in the Flash User Page
+							EraseFlashUserPageFactorySetup();
+						}
+
+						clearedFSRecord = YES;
+					}
+
+					if (MessageBox(getLangText(CONFIRM_TEXT), getLangText(ERASE_ALL_NON_ESSENTIAL_SYSTEM_FILES_Q_TEXT), MB_YESNO) == MB_FIRST_CHOICE)
+					{
+						// Delete Non-Essential files
+						DeleteNonEssentialFiles();
+					}
 				}
 			}
 		}
 
-		// Check that the Factory setup wasn't cleared
-		if (clearedFSRecord == NO)
+		// Check if going through Factory Setup to allow the following operations
+		if (g_factorySetupSequence != SEQ_NOT_STARTED)
 		{
-			SaveRecordData(&g_factorySetupRecord, DEFAULT_RECORD, REC_FACTORY_SETUP_TYPE);
+			// Check that the Factory setup wasn't cleared
+			if (clearedFSRecord == NO)
+			{
+				SaveRecordData(&g_factorySetupRecord, DEFAULT_RECORD, REC_FACTORY_SETUP_TYPE);
 #if 0 /* Original */
-			SaveFlashUserPageFactorySetup(&g_factorySetupRecord);
+				SaveFlashUserPageFactorySetup(&g_factorySetupRecord);
 #else /* EEPROM user page currently not accessible */
 #endif
-			UpdateUnitSensorsWithSmartSensorTypes();
+				UpdateUnitSensorsWithSmartSensorTypes();
 #if 1 /* Test reporting the Seismic and Air sensor types */
-			debug("CS Sensor Types Selected: %0.2f Seismic, %x Air\r\n", (double)((float)g_factorySetupRecord.seismicSensorType / (float)204.8), g_factorySetupRecord.acousticSensorType);
+				debug("CS Sensor Types Selected: %0.2f Seismic, %x Air\r\n", (double)((float)g_factorySetupRecord.seismicSensorType / (float)204.8), g_factorySetupRecord.acousticSensorType);
 #endif
-			LoadTrigRecordDefaults(&g_triggerRecord, WAVEFORM_MODE);
-			SaveRecordData(&g_triggerRecord, DEFAULT_RECORD, REC_TRIGGER_USER_MENU_TYPE);
+				LoadTrigRecordDefaults(&g_triggerRecord, WAVEFORM_MODE);
+				SaveRecordData(&g_triggerRecord, DEFAULT_RECORD, REC_TRIGGER_USER_MENU_TYPE);
+			}
+
+			UpdateWorkingCalibrationDate();
+			MessageBox(getLangText(STATUS_TEXT), getLangText(FACTORY_SETUP_COMPLETE_TEXT), MB_OK);
 		}
 
 		g_factorySetupSequence = SEQ_NOT_STARTED;
-
-		UpdateWorkingCalibrationDate();
-
-		MessageBox(getLangText(STATUS_TEXT), getLangText(FACTORY_SETUP_COMPLETE_TEXT), MB_OK);
 
 		// Disable the Cal Mux
 		SetCalMuxPreADEnableState(OFF);
