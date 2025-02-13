@@ -442,15 +442,15 @@ extern uint32_t uart1BufferCount;
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void TestExternalRAM(void)
+void TestInternalRAM(void)
 {
 	uint32 i, j;
 	uint32 index;
 	uint32 printErrors = 0;
-	uint32 testSize = 5120; // Was (EVENT_BUFF_SIZE_IN_WORDS) - 614400
+	uint32 testSize = EVENT_BUFF_SIZE_IN_WORDS_PLUS_EVT_RECORD; // Was (EVENT_BUFF_SIZE_IN_WORDS) - 614400
 
 #if EXTENDED_DEBUG
-	debug("External RAM Test: Incrementing index with rolling increment...\r\n");
+	debug("RAM Test: Incrementing index with rolling increment...\r\n");
 #endif
 
 	for (i = 0, j = 0, index = 0; index < testSize; index++)
@@ -463,7 +463,7 @@ void TestExternalRAM(void)
 	{
 		if (g_eventDataBuffer[index] != (uint16)(i + j))
 		{
-			debugErr("Test of External RAM: failed (Index: %d, Address: 0x%x, Expected: 0x%x, Got: 0x%x)\r\n",
+			debugErr("Test of RAM: failed (Index: %d, Address: 0x%x, Expected: 0x%x, Got: 0x%x)\r\n",
 			index, &g_eventDataBuffer[index], (uint16)(i + j), g_eventDataBuffer[index]);
 			printErrors++; if (printErrors > 5000) { debugErr("Too many errors, bailing on memory test\r\n"); return; }
 		}
@@ -471,9 +471,9 @@ void TestExternalRAM(void)
 		if ((i & 0xFFFF) == 0) { j++; }
 	}
 
-	if (printErrors) { debug("External RAM: Total errors: %d\r\n", printErrors); }
-#if EXTENDED_DEBUG
-	else { debug("Test of External RAM: passed\r\n"); }
+	if (printErrors) { debug("RAM: Total errors: %d\r\n", printErrors); }
+#if 1 EXTENDED_DEBUG
+	else { debug("Test of RAM: passed\r\n"); }
 #endif
 }
 
@@ -5572,6 +5572,9 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	debug("Hardware Init complete\r\n");
 
+#if 0 /* Test */
+	TestInternalRAM();
+#endif
 #if 0 /* Test LED 1 & 2 states */
 	debug("LED 1 & 2 State test...\r\n");
 	while (1)
