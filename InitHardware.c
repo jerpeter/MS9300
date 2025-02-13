@@ -2004,7 +2004,10 @@ int WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* write
 #endif
 
 	// Need access lock to not interrupt in progress I2C1 comms when trying to perform Sensor Check (specifically sample rate change) while in ISR
-	if ((slaveAddr == I2C_ADDR_EXPANSION) || (slaveAddr == I2C_ADDR_FUEL_GAUGE)) { GetI2C1MutexLock(slaveAddr); }
+	if ((slaveAddr == I2C_ADDR_EXPANSION) || (slaveAddr == I2C_ADDR_FUEL_GAUGE) || ((slaveAddr == I2C_ADDR_EXTERNAL_RTC) && (g_i2c1AccessLock != SENSOR_CHECK_LOCK)))
+	{
+		GetI2C1MutexLock(slaveAddr);
+	}
 
 #if /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PROTOTYPE_1)
 	// Test interrupt isolation (for Acc data collection)
@@ -2017,7 +2020,10 @@ int WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* write
 #endif
 
 	// Clear I2C1 access lock if not
-	if ((slaveAddr == I2C_ADDR_EXPANSION) || (slaveAddr == I2C_ADDR_FUEL_GAUGE)) { ReleaseI2C1MutexLock(); }
+	if ((slaveAddr == I2C_ADDR_EXPANSION) || (slaveAddr == I2C_ADDR_FUEL_GAUGE) || ((slaveAddr == I2C_ADDR_EXTERNAL_RTC) && (g_i2c1AccessLock != SENSOR_CHECK_LOCK)))
+	{
+		ReleaseI2C1MutexLock();
+	}
 
 	if (status != E_SUCCESS) { debugErr("I2C%d Master transaction to Slave (%02x) failed with code: %d\r\n", ((i2cChannel == MXC_I2C0) ? 0 : 1), slaveAddr, status); }
 
