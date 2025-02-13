@@ -336,7 +336,7 @@ enum {
 													// 0x7F
 // I2C1 @ 3.3V
 #define I2C_ADDR_EXTERNAL_RTC			(0xA2 >> 1) // 0x51
-#define I2C_ADDR_FUEL_GUAGE				(0xC8 >> 1) // 0x64
+#define I2C_ADDR_FUEL_GAUGE				(0xC8 >> 1) // 0x64
 #define I2C_ADDR_EXPANSION				(0x9A >> 1) // 0x4D
 
 

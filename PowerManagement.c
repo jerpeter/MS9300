@@ -1294,7 +1294,7 @@ inline int convert_uAh_to_bin(int Qlsb, int uAh)
 ///----------------------------------------------------------------------------
 int Ltc2944_read_regs(enum LTC2944_REG reg, uint8_t *buf, int bufSize)
 {
-	return (WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GUAGE, &reg, sizeof(uint8_t), buf, bufSize));
+	return (WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GAUGE, &reg, sizeof(uint8_t), buf, bufSize));
 }
 
 ///----------------------------------------------------------------------------
@@ -1305,7 +1305,7 @@ int Ltc2944_write_regs(enum LTC2944_REG reg, const uint8_t *buf, int bufSize)
 	g_spareBuffer[0] = reg;
 	memcpy(&g_spareBuffer[1], buf, bufSize);
 
-	return (WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GUAGE, g_spareBuffer, (bufSize + 1), NULL, 0));
+	return (WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GAUGE, g_spareBuffer, (bufSize + 1), NULL, 0));
 }
 
 ///----------------------------------------------------------------------------
@@ -1315,7 +1315,7 @@ uint8_t Ltc2944_get_status(void)
 {
 	uint8_t statusReg;
 	
-	WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GUAGE, LTC2944_REG_STATUS, sizeof(uint8_t), &statusReg, sizeof(uint8_t));
+	WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GAUGE, LTC2944_REG_STATUS, sizeof(uint8_t), &statusReg, sizeof(uint8_t));
 
 	return (statusReg);
 }
@@ -2187,7 +2187,7 @@ void FuelGaugeInit(void)
 			WriteI2CDevice(MXC_I2C1, (0x18 >> 1), NULL, 0, &readReg, 1);
 
 			// Follow up read no necessary, but is the following transaction ok?
-			//WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GUAGE, NULL, 0, &readReg, 1);
+			//WriteI2CDevice(MXC_I2C1, I2C_ADDR_FUEL_GAUGE, NULL, 0, &readReg, 1);
 		}
 		Ltc2944_read_regs(LTC2944_REG_CONTROL, &readReg, 1);
 		Ltc2944_read_regs(LTC2944_REG_STATUS, &readReg2, 1);
