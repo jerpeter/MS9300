@@ -308,8 +308,13 @@ void InitLCD(void)
 	// Load the logo bitmap into the display controller and send to LCD
 	DisplayLogoToLcd();
 #else
+#if 0 /* Test */
 extern void test_logo(void);
-	test_logo();
+	//test_logo();
+#endif
+
+extern void ft81x_NomisLoadScreen(void);
+	ft81x_NomisLoadScreen();
 #endif
 
 #if 0 /* Test displaying the Main menu */
@@ -3642,12 +3647,12 @@ uint8_t SetupSDHCeMMC(void)
 
     // Set up card to get it ready for a transaction
     if (MXC_SDHC_Lib_InitCard(10) == E_NO_ERROR) { debug("SDHC: Card/device Initialized\r\n"); }
-	else { debugErr("SDHC: No card/device response\n"); }
+	else { debugWarn("SDHC: No card/device response\n"); }
 
     cardType = MXC_SDHC_Lib_Get_Card_Type();
 	if (cardType == CARD_MMC) { debug("SDHC: Card type discovered is MMC/eMMC\r\n"); }
 	else if (cardType == CARD_SDHC) { debug("SDHC: Card type discovered is SD/SDHC\r\n"); }
-	else { cardType = CARD_NONE; debugErr("SDHC: No card type found\r\n"); }
+	else { cardType = CARD_NONE; debugWarn("SDHC: No card type found\r\n"); }
 
 	/*
 		Note: The 0-52 MHz eMMC devices supported the legacy SDR mode as well as a newer transfer mode introduced by JEDEC version 4.4 called Dual Data Rate (DDR)
@@ -4050,7 +4055,7 @@ void SetupHalfSecondTickTimer(void)
 ///----------------------------------------------------------------------------
 void ValidatePowerOn(void)
 {
-#if 0 /* Normal */
+#if 1 /* Normal */
 	uint8_t powerOnButtonDetect;
 	uint8_t vbusChargingDetect;
 	uint16_t i;
@@ -5366,6 +5371,13 @@ void InitSystemHardware_MS9300(void)
     SetupICC();
 
 	//-------------------------------------------------------------------------
+	// Init the LCD display
+	//-------------------------------------------------------------------------
+#if 1 /* Only enable if LCD connector fixed or hardware modded */
+	InitLCD(); debug("LCD Display: Init complete\r\n");
+#endif
+
+	//-------------------------------------------------------------------------
 	// Setup UART0 (LTE) and UART1 (BLE)
 	//-------------------------------------------------------------------------
 	SetupUART();
@@ -5531,10 +5543,10 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Init the LCD display
 	//-------------------------------------------------------------------------
-#if 1 /* Only enable if LCD connector fixed or hardware modded */
+#if 0 /* Moved to the start of hardware init, only enable if LCD connector fixed or hardware modded */
 	InitLCD(); debug("LCD Display: Init complete\r\n");
 #endif
-#if 1 /* Test */
+#if 0 /* Test */
 	TestLCDController();
 #endif
 
