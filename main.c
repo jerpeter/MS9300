@@ -2339,7 +2339,7 @@ extern void UsbReportEvents(void);
 		MXC_WDT_ResetTimer(MXC_WDT0);
 #endif
 	}
-	// End of NS8100 Main
+	// End of NS9300 Main
 #endif
 
 	// End of the world
