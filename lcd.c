@@ -2017,6 +2017,33 @@ void test_display(
 #define test_display()
 #endif
 
+void ft81x_NomisLoadScreen(void)
+{
+	ft81x_stream_start(); // Start streaming
+	ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
+	ft81x_clear_color_rgb32(0x0000ff); // Blue
+	ft81x_clear();
+	ft81x_color_rgb32(0xffffff); // White
+	ft81x_bgcolor_rgb32(0x0000ff); // Blue
+	ft81x_fgcolor_rgb32(0xffffff); // White
+
+	// Startup text
+	ft81x_cmd_text((FT81X_DISPLAY_WIDTH / 2), (FT81X_DISPLAY_HEIGHT / 4), 31, OPT_CENTER, "NOMIS SEISMOGRAPHS");
+	ft81x_cmd_text((FT81X_DISPLAY_WIDTH / 2), (FT81X_DISPLAY_HEIGHT / 3), 31, OPT_CENTER, "MS-9300");
+	ft81x_cmd_text((FT81X_DISPLAY_WIDTH / 2), (FT81X_DISPLAY_HEIGHT / 5 * 3), 25, OPT_CENTER, "Booting up...");
+
+	// Spinner
+	ft81x_cmd_spinner(FT81X_DISPLAY_WIDTH / 2, 380, 3, 0);
+
+	ft81x_display();
+	ft81x_cmd_swap();     // Set AUTO swap at end of display list
+	ft81x_getfree(0);     // trigger FT81x to read the command buffer
+	ft81x_stream_stop();  // Finish streaming to command buffer
+
+	//// Wait till the GPU is finished
+	ft81x_wait_finish();
+}
+
 #if 1
 // Fill the screen with a solid color cycling colors
 void test_cycle_colors(
