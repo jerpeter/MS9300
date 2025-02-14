@@ -410,7 +410,8 @@ void PowerOffTimerCallback(void)
 	// Prevent power off if monitoring
 	if (g_sampleProcessing != IDLE_STATE)
 	{
-		OverlayMessage(getLangText(WARNING_TEXT), "MONITORING.. UNaABLE TO POWER OFF", 1 * SOFT_SECS);
+		ActivateDisplayShortDuration(1);
+		OverlayMessage(getLangText(WARNING_TEXT), "MONITORING.. UNABLE TO POWER OFF", 2 * SOFT_SECS);
 		return;
 	}
 
@@ -433,7 +434,8 @@ void PowerOffTimerCallback(void)
 		SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
 	}
 
-	OverlayMessage(getLangText(STATUS_TEXT), getLangText(POWERING_UNIT_OFF_NOW_TEXT), 1 * SOFT_SECS);
+	ActivateDisplayShortDuration(1);
+	OverlayMessage(getLangText(STATUS_TEXT), getLangText(POWERING_UNIT_OFF_NOW_TEXT), 2 * SOFT_SECS);
 
 	// Power the unit off
 	debug("Normal mode: User desires to power off\r\n");
