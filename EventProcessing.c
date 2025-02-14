@@ -2731,12 +2731,14 @@ void EndianSwapEventRecord(EVT_RECORD* evtRec)
 ///----------------------------------------------------------------------------
 void EndianSwapBarInterval(BARGRAPH_BAR_INTERVAL_DATA* biData, uint8_t biType)
 {
-	// Swap data to Big Endian
+	// Swap A and VS data to Big Endian, done for any BI format
+	biData->aMax = __builtin_bswap16(biData->aMax);
+	biData->vsMax = __builtin_bswap32(biData->vsMax);
+
+	// Check if the original A+RVT format
 	if (biType == BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE)
 	{
-		biData->aMax = __builtin_bswap16(biData->aMax);
 		biData->rvtMax = __builtin_bswap16(biData->rvtMax);
-		biData->vsMax = __builtin_bswap32(biData->vsMax);
 	}
 	else // New Bar Interval data type option, store A max, then R, V, T max, then A, R, V, T freq (if selected), and finally VS max
 	{
@@ -2915,9 +2917,13 @@ void EndianSwapBargraphBarData(uint8_t* bData, uint8_t bType)
 	*bWordPtr = __builtin_bswap16(*bWordPtr); bWordPtr++; // aMax
 	*bWordPtr = __builtin_bswap16(*bWordPtr); bWordPtr++; // rvtMax or rMax
 
-	for (uint8_t i = 0; i < (bType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE ? 2 : 6); i++)
+	// Check if either of the two new BI formats
+	if (bType != BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE)
 	{
-		*bWordPtr = __builtin_bswap16(*bWordPtr); bWordPtr++;
+		for (uint8_t i = 0; i < (bType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE ? 2 : 6); i++)
+		{
+			*bWordPtr = __builtin_bswap16(*bWordPtr); bWordPtr++;
+		}
 	}
 
 	bLongPtr = (uint32_t*)bWordPtr;
