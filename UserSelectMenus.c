@@ -2716,7 +2716,7 @@ void ModemSetupMenuHandler(uint8 keyPressed, void* data)
 		if (g_modemSetupRecord.modemStatus == YES)
 		{
 			SETUP_USER_MENU_MSG(&modemInitMenu, &g_modemSetupRecord.init);
-			AssignSoftTimer(SYSTEM_LOCK_TIMER_NUM, REMOTE_SYSTEM_LOCK_TIMEOUT, SystemLockTimerCallback);
+			if (g_modemStatus.systemIsLockedFlag == NO) { AssignSoftTimer(SYSTEM_LOCK_TIMER_NUM, REMOTE_SYSTEM_LOCK_TIMEOUT, SystemLockTimerCallback); }
 		}
 		else // Modem Setup is NO
 		{
