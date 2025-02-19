@@ -125,5 +125,6 @@ uint8_t ExpansionBridgeRxLevelFifo(void);
 uint8_t ExpansionBridgeTxLevelFifo(void);
 uint8_t ExpansionBridgeRxCountFifo(void);
 uint8_t ExpansionBridgeTxCountFifo(void);
+void ExpansionBridgeCheckAndReadData(void);
 
 #endif // _UART_H_
