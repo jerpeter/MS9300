@@ -211,6 +211,11 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 		{
 #if 1 /* Normal */
 			debug("System IS Locked\r\n");
+#if 1 /* Process locked data looking for modem command mode responses */
+			if (strcmp(OK_CMD_STRING, (char*)&cmdMsg->msg[0]) == 0) { g_modemStatus.remoteResponse = OK_RESPONSE; }
+			else if (strcmp(CONNECT_CMD_STRING, (char*)&cmdMsg->msg[0]) == 0) { g_modemStatus.remoteResponse = CONNECT_RESPONSE; }
+			else { g_modemStatus.remoteResponse = UNKNOWN_RESPONSE; }
+#endif
 #else
 			char keyName[20];
 			sprintf(keyName, "None");
@@ -538,9 +543,13 @@ void CraftInitStatusFlags(void)
 	// Check if the Modem setup record is valid and Modem status is yes
 	if ((!g_modemSetupRecord.invalid) && (g_modemSetupRecord.modemStatus == YES))
 	{
+#if 0 /* Use flag a different way, to signal modem is connected and responding */
 		// Signal that the modem is available
 		g_modemStatus.modemAvailable = YES;
-
+#else
+		// Signal that the modem is not available
+		g_modemStatus.modemAvailable = NO;
+#endif
 		AssignSoftTimer(MODEM_DELAY_TIMER_NUM, (MODEM_ATZ_DELAY), ModemDelayTimerCallback);
 	}
 	else
@@ -572,14 +581,60 @@ void RemoteSystemLock(uint8_t lockState)
 	{
 		g_modemStatus.systemIsLockedFlag = YES;
 		ClearSoftTimer(SYSTEM_LOCK_TIMER_NUM);
+
+		// Stop sending BLM data unless remote side requests
+		g_modemStatus.barLiveMonitorOverride = BAR_LIVE_MONITORING_OVERRIDE_STOP;
 	}
 	else // (lockState == CLEAR)
 	{
 		g_modemStatus.systemIsLockedFlag = NO;
 
+#if 0 /* Remove forced system lock timer */
 		if (g_modemSetupRecord.modemStatus == YES)
 		{
 			AssignSoftTimer(SYSTEM_LOCK_TIMER_NUM, REMOTE_SYSTEM_LOCK_TIMEOUT, SystemLockTimerCallback);
 		}
+#endif
 	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void CheckAndProcessModemData(uint16_t timeoutHalfSeconds)
+{
+	uint32_t halfSecCompare = g_lifetimeHalfSecondTickCount;
+
+	g_modemStatus.remoteResponse = NO_RESPONSE;
+
+	while (g_lifetimeHalfSecondTickCount < (halfSecCompare + timeoutHalfSeconds))
+	{
+		ExpansionBridgeCheckAndReadData();
+		if (g_modemStatus.craftPortRcvFlag == YES) { g_modemStatus.craftPortRcvFlag = NO; ProcessCraftData(); }
+		if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); }
+
+		if (g_modemStatus.remoteResponse != NO_RESPONSE) { break; }
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t CheckforModem(uint16_t timeoutHalfSeconds)
+{
+	uint8_t modemFound = NO;
+	SoftUsecWait((1 * SOFT_SECS));
+	UartPuts((char*)(CMDMODE_CMD_STRING), CRAFT_COM_PORT);
+	SoftUsecWait((1 * SOFT_SECS));
+	UartPuts((char*)(INIT_CMD_STRING), CRAFT_COM_PORT);
+	UartPuts((char*)&g_CRLF, CRAFT_COM_PORT);
+
+	CheckAndProcessModemData(timeoutHalfSeconds);
+
+	if (g_modemStatus.remoteResponse == OK_RESPONSE) { modemFound = YES; g_modemStatus.modemAvailable = YES; }
+	else { g_modemStatus.modemAvailable = NO; }
+
+	g_modemStatus.remoteResponse = NO_RESPONSE;
+
+	return (modemFound);
 }
