@@ -1768,6 +1768,10 @@ void UnlockCodeMenuHandler(uint8 keyPressed, void* data)
 			CraftInitStatusFlags();
 		}
 
+		OverlayMessage(getLangText(STATUS_TEXT), "CHECKING FOR MODEM...", 0);
+		if (CheckforModem(6) == YES) { OverlayMessage(getLangText(STATUS_TEXT), "MODEM FOUND.", (2 * SOFT_SECS)); }
+		else { MessageBox(getLangText(STATUS_TEXT), "MODEM NOT FOUND. PLEASE CONNECT OR RESET IT.", MB_OK); }
+
 		if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
 		{
 			AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_modemSetupRecord.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
