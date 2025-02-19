@@ -931,7 +931,16 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 			case AUTO_THREE_MIN_TIMEOUT:
 			case AUTO_FOUR_MIN_TIMEOUT:
 			case AUTO_NO_TIMEOUT:
-				g_unitConfig.autoMonitorMode = cfg.autoCfg.autoMonitorMode;
+				// Check if the setting changed
+				if (g_unitConfig.autoMonitorMode != cfg.autoCfg.autoMonitorMode)
+				{
+					// Update to a new value
+					g_unitConfig.autoMonitorMode = cfg.autoCfg.autoMonitorMode;
+
+					// Setup timer if Auto Monitor enabled, otherwise clear
+					if (g_unitConfig.autoMonitorMode) { AssignSoftTimer(AUTO_MONITOR_TIMER_NUM, (uint32)(g_unitConfig.autoMonitorMode * TICKS_PER_MIN), AutoMonitorTimerCallBack); }
+					else { ClearSoftTimer(AUTO_MONITOR_TIMER_NUM); }
+				}
 				break;
 				
 			default:
@@ -1971,10 +1980,12 @@ void ModemResetProcess(void)
 
 	RemoteSystemLock(SET);
 
+#if 0 /* No longer have hardware modem controls */
 	if (g_autoRetries == 0)
 	{
 		CLEAR_DTR;
 	}	
+#endif
 
 	g_modemResetStage = 1;
 	AssignSoftTimer(MODEM_RESET_TIMER_NUM, (uint32)(15 * TICKS_PER_SEC), ModemResetTimerCallback);
@@ -1993,6 +2004,10 @@ void HandleMRS(CMD_BUFFER_STRUCT* inCmd)
 	{
 		g_autoRetries = 0;
 		ModemResetProcess();
+	}
+	else
+	{
+		WaitForBargraphLiveMonitoringDataToFinishSendingWithTimeout();
 	}
 
 	return;
