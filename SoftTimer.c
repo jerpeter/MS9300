@@ -483,13 +483,10 @@ void PowerOffTimerModeCallback(void)
 ///----------------------------------------------------------------------------
 void ModemDelayTimerCallback(void)
 {
+#if 0 /* Orignal */
 	if (YES == g_modemStatus.modemAvailable)
 	{
-#if 0 /* Orignal */
 		if ((READ_DSR == MODEM_CONNECTED) && (READ_DCD == NO_CONNECTION))
-#else /* No modem controls to utilize */
-		if (1)
-#endif
 		{
 			ModemInitProcess();
 		}
@@ -498,6 +495,24 @@ void ModemDelayTimerCallback(void)
 			AssignSoftTimer(MODEM_DELAY_TIMER_NUM, MODEM_ATZ_DELAY, ModemDelayTimerCallback);
 		}
 	}
+#else
+	if ((g_modemStatus.modemAvailable == YES) || ((g_modemStatus.remoteResponse == OK_RESPONSE)))
+	{
+		// Flag for yes if prior state was not available
+		g_modemStatus.modemAvailable = YES;
+
+		ModemInitProcess();
+	}
+	else // ((g_modemStatus.modemAvailable == NO) && (g_modemStatus.remoteResponse != OK_RESPONSE))
+	{
+		g_modemStatus.remoteResponse = NO_RESPONSE;
+		UartPuts((char*)(INIT_CMD_STRING), CRAFT_COM_PORT);
+		UartPuts((char*)&g_CRLF, CRAFT_COM_PORT);
+
+		// Check again
+		AssignSoftTimer(MODEM_DELAY_TIMER_NUM, MODEM_ATZ_DELAY, ModemDelayTimerCallback);
+	}
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -531,6 +546,7 @@ void ModemResetTimerCallback(void)
 	}
 	else if (g_modemResetStage == 4)
 	{
+		g_modemStatus.remoteResponse = NO_RESPONSE;
 		if (g_modemStatus.xferState == NOP_CMD) { UartPuts((char*)(ATH_CMD_STRING), CRAFT_COM_PORT); }
 		UartPuts((char*)&g_CRLF, CRAFT_COM_PORT);
 		AssignSoftTimer(MODEM_RESET_TIMER_NUM, (uint32)(3 * TICKS_PER_SEC), ModemResetTimerCallback);
@@ -538,7 +554,22 @@ void ModemResetTimerCallback(void)
 	}
 	else if (g_modemResetStage == 5)
 	{
-		ModemInitProcess();
+		// Check if the modem did not respond to the ATH command
+		if (g_modemStatus.remoteResponse != OK_RESPONSE)
+		{
+			g_modemStatus.modemAvailable = NO;
+
+			g_modemStatus.remoteResponse = NO_RESPONSE;
+			UartPuts((char*)(INIT_CMD_STRING), CRAFT_COM_PORT);
+			UartPuts((char*)&g_CRLF, CRAFT_COM_PORT);
+
+			AssignSoftTimer(MODEM_DELAY_TIMER_NUM, MODEM_ATZ_DELAY, ModemDelayTimerCallback);
+		}
+		else
+		{
+			ModemInitProcess();
+		}
+
 		g_modemResetStage = 0;
 	}
 }
