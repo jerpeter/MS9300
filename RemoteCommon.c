@@ -412,7 +412,8 @@ uint8 CheckAutoDialoutStatusAndFlagIfAvailable(void)
 	if ((g_autoDialoutState == AUTO_DIAL_IDLE) && (READ_DCD == NO_CONNECTION) && (g_modemResetStage == 0) &&
 		(g_modemSetupRecord.modemStatus == YES) && strlen((char*)&(g_modemSetupRecord.dial[0])) != 0)
 #else /* No modem controls, utilize system lock flag */
-	if ((g_autoDialoutState == AUTO_DIAL_IDLE) && (g_modemStatus.systemIsLockedFlag == YES) && (g_modemResetStage == 0) && (g_modemSetupRecord.modemStatus == YES) && strlen((char*)&(g_modemSetupRecord.dial[0])) != 0)
+	if ((g_autoDialoutState == AUTO_DIAL_IDLE) && (g_modemStatus.systemIsLockedFlag == YES) && (g_modemStatus.modemAvailable == YES) &&
+		(g_modemResetStage == 0) && (g_modemSetupRecord.modemStatus == YES) && strlen((char*)&(g_modemSetupRecord.dial[0])) != 0)
 #endif
 	{
 		raiseSystemEventFlag(AUTO_DIALOUT_EVENT);
@@ -474,10 +475,13 @@ void AutoDialoutStateMachine(void)
 			// Check if a remote connection has been established
 #if 0 /* Original */
 			if (READ_DCD == CONNECTION_ESTABLISHED)
-#else /* No modem controls, use static delay hoping for connection */
-			if ((g_lifetimeHalfSecondTickCount - timer) > (5 * TICKS_PER_SEC))
+#else /* No modem controls, wait for CONNECT response  */
+			if (g_modemStatus.remoteResponse == CONNECT_RESPONSE)
 #endif
 			{
+				// Clear remote response
+				g_modemStatus.remoteResponse = NO_RESPONSE;
+
 				// Update timer to current tick count
 				timer = g_lifetimeHalfSecondTickCount;
 
@@ -648,7 +652,7 @@ void AutoDialoutStateMachine(void)
 				timer = g_lifetimeHalfSecondTickCount;
 			}
 			// Check if data has not been transmitted in the last 5 minutes
-			else if ((g_lifetimeHalfSecondTickCount - timer) > (5 * TICKS_PER_MIN))
+			else if (((g_lifetimeHalfSecondTickCount - timer) > (5 * TICKS_PER_MIN)) || (g_modemStatus.systemIsLockedFlag == YES))
 			{
 				// No data has been transfered in 5 minutes, tear down connection
 
