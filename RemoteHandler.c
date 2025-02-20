@@ -212,9 +212,25 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 #if 1 /* Normal */
 			debug("System IS Locked\r\n");
 #if 1 /* Process locked data looking for modem command mode responses */
-			if (strcmp(OK_CMD_STRING, (char*)&cmdMsg->msg[0]) == 0) { g_modemStatus.remoteResponse = OK_RESPONSE; }
-			else if (strcmp(CONNECT_CMD_STRING, (char*)&cmdMsg->msg[0]) == 0) { g_modemStatus.remoteResponse = CONNECT_RESPONSE; }
-			else { g_modemStatus.remoteResponse = UNKNOWN_RESPONSE; }
+			if (strlen((char*)&cmdMsg->msg[0]))
+			{
+				if (strcmp(OK_CMD_STRING, (char*)&cmdMsg->msg[0]) == 0)
+				{
+					g_modemStatus.remoteResponse = OK_RESPONSE;
+					//debug("RCMH: OK response found\r\n");
+				}
+				else if (strcmp(CONNECT_CMD_STRING, (char*)&cmdMsg->msg[0]) == 0)
+				{
+					g_modemStatus.remoteResponse = CONNECT_RESPONSE;
+					//debug("RCMH: CONNECT response found\r\n");
+				}
+				else
+				{
+					g_modemStatus.remoteResponse = UNKNOWN_RESPONSE;
+					//debug("RCMH: Unknown response found, %d chars (%s)\r\n", strlen((char*)&cmdMsg->msg[0]), (char*)&cmdMsg->msg[0]);
+				}
+			}
+			//else { debug("RCMH: Unknown response found\r\n"); }
 #endif
 #else
 			char keyName[20];
@@ -474,12 +490,14 @@ void ProcessCraftData()
 				g_msgPool[s_msgWriteIndex].size++;
 #endif
 				newPoolBuffer = YES;
-			}	
+			}
 		}
 
 
 		if (YES == newPoolBuffer)
 		{
+			newPoolBuffer = NO;
+
 			// The message is now complete so go to the next message pool buffer.
 			s_msgWriteIndex++;
 			if (s_msgWriteIndex >= CMD_MSG_POOL_SIZE)
