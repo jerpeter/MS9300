@@ -215,12 +215,12 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 #if 1 /* Process locked data looking for modem command mode responses */
 			if (strlen((char*)&cmdMsg->msg[0]))
 			{
-				if (strcmp(OK_CMD_STRING, (char*)&cmdMsg->msg[0]) == 0)
+				if (strcmp(OK_RESP_STRING, (char*)&cmdMsg->msg[0]) == 0)
 				{
 					g_modemStatus.remoteResponse = OK_RESPONSE;
 					//debug("RCMH: OK response found\r\n");
 				}
-				else if (strcmp(CONNECT_CMD_STRING, (char*)&cmdMsg->msg[0]) == 0)
+				else if (strcmp(CONNECT_RESP_STRING, (char*)&cmdMsg->msg[0]) == 0)
 				{
 					g_modemStatus.remoteResponse = CONNECT_RESPONSE;
 					//debug("RCMH: CONNECT response found\r\n");
