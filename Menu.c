@@ -56,9 +56,6 @@ extern USER_MENU_STRUCT modeMenu[];
 static MB_CHOICE s_MessageChoices[MB_TOTAL_CHOICES] =
 {
 	//{Num Choices,		1st/Single,	2nd Choice,	}
-	//{MB_ONE_CHOICE,	"OK\0",		"\0"		},
-	//{MB_TWO_CHOICES,	"YES\0",	"NO\0"		},
-	//{MB_TWO_CHOICES,	"OK\0",		"CANCEL\0"	}
 	{MB_ONE_CHOICE,		OK_TEXT,	NULL_TEXT	},
 	{MB_TWO_CHOICES,	YES_TEXT,	NO_TEXT		},
 	{MB_TWO_CHOICES,	OK_TEXT,	CANCEL_TEXT	}
