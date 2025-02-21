@@ -162,9 +162,9 @@ uint8 ModemPuts(uint8* byteData, uint32 dataLength, uint8 convertAsciiFlag)
 
 	// Sending modem data, signal that data is being transfered
 	g_modemDataTransfered = YES;
-#if 1 /* New timeout for System lock */
+
+	// Idle timeout for System lock when Modem Setup is enabled
 	ResetSoftTimer(SYSTEM_LOCK_TIMER_NUM);
-#endif
 
 	for (dataDex = 0; dataDex < dataLength; dataDex++)
 	{

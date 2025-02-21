@@ -175,11 +175,11 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 					{
 						// Command successfully decoded, signal that data has been transfered
 						g_modemDataTransfered = YES;
-#if 1 /* New timeout for System lock */
-						ResetSoftTimer(SYSTEM_LOCK_TIMER_NUM);
-#endif
-						WaitForBargraphLiveMonitoringDataToFinishSendingWithTimeout();
 
+						// Idle timeout for System lock when Modem Setup is enabled
+						ResetSoftTimer(SYSTEM_LOCK_TIMER_NUM);
+
+						WaitForBargraphLiveMonitoringDataToFinishSendingWithTimeout();
 #if 1 /* Test */
 						debug("Remote: Processing <%c%c%c> Command\r\n", cmdMsg->msg[0], cmdMsg->msg[1], cmdMsg->msg[2]);
 #endif
@@ -198,9 +198,10 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 					{
 						// Command successfully decoded, signal that data has been transfered
 						g_modemDataTransfered = YES;
-#if 1 /* New timeout for System lock */
+
+						// Idle timeout for System lock when Modem Setup is enabled
 						ResetSoftTimer(SYSTEM_LOCK_TIMER_NUM);
-#endif
+
 						s_cmdMessageTable[ cmdIndex ].cmdFunction(cmdMsg);
 						break;
 					}
@@ -607,12 +608,11 @@ void RemoteSystemLock(uint8_t lockState)
 	{
 		g_modemStatus.systemIsLockedFlag = NO;
 
-#if 0 /* Remove forced system lock timer */
+		// Check if Modem Setup is enabled, need a idle re-lock timer to make sure Auto Dialout can operate
 		if (g_modemSetupRecord.modemStatus == YES)
 		{
 			AssignSoftTimer(SYSTEM_LOCK_TIMER_NUM, REMOTE_SYSTEM_LOCK_TIMEOUT, SystemLockTimerCallback);
 		}
-#endif
 	}
 }
 
