@@ -1769,7 +1769,31 @@ void UnlockCodeMenuHandler(uint8 keyPressed, void* data)
 		}
 
 		OverlayMessage(getLangText(STATUS_TEXT), "CHECKING FOR MODEM...", 0);
-		if (CheckforModem(6) == YES) { OverlayMessage(getLangText(STATUS_TEXT), "MODEM FOUND.", (2 * SOFT_SECS)); }
+		if (CheckforModem(6) == YES)
+		{
+#if 0 /* Original */
+			OverlayMessage(getLangText(STATUS_TEXT), "MODEM FOUND.", (2 * SOFT_SECS));
+#else /* Add special option to allow test option to force data mode after conneciton */
+			if (MessageBox(getLangText(STATUS_TEXT), "MODEM FOUND.", MB_OK) == MB_SPECIAL_ACTION)
+			{
+				sprintf((char*)g_spareBuffer, "TEST OPTION TO FORCE DATA MODE AFTER CONNECT IS ");
+				if (g_modemSetupRecord.init[59] == ENABLED)
+				{
+					g_modemSetupRecord.init[58] = 0; // Force null
+					g_modemSetupRecord.init[59] = DISABLED;
+					strcat((char*)g_spareBuffer, getLangText(DISABLED_TEXT));
+				}
+				else // DISABLED
+				{
+					g_modemSetupRecord.init[58] = 0; // Force null
+					g_modemSetupRecord.init[59] = ENABLED;
+					strcat((char*)g_spareBuffer, getLangText(ENABLED_TEXT));
+				}
+
+				MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK);
+			}
+#endif
+		}
 		else { MessageBox(getLangText(STATUS_TEXT), "MODEM NOT FOUND. PLEASE CONNECT OR RESET IT.", MB_OK); }
 
 		if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)

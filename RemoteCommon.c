@@ -497,7 +497,11 @@ void AutoDialoutStateMachine(void)
 				timer = g_lifetimeHalfSecondTickCount;
 
 				// Advance to Retry state
+#if 0 /* Original */
 				g_autoDialoutState = AUTO_DIAL_RETRY;
+#else
+				g_autoDialoutState = AUTO_DIAL_RESET;
+#endif
 			}
 		break;
 
@@ -510,6 +514,18 @@ void AutoDialoutStateMachine(void)
 			{
 				// Make sure transfer flag is set to ascii
 				g_binaryXferFlag = NO_CONVERSION;
+
+#if 1 /* Test forcing data mode */
+				if (g_modemSetupRecord.init[59] == ENABLED)
+				{
+					SoftUsecWait((1 * SOFT_SECS));
+					UartPuts((char*)(CMDMODE_CMD_STRING), CRAFT_COM_PORT);
+					SoftUsecWait((1 * SOFT_SECS));
+					UartPuts((char*)"ATO", CRAFT_COM_PORT);
+					UartPuts((char*)&g_CRLF, CRAFT_COM_PORT);
+					SoftUsecWait((1 * SOFT_SECS));
+				}
+#endif
 
 				// Send out GAD command (includes serial number and auto dialout parameters)
 				handleGAD(&msg);
@@ -585,7 +601,11 @@ void AutoDialoutStateMachine(void)
 				timer = g_lifetimeHalfSecondTickCount;
 
 				// Advance to Retry state
+#if 0 /* Original */
 				g_autoDialoutState = AUTO_DIAL_RETRY;
+#else
+				g_autoDialoutState = AUTO_DIAL_RESET;
+#endif
 			}
 #if 0 /* Orignal */
 			// Check if we lose the remote connection
@@ -595,6 +615,34 @@ void AutoDialoutStateMachine(void)
 				g_autoDialoutState = AUTO_DIAL_RETRY;
 			}
 #endif
+		break;
+
+		//----------------------------------------------------------------
+		// Issue modem reset handling
+		//----------------------------------------------------------------
+		case AUTO_DIAL_RESET:
+			SoftUsecWait((1 * SOFT_SECS));
+			UartPuts((char*)(CMDMODE_CMD_STRING), CRAFT_COM_PORT);
+			SoftUsecWait((1 * SOFT_SECS));
+			UartPuts((char*)(ATZ_CMD_STRING), CRAFT_COM_PORT);
+			UartPuts((char*)&g_CRLF, CRAFT_COM_PORT);
+
+			// Update timer to current tick count
+			timer = g_lifetimeHalfSecondTickCount;
+
+			g_autoDialoutState = AUTO_DIAL_RESET_WAIT;
+		break;
+
+		//----------------------------------------------------------------
+		// Wait for Modem Reset complete
+		//----------------------------------------------------------------
+		case AUTO_DIAL_RESET_WAIT:
+			// Check if the retry time has expired
+			if ((g_lifetimeHalfSecondTickCount - timer) > (2 * TICKS_PER_MIN))
+			{
+				// Advance to Retry state
+				g_autoDialoutState = AUTO_DIAL_RETRY;
+			}
 		break;
 
 		//----------------------------------------------------------------
