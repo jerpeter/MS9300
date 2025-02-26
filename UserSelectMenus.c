@@ -45,6 +45,7 @@ extern USER_MENU_STRUCT alarmTwoSeismicLevelMenu[];
 extern USER_MENU_STRUCT alarmTwoAirLevelMenu[];
 extern USER_MENU_STRUCT alarmTestingMenu[];
 extern USER_MENU_STRUCT analogChannelConfigMenu[];
+extern USER_MENU_STRUCT auxChargingBypassMenu[];
 extern USER_MENU_STRUCT barChannelMenu[];
 extern USER_MENU_STRUCT barIntervalMenu[];
 extern USER_MENU_STRUCT barIntervalDataTypeMenu[];
@@ -924,6 +925,47 @@ void AutoMonitorMenuHandler(uint8 keyPressed, void* data)
 	else if (keyPressed == ESC_KEY)
 	{
 		SETUP_USER_MENU_MSG(&configMenu, AUTO_MONITOR);
+	}
+
+	JUMP_TO_ACTIVE_MENU();
+}
+
+//*****************************************************************************
+//=============================================================================
+// Aux Charging Bypass Menu
+//=============================================================================
+//*****************************************************************************
+#define AUX_CHARGING_BYPASS_MENU_ENTRIES 4
+USER_MENU_STRUCT auxChargingBypassMenu[AUX_CHARGING_BYPASS_MENU_ENTRIES] = {
+{TITLE_PRE_TAG, 0, AUX_CHARGING_BYPASS_TEXT, TITLE_POST_TAG,
+	{INSERT_USER_MENU_INFO(SELECT_TYPE, AUX_CHARGING_BYPASS_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
+{ITEM_1, 0, DISABLED_TEXT,	NO_TAG,	{ENABLED}},
+{ITEM_2, 0, ENABLED_TEXT,	NO_TAG,	{DISABLED}},
+{END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&AuxChargingBypassMenuHandler}}
+};
+
+//-------------------------------------
+// Aux Charging Bypass Menu Handler
+//-------------------------------------
+void AuxChargingBypassMenuHandler(uint8 keyPressed, void* data)
+{
+	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
+	uint16 newItemIndex = *((uint16*)data);
+
+	if (keyPressed == ENTER_KEY)
+	{
+		g_unitConfig.spare1 = (uint8)auxChargingBypassMenu[newItemIndex].data;
+
+		if (g_unitConfig.spare1 == ENABLED) { PowerControl(USB_AUX_POWER_ENABLE, ON); }
+		else /* DISABLED */ { PowerControl(USB_AUX_POWER_ENABLE, OFF); }
+
+		SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
+
+		SETUP_USER_MENU_MSG(&helpMenu, DEFAULT_ITEM_1);
+	}
+	else if (keyPressed == ESC_KEY)
+	{
+		SETUP_USER_MENU_MSG(&helpMenu, DEFAULT_ITEM_1);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
@@ -2309,7 +2351,7 @@ USER_MENU_STRUCT helpMenu[HELP_MENU_ENTRIES] = {
 #if 0 /* Original */
 {ITEM_4, 0, GPS_LOCATION_TEXT,			NO_TAG, {GPS_LOCATION_DISPLAY_CHOICE}},
 #else
-{ITEM_4, 0, AUX_POWER_BYPASS_TEXT,		NO_TAG, {GPS_LOCATION_DISPLAY_CHOICE}},
+{ITEM_4, 0, AUX_CHARGING_BYPASS_TEXT,	NO_TAG, {GPS_LOCATION_DISPLAY_CHOICE}},
 #endif
 {ITEM_5, 0, CHECK_SUMMARY_FILE_TEXT,	NO_TAG, {CHECK_SUMMARY_FILE_CHOICE}},
 {ITEM_6, 0, NULL_TEXT,	DUMP_BATTERY_LOG_TAG, {TESTING_CHOICE}},
@@ -2369,13 +2411,17 @@ void HelpMenuHandler(uint8 keyPressed, void* data)
 				OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, (2 * SOFT_SECS));
 			}
 #else
+#if 0 /* Test option 1, not persistent */
 			if (GetPowerControlState(USB_AUX_POWER_ENABLE) == OFF) { sprintf((char*)g_spareBuffer, "AUX POWER BYPASS IS DISABLED. DO YOU WANT TO ENABLE BYPASS?"); }
 			else { sprintf((char*)g_spareBuffer, "AUX POWER BYPASS IS ENABLED. DO YOU WANT TO DISABLE BYPASS?"); }
-			if (MessageBox(getLangText(AUX_POWER_BYPASS_TEXT), (char*)g_spareBuffer, MB_YESNO) == MB_FIRST_CHOICE)
+			if (MessageBox(getLangText(AUX_CHARGING_BYPASS_TEXT), (char*)g_spareBuffer, MB_YESNO) == MB_FIRST_CHOICE)
 			{
 				if (GetPowerControlState(USB_AUX_POWER_ENABLE) == OFF) { PowerControl(USB_AUX_POWER_ENABLE, ON); }
 				else { PowerControl(USB_AUX_POWER_ENABLE, OFF); }
 			}
+#else /* Test option 2, persistent */
+			SETUP_USER_MENU_MSG(&auxChargingBypassMenu, g_unitConfig.spare1);
+#endif
 #endif
 		}
 		else if (helpMenu[newItemIndex].data == CHECK_SUMMARY_FILE_CHOICE)

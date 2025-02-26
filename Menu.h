@@ -971,6 +971,7 @@ void AlarmOutputMenuHandler(uint8 key, void* data);
 void AlarmTestingMenuHandler(uint8 key, void* data);
 void AutoCalMenuHandler(uint8 key, void* data);
 void AutoMonitorMenuHandler(uint8 key, void* data);
+void AuxChargingBypassMenuHandler(uint8 keyPressed, void* data);
 void BarChannelMenuHandler(uint8 key, void* data);
 void BarIntervalMenuHandler(uint8 key, void* data);
 void BarIntervalDataTypeMenuHandler(uint8 key, void* data);

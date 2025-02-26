@@ -172,6 +172,11 @@ void LoadUnitConfig(void)
 #else /* Test */
 		ExpansionBridgeChangeBaud(g_unitConfig.baudRate);
 #endif
+
+#if 1 /* Added persistent option for Aux Charging Enable */
+		if (g_unitConfig.spare1 == ENABLED) { PowerControl(USB_AUX_POWER_ENABLE, ON); }
+		else /* DISABLED */ { PowerControl(USB_AUX_POWER_ENABLE, OFF); }
+#endif
 	}
 }
 
