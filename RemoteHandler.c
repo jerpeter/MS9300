@@ -446,12 +446,17 @@ void ProcessCraftData()
 		i++;
 #endif
 
-		if ((*g_isrMessageBufferPtr->readPtr != 0x0A) &&
-			(*g_isrMessageBufferPtr->readPtr != 0x0D))
+		// Check if not a <CR> or <LF> termination marker
+		if ((*g_isrMessageBufferPtr->readPtr != 0x0A) && (*g_isrMessageBufferPtr->readPtr != 0x0D))
 		{
-			*(g_msgPool[s_msgWriteIndex].writePtr) = *g_isrMessageBufferPtr->readPtr;
-			g_msgPool[s_msgWriteIndex].writePtr++;
-			g_msgPool[s_msgWriteIndex].size++;
+			// Check if not the first character of a message and not a non-printing character, essentially allowing only alphanumeric chars to start a message
+			if (!((g_msgPool[s_msgWriteIndex].size == 0) && (*g_isrMessageBufferPtr->readPtr < 0x20)))
+			{
+				// Move data and increment pointer and count
+				*(g_msgPool[s_msgWriteIndex].writePtr) = *g_isrMessageBufferPtr->readPtr;
+				g_msgPool[s_msgWriteIndex].writePtr++;
+				g_msgPool[s_msgWriteIndex].size++;
+			}
 
 #if 0 /* Original */
 			// The buffer is full, go to the next buffer pool.
@@ -481,7 +486,7 @@ void ProcessCraftData()
 			}
 #endif
 		}
-		else
+		else // Handle <CR> or <LF> termination marker for a message
 		{
 			if (g_msgPool[s_msgWriteIndex].size > 0)
 			{
