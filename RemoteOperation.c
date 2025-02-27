@@ -1659,6 +1659,20 @@ void HandleUMM(CMD_BUFFER_STRUCT* inCmd)
 			g_modemSetupRecord = modemCfg;
 
 			SaveRecordData(&g_modemSetupRecord, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
+
+			// Check if the Modem Setup is enabled
+			if (g_modemSetupRecord.modemStatus == YES)
+			{
+				AssignSoftTimer(SYSTEM_LOCK_TIMER_NUM, REMOTE_SYSTEM_LOCK_TIMEOUT, SystemLockTimerCallback);
+
+				if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
+				{
+					AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_modemSetupRecord.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
+				}
+			}
+
+			debug("UMM: New modem setup params: Inv %d, M-Status %d, Code %04d, Type %d, Cycle %d, Retry %d, R-Time %d\r\n", g_modemSetupRecord.invalid, g_modemSetupRecord.modemStatus,
+					g_modemSetupRecord.unlockCode, g_modemSetupRecord.dialOutType, g_modemSetupRecord.dialOutCycleTime, g_modemSetupRecord.retries, g_modemSetupRecord.retryTime);
 		}
 	}
 
