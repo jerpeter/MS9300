@@ -496,7 +496,13 @@ void ModemDelayTimerCallback(void)
 		}
 	}
 #else
-	if ((g_modemStatus.modemAvailable == YES) || ((g_modemStatus.remoteResponse == OK_RESPONSE)))
+	// Check if actively sending a command or if the system is unlocked (presumably with an active conneciton)
+	if ((g_modemStatus.xferState != NOP_CMD) || (g_modemStatus.systemIsLockedFlag == NO))
+	{
+		// Check again when not busy
+		AssignSoftTimer(MODEM_DELAY_TIMER_NUM, MODEM_ATZ_DELAY, ModemDelayTimerCallback);
+	}
+	else if ((g_modemStatus.modemAvailable == YES) || ((g_modemStatus.remoteResponse == OK_RESPONSE)))
 	{
 		// Flag for yes if prior state was not available
 		g_modemStatus.modemAvailable = YES;
@@ -587,6 +593,8 @@ void AutoDialOutCycleTimerCallBack(void)
 	// Check if AutoDialout is enabled and signal the system if necessary
 	if (CheckAutoDialoutStatusAndFlagIfAvailable() == NO)
 	{
+		debug("Auto Dial Out: Unable to start, resetting ADO timer (State %d, Lock %d, M-Avail %d, Reset %d, Status %d)\r\n",
+				g_autoDialoutState, g_modemStatus.systemIsLockedFlag, g_modemStatus.modemAvailable, g_modemResetStage, g_modemSetupRecord.modemStatus);
 		AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_modemSetupRecord.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
 	}
 }
