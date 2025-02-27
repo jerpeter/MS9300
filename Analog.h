@@ -22,10 +22,10 @@
 #define ANALOG_SENSOR_AOP_1		0x04
 #define ANALOG_SENSOR_AOP_2		0x08
 
-#define CAL_SAMPLE_COUNT_FIRST_TRANSITION_HIGH	95
-#define CAL_SAMPLE_COUNT_SECOND_TRANSITION_LOW	85
-#define CAL_SAMPLE_COUNT_THIRD_TRANSITION_HIGH	65
-#define CAL_SAMPLE_COUNT_FOURTH_TRANSITION_OFF	55
+#define CAL_SAMPLE_COUNT_FIRST_TRANSITION_HIGH	95 // Triangle wave formation, starting at 100 counts for Sensor Check (Cal Pulse), ~5ms from start
+#define CAL_SAMPLE_COUNT_SECOND_TRANSITION_LOW	88 // ~7ms, 1x period finished, was 85, Note: 9300 drives harder than prior unit so needs shorter time
+#define CAL_SAMPLE_COUNT_THIRD_TRANSITION_HIGH	74 // ~14ms, 2x period finished, was 65
+#define CAL_SAMPLE_COUNT_FOURTH_TRANSITION_OFF	67 // ~7ms, 1x period finished, was 55
 
 #define GAIN_SELECT_x2	0x01
 #define GAIN_SELECT_x4	0x00
