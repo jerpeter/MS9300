@@ -358,6 +358,10 @@ void Write_multi_display(uint8 lcd_register, uint8 lcd_data, uint8 display_half)
  * Prototypes
  */
 
+// Loading screens
+void ft81x_NomisLoadScreen(void);
+void ft81x_NomisChargingScreen(void);
+
 // Initialize FT81X
 uint8_t ft81x_init(void);
 
