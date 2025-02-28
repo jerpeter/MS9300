@@ -596,6 +596,12 @@ void AutoDialOutCycleTimerCallBack(void)
 		debug("Auto Dial Out: Unable to start, resetting ADO timer (State %d, Lock %d, M-Avail %d, Reset %d, Status %d)\r\n",
 				g_autoDialoutState, g_modemStatus.systemIsLockedFlag, g_modemStatus.modemAvailable, g_modemResetStage, g_modemSetupRecord.modemStatus);
 		AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_modemSetupRecord.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
+
+		// Check if the modem wasn't found as the reason
+		if (g_modemStatus.modemAvailable == NO)
+		{
+			AssignSoftTimer(MODEM_DELAY_TIMER_NUM, MODEM_ATZ_DELAY, ModemDelayTimerCallback);
+		}
 	}
 }
 
