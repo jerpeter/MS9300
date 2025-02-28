@@ -313,7 +313,6 @@ extern void test_logo(void);
 	//test_logo();
 #endif
 
-extern void ft81x_NomisLoadScreen(void);
 	ft81x_NomisLoadScreen();
 #endif
 
@@ -538,6 +537,28 @@ void SetupPowerOnDetectGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// USB Aux Power Enable: Port 0, Pin 10, Output, External pulldown, Active high, 1.8V (minimum 0.6V)
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_USB_AUX_POWER_ENABLE_PORT;
+	setupGPIO.mask = GPIO_USB_AUX_POWER_ENABLE_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start disabled
+
+	//----------------------------------------------------------------------------------------------------------------------
+	// LED 2: Port 1, Pin 26, Output, No external pull, Active low, 3.3V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_LED_2_PORT;
+	setupGPIO.mask = GPIO_LED_2_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_WEAK_PULL_UP;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as off
 }
 
 ///----------------------------------------------------------------------------
@@ -4053,107 +4074,6 @@ void SetupHalfSecondTickTimer(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void ValidatePowerOn(void)
-{
-#if 1 /* Normal */
-	uint8_t powerOnButtonDetect;
-	uint8_t vbusChargingDetect;
-	uint16_t i;
-
-	SetupPowerOnDetectGPIO();
-
-	powerOnButtonDetect = GetPowerOnButtonState();
-	vbusChargingDetect = GetPowerGoodBatteryChargerState();
-
-	if (powerOnButtonDetect) { debugRaw("\r\n-----------------------\r\nPower On button pressed\r\n"); }
-	if (vbusChargingDetect) { debugRaw("\r\nUSB Charging detected\r\n"); }
-
-	// Check if Power on button is the startup source
-	if (powerOnButtonDetect)
-	{
-		debugRaw("(2 second press validation) Waiting");
-
-		// Monitor Power on button for 2 secs making sure it remains depressed signaling desire to turn unit on
-		for (i = 0; i < 40; i++)
-		{
-			MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
-			debugRaw(".");
-
-			// Determine if the Power on button was released early
-			if (GetPowerOnButtonState() == OFF)
-			{
-				debugRaw("\r\nPower On qualificaiton not met, Turning off\r\n");
-
-				// Power on button released therefore startup condition not met, shut down
-				PowerControl(MCU_POWER_LATCH, OFF);
-				while (1) { /* Wait for darkness (caps bleed and unit powers off) */}
-			}
-		}
-
-		debugRaw(" Power On activated\r\n");
-
-		// Unit startup condition verified, latch power and continue
-		PowerControl(MCU_POWER_LATCH, ON);
-
-		// Todo: Turn on appropriate LED
-		//PowerControl(LED???, ON);
-	}
-	// Check if USB charging is startup source
-	else if (vbusChargingDetect)
-	{
-		// Note: USB charging is reason for power up, could be USB or another source like 12V external battery (where setting Aux power enable is needed)
-		// Setup Battery Charger and Fuel Gauge, then monitor for user power on
-		BatteryChargerInit();
-		FuelGaugeInit();
-
-		// Todo: Turn on appropriate LED
-		//PowerControl(LED???, ON);
-
-		while (1)
-		{
-			// Check if Power On button depressed
-			if (GetPowerOnButtonState() == ON)
-			{
-				debugRaw("(2 second press validation) Power On button depress detected, Waiting");
-
-				// Monitor Power on button for 2 secs making sure it remains depressed signaling desire to turn unit on
-				for (i = 0; i < 40; i++)
-				{
-					MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
-					debugRaw(".");
-
-					// Determine if the Power on button was released early
-					if (GetPowerOnButtonState() == OFF)
-					{
-						debugRaw("\r\nPower On qualificaiton not met\r\n");
-						// Break the For loop
-						break;
-					}
-				}
-
-				debugRaw(" Power On activated\r\n");
-
-				// Unit startup condition verified, latch power and continue
-				PowerControl(MCU_POWER_LATCH, ON);
-				// Break the While loop and proceed with unit startup
-				break;
-			}
-		}
-	}
-	else
-	{
-		debugWarn("MCU Power latch is power on source\r\n");
-	}
-#else /* Test without keyboard */
-	SetupPowerOnDetectGPIO();
-	debugRaw("\r\n-----------------------\r\nPower On Button check bypassed (for testing without keypad)\r\nPower On activated\r\n");
-	PowerControl(MCU_POWER_LATCH, ON);
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
 uint8_t IdentiifyI2C(uint8_t i2cNum, uint8_t readBytes, uint8_t regAddr)
 {
 	char deviceName[50];
@@ -4271,7 +4191,7 @@ void TestI2CDeviceAddresses(void)
 		debug("(R1) I2C devices found: %d\r\n", numDevices);
 #endif
 	} // for i
-	debug("-- Power down 5V --\r\n");
+	debug("-- Power down ADC and Expansion --\r\n");
 	PowerControl(ADC_RESET, ON);
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 
@@ -4527,6 +4447,154 @@ void TestGPIO(void)
 	SetPathSelectAop1State(OFF);
 	SetPathSelectAop2State(ON);
 	SetPathSelectAop2State(OFF);
+#endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void ValidatePowerOn(void)
+{
+#if 1 /* Normal */
+	uint8_t powerOnButtonDetect;
+	uint8_t vbusChargingDetect;
+	uint16_t i;
+	uint32_t timer;
+
+	SetupPowerOnDetectGPIO();
+
+	powerOnButtonDetect = GetPowerOnButtonState();
+	vbusChargingDetect = GetPowerGoodBatteryChargerState();
+
+	if (powerOnButtonDetect) { debugRaw("\r\n-----------------------\r\nPower On button pressed\r\n"); }
+	if (vbusChargingDetect) { debugRaw("\r\n-----------------------\r\nUSB Charging detected\r\n"); }
+
+	// Check if Power on button is the startup source
+	if (powerOnButtonDetect)
+	{
+		debugRaw("(2 second press validation) Waiting");
+
+		// Monitor Power on button for 2 secs making sure it remains depressed signaling desire to turn unit on
+		for (i = 0; i < 40; i++)
+		{
+			MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
+			debugRaw(".");
+
+			// Determine if the Power on button was released early
+			if (GetPowerOnButtonState() == OFF)
+			{
+				debugRaw("\r\nPower On qualificaiton not met, Turning off\r\n");
+
+				// Power on button released therefore startup condition not met, shut down
+				PowerControl(MCU_POWER_LATCH, OFF);
+				while (1) { /* Wait for darkness (caps bleed and unit powers off) */}
+			}
+		}
+
+		debugRaw(" Power On activated\r\n");
+
+		// Unit startup condition verified, latch power and continue
+		PowerControl(MCU_POWER_LATCH, ON);
+
+		// Todo: Turn on appropriate LED
+		//PowerControl(LED???, ON);
+	}
+	// Check if USB charging is startup source
+	else if (vbusChargingDetect)
+	{
+		// Make sure latch is disabled in case it was still enabled from prior run and MCU reset
+		PowerControl(MCU_POWER_LATCH, OFF);
+
+		SetupHalfSecondTickTimer();
+
+		// Enable Aux Charging Bypass so only the Battery Charger needs to run (otherwise USBC Port Controller needs to be initialized too)
+		MXC_GPIO_OutSet(GPIO_USB_AUX_POWER_ENABLE_PORT, GPIO_USB_AUX_POWER_ENABLE_PIN); // Enable
+
+		ft81x_init();
+		ft81x_NomisChargingScreen();
+
+		// Test delay before I2C startup since it starts with some failures
+		SoftUsecWait(50 * SOFT_MSECS);
+
+		// Note: USB charging is reason for power up, could be USB or another source like 12V external battery (where setting Aux power enable is needed)
+		// Setup Battery Charger and Fuel Gauge, then monitor for user power on
+		SetupI2C();
+		TestI2CDeviceAddresses();
+
+		// Test delay before I2C startup since it starts with some failures
+		SoftUsecWait(50 * SOFT_MSECS);
+
+		FuelGaugeInit();
+		BatteryChargerInit();
+
+		SoftUsecWait(1 * SOFT_SECS);
+		PowerControl(LCD_POWER_DOWN, ON);
+		PowerControl(LCD_POWER_ENABLE, OFF);
+
+		timer = g_lifetimeHalfSecondTickCount + 8;
+
+		// Todo: Turn on appropriate LED
+		//PowerControl(LED???, ON);
+
+		while (1)
+		{
+			// Check if Power On button depressed
+			if (GetPowerOnButtonState() == ON)
+			{
+				debugRaw("(2 second press validation) Power On button depress detected, Waiting");
+
+				// Monitor Power on button for 2 secs making sure it remains depressed signaling desire to turn unit on
+				for (i = 0; i < 40; i++)
+				{
+					MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
+					debugRaw(".");
+
+					// Determine if the Power on button was released early
+					if (GetPowerOnButtonState() == OFF)
+					{
+						debugRaw("\r\nPower On qualificaiton not met\r\n");
+						// Break the For loop
+						break;
+					}
+				}
+
+				// Check one last time that the Power On button is still depressed
+				if (GetPowerOnButtonState() == ON)
+				{
+					debugRaw(" Power On activated\r\n");
+
+					// Unit startup condition verified, latch power and continue
+					PowerControl(MCU_POWER_LATCH, ON);
+					// Break the While loop and proceed with unit startup
+					break;
+				}
+			}
+
+			if (g_lifetimeHalfSecondTickCount == timer)
+			{
+				timer = g_lifetimeHalfSecondTickCount + 8;
+				PowerControl(LED_2, ON);
+				debug("(Cyclic Event) %s\r\n", FuelGaugeDebugString());
+				PowerControl(LED_2, OFF);
+			}
+
+			// Check if charging was removed
+			if (GetPowerGoodBatteryChargerState() == NO)
+			{
+				// Power down
+				PowerControl(MCU_POWER_LATCH, OFF);
+				while (1) { /* Wait for darkness (caps bleed and unit powers off) */}
+			}
+		}
+	}
+	else
+	{
+		debugWarn("MCU Power latch is power on source\r\n");
+	}
+#else /* Test without keyboard */
+	SetupPowerOnDetectGPIO();
+	debugRaw("\r\n-----------------------\r\nPower On Button check bypassed (for testing without keypad)\r\nPower On activated\r\n");
+	PowerControl(MCU_POWER_LATCH, ON);
 #endif
 }
 
