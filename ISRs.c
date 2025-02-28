@@ -556,7 +556,7 @@ void System_power_button_irq(void)
 #if 0 /* Normal */
 		if (IsSoftTimerActive(POWER_OFF_TIMER_NUM) == NO)
 #else
-		if ((IsSoftTimerActive(POWER_OFF_TIMER_NUM) == NO) || (g_activeMenu == CAL_SETUP_MENU))
+		if ((IsSoftTimerActive(POWER_OFF_TIMER_NUM) == NO) || (g_activeMenu == CAL_SETUP_MENU) || (GetPowerControlState(MCU_POWER_LATCH) == OFF))
 #endif
 		{
 			// Reset count
@@ -589,7 +589,7 @@ void System_power_button_irq(void)
 #endif
 		// Check if repeated On key press was detected 3 additional times (original press is unlock)
 #if 1 /* Normal */
-		if (onKeyCount == 3)
+		if (onKeyCount == 7)
 #else /* Test multifunction actions on power button when keypad is not functional */
 		if (0)
 #endif
@@ -622,19 +622,21 @@ void System_power_button_irq(void)
 #if 1 /* Test disabling interrupts to prevent unit powering right back on */
 			__disable_irq();
 #endif
-			PowerControl(MCU_POWER_LATCH, OFF);
+			if (GetPowerGoodBatteryChargerState() == YES) { MXC_GCR->rst0 |= MXC_F_GCR_RST0_SYS; } // Toggle MCU system reset
+			else { PowerControl(MCU_POWER_LATCH, OFF); }
 		}
 
 		// Check if repeated On key press was detected 6 additional times (original press is unlock)
 #if 1 /* Normal */
-		if (onKeyCount == 6)
+		if (onKeyCount == 11)
 #else /* Test multifunction actions on power button when keypad is not functional */
 		if (0)
 #endif
 		{
 			// Jumping off the ledge.. No returning from this
 			debugRaw("\n--> BOOM <--");
-			PowerControl(MCU_POWER_LATCH, OFF);
+			if (GetPowerGoodBatteryChargerState() == YES) { MXC_GCR->rst0 |= MXC_F_GCR_RST0_SYS; } // Toggle MCU system reset
+			else { PowerControl(MCU_POWER_LATCH, OFF); }
 		}
 
 		// Manage monitoring the On key for powering off
