@@ -495,8 +495,21 @@ void PowerUnitOff(uint8 powerOffMode)
 		PowerControl(CELL_ENABLE, OFF);
 		PowerControl(EXPANSION_ENABLE, OFF);
 
-		// Shutdown application
-		PowerControl(MCU_POWER_LATCH, OFF);
+		// Check if charging is present which prevents powering down
+		if (GetPowerGoodBatteryChargerState() == YES)
+		{
+			debug("Charging present, issuing MCU reset...\r\n");
+
+			// Toggle MCU system reset
+			MXC_GCR->rst0 |= MXC_F_GCR_RST0_SYS;
+		}
+		else
+		{
+			debug("Bye...\r\n");
+
+			// Shutdown application
+			PowerControl(MCU_POWER_LATCH, OFF);
+		}
 	}
 	else
 	{
