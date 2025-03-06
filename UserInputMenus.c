@@ -660,7 +660,7 @@ void CycleEndTimeMenuHandler(uint8 keyPressed, void* data)
 			else
 			{
 				sprintf((char*)g_spareBuffer, "%s %d %s", getLangText(TWENTY_FOUR_HR_CYCLE_WILL_NOW_OCCUR_AT_TEXT), ((g_unitConfig.cycleEndTimeHour > 12) ? (g_unitConfig.cycleEndTimeHour - 12) : g_unitConfig.cycleEndTimeHour),
-						((g_unitConfig.cycleEndTimeHour > 12) ? "PM" : "AM"));
+						((g_unitConfig.cycleEndTimeHour >= 12) ? "PM" : "AM"));
 			}
 			MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK);
 		}
