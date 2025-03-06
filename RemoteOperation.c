@@ -1809,9 +1809,9 @@ void HandleCAL(CMD_BUFFER_STRUCT* inCmd)
 			}
 			else div = (float)(g_bitAccuracyMidpoint * SENSOR_ACCURACY_100X_SHIFT * 2 /* normal gain */) / (float)(g_summaryList.cachedEntry.seismicSensorType);
 
-			normalizedMaxPeak = (float)g_pendingEventRecord.summary.calculated.r.peak / (float)div; if ((normalizedMaxPeak < 0.375) || (normalizedMaxPeak > 0.625)) { calResults = FAILED; }
-			normalizedMaxPeak = (float)g_pendingEventRecord.summary.calculated.v.peak / (float)div; if ((normalizedMaxPeak < 0.375) || (normalizedMaxPeak > 0.625)) { calResults = FAILED; }
-			normalizedMaxPeak = (float)g_pendingEventRecord.summary.calculated.t.peak / (float)div; if ((normalizedMaxPeak < 0.375) || (normalizedMaxPeak > 0.625)) { calResults = FAILED; }
+			normalizedMaxPeak = (float)g_summaryList.cachedEntry.channelSummary.r.peak / (float)div; if ((normalizedMaxPeak < 0.375) || (normalizedMaxPeak > 0.625)) { calResults = FAILED; }
+			normalizedMaxPeak = (float)g_summaryList.cachedEntry.channelSummary.v.peak / (float)div; if ((normalizedMaxPeak < 0.375) || (normalizedMaxPeak > 0.625)) { calResults = FAILED; }
+			normalizedMaxPeak = (float)g_summaryList.cachedEntry.channelSummary.t.peak / (float)div; if ((normalizedMaxPeak < 0.375) || (normalizedMaxPeak > 0.625)) { calResults = FAILED; }
 		}
 	}
 	else // Unable to perform a manual Cal
