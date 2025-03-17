@@ -453,6 +453,7 @@ void SetCalSignal(uint8 state)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* Old timings */
 void GenerateCalSignal(void)
 {
 	// Calibration signal timing
@@ -473,6 +474,7 @@ void GenerateCalSignal(void)
 	SetCalSignalEnable(OFF);
 	SoftUsecWait(55 * SOFT_MSECS);
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
