@@ -57,7 +57,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 		//----------------------------------------------------------------------------
 		case ALARM_1_ENABLE: // Active high
 		//----------------------------------------------------------------------------
-			//debug("Alarm 1 Enable: %s\r\n", mode == ON ? "On" : "Off");
+			//debug("Alarm 1 Enable: %s\r\n", mode == ON ? "On" : "Off"); // Can run in ISR context
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_ALERT_1_PORT, GPIO_ALERT_1_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_ALERT_1_PORT, GPIO_ALERT_1_PIN); }
 			break;
@@ -65,7 +65,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 		//----------------------------------------------------------------------------
 		case ALARM_2_ENABLE: // Active high
 		//----------------------------------------------------------------------------
-			//debug("Alarm 2 Enable: %s\r\n", mode == ON ? "On" : "Off");
+			//debug("Alarm 2 Enable: %s\r\n", mode == ON ? "On" : "Off"); // Can run in ISR context
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_ALERT_2_PORT, GPIO_ALERT_2_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_ALERT_2_PORT, GPIO_ALERT_2_PIN); }
 			break;
@@ -82,7 +82,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 		//----------------------------------------------------------------------------
 		case TRIGGER_OUT: // Active high
 		//----------------------------------------------------------------------------
-			//debug("External Trigger Out: %s\r\n", mode == ON ? "On" : "Off");
+			//debug("External Trigger Out: %s\r\n", mode == ON ? "On" : "Off"); // Can run in ISR context
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_EXTERNAL_TRIGGER_OUT_PORT, GPIO_EXTERNAL_TRIGGER_OUT_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_EXTERNAL_TRIGGER_OUT_PORT, GPIO_EXTERNAL_TRIGGER_OUT_PIN); }
 			break;
@@ -139,7 +139,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 		//----------------------------------------------------------------------------
 		case SENSOR_CHECK_ENABLE: // Active high
 		//----------------------------------------------------------------------------
-			debug("Sensor Check Enable: %s\r\n", mode == ON ? "On" : "Off");
+			//debug("Sensor Check Enable: %s\r\n", mode == ON ? "On" : "Off"); // Can run in ISR context
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_SENSOR_CHECK_ENABLE_PORT, GPIO_SENSOR_CHECK_ENABLE_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_SENSOR_CHECK_ENABLE_PORT, GPIO_SENSOR_CHECK_ENABLE_PIN); }
 			break;
