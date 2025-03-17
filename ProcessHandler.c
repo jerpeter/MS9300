@@ -299,7 +299,6 @@ void StartDataCollection(uint32 sampleRate)
 
 		StartAccelerometerAquisition();
 
-void SetupAccChannelConfig(uint32 sampleRate);
 		if (sampleRate > SAMPLE_RATE_4K) { sampleRate = SAMPLE_RATE_1K; }
 		SetupAccChannelConfig(sampleRate);
 	}
@@ -908,7 +907,6 @@ void StartADDataCollectionForCalibration(uint16 sampleRate)
 
 		StartAccelerometerAquisition();
 
-void SetupAccChannelConfig(uint32 sampleRate);
 		if (sampleRate > SAMPLE_RATE_4K) { sampleRate = SAMPLE_RATE_1K; }
 		SetupAccChannelConfig(sampleRate);
 	}
