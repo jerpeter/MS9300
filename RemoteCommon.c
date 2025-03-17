@@ -496,10 +496,11 @@ void AutoDialoutStateMachine(void)
 				// Update timer to current tick count
 				timer = g_lifetimeHalfSecondTickCount;
 
-				// Advance to Retry state
 #if 0 /* Original */
+				// Advance to Retry state
 				g_autoDialoutState = AUTO_DIAL_RETRY;
 #else
+				// Advance to Modem Reset state
 				g_autoDialoutState = AUTO_DIAL_RESET;
 #endif
 			}
@@ -600,10 +601,11 @@ void AutoDialoutStateMachine(void)
 				// Update timer to current tick count
 				timer = g_lifetimeHalfSecondTickCount;
 
-				// Advance to Retry state
 #if 0 /* Original */
+				// Advance to Retry state
 				g_autoDialoutState = AUTO_DIAL_RETRY;
 #else
+				// Advance to Modem Reset state
 				g_autoDialoutState = AUTO_DIAL_RESET;
 #endif
 			}
