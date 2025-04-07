@@ -365,7 +365,7 @@ void InitCellLTE(void)
 
 	//debug("Cell/LTE: Powered...\r\n");
 
-#if 1 /* Test */
+#if 0 /* Test */
 	debug("Cell/LTE: Waiting on device to send info... (Press Power or any key to stop)\r\n");
 	debugRaw("\r\n");
 	while (1)
@@ -392,7 +392,7 @@ extern uint32_t uart1BufferCount;
 	}
 #endif
 
-#if 0 /* Test, turns out default module firmware doesn't respond to requests per FAE */
+#if 1 /* Test, turns out default module firmware doesn't respond to requests per FAE */
 	//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(3));
 
 	int status = 0; int strLen;
@@ -1734,8 +1734,21 @@ void UART0_Read_Callback(mxc_uart_req_t *req, int error)
 	if(req->rxLen)
 	{
 #if 1 /* Copy to spare buffer */
-		memcpy(&g_spareBuffer[2048], req->rxData, req->rxLen);
-		uart0BufferCount = req->rxLen;
+		// Check if buffer has been read
+		if (uart0BufferFull == NO)
+		{
+			memcpy(&g_spareBuffer[2048], req->rxData, req->rxLen);
+			uart0BufferCount = req->rxLen;
+		}
+		else // (uart0BufferFull == YES)
+		{
+			// Check if the added Rx length fits into the unread buffer size of 2K (minus 1 for null)
+			if ((uart0BufferCount + req->rxLen) < 2047)
+			{
+				memcpy(&g_spareBuffer[(2048 + uart0BufferCount)], req->rxData, req->rxLen);
+				uart0BufferCount += req->rxLen;
+			}
+		}
 #if 0 /* Print buffer immediately */
 		debug("Cell/LTE data receive: <%s> (%d chars)\r\n", (char*)g_spareBuffer, req->rxLen);
 #else
@@ -1877,14 +1890,15 @@ void SetupUART(void)
     uart0ReadRequest.uart = MXC_UART0;
     uart0ReadRequest.rxData = g_Uart0_RxBuffer;
     //uart0ReadRequest.rxLen = UART_BUFFER_SIZE;
-	uart0ReadRequest.rxLen = (UART_BUFFER_SIZE / 8); // Shortened to see if output is any different
+	uart0ReadRequest.rxLen = 1; // Trigger size
     uart0ReadRequest.txLen = 0;
     uart0ReadRequest.callback = UART0_Read_Callback;
 
     // Setup the asynchronous request
     uart1ReadRequest.uart = MXC_UART1;
     uart1ReadRequest.rxData = g_Uart1_RxBuffer;
-    uart1ReadRequest.rxLen = UART_BUFFER_SIZE;
+    //uart1ReadRequest.rxLen = UART_BUFFER_SIZE;
+	uart1ReadRequest.rxLen = 1; // Trigger size
     uart1ReadRequest.txLen = 0;
     uart1ReadRequest.callback = UART1_Read_Callback;
 
