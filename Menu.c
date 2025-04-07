@@ -1611,13 +1611,9 @@ void DisplaySensorType(void)
 		else sprintf((char*)g_spareBuffer, "%s: %s", "SEISMIC GAIN/TYPE", getLangText(sensorTypeTextElement));
 		MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK);
 
-		if (g_acousticSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY)
+		if ((g_acousticSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY) && CheckIfAcousticSensorTypeValid(g_acousticSmartSensorMemory.sensorType))
 		{
-			if ((g_acousticSmartSensorMemory.sensorType == SENSOR_MIC_148_DB) || (g_acousticSmartSensorMemory.sensorType == SENSOR_MIC_160_DB) || (g_acousticSmartSensorMemory.sensorType == SENSOR_MIC_5_PSI) ||
-				(g_acousticSmartSensorMemory.sensorType == SENSOR_MIC_10_PSI))
-			{
-				acousticSensorType = g_acousticSmartSensorMemory.sensorType;
-			}
+			acousticSensorType = g_acousticSmartSensorMemory.sensorType;
 		}
 
 		GetAirSensorTypeName(&airSensorTypeName[0], acousticSensorType);
