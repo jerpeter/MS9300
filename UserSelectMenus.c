@@ -2341,7 +2341,7 @@ void HardwareIDMenuHandler(uint8 keyPressed, void* data)
 // Help Menu
 //=============================================================================
 //*****************************************************************************
-#define HELP_MENU_ENTRIES 8
+#define HELP_MENU_ENTRIES 9
 USER_MENU_STRUCT helpMenu[HELP_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, HELP_MENU_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, HELP_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
@@ -2354,7 +2354,8 @@ USER_MENU_STRUCT helpMenu[HELP_MENU_ENTRIES] = {
 {ITEM_4, 0, AUX_CHARGING_BYPASS_TEXT,	NO_TAG, {GPS_LOCATION_DISPLAY_CHOICE}},
 #endif
 {ITEM_5, 0, CHECK_SUMMARY_FILE_TEXT,	NO_TAG, {CHECK_SUMMARY_FILE_CHOICE}},
-{ITEM_6, 0, NULL_TEXT,	DUMP_BATTERY_LOG_TAG, {TESTING_CHOICE}},
+{ITEM_6, 0, NULL_TEXT,					DUMP_BATTERY_LOG_TAG, {TESTING_CHOICE}},
+{ITEM_7, 0, NULL_TEXT,					FCC_TEST_ALL_TAG, {FCC_TESTING_CHOICE}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&HelpMenuHandler}}
 };
 
@@ -2428,13 +2429,55 @@ void HelpMenuHandler(uint8 keyPressed, void* data)
 		{
 			ValidateSummaryListFileWithEventCache();
 		}
-		else // Testing
+		else if (helpMenu[newItemIndex].data == TESTING_CHOICE) // Testing
 		{
 extern void DumpBatteryLog(void);
 			DumpBatteryLog();
 #if 0 /* Smart Sensor testing */
 			SmartSensorTest();
 #endif
+		}
+		else // FCC_TESTING_CHOICE
+		{
+			if(GetPowerControlState(CELL_ENABLE) == OFF)
+			{
+				debug("Cell/LTE: Powering section...\r\n");
+				PowerControl(CELL_ENABLE, ON);
+			}
+
+			debug("FCC Testing All: Setting up Combo Mode 8K sampling with Auto Trigger timer...\r\n");
+			g_triggerRecord.opMode = COMBO_MODE;
+			g_triggerRecord.trec.sample_rate = SAMPLE_RATE_8K;
+			g_triggerRecord.trec.samplingMethod = FIXED_SAMPLING;
+			g_triggerRecord.srec.sensitivity = LOW;
+			g_triggerRecord.trec.dist_to_source = 0;
+			g_triggerRecord.trec.weight_per_delay = 0;
+			g_triggerRecord.trec.record_time = 3;
+			g_triggerRecord.trec.seismicTriggerLevel = NO_TRIGGER_CHAR;
+			g_triggerRecord.trec.airTriggerLevel = NO_TRIGGER_CHAR;
+			g_triggerRecord.trec.adjustForTempDrift = YES;
+			g_triggerRecord.trec.bitAccuracy = ACCURACY_16_BIT;
+			g_triggerRecord.trec.variableTriggerEnable = NO;
+			g_triggerRecord.trec.variableTriggerVibrationStandard = OSM_REGULATIONS_STANDARD;
+			g_triggerRecord.trec.variableTriggerPercentageLevel = 100;
+			g_triggerRecord.bgrec.barInterval = ONE_SEC_PRD;
+			g_triggerRecord.bgrec.summaryInterval = FIVE_MINUTE_INTVL;
+			g_triggerRecord.berec.barScale = BAR_SCALE_FULL;
+			g_triggerRecord.berec.barChannel = BAR_BOTH_CHANNELS;
+			g_triggerRecord.berec.barIntervalDataType = BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE;
+			g_triggerRecord.berec.impulseMenuUpdateSecs = 1;
+
+			g_unitConfig.externalTrigger = ENABLED;
+
+			if (CheckAndDisplayErrorThatPreventsMonitoring(PROMPT) == NO)
+			{
+				MessageBox(getLangText(STATUS_TEXT), "STARTING COMBO 8K WITH AUTO EVENT GENERATION, CELL ENABLED", MB_OK);
+
+				AssignSoftTimer(AUTO_EVENT_GENERATION_NUM, (1 * TICKS_PER_MIN), AutoEventGenerationCallback);
+
+				// Safe to enter monitor mode
+				SETUP_MENU_WITH_DATA_MSG(MONITOR_MENU, (uint32)g_triggerRecord.opMode);
+			}
 		}
 	}
 	else if (keyPressed == ESC_KEY)
