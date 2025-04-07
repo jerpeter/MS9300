@@ -157,6 +157,7 @@ void DisplaySmartSensorInfo(SMART_SENSOR_INFO situation);
 void DisplaySmartSensorSerialNumber(SMART_SENSOR_TYPE sensor);
 uint8 CheckIfBothSmartSensorsPresent(void);
 uint8 CheckIfNoSmartSensorsPresent(void);
+uint8 CheckIfAcousticSensorTypeValid(uint8 airSensorType);
 void UpdateWorkingCalibrationDate(void);
 uint8_t SmartSensorMuxSelectAndDriverEnable(SMART_SENSOR_TYPE sensor);
 void SmartSensorDisableMuxAndDriver(void);

@@ -911,15 +911,30 @@ void SmartSensorReadRomAndMemory(SMART_SENSOR_TYPE sensor)
 ///----------------------------------------------------------------------------
 void UpdateUnitSensorsWithSmartSensorTypes(void)
 {
-	if (g_seismicSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY)
+	if (g_currentSensorGroup == SENSOR_GROUP_A_1)
 	{
-		g_factorySetupRecord.seismicSensorType = (pow(2, g_seismicSmartSensorMemory.sensorType) * SENSOR_2_5_IN);
-	}
+		// Check if the Seismic 1 Smart Sensor if found
+		if (g_seismicSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY)
+		{
+			g_factorySetupRecord.seismicSensorType = (pow(2, g_seismicSmartSensorMemory.sensorType) * SENSOR_2_5_IN);
+		}
 
-	if (g_acousticSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY)
+		// Check if the Acoustic 2 Smart Sensor if found
+		if ((g_acoustic2SmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY) && CheckIfAcousticSensorTypeValid(g_acoustic2SmartSensorMemory.sensorType))
+		{
+			g_factorySetupRecord.acousticSensorType = g_acoustic2SmartSensorMemory.sensorType;
+		}
+	}
+	else // g_currentSensorGroup == SENSOR_GROUP_B_2
 	{
-		if ((g_acousticSmartSensorMemory.sensorType == SENSOR_MIC_148_DB) || (g_acousticSmartSensorMemory.sensorType == SENSOR_MIC_160_DB) || (g_acousticSmartSensorMemory.sensorType == SENSOR_MIC_5_PSI) ||
-			(g_acousticSmartSensorMemory.sensorType == SENSOR_MIC_10_PSI))
+		// Check if the Seismic 2 Smart Sensor if found
+		if (g_seismic2SmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY)
+		{
+			g_factorySetupRecord.seismicSensorType = (pow(2, g_seismic2SmartSensorMemory.sensorType) * SENSOR_2_5_IN);
+		}
+
+		// Check if the Acoustic 1 Smart Sensor if found
+		if ((g_acousticSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY) && CheckIfAcousticSensorTypeValid(g_acousticSmartSensorMemory.sensorType))
 		{
 			g_factorySetupRecord.acousticSensorType = g_acousticSmartSensorMemory.sensorType;
 		}
@@ -1110,6 +1125,21 @@ uint8 CheckIfBothSmartSensorsPresent(void)
 uint8 CheckIfNoSmartSensorsPresent(void)
 {
 	if (((g_acousticSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY) != SMART_SENSOR_OVERLAY_KEY) && ((g_seismicSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY) != SMART_SENSOR_OVERLAY_KEY))
+	{
+		return YES;
+	}
+	else
+	{
+		return NO;
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8 CheckIfAcousticSensorTypeValid(uint8 airSensorType)
+{
+	if ((airSensorType == SENSOR_MIC_148_DB) || (airSensorType == SENSOR_MIC_160_DB) || (airSensorType == SENSOR_MIC_5_PSI) || (airSensorType == SENSOR_MIC_10_PSI))
 	{
 		return YES;
 	}
