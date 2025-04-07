@@ -140,8 +140,16 @@ void MonitorMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 			}
 
 			// Read and cache Smart Sensor data
-			SmartSensorReadRomAndMemory(SEISMIC_SENSOR);
-			SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR);
+			if (g_currentSensorGroup == SENSOR_GROUP_A_1)
+			{
+				SmartSensorReadRomAndMemory(SEISMIC_SENSOR);
+				SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR_2);
+			}
+			else // (g_currentSensorGroup == SENSOR_GROUP_B_2)
+			{
+				SmartSensorReadRomAndMemory(SEISMIC_SENSOR_2);
+				SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR);
+			}
 			UpdateUnitSensorsWithSmartSensorTypes();
 
 			UpdateWorkingCalibrationDate();
