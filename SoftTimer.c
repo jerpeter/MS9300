@@ -681,3 +681,20 @@ void SystemLockTimerCallback(void)
 {
 	RemoteSystemLock(SET);
 }
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void AutoEventGenerationCallback(void)
+{
+	debug("Auto Event Gen: Signaling an external event\r\n");
+
+	if (g_sampleProcessing == ACTIVE_STATE)
+	{
+		// Establish trigger signal
+		g_externalTrigger = EXTERNAL_TRIGGER_EVENT;
+	}
+
+	// Reset timer
+	AssignSoftTimer(AUTO_EVENT_GENERATION_NUM, (1 * TICKS_PER_MIN), AutoEventGenerationCallback);
+}
