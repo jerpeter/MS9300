@@ -801,7 +801,7 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 	uint8 length;
 	DATE_TIME_STRUCT time;
 	float div, r1, r2, r3, v1, v2, v3, t1, t2, t3;
-	uint16 sensorType;
+	uint16 sensorType = g_factorySetupRecord.seismicSensorType;
 	uint8 acousticSensorType = g_factorySetupRecord.acousticSensorType;
 
 	wnd_layout_ptr->curr_row = wnd_layout_ptr->start_row;
@@ -813,20 +813,30 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 	uint8 gainFactor = (uint8)((g_triggerRecord.srec.sensitivity == LOW) ? 2 : 4);
 	div = (float)(g_bitAccuracyMidpoint * g_sensorInfo.sensorAccuracy * gainFactor) / (float)(g_factorySetupRecord.seismicSensorType);
 #else
-	// Check if optioned to use Seismic Smart Sensor and Seismic smart sensor was successfully read
-	if ((g_factorySetupRecord.calibrationDateSource == SEISMIC_SMART_SENSOR_CAL_DATE) && (g_seismicSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY))
+	if (g_currentSensorGroup == SENSOR_GROUP_A_1)
 	{
-		sensorType = (pow(2, g_seismicSmartSensorMemory.sensorType) * SENSOR_2_5_IN);
-	}
-	else // Default to factory setup record sensor type
-	{
-		sensorType = g_factorySetupRecord.seismicSensorType;
-	}
+		// Check if the Seismic 1 Smart Sensor if found
+		if (g_seismicSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY)
+		{
+			sensorType = (pow(2, g_seismicSmartSensorMemory.sensorType) * SENSOR_2_5_IN);
+		}
 
-	if (g_acousticSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY)
+		// Check if the Acoustic 2 Smart Sensor if found
+		if ((g_acoustic2SmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY) && CheckIfAcousticSensorTypeValid(g_acoustic2SmartSensorMemory.sensorType))
+		{
+			acousticSensorType = g_acoustic2SmartSensorMemory.sensorType;
+		}
+	}
+	else // g_currentSensorGroup == SENSOR_GROUP_B_2
 	{
-		if ((g_acousticSmartSensorMemory.sensorType == SENSOR_MIC_148_DB) || (g_acousticSmartSensorMemory.sensorType == SENSOR_MIC_160_DB) || (g_acousticSmartSensorMemory.sensorType == SENSOR_MIC_5_PSI) ||
-			(g_acousticSmartSensorMemory.sensorType == SENSOR_MIC_10_PSI))
+		// Check if the Seismic 2 Smart Sensor if found
+		if (g_seismic2SmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY)
+		{
+			sensorType = (pow(2, g_seismic2SmartSensorMemory.sensorType) * SENSOR_2_5_IN);
+		}
+
+		// Check if the Acoustic 1 Smart Sensor if found
+		if ((g_acousticSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY) && CheckIfAcousticSensorTypeValid(g_acousticSmartSensorMemory.sensorType))
 		{
 			acousticSensorType = g_acousticSmartSensorMemory.sensorType;
 		}
@@ -1097,10 +1107,10 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 #else /* Test adding in Acc results */
 			float rCalc, tCalc, vCalc, xCalc, yCalc, zCalc, aCalc;
-			rCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[1]) > g_sensorCalChanMax[1] ? abs(g_sensorCalChanMin[1]) : g_sensorCalChanMax[1]);
-			tCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3]);
-			vCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2]);
-			aCalc = (float)5.120 / (float)32768 * (float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]);
+			rCalc = (float)((float)((abs(g_sensorCalChanMin[1]) > g_sensorCalChanMax[1] ? abs(g_sensorCalChanMin[1]) : g_sensorCalChanMax[1])) / (float)div);
+			tCalc = (float)((float)((abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3])) / (float)div);
+			vCalc = (float)((float)((abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2])) / (float)div);
+			aCalc = (float)HexToMB((float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType);
 			xCalc = (float)8.000 / (float)32768 * (float)(abs(g_sensorCalChanMin[4]) > g_sensorCalChanMax[4] ? abs(g_sensorCalChanMin[4]) : g_sensorCalChanMax[4]);
 			yCalc = (float)8.000 / (float)32768 * (float)(abs(g_sensorCalChanMin[5]) > g_sensorCalChanMax[5] ? abs(g_sensorCalChanMin[5]) : g_sensorCalChanMax[5]);
 			zCalc = (float)8.000 / (float)32768 * (float)(abs(g_sensorCalChanMin[6]) > g_sensorCalChanMax[6] ? abs(g_sensorCalChanMin[6]) : g_sensorCalChanMax[6]);
