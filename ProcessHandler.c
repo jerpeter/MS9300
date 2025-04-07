@@ -486,6 +486,10 @@ void StopMonitoring(uint8 mode, uint8 operation)
 	// Turn on the Green keypad LED
 	// Todo: Set the correct LED
 
+#if 1 /* FCC testing option */
+	ClearSoftTimer(AUTO_EVENT_GENERATION_NUM);
+#endif
+
 	// Check if Auto Monitor is active and not in monitor mode
 	if ((g_unitConfig.autoMonitorMode != AUTO_NO_TIMEOUT) && (operation == EVENT_PROCESSING))
 	{
