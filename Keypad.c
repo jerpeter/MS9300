@@ -375,6 +375,21 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 							BootLoadManager();
 						}
 #endif
+#if 0 /* Test */
+						debug("Flagging Auto Dialout start\r\n");
+						raiseSystemEventFlag(AUTO_DIALOUT_EVENT);
+
+						if (g_lcdPowerFlag == ENABLED)
+						{
+							ClearSoftTimer(LCD_BACKLIGHT_ON_OFF_TIMER_NUM);
+							ClearSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM);
+							LcdPwTimerCallBack();
+						}
+#endif
+#if 0 /* Test */
+						g_tcpServerStartStage = 1;
+						AssignSoftTimer(TCP_SERVER_START_NUM, (1 * TICKS_PER_SEC), TcpServerStartCallback);
+#endif
 					}
 					//===================================================
 					// On-Help Combo key
@@ -385,6 +400,33 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 						g_breakpointCause = BP_END;
 
 						__asm__ __volatile__ ("breakpoint");
+#endif
+#if 0 /* Test */
+static uint8_t s_bcChargeState = ON;
+						s_bcChargeState ^= ON;
+						SetBattChargerChargeState(s_bcChargeState);
+						debug("Battery charging toggle: %s\r\n", ((s_bcChargeState == ON) ? "Enabled" : "Disabled"));
+						// Clear out the message parameters
+						mn_msg.cmd = 0; mn_msg.length = 0; mn_msg.data[0] = 0;
+#endif
+#if 1 /* Test */
+						if (g_sampleProcessing == ACTIVE_STATE)
+						{
+							// Establish trigger signal
+							g_externalTrigger = EXTERNAL_TRIGGER_EVENT;
+						}
+#endif
+					}
+					//===================================================
+					// On-Help Combo key
+					//---------------------------------------------------
+					else if (keyPressed == BACKLIGHT_KEY)
+					{
+#if 0 /* Test */
+						if (IsSoftTimerActive(AUTO_EVENT_GENERATION_NUM)) { ClearSoftTimer(AUTO_EVENT_GENERATION_NUM); debug("Battery charging toggle timer: Disabled\r\n"); }
+						else { AssignSoftTimer(AUTO_EVENT_GENERATION_NUM, (20 * TICKS_PER_SEC), AutoEventGenerationCallback); debug("Battery charging toggle timer: Enabled (20 second cycle)\r\n"); }
+						// Clear out the message parameters
+						mn_msg.cmd = 0; mn_msg.length = 0; mn_msg.data[0] = 0;
 #endif
 					}
 				}
