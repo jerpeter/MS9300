@@ -399,28 +399,115 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 	{
 		char debugInfo[32];
 		sprintf(debugInfo, "Battery: %0.3fV", (double)((float)FuelGaugeGetVoltage() / 1000));
-		ft81x_stream_start(); ft81x_cmd_text(580, 40, 28, 0, debugInfo); ft81x_stream_stop();
+		ft81x_stream_start(); ft81x_cmd_text(550, 40, 28, 0, debugInfo); ft81x_stream_stop();
 
 		sprintf(debugInfo, "Current: %0.3fmA", (double)((float)FuelGaugeGetCurrent() / 1000));
 		if (FuelGaugeGetCurrent() > 0)
 		{
 			ft81x_stream_start(); ft81x_color_rgb32(0x068c3b); ft81x_stream_stop();
-			ft81x_stream_start(); ft81x_cmd_text(580, 60, 28, 0, debugInfo); ft81x_stream_stop();
+			ft81x_stream_start(); ft81x_cmd_text(550, 60, 28, 0, debugInfo); ft81x_stream_stop();
 			ft81x_stream_start(); ft81x_color_rgb32(0x0000ff); ft81x_stream_stop();
 		}
-		else { ft81x_stream_start(); ft81x_cmd_text(580, 60, 28, 0, debugInfo); ft81x_stream_stop(); }
+		else { ft81x_stream_start(); ft81x_cmd_text(550, 60, 28, 0, debugInfo); ft81x_stream_stop(); }
 
 		sprintf(debugInfo, "Temperature: %dF", FuelGaugeGetTemperature());
-		ft81x_stream_start(); ft81x_cmd_text(580, 80, 28, 0, debugInfo); ft81x_stream_stop();
+		ft81x_stream_start(); ft81x_cmd_text(550, 80, 28, 0, debugInfo); ft81x_stream_stop();
 
 		sprintf(debugInfo, "Avg Current: %.0fmA", (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount));
-		ft81x_stream_start(); ft81x_cmd_text(580, 120, 28, 0, debugInfo); ft81x_stream_stop();
+		ft81x_stream_start(); ft81x_cmd_text(550, 120, 28, 0, debugInfo); ft81x_stream_stop();
 
 		uint32_t runTime = g_lifetimeHalfSecondTickCount >> 1;
 		if (runTime < (60 * 60)) { sprintf(debugInfo, "Run Time: %dm %ds", ((runTime) / 60), (runTime % 60)); }
 		else if (runTime < (60 * 60 * 24)) { sprintf(debugInfo, "Run Time: %dh %dm %ds", ((runTime) / 3600), ((runTime % 3600) / 60), (runTime % 60)); }
 		else { sprintf(debugInfo, "Run Time: %dd %dh %dm", ((runTime) / (3600 * 24)), ((runTime % (3600 * 24)) / 3600), ((runTime % 3600) / 60)); }
-		ft81x_stream_start(); ft81x_cmd_text(580, 140, 28, 0, debugInfo); ft81x_stream_stop();
+		ft81x_stream_start(); ft81x_cmd_text(550, 140, 28, 0, debugInfo); ft81x_stream_stop();
+
+		// Check if the Cell Modem is actvie (and only display when the LCD screen is being updated)
+		if ((g_modemSetupRecord.modemStatus == YES) && (IsSoftTimerActive(MENU_UPDATE_TIMER_NUM)))
+		{
+			// Cell Config: ADO Events/ADO Evts/Config/Status + Server
+			sprintf(debugInfo, "Cell Modem Config:");
+			ft81x_stream_start(); ft81x_cmd_text(550, 220, 28, 0, debugInfo); ft81x_stream_stop();
+
+			if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
+			{
+				sprintf(debugInfo, "    Evts/Cfg/Stat%s", ((g_cellModemSetupRecord.tcpServer == YES) ? " + Svr" : ""));
+			}
+			else
+			{
+				sprintf(debugInfo, "    Events only%s", ((g_cellModemSetupRecord.tcpServer == YES) ? " + Svr" : ""));
+			}
+			ft81x_stream_start(); ft81x_cmd_text(550, 240, 28, 0, debugInfo); ft81x_stream_stop();
+
+			// Cell Modem: <status>
+			if (g_modemStatus.modemAvailable == NO)
+			{
+				sprintf(debugInfo, "Cell Modem: Not found");
+			}
+			else if (GetPowerControlState(CELL_ENABLE) == YES)
+			{
+				sprintf(debugInfo, "Cell Modem: Active");
+			}
+			else
+			{
+				sprintf(debugInfo, "Cell Modem: Powered off");
+			}
+			ft81x_stream_start(); ft81x_cmd_text(550, 260, 28, 0, debugInfo); ft81x_stream_stop();
+
+			// Current mode: ADO/Server
+			if ((g_cellModemSetupRecord.tcpServer == YES) && (g_autoDialoutState == AUTO_DIAL_IDLE))
+			{
+				sprintf(debugInfo, "Curr Mode: TCP Listen Svr");
+			}
+			else
+			{
+				sprintf(debugInfo, "Curr Mode: Auto Dialout");
+			}
+			ft81x_stream_start(); ft81x_cmd_text(550, 280, 28, 0, debugInfo); ft81x_stream_stop();
+
+			// Current state: <state>
+			if ((g_cellModemSetupRecord.tcpServer == YES) && (g_autoDialoutState == AUTO_DIAL_IDLE))
+			{
+				if (g_tcpServerStartStage == 0)
+				{
+					if (g_modemStatus.remoteConnectionActive == YES)
+					{
+						sprintf(debugInfo, "Curr State: Remote Cli conn");
+					}
+					else
+					{
+						sprintf(debugInfo, "Curr State: Listening...");
+					}
+				}
+				else
+				{
+					sprintf(debugInfo, "Curr State: Connecting...");
+				}
+			}
+			else // ADO
+			{
+				sprintf(debugInfo, "Cur State: ADO %s", AdoStateGetDebugString());
+			}
+			ft81x_stream_start(); ft81x_cmd_text(550, 300, 28, 0, debugInfo); ft81x_stream_stop();
+
+			// Cell Network Connect Time: <data>
+			sprintf(debugInfo, "Cell Network Conn Time:");
+			ft81x_stream_start(); ft81x_cmd_text(550, 320, 28, 0, debugInfo); ft81x_stream_stop();
+
+			if ((g_autoDialoutState == AUTO_DIAL_INIT) || (g_tcpServerStartStage == 5))
+			{
+				sprintf(debugInfo, "    Searching: %ds", GetCurrentCellConnectTime());
+			}
+			else if (GetCellConnectStatsAverage() == 0)
+			{
+				sprintf(debugInfo, "    None");
+			}
+			else
+			{
+				sprintf(debugInfo, "    Last: %ds (Avg: %ds)", GetCellConnectStatsLastConenct(), GetCellConnectStatsAverage());
+			}
+				ft81x_stream_start(); ft81x_cmd_text(550, 340, 28, 0, debugInfo); ft81x_stream_stop();
+		}
 	}
 #endif
 
@@ -442,6 +529,17 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(3));
 	PowerControl(LCD_POWER_ENABLE, OFF);
 	PowerControl(LCD_POWER_DOWN, ON);
+#endif
+
+#if 0 /* Test */
+	if (g_spi2State & SPI2_ACC_ON)
+	{
+		// Test dummy read per datasheet
+		uint8_t registerAddress = 0x00;
+		uint8_t trash;
+extern int GetAccRegister(uint8_t registerAddress, uint8_t* registerData, uint8_t dataSize);
+		GetAccRegister(registerAddress, &trash, sizeof(trash));
+	}
 #endif
 }
 
