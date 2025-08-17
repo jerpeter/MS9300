@@ -286,9 +286,15 @@ void MonitorMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 				break;
 
 				case (HELP_KEY):
-#if 1 /* Test */
+#if 0 /* Test */
 					raiseSystemEventFlag(UPDATE_OFFSET_EVENT);
-#else
+#endif
+#if 0 /* Test */
+					debug("Enabling Cal Mux for Sensor group A\r\n");
+					SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A);
+					SetCalMuxPreADEnableState(ON);
+#endif
+#if 0 /* Test */
 					ClearSoftTimer(LCD_BACKLIGHT_ON_OFF_TIMER_NUM);
 					ClearSoftTimer(LCD_POWER_ON_OFF_TIMER_NUM);
 					LcdPwTimerCallBack();
@@ -706,18 +712,27 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 				tempR = ((float)g_bargraphSummaryInterval.r.peak / (float)div);
 				tempT = ((float)g_bargraphSummaryInterval.t.peak / (float)div);
 				tempV = ((float)g_bargraphSummaryInterval.v.peak / (float)div);
+#if 1 /* Test */
+				strcpy(srBuff, "Sum");
+#endif
 			}
 			else if (g_displayBargraphResultsMode == JOB_PEAK_RESULTS)
 			{
 				tempR = ((float)g_rJobPeak / (float)div);
 				tempT = ((float)g_tJobPeak / (float)div);
 				tempV = ((float)g_vJobPeak / (float)div);
+#if 1 /* Test */
+				strcpy(srBuff, "Job");
+#endif
 			}
 			else // g_displayBargraphResultsMode == IMPULSE_RESULTS
 			{
 				tempR = ((float)g_rImpulsePeak / (float)div);
 				tempT = ((float)g_tImpulsePeak / (float)div);
 				tempV = ((float)g_vImpulsePeak / (float)div);
+#if 1 /* Test */
+				strcpy(srBuff, "Imp");
+#endif
 			}
 
 			if ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) || (IsSeismicSensorAnAccelerometer(g_factorySetupRecord.seismicSensorType)))
@@ -739,19 +754,22 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			if (tempR > 100)
 				sprintf(displayFormat, "%4d  ", (int)tempR);
 			else
-				sprintf(displayFormat, "%4.1f  ", (double)tempR);
+				//sprintf(displayFormat, "%4.1f  ", (double)tempR);
+				sprintf(displayFormat, "%4.3f  ", (double)tempR);
 			strcat(buff, displayFormat);
 		
 			if (tempT > 100)
 				sprintf(displayFormat, "%4d  ", (int)tempT);
 			else
-				sprintf(displayFormat, "%4.1f  ", (double)tempT);
+				//sprintf(displayFormat, "%4.1f  ", (double)tempT);
+				sprintf(displayFormat, "%4.3f  ", (double)tempT);
 			strcat(buff, displayFormat);
 
 			if (tempV > 100)
 				sprintf(displayFormat, "%4d  ", (int)tempV);
 			else
-				sprintf(displayFormat, "%4.1f  ", (double)tempV);
+				//sprintf(displayFormat, "%4.1f  ", (double)tempV);
+				sprintf(displayFormat, "%4.3f  ", (double)tempV);
 			strcat(buff, displayFormat);
 
 			length = 21;
@@ -760,6 +778,16 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 			WndMpWrtString((uint8*)(&buff[0]),wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 			wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
+
+#if 0 /* Test debug for battery charging effect, Results/ADC/Volts */
+			sprintf((char*)&g_debugBuffer[0], "%s %4.3f %4.3f %4.3f, ADC %4d %4d %4d, V/s %4.3f %4.3f %4.3f", ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) ? "in/s" : "mm/s"),
+					(double)tempR, (double)tempT, (double)tempV, g_rImpulsePeak, g_tImpulsePeak, g_vImpulsePeak,
+					(double)((float)g_rImpulsePeak * 2.5 / 32768), (double)((float)g_tImpulsePeak * 2.5 / 32768), (double)((float)g_vImpulsePeak * 2.5 / 32768));
+			debug("%s, RTV: %s\r\n", (char*)&srBuff[0], (char*)&g_debugBuffer[0]);
+#elif 1 /* Test debug for battery charging effect, Results/ADC */
+			sprintf((char*)&g_debugBuffer[0], "%s %4.3f %4.3f %4.3f, ADC %4d %4d %4d", ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) ? "in/s" : "mm/s"), (double)tempR, (double)tempT, (double)tempV, g_rImpulsePeak, g_tImpulsePeak, g_vImpulsePeak);
+			debug("%s, RTV: %s\r\n", (char*)&srBuff[0], (char*)&g_debugBuffer[0]);
+#endif
 
 			//-----------------------------------------------------------------------
 			// Peak Freq Results
