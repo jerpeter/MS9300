@@ -406,6 +406,8 @@ void Power_good_battery_charger_irq(void)
 	//debugRaw("_");
 	debugWarn("-(ISR) PG BC-\r\n");
 
+	g_batteryChargingStatusChange = YES;
+
 	// Clear PG BC interrupt flag (Port 0, Pin 12)
 	GPIO_POWER_GOOD_BATTERY_CHARGE_PORT->int_clr = GPIO_POWER_GOOD_BATTERY_CHARGE_PIN;
 }
