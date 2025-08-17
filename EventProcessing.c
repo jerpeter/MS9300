@@ -2014,7 +2014,7 @@ extern FRESULT err; //FFat Result (Struct)
 extern FILINFO fno; //FFat File Information Object
     err = f_stat(directoryPath, &fno);
     if (err == FR_NO_FILE) {
-        debug("Creating directory...\n");
+        debug("Creating directory...\r\n");
         if ((err = f_mkdir(directoryPath)) != FR_OK) { debugErr("Unable to create directory: %s\r\n", directoryPath); }
     }
 }

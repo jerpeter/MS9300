@@ -132,7 +132,7 @@ void StopInteralSampleTimer(void)
 ///----------------------------------------------------------------------------
 void GPIO0_IRQHandler(void)
 {
-    //debug("GPIO Int Handler Port 0 processing...\n");
+    //debug("GPIO Int Handler Port 0 processing...\r\n");
     MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO0));
 }
 
@@ -141,7 +141,7 @@ void GPIO0_IRQHandler(void)
 ///----------------------------------------------------------------------------
 void GPIO1_IRQHandler(void)
 {
-    //debug("GPIO Int Handler Port 1 processing...\n");
+    //debug("GPIO Int Handler Port 1 processing...\r\n");
     MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO1));
 }
 
@@ -150,7 +150,7 @@ void GPIO1_IRQHandler(void)
 ///----------------------------------------------------------------------------
 void GPIO2_IRQHandler(void)
 {
-    //debug("GPIO Int Handler Port 2 processing...\n");
+    //debug("GPIO Int Handler Port 2 processing...\r\n");
     MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO2));
 }
 
@@ -159,7 +159,7 @@ void GPIO2_IRQHandler(void)
 ///----------------------------------------------------------------------------
 void GPIO3_IRQHandler(void)
 {
-    //debug("GPIO Int Handler Port 3 processing...\n");
+    //debug("GPIO Int Handler Port 3 processing...\r\n");
     MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO3));
 }
 
