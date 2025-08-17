@@ -300,6 +300,13 @@ extern uint8_t batteryChargerInterruptActive;
 		debug("BC Int: Reg0: %04x, Reg1: %04x\r\n", GetBattChargerStatusReg0(), GetBattChargerStatusReg1());
 		batteryChargerInterruptActive = NO;
 	}
+
+	// Check for Battery charging status change
+	if (g_batteryChargingStatusChange)
+	{
+		debug("BC: Charging %s\r\n", ((GetPowerGoodBatteryChargerState() == YES) ? "Started" : "Stopped"));
+		g_batteryChargingStatusChange = NO;
+	}
 #endif
 
 	//___________________________________________________________________________________________
@@ -614,19 +621,19 @@ extern uint8_t uart0BufferFull;
 extern uint32_t uart0BufferCount;
 extern uint8_t uart1BufferFull;
 extern uint32_t uart1BufferCount;
-		if (uart0BufferFull)
-		{
-			UNUSED(uart0BufferCount); debugRaw("<Cell: %s> ", (char*)&g_spareBuffer[2048]);
-			memset(&g_spareBuffer[2048], 0, 2048);
-			uart0BufferFull = NO;
-		}
+	if (uart0BufferFull)
+	{
+		UNUSED(uart0BufferCount); debugRaw("<Cell: %s> ", (char*)&g_spareBuffer[2048]);
+		memset(&g_spareBuffer[2048], 0, 2048);
+		uart0BufferFull = NO;
+	}
 
-		if (uart1BufferFull)
-		{
-			debugRaw("<%s> (U1, %d chars)\r\n", (char*)&g_spareBuffer[4096], uart1BufferCount);
-			memset(&g_spareBuffer[4096], 0, 2048);
-			uart0BufferFull = NO;
-		}
+	if (uart1BufferFull)
+	{
+		debugErr("Should not get Rx data on Uart1, Found: <%s> (%d chars)\r\n", (char*)&g_spareBuffer[4096], uart1BufferCount);
+		memset(&g_spareBuffer[4096], 0, 2048);
+		uart1BufferFull = NO;
+	}
 #endif
 }
 
@@ -2138,19 +2145,6 @@ int main(void)
 	InitSoftwareSettings_MS9300();
 	EnableGlobalException();
 
-#if 0 /* Test */
-extern void SetupUSBComposite(void);
-	SetupUSBComposite();
-#endif
-
-#if 0 /* Test */
-	TestExternalDeviceAccessAndComms();
-#endif
-
-#if 0 /* Hardware test phase */
-	// End execution here for now until hardware passes testing
-	while (1) {}
-#else /* Normal operation */
  	// ==============
 	// Executive loop
 	// ==============
@@ -2173,9 +2167,10 @@ extern void SetupUSBComposite(void);
 
 		// Handle USB device
 		//UsbDeviceManager();
+#if 1 /* Test */
 extern void UsbReportEvents(void);
 		UsbReportEvents();
-		
+#endif
 		// Handle processing the factory setup
 		FactorySetupManager();
 
@@ -2196,7 +2191,6 @@ extern void UsbReportEvents(void);
 #endif
 	}
 	// End of NS9300 Main
-#endif
 
 	// End of the world
 	return (0);
