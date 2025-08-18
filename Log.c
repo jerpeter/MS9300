@@ -694,7 +694,7 @@ void FillInAdditionalExceptionReportInfo(FIL file)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void AppendBatteryLogEntryFile(void)
+void AppendBatteryLogEntryFile(uint8 eventType)
 {
 	FIL file;
 	uint32_t writeSize;
@@ -702,6 +702,7 @@ void AppendBatteryLogEntryFile(void)
 #if 0 /* Test */
 	int length;
 #endif
+	DATE_TIME_STRUCT ct = GetCurrentTime();
 
     if ((f_open(&file, (const TCHAR*)pathAndFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
@@ -711,25 +712,33 @@ void AppendBatteryLogEntryFile(void)
 	{
 		if (f_size(&file) == 0)
 		{
-			sprintf((char*)g_spareBuffer, "%s %s on %d/%d/20%d @ %02d:%02d:%02d\r\n", getLangText(BATTERY_TEXT), "LOG CREATION", g_lastReadExternalRtcTime.day, g_lastReadExternalRtcTime.month, g_lastReadExternalRtcTime.year,
-					g_lastReadExternalRtcTime.hour, g_lastReadExternalRtcTime.min, g_lastReadExternalRtcTime.sec);
+			sprintf((char*)g_spareBuffer, "%s %s on %d/%d/20%d @ %02d:%02d:%02d\r\n", getLangText(BATTERY_TEXT), "LOG CREATION", ct.day, ct.month, ct.year,	ct.hour, ct.min, ct.sec);
 			f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
 
-			sprintf((char*)g_spareBuffer, "--- Unit already running: %d/%d/20%d @ %02d:%02d:%02d\r\n", g_lastReadExternalRtcTime.day, g_lastReadExternalRtcTime.month, g_lastReadExternalRtcTime.year,
-					g_lastReadExternalRtcTime.hour, g_lastReadExternalRtcTime.min, g_lastReadExternalRtcTime.sec);
+			sprintf((char*)g_spareBuffer, "--- Unit already running: %d/%d/20%d @ %02d:%02d:%02d\r\n", ct.day, ct.month, ct.year, ct.hour, ct.min, ct.sec);
 			f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
 		}
 
 extern int32_t testLifetimeCurrentAvg;
 extern uint32_t testLifetimeCurrentAvgCount;
-		sprintf((char*)g_spareBuffer, "%d/%d/20%d @ %02d:%02d:%02d: %s, %.0fmA avg\r\n", g_lastReadExternalRtcTime.day, g_lastReadExternalRtcTime.month, g_lastReadExternalRtcTime.year,
-					g_lastReadExternalRtcTime.hour, g_lastReadExternalRtcTime.min, g_lastReadExternalRtcTime.sec,
-					FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount));
+
+		if (eventType == EXT_CHARGE_VOLTAGE)
+		{
+			sprintf((char*)g_spareBuffer, "%d/%d/20%d @ %02d:%02d:%02d: Battery charging: %s\r\n", ct.day, ct.month, ct.year, ct.hour, ct.min, ct.sec,
+						((GetPowerGoodBatteryChargerState() == YES) ? "Started" : "Stopped"));
+		}
+		else // BATTERY_VOLTAGE
+		{
+			sprintf((char*)g_spareBuffer, "%d/%d/20%d @ %02d:%02d:%02d: %s, %.0fmA avg\r\n", ct.day, ct.month, ct.year, ct.hour, ct.min, ct.sec,
+						FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount));
+		}
 		f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
 
 		// Done writing, close the monitor log file
 		f_close(&file);
 
+		if (eventType == EXT_CHARGE_VOLTAGE) { debug("Battery log: Charging %s\r\n", ((GetPowerGoodBatteryChargerState() == YES) ? "Started" : "Stopped")); }
+		else
 		debug("Battery log: Updated\r\n");
 	}
 }
@@ -742,6 +751,7 @@ void StartBatteryLog(void)
 	FIL file;
 	uint32_t writeSize;
 	char pathAndFilename[] = LOGS_PATH BATTERY_LOG_FILE;
+	DATE_TIME_STRUCT ct = GetCurrentTime();
 
     if ((f_open(&file, (const TCHAR*)pathAndFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
@@ -751,24 +761,29 @@ void StartBatteryLog(void)
 	{
 		if (f_size(&file) == 0)
 		{
-			sprintf((char*)g_spareBuffer, "%s %s on %d/%d/20%d @ %02d:%02d:%02d\r\n", getLangText(BATTERY_TEXT), "LOG CREATION", g_lastReadExternalRtcTime.day, g_lastReadExternalRtcTime.month, g_lastReadExternalRtcTime.year,
-					g_lastReadExternalRtcTime.hour, g_lastReadExternalRtcTime.min, g_lastReadExternalRtcTime.sec);
+			sprintf((char*)g_spareBuffer, "%s %s on %d/%d/20%d @ %02d:%02d:%02d\r\n", getLangText(BATTERY_TEXT), "LOG CREATION", ct.day, ct.month, ct.year, ct.hour, ct.min, ct.sec);
 			f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
 
 			debug("Battery log: File created\r\n");
 		}
 
-		sprintf((char*)g_spareBuffer, "--- Unit startup: %d/%d/20%d @ %02d:%02d:%02d\r\n", g_lastReadExternalRtcTime.day, g_lastReadExternalRtcTime.month, g_lastReadExternalRtcTime.year,
-					g_lastReadExternalRtcTime.hour, g_lastReadExternalRtcTime.min, g_lastReadExternalRtcTime.sec);
+		sprintf((char*)g_spareBuffer, "--- Unit startup: %d/%d/20%d @ %02d:%02d:%02d\r\n", ct.day, ct.month, ct.year, ct.hour, ct.min, ct.sec);
 
 		// Write Battery log initial creation line
 		f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
+
+		if (GetPowerGoodBatteryChargerState() == YES)
+		{
+			sprintf((char*)g_spareBuffer, "%d/%d/20%d @ %02d:%02d:%02d: Battery charging: %s\r\n", ct.day, ct.month, ct.year, ct.hour, ct.min, ct.sec,
+						((GetPowerGoodBatteryChargerState() == YES) ? "Started" : "Stopped"));
+			f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
+		}
 
 		// Done writing, close the monitor log file
 		f_close(&file);
 	}
 
-	AppendBatteryLogEntryFile();
+	AppendBatteryLogEntryFile(BATTERY_VOLTAGE);
 
 	AssignSoftTimer(BATTERY_LOG_TIMER_NUM, (g_unitConfig.copies * TICKS_PER_MIN), BatteryLogTimerCallback);
 }
