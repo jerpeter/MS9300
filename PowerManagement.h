@@ -149,6 +149,7 @@ uint16_t GetBattChargerJunctionTemperature(void);
 uint16_t GetBattChargerBatteryDischargeCurrent(void);
 uint16_t GetBattChargerInputVoltageInDischargeMode(void);
 uint16_t GetBattChargerOutputCurrentInDischargeMode(void);
+void SetBattChargerChargeState(uint8_t state);
 
 int Ltc2944_get_voltage(int* val);
 void Ltc2944_i2c_shutdown(void);

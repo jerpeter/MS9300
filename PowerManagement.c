@@ -28,6 +28,7 @@
 //#include "navigation.h"
 
 #include "usb.h"
+#include "uart.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -488,11 +489,18 @@ void PowerUnitOff(uint8 powerOffMode)
 		// Disable USB
 		MXC_USB_Shutdown();
 
+		// Disable Cell module
+		if (GetPowerControlState(CELL_ENABLE) == ON)
+		{
+			ShutdownPdnAndCellModem();
+			PowerControl(LTE_RESET, ON);
+			PowerControl(CELL_ENABLE, OFF);
+		}
+
 		// Disable power blocks
 		PowerControl(ADC_RESET, ON);
 		PowerControl(LCD_POWER_ENABLE, OFF);
 		PowerControl(ENABLE_12V, OFF);
-		PowerControl(CELL_ENABLE, OFF);
 		PowerControl(EXPANSION_ENABLE, OFF);
 
 		// Check if charging is present which prevents powering down
@@ -1049,6 +1057,15 @@ uint16_t GetBattChargerOutputCurrentInDischargeMode(void)
 
 	// Result units: mA
 	return ((uint16_t)result);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetBattChargerChargeState(uint8_t state)
+{
+	debug("Battery Charger: Charging control %s\r\n", ((state & 0x01) ? "enabled" : "disabled"));
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, (0x3C52 | (state & 0x01)));
 }
 
 ///----------------------------------------------------------------------------
