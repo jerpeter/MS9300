@@ -40,6 +40,7 @@ enum {
 	BATTERY_LOG_TIMER_NUM,
 	SYSTEM_LOCK_TIMER_NUM,
 	AUTO_EVENT_GENERATION_NUM,
+	TCP_SERVER_START_NUM,
 	// Add new timers here
 	NUM_OF_SOFT_TIMERS
 };
@@ -101,5 +102,6 @@ void LooseEventMigrationTimerCallBack(void);
 void BatteryLogTimerCallback(void);
 void SystemLockTimerCallback(void);
 void AutoEventGenerationCallback(void);
+void TcpServerStartCallback(void);
 
 #endif // _SOFT_TIMER_H_
