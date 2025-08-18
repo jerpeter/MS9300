@@ -653,7 +653,7 @@ void ProcessCraftData()
 		*g_isrMessageBufferPtr->readPtr = 0x00;
 		g_isrMessageBufferPtr->readPtr++;
 		if (g_isrMessageBufferPtr->readPtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE))
-		{			
+		{
 			g_isrMessageBufferPtr->readPtr = g_isrMessageBufferPtr->msg;
 		}
 	}
@@ -665,12 +665,12 @@ void ProcessCraftData()
 ///	Function Break
 ///----------------------------------------------------------------------------
 void RemoteCmdMessageHandlerInit()
-{	
+{
 	// Clear and set up the addresses for the ptrs from the buffer array.
 	memset(g_msgPool, 0, sizeof(g_msgPool));
 
 	for (s_msgWriteIndex = 0; s_msgWriteIndex < CMD_MSG_POOL_SIZE; s_msgWriteIndex++)
-	{	
+	{
 		g_msgPool[s_msgWriteIndex].readPtr = g_msgPool[s_msgWriteIndex].msg;
 		g_msgPool[s_msgWriteIndex].writePtr = g_msgPool[s_msgWriteIndex].msg;
 #if 0 /* No longer needed */

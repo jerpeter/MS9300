@@ -1057,7 +1057,7 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			{
 				if (g_displayBargraphResultsMode == IMPULSE_RESULTS)
 				{
-					if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) {	sprintf(buff, "%s  %0.3f mb", getLangText(PEAK_AIR_TEXT), (double)HexToMB(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
+					if (g_unitConfig.unitsOfAir == MILLIBAR_TYPE) { sprintf(buff, "%s  %0.3f mb", getLangText(PEAK_AIR_TEXT), (double)HexToMB(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
 					else if (g_unitConfig.unitsOfAir == PSI_TYPE) { sprintf(buff, "%s  %0.3f psi", getLangText(PEAK_AIR_TEXT), (double)HexToPSI(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
 					else /* (g_unitConfig.unitsOfAir == DECIBEL_TYPE) */ { sprintf(buff, "%s  %4.1f dB", getLangText(PEAK_AIR_TEXT), (double)HexToDB(g_aImpulsePeak, DATA_NORMALIZED, g_bitAccuracyMidpoint, g_factorySetupRecord.acousticSensorType)); }
 				}

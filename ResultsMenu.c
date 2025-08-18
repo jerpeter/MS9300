@@ -352,7 +352,7 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 	switch (g_summaryList.cachedEntry.bitAccuracy)
 	{
 		case ACCURACY_10_BIT: { bitAccuracyScale = ACCURACY_10_BIT_MIDPOINT; } break;
-		case ACCURACY_12_BIT: {	bitAccuracyScale = ACCURACY_12_BIT_MIDPOINT; } break;
+		case ACCURACY_12_BIT: { bitAccuracyScale = ACCURACY_12_BIT_MIDPOINT; } break;
 		case ACCURACY_14_BIT: { bitAccuracyScale = ACCURACY_14_BIT_MIDPOINT; } break;
 		default: // ACCURACY_16_BIT
 			bitAccuracyScale = ACCURACY_16_BIT_MIDPOINT;
@@ -535,7 +535,7 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 	memset(&buff[0], 0, sizeof(buff));
 	if (IsSeismicSensorInternalAccelerometer(g_summaryList.cachedEntry.seismicSensorType)) { sprintf(buff, "g/s");}
 	else if (IsSeismicSensorAnAccelerometer(g_summaryList.cachedEntry.seismicSensorType)) { sprintf(buff, "mg/s"); }
-	else if (g_sensorInfo.unitsFlag == IMPERIAL_TYPE) {	sprintf(buff, "in/s"); }
+	else if (g_sensorInfo.unitsFlag == IMPERIAL_TYPE) { sprintf(buff, "in/s"); }
 	else { sprintf(buff, "mm/s"); }
 
 	// Setup current column, Write string to screen, Advance to next row

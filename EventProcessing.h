@@ -36,7 +36,7 @@
 
 #define FLASH_EVENT_END_BOUNDRY_UPDATE(flashPtr) 							\
 	if (flashPtr >= (uint16*)FLASH_EVENT_END)								\
-	{	flashPtr = (uint16*)((uint32)flashPtr - (uint32)FLASH_EVENT_END); 	\
+	{ flashPtr = (uint16*)((uint32)flashPtr - (uint32)FLASH_EVENT_END); 	\
 		flashPtr = (uint16*)((uint32)FLASH_EVENT_START + (uint32)flashPtr); }
 
 #define RESERVED_FILESYSTEM_SIZE_IN_BYTES	16777216 // 2^24 aka 16 MB, can be evenly divisible by any fat sector size

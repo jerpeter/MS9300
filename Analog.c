@@ -309,7 +309,7 @@ void DisableSensorBlocks(void)
 void AdSetCalSignalLow(void)
 {
 	// Enable driving of the sensor check signal if not enabled
-	if (GetPowerControlState(SENSOR_CHECK_ENABLE) == OFF) {	PowerControl(SENSOR_CHECK_ENABLE, ON); }
+	if (GetPowerControlState(SENSOR_CHECK_ENABLE) == OFF) { PowerControl(SENSOR_CHECK_ENABLE, ON); }
 
 	// Set the sensor check drive signal low
 	SetSensorCheckState(LOW);
@@ -321,7 +321,7 @@ void AdSetCalSignalLow(void)
 void AdSetCalSignalHigh(void)
 {
 	// Enable driving of the sensor check signal if not enabled
-	if (GetPowerControlState(SENSOR_CHECK_ENABLE) == OFF) {	PowerControl(SENSOR_CHECK_ENABLE, ON); }
+	if (GetPowerControlState(SENSOR_CHECK_ENABLE) == OFF) { PowerControl(SENSOR_CHECK_ENABLE, ON); }
 
 	// Set the sensor check drive signal high
 	SetSensorCheckState(HIGH);

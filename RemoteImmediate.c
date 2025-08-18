@@ -1461,7 +1461,7 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 	switch (eventRecord->summary.parameters.bitAccuracy)
 	{
 		case ACCURACY_10_BIT: { bitAccuracyScale = ACCURACY_10_BIT_MIDPOINT; } break;
-		case ACCURACY_12_BIT: {	bitAccuracyScale = ACCURACY_12_BIT_MIDPOINT; } break;
+		case ACCURACY_12_BIT: { bitAccuracyScale = ACCURACY_12_BIT_MIDPOINT; } break;
 		case ACCURACY_14_BIT: { bitAccuracyScale = ACCURACY_14_BIT_MIDPOINT; } break;
 		default: { bitAccuracyScale = ACCURACY_16_BIT_MIDPOINT; } break; // ACCURACY_16_BIT
 	}

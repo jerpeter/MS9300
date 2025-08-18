@@ -618,7 +618,7 @@ void BuildLanguageLinkTable(uint8 languageSelection)
 				if (currIndex == fileSize) break;
 			};
 
-			if (currIndex < fileSize) {	g_languageLinkTable[i] = g_languageTable + currIndex; }
+			if (currIndex < fileSize) { g_languageLinkTable[i] = g_languageTable + currIndex; }
 
 #if 0 /* Test debug output */
 			length = sprintf((char*)g_spareBuffer, "(%d) %s\r\n", (i + 1), (char*)g_languageLinkTable[i]);

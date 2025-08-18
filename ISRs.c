@@ -1258,16 +1258,16 @@ void checkVariableTriggerAndFreq(VARIABLE_TRIGGER_FREQ_CHANNEL_BUFFER* chan)
 	else if (g_triggerRecord.trec.variableTriggerVibrationStandard == CUSTOM_STEP_THRESHOLD)
 	{
 		if (freq < 10.0) { if (peak > 0.10) { triggerFound = YES; } }
-		else if (freq < 20.0) {	if (peak > 0.25) { triggerFound = YES; } }
-		else if (freq < 30.0) {	if (peak > 0.50) { triggerFound = YES; } }
-		else if (freq < 40.0) {	if (peak > 0.75) { triggerFound = YES; } }
+		else if (freq < 20.0) { if (peak > 0.25) { triggerFound = YES; } }
+		else if (freq < 30.0) { if (peak > 0.50) { triggerFound = YES; } }
+		else if (freq < 40.0) { if (peak > 0.75) { triggerFound = YES; } }
 	}
 	else if (g_triggerRecord.trec.variableTriggerVibrationStandard == CUSTOM_STEP_LIMITING)
 	{
 		if (freq < 10.0) { if (peak > 0.15) { triggerFound = YES; } }
-		else if (freq < 20.0) {	if (peak > 0.50) { triggerFound = YES; } }
-		else if (freq < 30.0) {	if (peak > 1.00) { triggerFound = YES; } }
-		else if (freq < 40.0) {	if (peak > 1.50) { triggerFound = YES; } }
+		else if (freq < 20.0) {if (peak > 0.50) { triggerFound = YES; } }
+		else if (freq < 30.0) { if (peak > 1.00) { triggerFound = YES; } }
+		else if (freq < 40.0) { if (peak > 1.50) { triggerFound = YES; } }
 	}
 
 	if (triggerFound)

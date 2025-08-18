@@ -250,7 +250,7 @@ void ConvertTimeStampToString(char* buff, DATE_TIME_STRUCT* timeReference, uint8
 			tempTime = timeReference;
 
 			if ((tempTime->month >= 1) && (tempTime->month <= 12))
-			{	
+			{
 				strcpy((char*)tbuff, (char*)(g_monthTable[tempTime->month].name));
 			}
 			else
@@ -265,7 +265,7 @@ void ConvertTimeStampToString(char* buff, DATE_TIME_STRUCT* timeReference, uint8
 			tempTime = timeReference;
 
 			if ((tempTime->month >= 1) && (tempTime->month <= 12))
-			{	
+			{
 				strcpy((char*)tbuff, (char*)(g_monthTable[tempTime->month].name));
 			}
 			else
@@ -282,7 +282,7 @@ void ConvertTimeStampToString(char* buff, DATE_TIME_STRUCT* timeReference, uint8
 			tempTime = timeReference;
 
 			if ((tempTime->month >= 1) && (tempTime->month <= 12))
-			{	
+			{
 				strcpy((char*)tbuff, (char*)(g_monthTable[tempTime->month].name));
 			}
 			else
@@ -308,7 +308,7 @@ void ConvertTimeStampToString(char* buff, DATE_TIME_STRUCT* timeReference, uint8
 			tempTime = timeReference;
 			
 			if ((tempTime->month >= 1) && (tempTime->month <= 12))
-			{	
+			{
 				strcpy((char*)tbuff, (char*)(g_monthTable[tempTime->month].name));
 			}
 			else
@@ -325,7 +325,7 @@ void ConvertTimeStampToString(char* buff, DATE_TIME_STRUCT* timeReference, uint8
 			tempTime = timeReference;
 			
 			if ((tempTime->month >= 1) && (tempTime->month <= 12))
-			{	
+			{
 				strcpy((char*)tbuff, (char*)(g_monthTable[tempTime->month].name));
 			}
 			else

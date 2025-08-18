@@ -298,7 +298,7 @@ void SummaryMenuScroll(char direction)
 	g_summaryListArrowChar = BOTH_ARROWS_CHAR;
 	
 	for (i = 0; i < g_keypadNumberSpeed; i++)
-	{	
+	{
 		if (direction == DOWN)
 		{
 			tempSummaryIndex = GetNextValidRamSummaryIndex(s_currentSummaryIndex);

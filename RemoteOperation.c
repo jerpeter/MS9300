@@ -422,7 +422,7 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		returnCode = CFG_ERR_MONITORING_STATE;
 	}
 	else
-	{	
+	{
 		memset(&cfg, 0, sizeof(cfg));
 
 		// Check to see if the incoming message is the correct size
@@ -435,7 +435,7 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		buffDex = MESSAGE_HEADER_SIMPLE_LENGTH;
 		while ((buffDex < inCmd->size) && (buffDex < (MESSAGE_HEADER_SIMPLE_LENGTH + (sizeof(cfg) * 2))) &&
 				(buffDex < CMD_BUFFER_SIZE))
-		{	
+		{
 			*cfgPtr++ = ConvertAscii2Binary(inCmd->msg[buffDex], inCmd->msg[buffDex + 1]);
 			buffDex += 2;
 		}		
@@ -708,7 +708,7 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		// Update air sensor type DB or MB
 		//---------------------------------------------------------------------------
 		if (cfg.extraUnitCfg.unitsOfAir == MILLIBAR_TYPE) { g_unitConfig.unitsOfAir = MILLIBAR_TYPE; }
-		else if (cfg.extraUnitCfg.unitsOfAir == PSI_TYPE) {	g_unitConfig.unitsOfAir = PSI_TYPE; }
+		else if (cfg.extraUnitCfg.unitsOfAir == PSI_TYPE) { g_unitConfig.unitsOfAir = PSI_TYPE; }
 		else /* (cfg.extraUnitCfg.unitsOfAir == DECIBEL_TYPE) */ { g_unitConfig.unitsOfAir = DECIBEL_TYPE; }
 
 		//---------------------------------------------------------------------------
@@ -956,7 +956,7 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		// Auto Calibration Mode check
 		//---------------------------------------------------------------------------
 		switch (cfg.autoCfg.autoCalMode)
-		{	
+		{
 			case AUTO_24_HOUR_TIMEOUT:
 			case AUTO_48_HOUR_TIMEOUT:
 			case AUTO_72_HOUR_TIMEOUT:
@@ -1146,7 +1146,7 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 					g_unitConfig.alarmOneSeismicLevel = cfg.alarmCfg.alarmOneSeismicLevel;
 				}
 				else
-				{					
+				{
 					returnCode = CFG_ERR_ALARM_ONE_SEISMIC_LVL;
 					goto SEND_UCM_ERROR_CODE;
 				}
@@ -1418,7 +1418,7 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 				g_unitConfig.timerMode = cfg.timerCfg.timerMode;
 			}
 			else
-			{	
+			{
 				// In valid value for the timer mode, return an error
 				returnCode = CFG_ERR_TIMER_MODE;
 				goto SEND_UCM_ERROR_CODE;
@@ -1446,7 +1446,7 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 		if (cfg.sgVersion)
 		{
 			if ((cfg.flashWrapping == NO) || (cfg.flashWrapping == YES))
-			{			
+			{
 #if 0 /* Normal */
 				g_unitConfig.flashWrapping = cfg.flashWrapping;
 #else /* Forcing flash wrapping to be disabled */
@@ -1581,7 +1581,7 @@ void HandleUMM(CMD_BUFFER_STRUCT* inCmd)
 	i = MESSAGE_HEADER_SIMPLE_LENGTH;
 	while ((i < inCmd->size) && (i < (MESSAGE_HEADER_SIMPLE_LENGTH + (sizeof(MODEM_SETUP_STRUCT) * 2))) && 
 			(i < CMD_BUFFER_SIZE))
-	{	
+	{
 		*modemCfgPtr++ = ConvertAscii2Binary(inCmd->msg[i], inCmd->msg[i + 1]);
 		i += 2;
 	}		

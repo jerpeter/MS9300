@@ -374,11 +374,11 @@ void LoadTimerModeTimeMnDefRec(REC_MN_STRUCT *rec_ptr,DATE_TIME_STRUCT *time_ptr
 
 		// Inc the stop hour
 		if ((time_ptr->hour + 1) > 23)
-		{	
+		{
 			rec_ptr[TMT_STOP_HOUR].numrec.tindex = 0;
 		}
 		else
-		{	
+		{
 			rec_ptr[TMT_STOP_HOUR].numrec.tindex = time_ptr->hour + 1;
 		}
 	}

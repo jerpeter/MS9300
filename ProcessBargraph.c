@@ -1310,7 +1310,7 @@ void AdvanceBarIntervalBufPtr(uint8 bufferType)
 		g_bargraphBarIntervalWritePtr->barIntervalCount = (uint16)g_bargraphSummaryInterval.barIntervalsCaptured;
 		g_bargraphBarIntervalWritePtr->summaryIntervalCount = g_summaryCount;
 		g_bargraphBarIntervalWritePtr->currentBargraphEventNumber = g_pendingBargraphRecord.summary.eventNumber;
-		if (g_triggerRecord.opMode == BARGRAPH_MODE) {	g_bargraphBarIntervalWritePtr->currentComboWaveformEventNumber = 0; }
+		if (g_triggerRecord.opMode == BARGRAPH_MODE) { g_bargraphBarIntervalWritePtr->currentComboWaveformEventNumber = 0; }
 		else { g_bargraphBarIntervalWritePtr->currentComboWaveformEventNumber = GetLastStoredEventNumber(); }
 		g_bargraphBarIntervalWritePtr->epochTime = ConvertDateTimeToEpochTime(GetCurrentTime());
 
