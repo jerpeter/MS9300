@@ -137,6 +137,7 @@ MN_EVENT_STRUCT g_menuEventFlags = {0};
 MN_TIMER_STRUCT g_timerEventFlags = {0};
 SYS_EVENT_STRUCT g_systemEventFlags = {0};
 MODEM_SETUP_STRUCT g_modemSetupRecord;
+CELL_MODEM_SETUP_STRUCT g_cellModemSetupRecord;
 MODEM_STATUS_STRUCT g_modemStatus;
 CMD_BUFFER_STRUCT g_isrMessageBufferStruct;
 CMD_BUFFER_STRUCT* g_isrMessageBufferPtr = &g_isrMessageBufferStruct;
@@ -171,7 +172,22 @@ USER_MENU_TAGS_STRUCT g_menuTags[TOTAL_TAGS] = {
 	{"DUMP BATTERY LOG", DUMP_BATTERY_LOG_TAG},
 	{"BATTERY LOG TIMER", BATTERY_LOG_TAG},
 	{" (A)", ALTERNATE_TAG},
-	{"FCC TEST ALL", FCC_TEST_ALL_TAG}
+	{"FCC TEST ALL", FCC_TEST_ALL_TAG},
+	{"ACCESS POINT NAME", ACCESS_POINT_NAME_TAG},
+	{"PDN AUTHENTICATION", PDN_AUTH_PROTOCOL_TAG},
+	{"PDN USERNAME", PDN_USERNAME_TAG},
+	{"PDN PASSWORD", PDN_PASSWORD_TAG},
+	{"NONE", AUTH_NONE_TAG},
+	{"PAP PROTOCOL", AUTH_PAP_TAG},
+	{"CHAP PROTOCOL", AUTH_CHAP_TAG},
+	{"REMOTE LISTEN SERVER", LISTEN_FOR_REMOTE_CONNECT_TAG},
+	{"NO (DIALOUT ONLY)", NO_AUTO_DIALOUT_ONLY_TAG},
+	{"YES (KEEP MODEM ON)", YES_KEEP_MODEM_ONLINE_TAG},
+	{"DIAL OUT SERVER", DIAL_OUT_SERVER_TAG},
+	{"SERVER PORT", SERVER_PORT_TAG},
+	{"LISTEN SERVER PORT", LISTEN_SERVER_PORT_TAG},
+	{"CELL MODEM SETUP", CELL_MODEM_SETUP_TAG},
+	{"CELL UART RESET", CELL_UART_RESET_TAG}
 };
 uint8 g_monitorOperationMode;
 uint8 g_waitForUser = FALSE;
@@ -305,6 +321,7 @@ uint8 g_spi2InUseByLCD = NO;
 uint8 g_calibrationGeneratePulse = NO;
 uint8 g_bargraphLiveMonitoringBISendActive = NO;
 uint8 g_blmAlertAlarmStatus = 0;
+uint8 g_tcpServerStartStage = 0;
 uint8* g_bargraphBarIntervalLiveMonitorBIDataPtr = g_blmBuffer;
 SAMPLE_DATA_STRUCT g_sensorCalPeaks[3] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
 SAMPLE_DATA_STRUCT g_sensorCalFreqCounts;
@@ -325,6 +342,7 @@ FIL* g_globalFileHandle;
 uint8 g_quickBootEntryJump = NO;
 uint8 g_breakpointCause = 0;
 uint8 g_currentSensorGroup = SENSOR_GROUP_A_1;
+uint8 g_batteryChargingStatusChange = NO;
 GPS_SERIAL_DATA g_gpsSerialData;
 GPS_QUEUE g_gpsQueue;
 GPS_BINARY_QUEUE g_gpsBinaryQueue;
@@ -335,6 +353,7 @@ uint8 g_adaptiveBoundaryCount;
 uint8 g_adaptiveBoundaryMarker = 0;
 uint16 g_adaptiveSeismicThreshold;
 uint16 g_adaptiveAcousticThreshold;
+uint32 g_cellConnectStats[4];
 uint32 g_adaptiveSampleDelay;
 uint16* g_adaptiveLastRealSamplePtr;
 time_t g_epochTimeGPS = 0;
