@@ -22,6 +22,9 @@
 #include "SoftTimer.h"
 
 #include "ff.h"
+#include "PowerManagement.h"
+#include "mxc_errors.h"
+#include "uart.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -378,6 +381,140 @@ void WriteCompressedData(uint8 compressedData, uint8 outMode)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void ShutdownPdnAndCellModem(void)
+{
+	int strLen;
+
+	debug("Cell module: Attempting graceful shutdown...\r\n");
+
+#if 0 /* Useful? */
+	sprintf((char*)g_spareBuffer, "AT+CGACT=0,0\r\n"); strLen = (int)strlen((char*)g_spareBuffer); MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen);
+	{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+#endif
+	sprintf((char*)g_spareBuffer, "AT+CGATT=0\r\n"); strLen = (int)strlen((char*)g_spareBuffer); MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen);
+	{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+	sprintf((char*)g_spareBuffer, "AT+CFUN=0\r\n"); strLen = (int)strlen((char*)g_spareBuffer); MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen);
+	{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+char* AdoStateGetDebugString(void)
+{
+	char* debugString = NULL;
+
+	switch (g_autoDialoutState)
+	{
+		case AUTO_DIAL_IDLE: debugString = ADO_IDLE; break;
+		case AUTO_DIAL_INIT: debugString = ADO_INIT; break;
+		case AUTO_DIAL_CONNECTING: debugString = ADO_CONNECTING; break;
+		case AUTO_DIAL_CONNECTED: debugString = ADO_CONNECTED; break;
+		case AUTO_DIAL_RESPONSE: debugString = ADO_RESPONSE; break;
+		case AUTO_DIAL_WAIT: debugString = ADO_WAIT; break;
+		case AUTO_DIAL_RESET: debugString = ADO_RESET; break;
+		case AUTO_DIAL_RESET_WAIT: debugString = ADO_RESET_WAIT; break;
+		case AUTO_DIAL_RETRY: debugString = ADO_RETRY; break;
+		case AUTO_DIAL_SLEEP: debugString = ADO_SLEEP; break;
+		case AUTO_DIAL_ACTIVE: debugString = ADO_ACTIVE; break;
+		case AUTO_DIAL_FINISH: debugString = ADO_FINISH; break;
+	}
+
+	return (debugString);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+#if 0 /* Not needed yet, unfinished */
+char* TcpServerDebugString(void)
+{
+	char* debugString = NULL;
+
+	switch (g_tcpServerStartStage)
+	{
+		case 0: debugString = ; break;
+		case 1: debugString = ; break;
+		case 2: debugString = ; break;
+		case 3: debugString = ; break;
+		case 4: debugString = ; break;
+		case 5: debugString = ; break;
+		case 6: debugString = ; break;
+		case 7: debugString = ; break;
+		case 8: debugString = ; break;
+		case 9: debugString = ; break;
+	}
+
+	return (debugString);
+}
+#endif
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetStartCellConnectTime(void)
+{
+	g_cellConnectStats[0] = g_lifetimeHalfSecondTickCount;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void CellConnectStatsUpdate(void)
+{
+	g_cellConnectStats[1] = ((g_lifetimeHalfSecondTickCount - g_cellConnectStats[0]) / 2);
+	g_cellConnectStats[2] += g_cellConnectStats[1];
+	g_cellConnectStats[3]++;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint32 GetCurrentCellConnectTime(void)
+{
+	return ((g_lifetimeHalfSecondTickCount - g_cellConnectStats[0]) / 2);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint32 GetCellConnectStatsLastConenct(void)
+{
+	return(g_cellConnectStats[1]);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint32 GetCellConnectStatsAverage(void)
+{
+	uint32 avg;
+
+	// Saftey check to make sure the divisor is never 0
+	if (g_cellConnectStats[3] == 0) { avg = 0; }
+	else { avg = (g_cellConnectStats[2] / g_cellConnectStats[3]); }
+
+	return(avg);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void InitTcpListenServer(void)
+{
+	if ((!g_cellModemSetupRecord.invalid) && (g_cellModemSetupRecord.tcpServer == YES))
+	{
+		//OverlayMessage(getLangText(STATUS_TEXT), "CELL MODEM STARTNG LISTEN SERVER. PLEASE WAIT A MOMENT", (0 * SOFT_SECS));
+
+		debug("TCP Listen Server: Selected, setting delayed start timer (15 seconds)\r\n");
+		g_tcpServerStartStage = 1;
+		AssignSoftTimer(TCP_SERVER_START_NUM, (15 * TICKS_PER_SEC), TcpServerStartCallback);
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void InitAutoDialout(void)
 {
 	// Check if the table key is not valid
@@ -398,6 +535,7 @@ void InitAutoDialout(void)
 
 	if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
 	{
+		debug("Auto Dialout: Events/Config/Status selected, starting timer (set for %d minutes)\r\n", g_modemSetupRecord.dialOutCycleTime);
 		AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_modemSetupRecord.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
 	}
 }
@@ -411,9 +549,12 @@ uint8 CheckAutoDialoutStatusAndFlagIfAvailable(void)
 #if 0 /* Original */
 	if ((g_autoDialoutState == AUTO_DIAL_IDLE) && (READ_DCD == NO_CONNECTION) && (g_modemResetStage == 0) &&
 		(g_modemSetupRecord.modemStatus == YES) && strlen((char*)&(g_modemSetupRecord.dial[0])) != 0)
-#else /* No modem controls, utilize system lock flag */
+#elif 0 /* External modem, No modem controls, utilize system lock flag */
 	if ((g_autoDialoutState == AUTO_DIAL_IDLE) && (g_modemStatus.systemIsLockedFlag == YES) && (g_modemStatus.modemAvailable == YES) &&
 		(g_modemResetStage == 0) && (g_modemSetupRecord.modemStatus == YES) && strlen((char*)&(g_modemSetupRecord.dial[0])) != 0)
+#else
+	if ((g_autoDialoutState == AUTO_DIAL_IDLE) && (g_modemStatus.systemIsLockedFlag == YES) && (g_modemStatus.modemAvailable == YES) &&
+		(g_modemResetStage == 0) && (g_modemSetupRecord.modemStatus == YES) && strlen((char*)&(g_cellModemSetupRecord.server[0])) != 0)
 #endif
 	{
 		raiseSystemEventFlag(AUTO_DIALOUT_EVENT);
@@ -428,14 +569,87 @@ uint8 CheckAutoDialoutStatusAndFlagIfAvailable(void)
 ///----------------------------------------------------------------------------
 void StartAutoDialoutProcess(void)
 {
+	int strLen, status;
+
 #if 0 /* Original */
 	if (READ_DCD == NO_CONNECTION)
 #else /* No modem controls, utilize system lock flag */
 	if (g_modemStatus.systemIsLockedFlag == YES)
 #endif
 	{
+		// Start ADO state machine
 		g_autoRetries = g_modemSetupRecord.retries;
 		g_autoDialoutState = AUTO_DIAL_INIT;
+
+#if 1 /* New Cell module */
+		if (g_cellModemSetupRecord.tcpServer == YES)
+		{
+			// Check if the TCP Server is running
+			if (g_tcpServerStartStage == 0)
+			{
+				// Escape out of data mode and stop the TCP Server
+				debug("+++...\r\n"); sprintf((char*)g_spareBuffer, "+++\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+				{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+
+				SoftUsecWait(1 * SOFT_SECS);
+
+				// Kill the TCP Server
+				debug("AT#XTCPSVR=0...\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPSVR=0\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+			}
+			else // the TCP Server is in the processing of starting up
+			{
+				// Need to postpone and reset cell in case of an error
+				debug("Cell/LTE: Postponing TCP Server startup for ADO\r\n");
+				g_tcpServerStartStage = 9;
+				ClearSoftTimer(TCP_SERVER_START_NUM);
+
+				ShutdownPdnAndCellModem();
+				PowerControl(LTE_RESET, ON);
+				PowerControl(CELL_ENABLE, OFF);
+
+				// Can't power right back on, need small delay
+				SoftUsecWait(5 * SOFT_SECS);
+			}
+		}
+
+		if(GetPowerControlState(CELL_ENABLE) == OFF)
+		{
+			debug("Cell/LTE: Powering section...\r\n");
+			PowerControl(CELL_ENABLE, ON);
+			SoftUsecWait(1 * SOFT_SECS); // Small charge up delay
+			PowerControl(LTE_RESET, OFF);
+
+			CheckforModemReady(6);
+#if 0 /* Test */
+			// System mode setting
+			//debug("AT%%XSYSTEMMODE...\r\n"); sprintf((char*)g_spareBuffer, "AT%%XSYSTEMMODE=0,1,0,0\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+			debug("AT%%XSYSTEMMODE?...\r\n"); sprintf((char*)g_spareBuffer, "AT%%XSYSTEMMODE?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+			{ ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+#endif
+			if (strlen(g_cellModemSetupRecord.pdnApn))
+			{
+				// PDN/APN setting, AT+CGDCONT=0,"IP","psmtneofin"
+				debug("AT+CGDCONT=0,\"IP\",\"%s\"...\r\n", g_cellModemSetupRecord.pdnApn); sprintf((char*)g_spareBuffer, "AT+CGDCONT=0,\"IP\",\"%s\"\r\n", g_cellModemSetupRecord.pdnApn); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+				{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+			}
+
+			if (g_cellModemSetupRecord.pdnAuthProtocol != AUTH_NONE)
+			{
+				debug("AT+CGAUTH=0,%d,\"%s\",\"%s\"...\r\n", g_cellModemSetupRecord.pdnAuthProtocol, g_cellModemSetupRecord.pdnUsername, g_cellModemSetupRecord.pdnPassword);
+				sprintf((char*)g_spareBuffer, "AT+CGAUTH=0,%d,\"%s\",\"%s\"\r\n", g_cellModemSetupRecord.pdnAuthProtocol, g_cellModemSetupRecord.pdnUsername, g_cellModemSetupRecord.pdnPassword);
+				strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+				{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+			}
+
+			debug("AT+CFUN=1...\r\n"); sprintf((char*)g_spareBuffer, "AT+CFUN=1\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		}
+
+		debug("AT+CEREG?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CEREG?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+#if 1 /* Test */
+		SetStartCellConnectTime();
+#endif
+#endif
 	}
 }
 
@@ -450,9 +664,10 @@ void AutoDialoutStateMachine(void)
 	switch (g_autoDialoutState)
 	{
 		//----------------------------------------------------------------
-		// Send Dial string
+		// Send Dial string to connect to remote server
 		//----------------------------------------------------------------
 		case AUTO_DIAL_INIT:
+#if 0 /* Original */
 			// Issue dial command and dial string
 			if ((g_modemSetupRecord.dial[0] >= '0') && (g_modemSetupRecord.dial[0] <= '9'))
 			{
@@ -460,16 +675,46 @@ void AutoDialoutStateMachine(void)
 			}
 			UartPuts((char *)(g_modemSetupRecord.dial), CRAFT_COM_PORT);
 			UartPuts((char *)&g_CRLF, CRAFT_COM_PORT);
+#else /* New Cell module */
+			;int strLen, status;
 
-			// Update timer to current tick count
-			timer = g_lifetimeHalfSecondTickCount;
+			if (g_modemStatus.remoteResponse == MODEM_CELL_NETWORK_REGISTERED)
+			{
+#if 1 /* Test */
+				CellConnectStatsUpdate();
+				debug("ADO: Cell network connect time was %d seconds (Avg: %d)\r\n", GetCellConnectStatsLastConenct(), GetCellConnectStatsAverage());
+#endif
+#if 0 /* Normal */
+				debug("AT#XTCPCLI=1,\"ONLINE.NOMIS.COM\",8005...\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPCLI=1,\"ONLINE.NOMIS.COM\",8005\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+#else /* Test */
+				debug("AT#XTCPCLI=1,\"%s\",%d...\r\n", g_cellModemSetupRecord.server, g_cellModemSetupRecord.serverPort);
+				sprintf((char*)g_spareBuffer, "AT#XTCPCLI=1,\"%s\",%d\r\n", g_cellModemSetupRecord.server, g_cellModemSetupRecord.serverPort); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+#endif
+				// Update timer to current tick count
+				timer = g_lifetimeHalfSecondTickCount;
 
-			// Advance to Connecting state
-			g_autoDialoutState = AUTO_DIAL_CONNECTING;
+				// Advance to Connecting state
+				g_autoDialoutState = AUTO_DIAL_CONNECTING;
+			}
+			else if (g_lifetimeHalfSecondTickCount == timer)
+			{
+				//debug("AT+CEREG?...\r\n");
+				sprintf((char*)g_spareBuffer, "AT+CEREG?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+
+				// Update timer to current tick count
+				timer = g_lifetimeHalfSecondTickCount + 2;
+
+			}
+			else if (timer < g_lifetimeHalfSecondTickCount)
+			{
+				// Initialize (utlize) timer as a control switch for issuing cell registration check
+				timer = g_lifetimeHalfSecondTickCount + 2;
+			}
+#endif
 		break;
 
 		//----------------------------------------------------------------
-		// Look for DCD
+		// Look for remote server conneciton
 		//----------------------------------------------------------------
 		case AUTO_DIAL_CONNECTING:
 			// Check if a remote connection has been established
@@ -479,8 +724,21 @@ void AutoDialoutStateMachine(void)
 			if (g_modemStatus.remoteResponse == CONNECT_RESPONSE)
 #endif
 			{
+#if 1 /* New for cell modem */
+				debug("AT#XTCPSEND...\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+				//{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+#else /* Test verify */
+				debug("AT+CGDCONT?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CGDCONT?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+				{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+
+				debug("AT#XTCPSEND"); sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+				{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+#endif
 				// Clear remote response
 				g_modemStatus.remoteResponse = NO_RESPONSE;
+
+				// Check if TCP Server didn't start (due to not connecting), but clear if ADO found conneciton
+				if (g_tcpServerStartStage == 9) { g_tcpServerStartStage = 0; }
 
 				// Update timer to current tick count
 				timer = g_lifetimeHalfSecondTickCount;
@@ -488,15 +746,27 @@ void AutoDialoutStateMachine(void)
 				// Advance to Connected state
 				g_autoDialoutState = AUTO_DIAL_CONNECTED;
 			}
+			// Check if the TCP Client failed to connect to the server
+			else if (g_modemStatus.remoteResponse == TCP_CLIENT_NOT_CONNECTED)
+			{
+				// Retry server connection
+#if 0 /* Normal */
+				debug("AT#XTCPCLI=1,\"ONLINE.NOMIS.COM\",8005...\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPCLI=1,\"ONLINE.NOMIS.COM\",8005\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+#else /* Test */
+				debug("AT#XTCPCLI=1,\"%s\",%d...\r\n", g_cellModemSetupRecord.server, g_cellModemSetupRecord.serverPort);
+				sprintf((char*)g_spareBuffer, "AT#XTCPCLI=1,\"%s\",%d\r\n", g_cellModemSetupRecord.server, g_cellModemSetupRecord.serverPort); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+#endif
+			}
 			// Check if the timer has surpassed 1 minute
 			else if ((g_lifetimeHalfSecondTickCount - timer) > (1 * TICKS_PER_MIN))
 			{
 				// Couldn't establish a connection, give up and retry later
+				debug("ADO: Failed to find connection\r\n");
 
 				// Update timer to current tick count
 				timer = g_lifetimeHalfSecondTickCount;
 
-#if 0 /* Original */
+#if 1 /* Original */
 				// Advance to Retry state
 				g_autoDialoutState = AUTO_DIAL_RETRY;
 #else
@@ -510,13 +780,13 @@ void AutoDialoutStateMachine(void)
 		// Send out GAD command
 		//----------------------------------------------------------------
 		case AUTO_DIAL_CONNECTED:
-			// Check if the current connection has been established for 5 seconds
-			if ((g_lifetimeHalfSecondTickCount - timer) > (5 * TICKS_PER_SEC))
+			// Check if the current connection has been established for a second
+			if ((g_lifetimeHalfSecondTickCount - timer) > (1 * TICKS_PER_SEC))
 			{
 				// Make sure transfer flag is set to ascii
 				g_binaryXferFlag = NO_CONVERSION;
 
-#if 1 /* Test forcing data mode */
+#if 0 /* Test forcing data mode */
 				if (g_modemSetupRecord.init[59] == ENABLED)
 				{
 					SoftUsecWait((1 * SOFT_SECS));
@@ -529,6 +799,7 @@ void AutoDialoutStateMachine(void)
 #endif
 
 				// Send out GAD command (includes serial number and auto dialout parameters)
+				debug("ADO: Sending GAD...");
 				handleGAD(&msg);
 
 				// Update timer to current tick count
@@ -564,6 +835,7 @@ void AutoDialoutStateMachine(void)
 			else if ((g_lifetimeHalfSecondTickCount - timer) > (30 * TICKS_PER_SEC))
 			{
 				// Send out GAD command again
+				debug("ADO: Sending GAD...");
 				handleGAD(&msg);
 
 				// Update timer to current tick count
@@ -601,7 +873,7 @@ void AutoDialoutStateMachine(void)
 				// Update timer to current tick count
 				timer = g_lifetimeHalfSecondTickCount;
 
-#if 0 /* Original */
+#if 1 /* Original */
 				// Advance to Retry state
 				g_autoDialoutState = AUTO_DIAL_RETRY;
 #else
@@ -623,12 +895,19 @@ void AutoDialoutStateMachine(void)
 		// Issue modem reset handling
 		//----------------------------------------------------------------
 		case AUTO_DIAL_RESET:
+#if 0 /* Original */
 			SoftUsecWait((1 * SOFT_SECS));
 			UartPuts((char*)(CMDMODE_CMD_STRING), CRAFT_COM_PORT);
 			SoftUsecWait((1 * SOFT_SECS));
 			UartPuts((char*)(ATZ_CMD_STRING), CRAFT_COM_PORT);
 			UartPuts((char*)&g_CRLF, CRAFT_COM_PORT);
-
+#else
+			// ADO Reset called if failed 2x on server connect or 2x failed response from server after 2x GAD, in case server conneciton made need to close the conneciton
+			SoftUsecWait(1 * SOFT_SECS);
+			debug("+++...\r\n"); sprintf((char*)g_spareBuffer, "+++\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+			SoftUsecWait(1 * SOFT_SECS);
+			debug("AT#XTCPCLI=0...\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPCLI=0\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+#endif
 			// Update timer to current tick count
 			timer = g_lifetimeHalfSecondTickCount;
 
@@ -640,7 +919,7 @@ void AutoDialoutStateMachine(void)
 		//----------------------------------------------------------------
 		case AUTO_DIAL_RESET_WAIT:
 			// Check if the retry time has expired
-			if ((g_lifetimeHalfSecondTickCount - timer) > (2 * TICKS_PER_MIN))
+			if ((g_lifetimeHalfSecondTickCount - timer) > (g_modemSetupRecord.retryTime * TICKS_PER_MIN))
 			{
 				// Advance to Retry state
 				g_autoDialoutState = AUTO_DIAL_RETRY;
@@ -656,15 +935,23 @@ void AutoDialoutStateMachine(void)
 			{
 				// Advance to Finish state
 				g_autoDialoutState = AUTO_DIAL_FINISH;
+
+				debug("ADO: Out of retries, finished for now\r\n");
 			}
 			else // Keep trying
 			{
 				// Decrement retry count
 				g_autoRetries--;
 
+#if 0 /* Original */
 				// Unable to successfully connect to remote end, start retry with modem reset
 				ModemResetProcess();
-
+#else
+				debug("ADO: Retry %d\r\n", (g_modemSetupRecord.retries - g_autoRetries));
+				ShutdownPdnAndCellModem();
+				PowerControl(LTE_RESET, ON);
+				PowerControl(CELL_ENABLE, OFF);
+#endif
 				// Update timer to current tick count
 				timer = g_lifetimeHalfSecondTickCount;
 
@@ -683,6 +970,40 @@ void AutoDialoutStateMachine(void)
 				// Update timer to current tick count
 				timer = g_lifetimeHalfSecondTickCount;
 
+#if 1 /* New Cell module */
+				if(GetPowerControlState(CELL_ENABLE) == OFF)
+				{
+					debug("Cell/LTE: Powering section...\r\n");
+					PowerControl(CELL_ENABLE, ON);
+					SoftUsecWait(1 * SOFT_SECS); // Small charge up delay
+					PowerControl(LTE_RESET, OFF);
+
+					CheckforModemReady(6);
+
+					int strLen, status;
+					if (strlen(g_cellModemSetupRecord.pdnApn))
+					{
+						// PDN/APN setting, AT+CGDCONT=0,"IP","psmtneofin"
+						debug("AT+CGDCONT=0,\"IP\",\"%s\"...\r\n", g_cellModemSetupRecord.pdnApn); sprintf((char*)g_spareBuffer, "AT+CGDCONT=0,\"IP\",\"%s\"\r\n", g_cellModemSetupRecord.pdnApn); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+						{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+					}
+
+					if (g_cellModemSetupRecord.pdnAuthProtocol != AUTH_NONE)
+					{
+						debug("AT+CGAUTH=0,%d,\"%s\",\"%s\"...\r\n", g_cellModemSetupRecord.pdnAuthProtocol, g_cellModemSetupRecord.pdnUsername, g_cellModemSetupRecord.pdnPassword);
+						sprintf((char*)g_spareBuffer, "AT+CGAUTH=0,%d,\"%s\",\"%s\"\r\n", g_cellModemSetupRecord.pdnAuthProtocol, g_cellModemSetupRecord.pdnUsername, g_cellModemSetupRecord.pdnPassword);
+						strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+						{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+					}
+
+					debug("AT+CFUN=1...\r\n"); sprintf((char*)g_spareBuffer, "AT+CFUN=1\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+					{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+				}
+				debug("AT+CEREG?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CEREG?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+#if 1 /* Test */
+				g_cellConnectStats[0] = g_lifetimeHalfSecondTickCount;
+#endif
+#endif
 				// Start back at Init state
 				g_autoDialoutState = AUTO_DIAL_INIT;
 			}
@@ -734,6 +1055,7 @@ void AutoDialoutStateMachine(void)
 
 			if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
 			{
+				debug("ADO: restart timer\r\n");
 				AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_modemSetupRecord.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
 			}
 

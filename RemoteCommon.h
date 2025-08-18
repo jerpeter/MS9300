@@ -27,7 +27,12 @@
 #define CMDMODE_CMD_STRING		"+++"
 
 #define OK_RESP_STRING			"OK"
+#define READY_RESP_STRING		"READY"
+#define READY_RESP_STRING_ALT	"REAdy"
 #define CONNECT_RESP_STRING		"CONNECT"
+#define CONNECT_RESP_STRING_2	"#XTCPCLI: 0,\"connected\""
+#define TCP_CLIENT_STRING		"#XTCPCLI:"
+#define TCP_SERVER_STRING		"#XTCPSVR:"
 #define NO_ANSWER_RESP_STRING	"NO ANSWER"
 #define RING_CMD_STRING			"RING"
 #define SUPER_STATUS_STRING		"NOMIS SUPERGRAPH"
@@ -37,6 +42,20 @@
 #define UNL_PROG_RESP_STRING	"UNLx83"
 #define DAI_ERR_RESP_STRING		"DAIx0101"
 
+#define AT_CMD_GET_SYSTEMMODE	"AT%%XSYSTEMMODE?"
+#define AT_CMD_SET_PDP_CONTEXT	"AT+CGDCONT=0,\"IP\","
+#define AT_CMD_PDP_CONTEXT		"AT+CGDCONT?"
+#define AT_CMD_MODEM_START		"AT+CFUN=1"
+#define AT_CMD_TCP_CLI_START	"AT#XTCPCLI=1,"
+#define AT_CMD_TCP_CLI_STOP		"AT#XTCPCLI=0"
+#define AT_CMD_TCP_SVR_START	"AT#XTCPSVR=1,"
+#define AT_CMD_TCP_SVR_STOP		"AT#XTCPSVR=0"
+#define AT_CMD_ENTER_DATA_MODE	"AT#XTCPSEND"
+#define AT_CMD_DATAMODE_EXIT	"#XDATAMODE: 0"
+#define MODEM_HOME_NETWORK		"+CEREG: 0,1"
+#define MODEM_ROAMING_NETWORK	"+CEREG: 0,5"
+#define AT_CMD_ERROR			"ERROR"
+#define AT_CMD_XMODEM			"#XMODEM:"
 
 #define CMD_MSG_NO_ERR				0x00
 #define CMD_MSG_FULLBUFFER_ERR		0x01
@@ -54,7 +73,7 @@
 #define XMIT_SIZE_MONITORING		128		// 128
 #define XMIT_SIZE_NOT_MONITORING	1024
 
-#define CMD_MSG_POOL_SIZE 		3 //5
+#define CMD_MSG_POOL_SIZE 		5
 
 #define UNLOCK_CODE_SIZE 		4
 #define UNLOCK_FLAG_LOC			7
@@ -236,14 +255,49 @@ enum {
 	AUTO_DIAL_FINISH
 };
 
+#define ADO_IDLE		"Idle"
+#define ADO_INIT		"Init"
+#define ADO_CONNECTING	"Connecting"
+#define ADO_CONNECTED	"Connected"
+#define ADO_RESPONSE	"Response"
+#define ADO_WAIT		"Wait"
+#define ADO_RESET		"Reset"
+#define ADO_RESET_WAIT	"Reset Wait"
+#define ADO_RETRY		"Retry"
+#define ADO_SLEEP		"Sleep"
+#define ADO_ACTIVE		"Active"
+#define ADO_FINISH		"Finish"
+
+#define TCP_SVR_IDLE	"Idle"
+#define ADO_INIT		"Init"
+#define ADO_CONNECTING	"Connecting"
+#define ADO_CONNECTED	"Connected"
+#define ADO_RESPONSE	"Response"
+#define ADO_WAIT		"Wait"
+#define ADO_RESET		"Reset"
+#define ADO_RESET_WAIT	"Reset Wait"
+#define ADO_RETRY		"Retry"
+#define ADO_SLEEP		"Sleep"
+#define ADO_ACTIVE		"Active"
+#define ADO_FINISH		"Finish"
+
 enum {
 	NO_RESPONSE = 0,
 	WAITING_FOR_STATUS = 1,
 	ACKNOWLEDGE_PACKET,
 	NACK_PACKET,
 	CANCEL_COMMAND,
+	ESCAPE_SEQUENCE,
 	OK_RESPONSE,
 	CONNECT_RESPONSE,
+	READY_RESPONSE,
+	MODEM_CELL_NETWORK_REGISTERED,
+	DATAMODE_EXIT,
+	TCP_CLIENT_DISCONNECT,
+	TCP_CLIENT_NOT_CONNECTED,
+	TCP_SERVER_STARTED,
+	TCP_SERVER_NOT_STARTED,
+	ERROR_RESPONSE,
 	UNKNOWN_RESPONSE
 };
 
@@ -269,22 +323,22 @@ enum {
 typedef struct
 {
 	uint8 modemAvailable;		// Flag to indicate modem is available.
-	uint8 connectionState;		// State flahg to indicate which modem command to handle.
+	uint8 connectionState;		// State flag to indicate which modem command to handle.
 	uint8 craftPortRcvFlag;		// Flag to indicate that incomming data is not modem commands.
 	uint8 remoteResponse;
 
 	uint8 xferState;			// Flag for xmitting data to the craft.
 	uint8 xferMutex;			// Flag to stop other message command from executing.
 	uint8 xferPrintState;		// Turn printing off when xfering data, Store the previous state.
-	uint8 ringIndicator;		//
+	uint8 ringIndicator;
 
 	uint8 systemIsLockedFlag;
 	uint8 numberOfRings;
 	uint8 firstConnection;
 	uint8 barLiveMonitorOverride;
 
-	uint8 testingFlag;			// Modem is being tested/debugged, set to print to the PC
-	uint8 testingPrintFlag;		// Modem is being tested/debugged set debug to true.
+	uint8 remoteConnectionActive;
+	uint8 spare;
 
 } MODEM_STATUS_STRUCT;
 
@@ -564,6 +618,7 @@ enum CMD_MESSAGE_INDEX {
 	ACK,		// Acknowledge
 	NAK,		// Nack
 	CAN,		// Cancel
+	ESC,		// Escape sequence
 #if 1 /* Test */
 	DBL,
 #endif
@@ -584,10 +639,18 @@ uint16 GetInt16Field(uint8*);
 void BuildIntDataField(char*, uint32, uint8);
 uint32 DataLengthStrToUint32(uint8*);
 void WriteCompressedData(uint8 compressedData, uint8 outMode);
+void InitTcpListenServer(void);
 void InitAutoDialout(void);
 uint8 CheckAutoDialoutStatusAndFlagIfAvailable(void);
 void StartAutoDialoutProcess(void);
 void AutoDialoutStateMachine(void);
+void ShutdownPdnAndCellModem(void);
+char* AdoStateGetDebugString(void);
+void SetStartCellConnectTime(void);
+void CellConnectStatsUpdate(void);
+uint32 GetCurrentCellConnectTime(void);
+uint32 GetCellConnectStatsLastConenct(void);
+uint32 GetCellConnectStatsAverage(void);
 
 uint8 FirstPassValidateCommandString(char* command);
 
