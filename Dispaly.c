@@ -244,7 +244,7 @@ void WriteStringToLcd(uint8* p, uint8 x, uint8 y, uint8 (*table_ptr)[2][10])
 
 	while (*p != '\0')
 	{
-		font_char_ptr = table_ptr[(*p)][0];	
+		font_char_ptr = table_ptr[(*p)][0];
 		font_size = 6;
 		pixel_byte = 0;
 

@@ -3301,7 +3301,7 @@ int example(uint8_t formatDrive)
 
 	if ((err = f_getfree(&volume, &clusters_free, &fs)) != FR_OK) { debugErr("Problem finding free size of card: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
-	if ((err = f_getlabel(&volume, volume_label, &volume_sn)) != FR_OK) { debugErr("Problem reading drive label: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err;  }
+	if ((err = f_getlabel(&volume, volume_label, &volume_sn)) != FR_OK) { debugErr("Problem reading drive label: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
 	if ((err = f_open(&file, "0:HelloWorld.txt", FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]);f_mount(NULL, "", 0); return err; }
 	debug("File opened\n");
@@ -3517,9 +3517,9 @@ int MXC_SDHC_Lib_SetHighSpeedTiming(mxc_sdhc_hs_timing highSpeedTiming)
 
 	// Setup the UHS mode as SDR25
 	MXC_SDHC->host_cn_2 &= MXC_F_SDHC_HOST_CN_2_UHS;
-	if (highSpeedTiming == MXC_SDHC_LIB_LEGACY_TIMING) { MXC_SDHC->host_cn_2 |= MXC_S_SDHC_HOST_CN_2_UHS_SDR12;	}
-	else if (highSpeedTiming == MXC_SDHC_LIB_HIGH_SPEED_TIMING_SDR) { MXC_SDHC->host_cn_2 |= MXC_S_SDHC_HOST_CN_2_UHS_SDR25;	}
-	else if (highSpeedTiming == MXC_SDHC_LIB_HS200_TIMING) { MXC_SDHC->host_cn_2 |= MXC_S_SDHC_HOST_CN_2_UHS_SDR50;	}
+	if (highSpeedTiming == MXC_SDHC_LIB_LEGACY_TIMING) { MXC_SDHC->host_cn_2 |= MXC_S_SDHC_HOST_CN_2_UHS_SDR12; }
+	else if (highSpeedTiming == MXC_SDHC_LIB_HIGH_SPEED_TIMING_SDR) { MXC_SDHC->host_cn_2 |= MXC_S_SDHC_HOST_CN_2_UHS_SDR25; }
+	else if (highSpeedTiming == MXC_SDHC_LIB_HS200_TIMING) { MXC_SDHC->host_cn_2 |= MXC_S_SDHC_HOST_CN_2_UHS_SDR50; }
 
 	/* Wait until card busy (D0 low) disappears */
 	while (MXC_SDHC_Card_Busy()) {}
@@ -3689,7 +3689,7 @@ void SetupDriveAndFilesystem(void)
 
 	// Remount
 	if ((err = f_mount(&fs_obj, "", 1)) != FR_OK) { debugErr("Drive(eMMC): filed to mount after formatting, with error %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); }
-	else if ((err = f_setlabel("NOMIS")) != FR_OK) { debugErr("Drive(eMMC): Setting label failed with error %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0);	}
+	else if ((err = f_setlabel("NOMIS")) != FR_OK) { debugErr("Drive(eMMC): Setting label failed with error %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); }
 #endif
 
 #if 0 /* Test making FS immedaitely to exercise formatting flash */
@@ -5045,7 +5045,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	SetupSPI3_ExternalADC(1 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 1);
 
 	// Test 4 Chan + Temp + Readback
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5053,7 +5053,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
 
 	// Test 4 Chan + Temp (No readback)
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5072,7 +5072,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	SetupSPI3_ExternalADC(2 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 2);
 
 	// Test 4 Chan + Temp + Readback
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5080,7 +5080,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
 
 	// Test 4 Chan + Temp (No readback)
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5099,7 +5099,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	SetupSPI3_ExternalADC(4 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 4);
 
 	// Test 4 Chan + Temp + Readback
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5107,7 +5107,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
 
 	// Test 4 Chan + Temp (No readback)
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5126,7 +5126,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	SetupSPI3_ExternalADC(8 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 8);
 
 	// Test 4 Chan + Temp + Readback
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5134,7 +5134,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
 
 	// Test 4 Chan + Temp (No readback)
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5153,7 +5153,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	SetupSPI3_ExternalADC(16 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 16);
 
 	// Test 4 Chan + Temp + Readback
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5161,7 +5161,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
 
 	// Test 4 Chan + Temp (No readback)
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5180,7 +5180,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	SetupSPI3_ExternalADC(20 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 20);
 
 	// Test 4 Chan + Temp + Readback
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5188,7 +5188,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
 
 	// Test 4 Chan + Temp (No readback)
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5207,7 +5207,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	SetupSPI3_ExternalADC(25 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 25);
 
 	// Test 4 Chan + Temp + Readback
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5215,7 +5215,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
 
 	// Test 4 Chan + Temp (No readback)
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5234,7 +5234,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	SetupSPI3_ExternalADC(30 * 1000000); debug("ADC Sample clock: %d MHz\r\n", 30);
 
 	// Test 4 Chan + Temp + Readback
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, OVERRIDE_ENABLE_CHANNEL_VERIFICATION); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5242,7 +5242,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
 
 	// Test 4 Chan + Temp (No readback)
-	g_sampleCount = 0; sampleProcessTiming = 0;	AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+	g_sampleCount = 0; sampleProcessTiming = 0; AD4695_ExitConversionMode(); SetupADChannelConfig(SAMPLE_RATE_DEFAULT, 0); MXC_GPIO_DisableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 	debug("Sample clock: Testing External ADC successive reads...\r\n");
 	psChange = 0; while (psChange == 0) {;} trackedSeconds = g_lifetimePeriodicSecondCount;
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */ while ((volatile uint32_t)g_lifetimePeriodicSecondCount < (trackedSeconds + 64))
@@ -5395,7 +5395,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Setup SDHC/eMMC
 	//-------------------------------------------------------------------------
-	if (SetupSDHCeMMC() != E_NO_ERROR) { /* Run the setup again */ SetupSDHCeMMC();	} // Init often fails the first time on cold boot
+	if (SetupSDHCeMMC() != E_NO_ERROR) { /* Run the setup again */ SetupSDHCeMMC(); } // Init often fails the first time on cold boot
 #if 1 /* Test */
 	TestSDHCeMMC();
 #endif

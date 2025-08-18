@@ -371,19 +371,19 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 
 	sprintf((char*)msgTypeStr, "%02d", MSGTYPE_RESPONSE);
 	BuildOutgoingSimpleHeaderBuffer((uint8*)dcmHdr, (uint8*)"DCMx", (uint8*)msgTypeStr,
-		(uint32)(MESSAGE_SIMPLE_TOTAL_LENGTH + sizeof(SYSTEM_CFG)), COMPRESS_NONE, CRC_NONE);	
+		(uint32)(MESSAGE_SIMPLE_TOTAL_LENGTH + sizeof(SYSTEM_CFG)), COMPRESS_NONE, CRC_NONE);
 
 	// Send Starting CRLF
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 
 	// Calculate the CRC on the header
-	g_transmitCRC = CalcCCITT32((uint8*)&dcmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);		
+	g_transmitCRC = CalcCCITT32((uint8*)&dcmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send Simple header
 	ModemPuts((uint8*)dcmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, g_binaryXferFlag);
 
 	// Calculate the CRC on the data
-	g_transmitCRC = CalcCCITT32((uint8*)&cfg, sizeof(SYSTEM_CFG), g_transmitCRC);		
+	g_transmitCRC = CalcCCITT32((uint8*)&cfg, sizeof(SYSTEM_CFG), g_transmitCRC);
 
 	// Send the configuration data
 	ModemPuts((uint8*)&cfg, sizeof(SYSTEM_CFG), g_binaryXferFlag);
@@ -470,13 +470,13 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 
 				sprintf((char*)msgTypeStr, "%02lu", returnCode);
 				BuildOutgoingSimpleHeaderBuffer((uint8*)ucmHdr, (uint8*)"UCMx",
-					(uint8*)msgTypeStr, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);	
+					(uint8*)msgTypeStr, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);
 
 				// Send Starting CRLF
 				ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 
 				// Calculate the CRC on the header
-				g_transmitCRC = CalcCCITT32((uint8*)&ucmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);		
+				g_transmitCRC = CalcCCITT32((uint8*)&ucmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 				// Send Simple header
 				ModemPuts((uint8*)ucmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
@@ -1035,7 +1035,7 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 			default:
 				returnCode = CFG_ERR_LANGUAGE_MODE;
 				goto SEND_UCM_ERROR_CODE;
-				break;	
+				break;
 		}
 
 		//---------------------------------------------------------------------------
@@ -1093,7 +1093,7 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 			default:
 				returnCode = CFG_ERR_FREQ_PLOT_TYPE;
 				goto SEND_UCM_ERROR_CODE;
-				break;	
+				break;
 		}
 
 		//---------------------------------------------------------------------------
@@ -1495,13 +1495,13 @@ SEND_UCM_ERROR_CODE:
 #endif
 	sprintf((char*)msgTypeStr, "%02lu", returnCode);
 	BuildOutgoingSimpleHeaderBuffer((uint8*)ucmHdr, (uint8*)"UCMx",
-		(uint8*)msgTypeStr, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);	
+		(uint8*)msgTypeStr, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);
 
 	// Send Starting CRLF
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 
 	// Calculate the CRC on the header
-	g_transmitCRC = CalcCCITT32((uint8*)&ucmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);		
+	g_transmitCRC = CalcCCITT32((uint8*)&ucmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send Simple header
 	ModemPuts((uint8*)&ucmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
@@ -1536,19 +1536,19 @@ void HandleDMM(CMD_BUFFER_STRUCT* inCmd)
 
 	sprintf((char*)msgTypeStr, "%02d", MSGTYPE_RESPONSE);
 	BuildOutgoingSimpleHeaderBuffer((uint8*)dmmHdr, (uint8*)"DMMx", (uint8*)msgTypeStr,
-		(uint32)(MESSAGE_SIMPLE_TOTAL_LENGTH + sizeof(MODEM_SETUP_STRUCT)), COMPRESS_NONE, CRC_NONE);	
+		(uint32)(MESSAGE_SIMPLE_TOTAL_LENGTH + sizeof(MODEM_SETUP_STRUCT)), COMPRESS_NONE, CRC_NONE);
 
 	// Send Starting CRLF
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 
 	// Calculate the CRC on the header
-	g_transmitCRC = CalcCCITT32((uint8*)&dmmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);		
+	g_transmitCRC = CalcCCITT32((uint8*)&dmmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send Simple header
 	ModemPuts((uint8*)dmmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, g_binaryXferFlag);
 
 	// Calculate the CRC on the data
-	g_transmitCRC = CalcCCITT32((uint8*)&modemCfg, sizeof(MODEM_SETUP_STRUCT), g_transmitCRC);		
+	g_transmitCRC = CalcCCITT32((uint8*)&modemCfg, sizeof(MODEM_SETUP_STRUCT), g_transmitCRC);
 
 	// Send the configuration data
 	ModemPuts((uint8*)&modemCfg, sizeof(MODEM_SETUP_STRUCT), g_binaryXferFlag);
@@ -1689,13 +1689,13 @@ void HandleUMM(CMD_BUFFER_STRUCT* inCmd)
 	// Return codes
 	sprintf((char*)msgTypeStr, "%02lu", returnCode);
 	BuildOutgoingSimpleHeaderBuffer((uint8*)ummHdr, (uint8*)"UMMx",
-		(uint8*)msgTypeStr, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);	
+		(uint8*)msgTypeStr, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);
 
 	// Send Starting CRLF
 	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
 
 	// Calculate the CRC on the header
-	g_transmitCRC = CalcCCITT32((uint8*)&ummHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);		
+	g_transmitCRC = CalcCCITT32((uint8*)&ummHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send Simple header
 	ModemPuts((uint8*)ummHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);

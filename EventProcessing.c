@@ -1031,7 +1031,7 @@ void InitEventRecord(uint8 opMode)
 
 	if ((opMode == WAVEFORM_MODE) || (opMode == MANUAL_CAL_MODE) || (opMode == COMBO_MODE))
 	{
-		eventRec = &g_pendingEventRecord;		
+		eventRec = &g_pendingEventRecord;
 		ClearAndFillInCommonRecordInfo(eventRec);
 
 		eventRec->summary.mode = opMode;
@@ -1063,7 +1063,7 @@ void InitEventRecord(uint8 opMode)
 
 	if ((opMode == BARGRAPH_MODE) || (opMode == COMBO_MODE))
 	{
-		eventRec = &g_pendingBargraphRecord;		
+		eventRec = &g_pendingBargraphRecord;
 		ClearAndFillInCommonRecordInfo(eventRec);
 
 		eventRec->summary.mode = opMode;
@@ -1562,7 +1562,7 @@ void CacheEventDataToBuffer(uint16 eventNumber, uint8* dataBuffer, uint32 dataOf
 	char* pathAndFilename;
 
 	FIL file;
-	uint32_t readSize;	
+	uint32_t readSize;
 
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
 

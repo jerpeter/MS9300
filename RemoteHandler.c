@@ -136,7 +136,7 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 	// Fill in the data
 	CHAR_UPPER_CASE(cmdMsg->msg[0]);
 	CHAR_UPPER_CASE(cmdMsg->msg[1]);
-	CHAR_UPPER_CASE(cmdMsg->msg[2]);		
+	CHAR_UPPER_CASE(cmdMsg->msg[2]);
 		
 	if ((cmdMsg->msg[0] == 'U') &&
 		(cmdMsg->msg[1] == 'N') &&
@@ -505,8 +505,8 @@ void RemoteCmdMessageProcessing()
 	RemoteCmdMessageHandler(&(g_msgPool[s_msgReadIndex]));
 
 	memset(g_msgPool[s_msgReadIndex].msg, 0, CMD_BUFFER_SIZE);
-	g_msgPool[s_msgReadIndex].size = 0;	
-	g_msgPool[s_msgReadIndex].readPtr = g_msgPool[s_msgReadIndex].msg;	
+	g_msgPool[s_msgReadIndex].size = 0;
+	g_msgPool[s_msgReadIndex].readPtr = g_msgPool[s_msgReadIndex].msg;
 	g_msgPool[s_msgReadIndex].writePtr = g_msgPool[s_msgReadIndex].msg;
 #if 0 /* No longer needed */
 	g_msgPool[s_msgReadIndex].overRunCheck = 0xBADD;

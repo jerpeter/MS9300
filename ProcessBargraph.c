@@ -615,9 +615,9 @@ uint8 CalculateBargraphData(void)
 #endif
 			{
 				// Store the max R, V and T normalized value if a new max was found
-				if (rTempNorm > g_bargraphBarIntervalWritePtr->rMax) { g_bargraphBarIntervalWritePtr->rMax = rTempNorm;	g_bargraphBarIntervalWritePtr->rFreq = ((g_bargraphFreqCalcBuffer.r.freq_count * 2) + 1); }
-				if (vTempNorm > g_bargraphBarIntervalWritePtr->vMax) { g_bargraphBarIntervalWritePtr->vMax = vTempNorm;	g_bargraphBarIntervalWritePtr->vFreq = ((g_bargraphFreqCalcBuffer.v.freq_count * 2) + 1); }
-				if (tTempNorm > g_bargraphBarIntervalWritePtr->tMax) { g_bargraphBarIntervalWritePtr->tMax = tTempNorm;	g_bargraphBarIntervalWritePtr->tFreq = ((g_bargraphFreqCalcBuffer.t.freq_count * 2) + 1); }
+				if (rTempNorm > g_bargraphBarIntervalWritePtr->rMax) { g_bargraphBarIntervalWritePtr->rMax = rTempNorm; g_bargraphBarIntervalWritePtr->rFreq = ((g_bargraphFreqCalcBuffer.r.freq_count * 2) + 1); }
+				if (vTempNorm > g_bargraphBarIntervalWritePtr->vMax) { g_bargraphBarIntervalWritePtr->vMax = vTempNorm; g_bargraphBarIntervalWritePtr->vFreq = ((g_bargraphFreqCalcBuffer.v.freq_count * 2) + 1); }
+				if (tTempNorm > g_bargraphBarIntervalWritePtr->tMax) { g_bargraphBarIntervalWritePtr->tMax = tTempNorm; g_bargraphBarIntervalWritePtr->tFreq = ((g_bargraphFreqCalcBuffer.t.freq_count * 2) + 1); }
 			}
 
 			// ----------

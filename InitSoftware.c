@@ -439,12 +439,12 @@ void InitSoftwareSettings_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Load the Modem Setup Record
 	//-------------------------------------------------------------------------
-	LoadModemSetupRecord();	debug("Modem Setup record loaded\r\n");
+	LoadModemSetupRecord(); debug("Modem Setup record loaded\r\n");
 
 	//-------------------------------------------------------------------------
 	// Load the Modem Setup Record
 	//-------------------------------------------------------------------------
-	LoadCellModemSetupRecord();	debug("Cell Modem Setup record loaded\r\n");
+	LoadCellModemSetupRecord(); debug("Cell Modem Setup record loaded\r\n");
 
 	//-------------------------------------------------------------------------
 	// Add OnOff Log Timestamp

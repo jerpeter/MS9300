@@ -2034,7 +2034,7 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 			else // Cal pulse started
 			{
 				// Wait 5 samples to start cal signaling (~5 ms)
-				if (s_calSampleCount == CAL_SAMPLE_COUNT_FIRST_TRANSITION_HIGH) { AdSetCalSignalHigh();	}	// (5 ms after start, run for 10 ms)
+				if (s_calSampleCount == CAL_SAMPLE_COUNT_FIRST_TRANSITION_HIGH) { AdSetCalSignalHigh(); }	// (5 ms after start, run for 10 ms)
 				if (s_calSampleCount == CAL_SAMPLE_COUNT_SECOND_TRANSITION_LOW) { AdSetCalSignalLow(); }	// (15 ms after start, run for 20 ms)
 				if (s_calSampleCount == CAL_SAMPLE_COUNT_THIRD_TRANSITION_HIGH) { AdSetCalSignalHigh(); }	// (35 ms after start, run for 10 ms)
 				if (s_calSampleCount == CAL_SAMPLE_COUNT_FOURTH_TRANSITION_OFF) { AdSetCalSignalOff(); }	// (45 ms after start, run for 55 ms)

@@ -615,7 +615,7 @@ void ValidateModemSetupParameters(void)
 	if ((g_modemSetupRecord.retries < MODEM_RETRY_MIN_VALUE) || (g_modemSetupRecord.retries > MODEM_RETRY_MAX_VALUE))
 	{
 		g_modemSetupRecord.retries = MODEM_RETRY_DEFAULT_VALUE;
-		updated = YES;	
+		updated = YES;
 	}
 
 	if ((g_modemSetupRecord.retryTime < MODEM_RETRY_TIME_MIN_VALUE) || (g_modemSetupRecord.retryTime > MODEM_RETRY_TIME_MAX_VALUE))
@@ -786,7 +786,7 @@ void SaveParameterMemory(uint8* dataSrc, uint16 startAddr, uint16 dataLength)
 		else // Already aligned to a page boundary, and more than 1 page of data to write
 		{
 			writeLength = EEPROM_PAGE_SIZE;
-			dataLength -= EEPROM_PAGE_SIZE;	
+			dataLength -= EEPROM_PAGE_SIZE;
 			startAddr += EEPROM_PAGE_SIZE;
 		}			
 			

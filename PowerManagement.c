@@ -748,7 +748,7 @@ void InitBattChargerRegisters(void)
 	// Device address doesn't read as expected
 	//GetBattChargerRegister(BATT_CHARGER_DEVICE_ADDRESS_SETTING, &regResults); if (regResults != 0x00E9) { debugErr("Battery Charger Read failed: Device address, 0x%x/0x%x\r\n", 0x00E9, regResults); }
 	GetBattChargerRegister(BATT_CHARGER_INPUT_MINIMUM_VOLTAGE_LIMIT_SETTING, &regResults); if (regResults != 0x0037) { errStatus = YES; debugErr("Battery Charger Read failed: Input min V, 0x%x/0x%x\r\n", 0x0037, regResults); }
-	GetBattChargerRegister(BATT_CHARGER_INPUT_CURRENT_LIMIT_SETTING, &regResults); if (regResults != 0x0050) {errStatus = YES;  debugErr("Battery Charger Read failed: Input current limit, 0x%x/0x%x\r\n", 0x0050, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_INPUT_CURRENT_LIMIT_SETTING, &regResults); if (regResults != 0x0050) {errStatus = YES; debugErr("Battery Charger Read failed: Input current limit, 0x%x/0x%x\r\n", 0x0050, regResults); }
 	GetBattChargerRegister(BATT_CHARGER_OUTPUT_VOLTAGE_SETTING_IN_SOURCE_MODE, &regResults); if (regResults != 0x00F9) { errStatus = YES; debugErr("Battery Charger Read failed: Output voltage, 0x%x/0x%x\r\n", 0x00F9, regResults); }
 	GetBattChargerRegister(BATT_CHARGER_BATTERY_IMPEDANCE_COMPENSATION_AND_OUTPUT_CURRENT_LIMIT_SETTING_IN_SOURCE_MODE, &regResults); if (regResults != 0x003C) { errStatus = YES; debugErr("Battery Charger Read failed: Output current, 0x%x/0x%x\r\n", 0x003C, regResults); }
 #if 1 /* Test delay to see if that changes expanded Batt presenece to read different */

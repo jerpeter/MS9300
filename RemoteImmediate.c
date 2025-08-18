@@ -1631,7 +1631,7 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 
 				for (i = barType; i < CMD_BUFFER_SIZE; i += barType)
 				{
-					if ((barDataSize % i) == 0) { perfectLoops = (barDataSize / i);	}
+					if ((barDataSize % i) == 0) { perfectLoops = (barDataSize / i); }
 				}
 
 				if (dataSizeRemaining < (barDataSize / perfectLoops)) { pullSize = dataSizeRemaining; }
