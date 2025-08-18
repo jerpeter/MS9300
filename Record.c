@@ -157,6 +157,17 @@ void SaveRecordData(void* src_ptr, uint32 num, uint8 type)
 			SaveParameterMemory((uint8*)src_ptr, loc, rec_size);
 			break;
 
+		case REC_CELL_MODEM_SETUP_TYPE:
+			debug("Programming Cell Modem Setup Record...\r\n");
+
+			((CELL_MODEM_SETUP_STRUCT*)src_ptr)->invalid = 0x0000;
+
+			rec_size = sizeof(CELL_MODEM_SETUP_STRUCT);
+			loc = (sizeof(REC_EVENT_MN_STRUCT) * (MAX_NUM_OF_SAVED_SETUPS + 1) + sizeof(UNIT_CONFIG_STRUCT) + sizeof(MODEM_SETUP_STRUCT) +
+					sizeof(FACTORY_SETUP_STRUCT) + sizeof(CURRENT_EVENT_NUMBER_STRUCT) + sizeof(MONITOR_LOG_ID_STRUCT));
+			SaveParameterMemory((uint8*)src_ptr, loc, rec_size);
+			break;
+
 		default: // If type doesn't match, just return
 			return;
 			break;
@@ -209,6 +220,12 @@ void GetRecordData(void* dst_ptr, uint32 num, uint8 type)
 					sizeof(UNIT_CONFIG_STRUCT) + sizeof(MODEM_SETUP_STRUCT) +
 					sizeof(FACTORY_SETUP_STRUCT) + sizeof(CURRENT_EVENT_NUMBER_STRUCT);
 			GetParameterMemory((uint8*)dst_ptr, loc, sizeof(MONITOR_LOG_ID_STRUCT));
+			break;
+
+		case REC_CELL_MODEM_SETUP_TYPE:
+			loc = (sizeof(REC_EVENT_MN_STRUCT) * (MAX_NUM_OF_SAVED_SETUPS + 1)) + sizeof(UNIT_CONFIG_STRUCT) + sizeof(MODEM_SETUP_STRUCT) +
+					sizeof(FACTORY_SETUP_STRUCT) + sizeof(CURRENT_EVENT_NUMBER_STRUCT) + sizeof(MONITOR_LOG_ID_STRUCT);
+			GetParameterMemory((uint8*)dst_ptr, loc, sizeof(CELL_MODEM_SETUP_STRUCT));
 			break;
 
 		default:
@@ -572,6 +589,25 @@ void LoadModemSetupRecordDefaults()
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void LoadCellModemSetupRecordDefaults()
+{
+	// Initialize the Unit Config
+	memset(&g_cellModemSetupRecord, 0, sizeof(g_cellModemSetupRecord));
+
+	// No need to set these since the memset to zero satisfies initialization
+	//g_cellModemSetupRecord.pdnApn
+	//g_cellModemSetupRecord.pdnAuthProtocol
+	//g_cellModemSetupRecord.pdnUsername
+	//g_cellModemSetupRecord.pdnPassword
+
+	strcpy(g_cellModemSetupRecord.server, "ONLINE.NOMIS.COM");
+	g_cellModemSetupRecord.serverPort = 8005;
+	g_cellModemSetupRecord.tcpServerListenPort = 8005;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void ValidateModemSetupParameters(void)
 {
 	uint8 updated = NO;
@@ -607,6 +643,39 @@ void ValidateModemSetupParameters(void)
 		// Save the Modem Setup Record
 		debug("Modem Setup record needed updating\r\n");
 		SaveRecordData(&g_modemSetupRecord, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void ValidateCellModemSetupParameters(void)
+{
+	uint8 updated = NO;
+
+	if ((g_cellModemSetupRecord.server[0] == '\0') || (g_cellModemSetupRecord.server[0] == 0xFF))
+	{
+		strcpy(g_cellModemSetupRecord.server, "ONLINE.NOMIS.COM");
+		updated = YES;
+	}
+
+	if (g_cellModemSetupRecord.serverPort == 0xFFFF)
+	{
+		g_cellModemSetupRecord.serverPort = ADO_SERVER_PORT_DEFAULT_VALUE;
+		updated = YES;
+	}
+
+	if (g_cellModemSetupRecord.tcpServerListenPort == 0xFFFF)
+	{
+		g_cellModemSetupRecord.tcpServerListenPort = TCP_SERVER_LISTEN_PORT_DEFAULT_VALUE;
+		updated = YES;
+	}
+
+	if (updated)
+	{
+		// Save the Modem Setup Record
+		debug("Cell Modem Setup record needed updating\r\n");
+		SaveRecordData(&g_cellModemSetupRecord, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
 	}
 }
 

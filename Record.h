@@ -34,7 +34,8 @@ enum {
 	REC_MODEM_SETUP_TYPE,
 	REC_UNIQUE_EVENT_ID_TYPE,
 	REC_UNIQUE_MONITOR_LOG_ID_TYPE,
-	REC_UNIQUE_MONITOR_LOG_ID_CLEAR_TYPE
+	REC_UNIQUE_MONITOR_LOG_ID_CLEAR_TYPE,
+	REC_CELL_MODEM_SETUP_TYPE
 };
 
 #define DEFAULT_RECORD 			0
@@ -349,6 +350,21 @@ typedef struct
 
 typedef struct
 {
+	uint16 invalid;
+	char pdnApn[33]; // 32 + 1
+	char pdnUsername[33]; // 32 + 1
+	char pdnPassword[33]; // 32 + 1
+	char server[33]; // 32 + 1
+	uint16 serverPort;
+	uint16 tcpServerListenPort;
+	uint8 pdnAuthProtocol;
+	uint8 tcpServer;
+	uint8 unused1;
+	uint8 unused2;
+} CELL_MODEM_SETUP_STRUCT;
+
+typedef struct
+{
 	uint16				uniqueEntryId;
 	uint8				status;
 	uint8				mode;
@@ -400,7 +416,9 @@ void LoadTrigRecordDefaults(REC_EVENT_MN_STRUCT *rec_ptr, uint8 opMode);
 void LoadUnitConfigDefaults(UNIT_CONFIG_STRUCT *rec_ptr);
 void ActivateUnitConfigOptions(void);
 void LoadModemSetupRecordDefaults(void);
+void LoadCellModemSetupRecordDefaults(void);
 void ValidateModemSetupParameters(void);
+void ValidateCellModemSetupParameters(void);
 
 // Monitor Log prototypes
 void InitMonitorLog(void);
