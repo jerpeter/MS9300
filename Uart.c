@@ -196,10 +196,10 @@ void UartPutc(uint8 c, int32 channel)
 		{
 			MXC_UART_WriteCharacter(MXC_UART1, c);
 		}
-        // Check if USB serial channel is available
+		// Check if USB serial channel is available
 		else if (acm_present())
 		{
-            if (acm_write(&c, sizeof(c)) != sizeof(c))
+			if (acm_write(&c, sizeof(c)) != sizeof(c))
 			{
 				debugErr("USB CDC/ACM serial transfer failed trying to send <%c>\r\n", c);
 			}
@@ -646,7 +646,7 @@ void DebugPrintChar(uint8 charData)
 ///----------------------------------------------------------------------------
 void GetUartBridgeRegisters(uint8_t registerAddress, uint8_t* registerData, uint16_t dataLength)
 {
-    // I2C Sub-Address (Register Address) is moved to Bits 6:3 (UART Internal Register Address A3:A0)
+	// I2C Sub-Address (Register Address) is moved to Bits 6:3 (UART Internal Register Address A3:A0)
 	registerAddress <<= 3;
 
 	WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, &registerAddress, sizeof(uint8_t), registerData, dataLength);
@@ -657,13 +657,13 @@ void GetUartBridgeRegisters(uint8_t registerAddress, uint8_t* registerData, uint
 ///----------------------------------------------------------------------------
 void SetUartBridgeRegisters(uint8_t registerAddress, uint8_t* registerData, uint16_t dataLength)
 {
-    // I2C Sub-Address (Register Address) is moved to Bits 6:3 (UART Internal Register Address A3:A0)
-    registerAddress <<= 3;
+	// I2C Sub-Address (Register Address) is moved to Bits 6:3 (UART Internal Register Address A3:A0)
+	registerAddress <<= 3;
 
 	g_spareBuffer[0] = registerAddress;
 	memcpy(&g_spareBuffer[1], registerData, dataLength);
 
-    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, g_spareBuffer, (dataLength + 1), NULL, 0);
+	WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, g_spareBuffer, (dataLength + 1), NULL, 0);
 }
 
 ///----------------------------------------------------------------------------
@@ -673,13 +673,13 @@ void WriteUartBridgeControlRegister(uint8_t registerAddress, uint8_t registerDat
 {
 	uint8_t writeData[2];
 
-    // I2C Sub-Address (Register Address) is moved to Bits 6:3 (UART Internal Register Address A3:A0)
-    registerAddress <<= 3;
+	// I2C Sub-Address (Register Address) is moved to Bits 6:3 (UART Internal Register Address A3:A0)
+	registerAddress <<= 3;
 
 	writeData[0] = registerAddress;
 	writeData[1] = registerData;
 
-    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, &writeData[0], sizeof(writeData), NULL, 0);
+	WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, &writeData[0], sizeof(writeData), NULL, 0);
 }
 
 ///----------------------------------------------------------------------------
@@ -689,10 +689,10 @@ uint8_t ReadUartBridgeControlRegister(uint8_t registerAddress)
 {
 	uint8_t readData;
 
-    // I2C Sub-Address (Register Address) is moved to Bits 6:3 (UART Internal Register Address A3:A0)
-    registerAddress <<= 3;
+	// I2C Sub-Address (Register Address) is moved to Bits 6:3 (UART Internal Register Address A3:A0)
+	registerAddress <<= 3;
 
-    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, &registerAddress, sizeof(registerAddress), &readData, sizeof(readData));
+	WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, &registerAddress, sizeof(registerAddress), &readData, sizeof(readData));
 
 	return (readData);
 }
@@ -704,10 +704,10 @@ void ReadUartBridgeRxFIFO(uint8_t* readData, uint8_t count)
 {
 	uint8_t registerAddress = PI7C9X760_REG_RHR;
 
-    // I2C Sub-Address (Register Address) is moved to Bits 6:3 (UART Internal Register Address A3:A0)
-    registerAddress <<= 3;
+	// I2C Sub-Address (Register Address) is moved to Bits 6:3 (UART Internal Register Address A3:A0)
+	registerAddress <<= 3;
 
-    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, &registerAddress, sizeof(registerAddress), readData, count);
+	WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXPANSION, &registerAddress, sizeof(registerAddress), readData, count);
 }
 
 ///----------------------------------------------------------------------------
@@ -829,9 +829,9 @@ void SleepUartBridgeDevice(void)
 ///----------------------------------------------------------------------------
 void TestExpansionI2CBridge(void)
 {
-    debug("Expansion I2C Uart Bridge: Test device access...\r\n");
+	debug("Expansion I2C Uart Bridge: Test device access...\r\n");
 
-    if (GetPowerControlState(EXPANSION_ENABLE) == OFF)
+	if (GetPowerControlState(EXPANSION_ENABLE) == OFF)
 	{
 		debug("Power Control: Expansion I2C UART bridge enable being turned on\r\n");
 		PowerControl(EXPANSION_ENABLE, ON);

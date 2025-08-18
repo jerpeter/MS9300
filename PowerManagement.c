@@ -418,7 +418,7 @@ void SetupSPI2_Accelerometer(uint8_t mode)
 {
 	if (mode == ON)
 	{
-	    g_spi2State |= SPI2_ACC_ON;
+		g_spi2State |= SPI2_ACC_ON;
 
 		// Check if SPI2 is not already active
 		if ((g_spi2State & SPI2_OPERAITONAL) == NO)
@@ -429,7 +429,7 @@ void SetupSPI2_Accelerometer(uint8_t mode)
 	}
 	else // (mode == OFF)
 	{
-	    g_spi2State &= ~SPI2_ACC_ON;
+		g_spi2State &= ~SPI2_ACC_ON;
 
 		// Check if SPI2 is not still active for the LCD
 		if ((g_spi2State & SPI2_LCD_ON) == NO)
@@ -1073,7 +1073,7 @@ void SetBattChargerChargeState(uint8_t state)
 ///----------------------------------------------------------------------------
 void TestBatteryCharger(void)
 {
-    debug("Battery Charger: Test device access...\r\n");
+	debug("Battery Charger: Test device access...\r\n");
 
 	debug("Battery Charger: Init to disable internal watchdog to keep in Host mode (prevents defaults on timeout)\r\n");
 	InitBattChargerRegisters();
@@ -1886,7 +1886,7 @@ void TestFuelGauge(void)
 	else { info.prescaler = LTC2944_PRESCALER_1024; } // Double pack
 	info.Qlsb = (((((340 * 1000) * 50) / info.r_sense) * LTC2944_M_256) / LTC2944_MAX_PRESCALER); // nAh units, .340 scaled up to uA and * 1000 to scale up to nA
 
-    debug("Fuel Gauge: Test device access...\r\n");
+	debug("Fuel Gauge: Test device access...\r\n");
 
 	debug("Fuel Gauge: Enabling conversions\r\n");
 	Ltc2944_config(info.prescaler, LTC2944_REG_CONTROL_MODE_AUTO);

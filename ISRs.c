@@ -216,9 +216,9 @@ void PF_IRQHandler(void)
 ///----------------------------------------------------------------------------
 void WDT0_IRQHandler(void)
 {
-    MXC_WDT_ClearIntFlag(MXC_WDT0);
+	MXC_WDT_ClearIntFlag(MXC_WDT0);
 
-    debugErr("Watchdog IRQ triggered\r\n");
+	debugErr("Watchdog IRQ triggered\r\n");
 	//debugErr("Watchdog IRQ triggered, attempting to gracefully close shop before reset...\r\n");
 
 	// Shutdown/data handling before reset
@@ -346,7 +346,7 @@ uint32_t uart0BufferCount = 0;
 #endif
 void UART0_Read_Callback(mxc_uart_req_t *req, int error)
 {
-    // UART0 receive processing
+	// UART0 receive processing
 #if 1 /* Test */
 	{
 #if 0 /* Initial testing */
@@ -421,7 +421,7 @@ uint32_t uart1BufferCount = 0;
 #endif
 void UART1_Read_Callback(mxc_uart_req_t *req, int error)
 {
-    // UART1 receive processing
+	// UART1 receive processing
 #if 1 /* Test */
 	if(req->rxLen)
 	{
@@ -452,7 +452,7 @@ void UART2_Read_Callback(mxc_uart_req_t *req, int error)
 
 	//debugRaw("<'>");
 
-    // UART2 receive processing
+	// UART2 receive processing
 #if 1 /* Test */
 	while (rxIndex != req->rxLen)
 	{
@@ -487,7 +487,7 @@ extern mxc_uart_req_t uart2ReadRequest;
 ///----------------------------------------------------------------------------
 void UART0_Handler(void)
 {
-    MXC_UART_AsyncHandler(MXC_UART0);
+	MXC_UART_AsyncHandler(MXC_UART0);
 }
 
 ///----------------------------------------------------------------------------
@@ -495,7 +495,7 @@ void UART0_Handler(void)
 ///----------------------------------------------------------------------------
 void UART1_Handler(void)
 {
-    MXC_UART_AsyncHandler(MXC_UART1);
+	MXC_UART_AsyncHandler(MXC_UART1);
 }
 
 ///----------------------------------------------------------------------------
@@ -503,7 +503,7 @@ void UART1_Handler(void)
 ///----------------------------------------------------------------------------
 void UART2_Handler(void)
 {
-    MXC_UART_AsyncHandler(MXC_UART2);
+	MXC_UART_AsyncHandler(MXC_UART2);
 }
 
 ///----------------------------------------------------------------------------
@@ -855,9 +855,9 @@ void Internal_rtc_alarms(void)
 	// Test print to verify the interrupt is running
 	debugRaw("~");
 
-    int flags = MXC_RTC_GetFlags();
+	int flags = MXC_RTC_GetFlags();
 
-    if (flags & MXC_F_RTC_CTRL_SSEC_ALARM_FL)
+	if (flags & MXC_F_RTC_CTRL_SSEC_ALARM_FL)
 	{
 		// Based on Internal RTC sub-second alarm, but generate interrupts in Deepsleep and Backup
 
@@ -884,13 +884,13 @@ void Internal_rtc_alarms(void)
 			raiseSystemEventFlag_ISR(UPDATE_TIME_EVENT);
 		}
 
-        MXC_RTC_ClearFlags(MXC_F_RTC_CTRL_SSEC_ALARM_FL);
-    }
+		MXC_RTC_ClearFlags(MXC_F_RTC_CTRL_SSEC_ALARM_FL);
+	}
 
-    if (flags & MXC_F_RTC_CTRL_TOD_ALARM_FL)
+	if (flags & MXC_F_RTC_CTRL_TOD_ALARM_FL)
 	{
-        MXC_RTC_ClearFlags(MXC_F_RTC_CTRL_TOD_ALARM_FL);
-    }
+		MXC_RTC_ClearFlags(MXC_F_RTC_CTRL_TOD_ALARM_FL);
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -2988,7 +2988,7 @@ SKIP_PRIOR_PROCESSING_FOR_ADAPTIVE_MIN_RATE:
 #if 1 /* Test */
 	if (sampleProcessTiming) { sampleProcessTiming += (0xffffff - SysTick->VAL); sampleProcessTiming >>= 1; }
 	else { sampleProcessTiming = (0xffffff - SysTick->VAL); }
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 #endif
 
 	// Clear the interrupt flag

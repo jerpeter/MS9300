@@ -1285,7 +1285,7 @@ void TestExternalADC(void)
 {
 	uint8_t testData;
 
-    debug("External ADC: Test device access...\r\n");
+	debug("External ADC: Test device access...\r\n");
 
 	// Check if External ADC is still in reset
 	if (GetPowerControlState(ADC_RESET) == ON)

@@ -487,7 +487,7 @@ void AddEventToSummaryList(EVT_RECORD* event)
 
 	// Parent handles mutex locking (if necessary)
 
-    if ((f_open(&file, (const TCHAR*)s_summaryListFileName, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
+	if ((f_open(&file, (const TCHAR*)s_summaryListFileName, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
 		debugErr("File access problem: Add Event to Summary list with: %s\r\n", s_summaryListFileName);
 		//debugErr("File access problem: Add Event to Summary list\r\n");
@@ -826,7 +826,7 @@ void InitSummaryListFile(void)
 
 	memset(&g_summaryList, 0, sizeof(g_summaryList));
 
-    if ((f_stat((const TCHAR*)s_summaryListFileName, &fno)) != FR_OK)
+	if ((f_stat((const TCHAR*)s_summaryListFileName, &fno)) != FR_OK)
 	{ 
 		debugWarn("Warning: Summary List file not found or has not yet been created\r\n");
 	}
@@ -1172,7 +1172,7 @@ void GetEventFileInfo(uint16 eventNumber, EVENT_HEADER_STRUCT* eventHeaderPtr, E
 
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
 
-    if (f_stat((const TCHAR*)pathAndFilename, NULL) != FR_OK)
+	if (f_stat((const TCHAR*)pathAndFilename, NULL) != FR_OK)
 	{ 
 		DisplayFileNotFound(pathAndFilename);
 	}
@@ -1271,7 +1271,7 @@ void GetEventFileRecord(uint16 eventNumber, EVT_RECORD* eventRecord)
 
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
 
-    if (f_stat((const TCHAR*)pathAndFilename, NULL) != FR_OK)
+	if (f_stat((const TCHAR*)pathAndFilename, NULL) != FR_OK)
 	{ 
 		DisplayFileNotFound(pathAndFilename);
 	}
@@ -1646,7 +1646,7 @@ void CacheERDataToBuffer(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffse
 
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, ER_DATA_FILE_TYPE);
 
-    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) != FR_OK)
+	if ((f_stat((const TCHAR*)pathAndFilename, NULL)) != FR_OK)
 	{ 
 		DisplayFileNotFound(pathAndFilename);
 	}
@@ -1677,7 +1677,7 @@ void CacheEventDataToRam(uint16 eventNumber, uint8* dataBuffer, uint32 dataOffse
 
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
 
-    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) != FR_OK)
+	if ((f_stat((const TCHAR*)pathAndFilename, NULL)) != FR_OK)
 	{ 
 		DisplayFileNotFound(pathAndFilename);
 	}
@@ -1718,7 +1718,7 @@ uint8 CacheEventToRam(uint16 eventNumber, EVT_RECORD* eventRecordPtr)
 
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
 
-    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) != FR_OK)
+	if ((f_stat((const TCHAR*)pathAndFilename, NULL)) != FR_OK)
 	{ 
 		DisplayFileNotFound(pathAndFilename);
 	}
@@ -1766,7 +1766,7 @@ BOOLEAN CheckValidEventFile(uint16 eventNumber)
 
 	pathAndFilename = GetEventFilenameAndPath(eventNumber, EVENT_FILE_TYPE);
 
-    if ((f_stat((const TCHAR*)pathAndFilename, NULL)) != FR_OK)
+	if ((f_stat((const TCHAR*)pathAndFilename, NULL)) != FR_OK)
 	{ 
 		DisplayFileNotFound(pathAndFilename);
 	}
@@ -2012,11 +2012,11 @@ void MakeDirectoryIfNotPresent(char* path, uint16 newFileEventNumber)
 
 extern FRESULT err; //FFat Result (Struct)
 extern FILINFO fno; //FFat File Information Object
-    err = f_stat(directoryPath, &fno);
-    if (err == FR_NO_FILE) {
-        debug("Creating directory...\r\n");
-        if ((err = f_mkdir(directoryPath)) != FR_OK) { debugErr("Unable to create directory: %s\r\n", directoryPath); }
-    }
+	err = f_stat(directoryPath, &fno);
+	if (err == FR_NO_FILE) {
+		debug("Creating directory...\r\n");
+		if ((err = f_mkdir(directoryPath)) != FR_OK) { debugErr("Unable to create directory: %s\r\n", directoryPath); }
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -2151,18 +2151,18 @@ void CalculateCurrentConfigEventSizesRemaining(void)
 extern FATFS fs_obj;
 void GetSDCardUsageStats(void)
 {
-    uint32_t freeClusterInfo, freeSectors, totalSectors;
+	uint32_t freeClusterInfo, freeSectors, totalSectors;
 	FATFS* fs = &fs_obj;
 
-    // Get volume information and free clusters
-    if (f_getfree("", &freeClusterInfo, &fs) != FR_OK)
+	// Get volume information and free clusters
+	if (f_getfree("", &freeClusterInfo, &fs) != FR_OK)
 	{
 		debugErr("Drive(eMMC): Unable to get free space\r\n");
 	}
 
-    // Get total sectors and free sectors
-    totalSectors = (fs->n_fatent - 2) * fs->csize;
-    freeSectors = freeClusterInfo * fs->csize;
+	// Get total sectors and free sectors
+	totalSectors = (fs->n_fatent - 2) * fs->csize;
+	freeSectors = freeClusterInfo * fs->csize;
 
 	g_sdCardUsageStats.clusterSizeInBytes = (fs->csize * 512); // Assuming 512 bytes/sector
 	g_sdCardUsageStats.sizeFree = (freeSectors * 512);
@@ -2182,18 +2182,18 @@ void GetSDCardUsageStats(void)
 #if 0 /* Unused */
 void InitDriveUsageStats(void)
 {
-    uint32_t freeClusterInfo, freeSectors, totalSectors;
+	uint32_t freeClusterInfo, freeSectors, totalSectors;
 	FATFS* fs = &fs_obj;
 
-    // Get volume information and free clusters
-    if (f_getfree("", &freeClusterInfo, &fs) != FR_OK)
+	// Get volume information and free clusters
+	if (f_getfree("", &freeClusterInfo, &fs) != FR_OK)
 	{
 		debugErr("Drive(eMMC): Unable to get free space\r\n");
 	}
 
-    // Get total sectors and free sectors
-    totalSectors = (fs->n_fatent - 2) * fs->csize;
-    freeSectors = freeClusterInfo * fs->csize;
+	// Get total sectors and free sectors
+	totalSectors = (fs->n_fatent - 2) * fs->csize;
+	freeSectors = freeClusterInfo * fs->csize;
 
 	g_sdCardUsageStats.clusterSizeInBytes = (fs->csize * 512); // Assuming 512 bytes/sector
 	g_sdCardUsageStats.sizeFree = (freeSectors * 512);
@@ -2985,7 +2985,7 @@ extern int getSize(void);
 static char testLogFilename[] = LOGS_PATH "Test.zzz";
 void TestEMMCFatFilesystem(void)
 {
-    debug("eMMC and FAT file system: Test device access...\r\n");
+	debug("eMMC and FAT file system: Test device access...\r\n");
 
 	getSize();
 
@@ -2996,7 +2996,7 @@ void TestEMMCFatFilesystem(void)
 	// -------------------------------------
 	// Test file write
 	// -------------------------------------
-    if ((f_open(&file, (const TCHAR*)testLogFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
+	if ((f_open(&file, (const TCHAR*)testLogFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
 		debugErr("eMMC and FAT file system: Unable to open file: %s\r\n", testLogFilename);
 	}
@@ -3019,7 +3019,7 @@ void TestEMMCFatFilesystem(void)
 	// -------------------------------------
 	// Test file write again
 	// -------------------------------------
-    if ((f_open(&file, (const TCHAR*)testLogFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
+	if ((f_open(&file, (const TCHAR*)testLogFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
 		debugErr("eMMC and FAT file system: Unable to open file: %s\r\n", testLogFilename);
 	}

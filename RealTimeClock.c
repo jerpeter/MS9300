@@ -657,7 +657,7 @@ void ClearRtcTimestamp(void)
 ///----------------------------------------------------------------------------
 void GetRtcRegisters(uint8_t registerAddress, uint8_t* registerData, uint16_t dataLength)
 {
-    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXTERNAL_RTC, &registerAddress, sizeof(uint8_t), registerData, dataLength);
+	WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXTERNAL_RTC, &registerAddress, sizeof(uint8_t), registerData, dataLength);
 }
 
 ///----------------------------------------------------------------------------
@@ -668,7 +668,7 @@ void SetRtcRegisters(uint8_t registerAddress, uint8_t* registerData, uint16_t da
 	g_spareBuffer[0] = registerAddress;
 	memcpy(&g_spareBuffer[1], registerData, dataLength);
 
-    WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXTERNAL_RTC, g_spareBuffer, (dataLength + 1), NULL, 0);
+	WriteI2CDevice(MXC_I2C1, I2C_ADDR_EXTERNAL_RTC, g_spareBuffer, (dataLength + 1), NULL, 0);
 }
 
 ///----------------------------------------------------------------------------
@@ -682,7 +682,7 @@ void TestExternalRTC(void)
 	uint8_t stopEnableReg;
 	uint8_t check = NO;
 
-    debug("External RTC: Test device access...\r\n");
+	debug("External RTC: Test device access...\r\n");
 
 	// Expecting External RTC init to have been called prior
 

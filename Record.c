@@ -884,7 +884,7 @@ void TestEEPROM(void)
 {
 	uint8_t testMem[8];
 
-    debug("EEPROM: Test device access...\r\n");
+	debug("EEPROM: Test device access...\r\n");
 
 	memset(testMem, 0, sizeof(testMem));
 

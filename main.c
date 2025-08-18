@@ -2062,12 +2062,12 @@ void TestInternalADCPowerMonitor(void)
 	uint16_t adcVal;
 	uint8_t overflow;
 
-    /* Initialize ADC */
-    if (MXC_ADC_Init() != E_NO_ERROR) { debugErr("Internal ADC: Init failed\r\n"); }
-    while (MXC_ADC->status & (MXC_F_ADC_STATUS_ACTIVE | MXC_F_ADC_STATUS_PWR_UP_ACTIVE)) {}
+	/* Initialize ADC */
+	if (MXC_ADC_Init() != E_NO_ERROR) { debugErr("Internal ADC: Init failed\r\n"); }
+	while (MXC_ADC->status & (MXC_F_ADC_STATUS_ACTIVE | MXC_F_ADC_STATUS_PWR_UP_ACTIVE)) {}
 
-    MXC_ADC_SetMonitorChannel(MXC_ADC_MONITOR_0, MXC_ADC_CH_VCORE);
-    MXC_ADC_EnableMonitor(MXC_ADC_MONITOR_0);
+	MXC_ADC_SetMonitorChannel(MXC_ADC_MONITOR_0, MXC_ADC_CH_VCORE);
+	MXC_ADC_EnableMonitor(MXC_ADC_MONITOR_0);
 
 	MXC_ADC_StartConversion(MXC_ADC_CH_VCORE);
 
@@ -2095,19 +2095,19 @@ void TestHardwareCRC(void)
 	}
 
 	softwareCrc = hardwareCrc = SEED_32;
-    if (MXC_TPU_CRC((uint8_t*)g_eventDataBuffer, 256, MXC_TPU_CRC32_ETHERNET, &hardwareCrc) != E_SUCCESS) { debugErr("Test CRC: CRC-32 failed \r\n"); }
+	if (MXC_TPU_CRC((uint8_t*)g_eventDataBuffer, 256, MXC_TPU_CRC32_ETHERNET, &hardwareCrc) != E_SUCCESS) { debugErr("Test CRC: CRC-32 failed \r\n"); }
 	softwareCrc = CalcCCITT32((uint8_t*)g_eventDataBuffer, 256, softwareCrc);
 	if (softwareCrc == hardwareCrc) { debug("Test CRC: CRC-32/CCITT validation passed, TPU hardware CRC good\r\n"); }
 	else { debugErr("Test CRC: CRC-32/CCITT validation failed, 0x%x != 0x%x\r\n", softwareCrc, hardwareCrc); }
 
 	softwareCrc = hardwareCrc = SEED_32;
-    if (MXC_TPU_CRC((uint8_t*)g_eventDataBuffer, 256, MXC_TPU_CRC_CCITT, &hardwareCrc) != E_SUCCESS) { debugErr("Test CRC: CRC-16-CCITT failed \r\n"); }
+	if (MXC_TPU_CRC((uint8_t*)g_eventDataBuffer, 256, MXC_TPU_CRC_CCITT, &hardwareCrc) != E_SUCCESS) { debugErr("Test CRC: CRC-16-CCITT failed \r\n"); }
 	softwareCrc = CalcCrc16((uint8_t*)g_eventDataBuffer, 256, softwareCrc);
 	if ((uint16_t)softwareCrc == (uint16_t)hardwareCrc) { debug("Test CRC: CRC-16-CCITT validation passed, TPU hardware CRC good\r\n"); }
 	else { debugErr("Test CRC: CRC-16-CCITT validation failed, 0x%x != 0x%x\r\n", (uint16_t)softwareCrc, (uint16_t)hardwareCrc); }
 
 	softwareCrc = hardwareCrc = SEED_32;
-    if (MXC_TPU_CRC((uint8_t*)g_eventDataBuffer, 256, MXC_TPU_CRC16, &hardwareCrc) != E_SUCCESS) { debugErr("Test CRC: CRC-16 failed \r\n"); }
+	if (MXC_TPU_CRC((uint8_t*)g_eventDataBuffer, 256, MXC_TPU_CRC16, &hardwareCrc) != E_SUCCESS) { debugErr("Test CRC: CRC-16 failed \r\n"); }
 	softwareCrc = CalcCrc16((uint8_t*)g_eventDataBuffer, 256, softwareCrc);
 	if ((uint16_t)softwareCrc == (uint16_t)hardwareCrc) { debug("Test CRC: CRC-16 validation passed, TPU hardware CRC good\r\n"); }
 	else { debugErr("Test CRC: CRC-16 validation failed, 0x%x != 0x%x\r\n", (uint16_t)softwareCrc, (uint16_t)hardwareCrc); }

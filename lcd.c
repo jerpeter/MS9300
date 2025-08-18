@@ -1596,8 +1596,8 @@ void test_black_screen()
 	ft81x_clear_color_rgb32(0x000000);
 	ft81x_clear();
 	ft81x_display();
-	ft81x_cmd_swap();     // Set AUTO swap at end of display list
-	ft81x_getfree(0);     // trigger FT81x to read the command buffer
+	ft81x_cmd_swap();	 // Set AUTO swap at end of display list
+	ft81x_getfree(0);	 // trigger FT81x to read the command buffer
 	ft81x_stream_stop();  // Finish streaming to command buffer
 	ft81x_wait_finish();  // Wait till the GPU is finished processing the commands
 
@@ -1616,8 +1616,8 @@ void test_white_screen()
 	ft81x_clear_color_rgb32(0xFFFFFF);
 	ft81x_clear();
 	ft81x_display();
-	ft81x_cmd_swap();     // Set AUTO swap at end of display list
-	ft81x_getfree(0);     // trigger FT81x to read the command buffer
+	ft81x_cmd_swap();	 // Set AUTO swap at end of display list
+	ft81x_getfree(0);	 // trigger FT81x to read the command buffer
 	ft81x_stream_stop();  // Finish streaming to command buffer
 	ft81x_wait_finish();  // Wait till the GPU is finished processing the commands
 
@@ -1635,42 +1635,42 @@ void test_white_screen_no_stream(void)
 	ft81x_stream_start(); // Start streaming
 	ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
 	lcdSpiTiming[0] = (0xffffff - SysTick->VAL);
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
 	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
 	ft81x_stream_start(); // Start streaming
 	ft81x_clear_color_rgb32(0xFFFFFF);
 	lcdSpiTiming[2] = (0xffffff - SysTick->VAL);
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
 	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
 	ft81x_stream_start(); // Start streaming
 	ft81x_clear();
 	lcdSpiTiming[3] = (0xffffff - SysTick->VAL);
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
 	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
 	ft81x_stream_start(); // Start streaming
 	ft81x_cmd_button(12, 220, 132, 55, 29, 0, "LCD OFF");
 	lcdSpiTiming[4] = (0xffffff - SysTick->VAL);
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
 	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
 	ft81x_stream_start(); // Start streaming
 	ft81x_cmd_button(225, 220, 132, 55, 29, 0, "BACKLIGHT");
 	lcdSpiTiming[5] = (0xffffff - SysTick->VAL);
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
 	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
 	ft81x_stream_start(); // Start streaming
 	ft81x_cmd_button(432, 220, 132, 55, 29, 0, "CONFIG");
 	lcdSpiTiming[6] = (0xffffff - SysTick->VAL);
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
 	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
@@ -1678,38 +1678,38 @@ void test_white_screen_no_stream(void)
 	ft81x_cmd_button(650, 220, 132, 55, 29, 0, "ESCAPE");
 	// Swap back to default blue text
 	lcdSpiTiming[7] = (0xffffff - SysTick->VAL);
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
 	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
 	ft81x_stream_start(); // Start streaming
 	ft81x_color_rgb32(0x0000ff);
 	lcdSpiTiming[8] = (0xffffff - SysTick->VAL);
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
 	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
 	ft81x_stream_start(); // Start streaming
 	ft81x_cmd_text(180, 80, 28, 0, "Test with a longer string for the difference in timing");
 	lcdSpiTiming[9] = (0xffffff - SysTick->VAL);
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
 	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
 	ft81x_stream_start(); // Start streaming
 	ft81x_display();
 	lcdSpiTiming[10] = (0xffffff - SysTick->VAL);
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
 	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
 	ft81x_stream_start(); // Start streaming
-	ft81x_cmd_swap();     // Set AUTO swap at end of display list
+	ft81x_cmd_swap();	 // Set AUTO swap at end of display list
 	lcdSpiTiming[1] = (0xffffff - SysTick->VAL);
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 
 	ft81x_stream_start(); // Start streaming
-	ft81x_getfree(0);     // trigger FT81x to read the command buffer
+	ft81x_getfree(0);	 // trigger FT81x to read the command buffer
 	ft81x_stream_stop();  // Finish streaming to command buffer
 
 	ft81x_wait_finish();  // Wait till the GPU is finished processing the commands
@@ -1718,19 +1718,19 @@ void test_white_screen_no_stream(void)
 	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_USEC(100));
 	lcdSpiTiming[11] = (0xffffff - SysTick->VAL);
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
 	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1));
 	lcdSpiTiming[12] = (0xffffff - SysTick->VAL);
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
 	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(10));
 	lcdSpiTiming[13] = (0xffffff - SysTick->VAL);
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 
 	debug("LCD SPI2 timing test 0: %d ticks\r\n", lcdSpiTiming[0]);
 	debug("LCD SPI2 timing test 1: %d ticks\r\n", lcdSpiTiming[1]);
@@ -1896,7 +1896,7 @@ void test_load_image(void)
 		// end of commands
 		ft81x_end();
 		ft81x_display();
-		ft81x_cmd_swap();     // Set AUTO swap at end of display list
+		ft81x_cmd_swap();	 // Set AUTO swap at end of display list
 
 		// Trigger FT81x to read the command buffer
 		ft81x_getfree(0);
@@ -2005,8 +2005,8 @@ void test_display(
 		ft81x_cmd_spinner(80, 80, 3, 0);
 
 		ft81x_display();
-		ft81x_cmd_swap();     // Set AUTO swap at end of display list
-		ft81x_getfree(0);     // trigger FT81x to read the command buffer
+		ft81x_cmd_swap();	 // Set AUTO swap at end of display list
+		ft81x_getfree(0);	 // trigger FT81x to read the command buffer
 		ft81x_stream_stop();  // Finish streaming to command buffer
 
 		//// Wait till the GPU is finished
@@ -2036,8 +2036,8 @@ void ft81x_NomisLoadScreen(void)
 	ft81x_cmd_spinner(FT81X_DISPLAY_WIDTH / 2, 380, 3, 0);
 
 	ft81x_display();
-	ft81x_cmd_swap();     // Set AUTO swap at end of display list
-	ft81x_getfree(0);     // trigger FT81x to read the command buffer
+	ft81x_cmd_swap();	 // Set AUTO swap at end of display list
+	ft81x_getfree(0);	 // trigger FT81x to read the command buffer
 	ft81x_stream_stop();  // Finish streaming to command buffer
 
 	//// Wait till the GPU is finished
@@ -2063,8 +2063,8 @@ void ft81x_NomisChargingScreen(void)
 	ft81x_cmd_spinner(FT81X_DISPLAY_WIDTH / 2, 380, 3, 0);
 
 	ft81x_display();
-	ft81x_cmd_swap();     // Set AUTO swap at end of display list
-	ft81x_getfree(0);     // trigger FT81x to read the command buffer
+	ft81x_cmd_swap();	 // Set AUTO swap at end of display list
+	ft81x_getfree(0);	 // trigger FT81x to read the command buffer
 	ft81x_stream_stop();  // Finish streaming to command buffer
 
 	//// Wait till the GPU is finished
@@ -2086,8 +2086,8 @@ void test_cycle_colors(
 		ft81x_bgcolor_rgb32(0xffffff);
 		ft81x_fgcolor_rgb32(0xffffff);
 		ft81x_display();
-		ft81x_cmd_swap();     // Set AUTO swap at end of display list
-		ft81x_getfree(0);     // trigger FT81x to read the command buffer
+		ft81x_cmd_swap();	 // Set AUTO swap at end of display list
+		ft81x_getfree(0);	 // trigger FT81x to read the command buffer
 		ft81x_stream_stop();  // Finish streaming to command buffer
 
 		// rotate colors
@@ -2131,8 +2131,8 @@ void test_dots(
 		ft81x_point_size(size);
 		ft81x_vertex2f(rndx<<4,rndy<<4); // defaut is 1/16th pixel precision
 		ft81x_display();
-		ft81x_cmd_swap();     // Set AUTO swap at end of display list
-		ft81x_getfree(0);     // trigger FT81x to read the command buffer
+		ft81x_cmd_swap();	 // Set AUTO swap at end of display list
+		ft81x_getfree(0);	 // trigger FT81x to read the command buffer
 		ft81x_stream_stop();  // Finish streaming to command buffer
 
 		// Sleep (100ms)
@@ -2170,11 +2170,11 @@ uint8_t ft81x_init(void)
 #endif
 
 #if 1 /* Normal */
-    if (GetPowerControlState(LCD_POWER_ENABLE) == OFF) { PowerControl(LCD_POWER_ENABLE, ON); }
+	if (GetPowerControlState(LCD_POWER_ENABLE) == OFF) { PowerControl(LCD_POWER_ENABLE, ON); }
 #if 1 /* Test letting power come up and settle before bringing Display controller out of reset */
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(5));
 #endif
-    if (GetPowerControlState(LCD_POWER_DOWN) == ON)
+	if (GetPowerControlState(LCD_POWER_DOWN) == ON)
 	{
 		PowerControl(LCD_POWER_DOWN, OFF);
 		//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(20)); // Per datasheet: From Sleep state, the host needs to wait at least 20ms before accessing any registers or commands
@@ -2668,15 +2668,15 @@ void ft81x_wrE(uint32_t addr)
  void ft81x_rdN(uint32_t addr, uint8_t *results, int8_t len)
  {
    while(len) {
-     if (len < CHUNKSIZE) {
-       ft81x_rdn(addr, results, len);
-       // all done
-       break;
-     } else {
-       ft81x_rdn(addr, results, CHUNKSIZE);
-       len-=CHUNKSIZE; results+=CHUNKSIZE; addr+=CHUNKSIZE;
-       if(len<0) len=0;
-     }
+		if (len < CHUNKSIZE) {
+		ft81x_rdn(addr, results, len);
+		// all done
+		break;
+		} else {
+		ft81x_rdn(addr, results, CHUNKSIZE);
+		len-=CHUNKSIZE; results+=CHUNKSIZE; addr+=CHUNKSIZE;
+		if(len<0) len=0;
+		}
    }
  }
 
@@ -2691,10 +2691,10 @@ void ft81x_rdn(uint32_t addr, uint8_t *results, int8_t len) {
   // set trans options.
   trans.base.flags = SPI_TRANS_VARIABLE_ADDR;
   if (ft81x_qio) {
-    // Tell the ESP32 SPI ISR to accept MODE_XXX for QIO and DIO
-    trans.base.flags |= SPI_TRANS_MODE_DIOQIO_ADDR;
-    // Set this transaction to QIO
-    trans.base.flags |= SPI_TRANS_MODE_QIO;
+	// Tell the ESP32 SPI ISR to accept MODE_XXX for QIO and DIO
+	trans.base.flags |= SPI_TRANS_MODE_DIOQIO_ADDR;
+	// Set this transaction to QIO
+	trans.base.flags |= SPI_TRANS_MODE_QIO;
   }
 
   // Set the address
@@ -2750,72 +2750,72 @@ void ft81x_cSPOOL_MF(uint8_t *buffer, int32_t size)
   // Blocking! Keep going until all the data is sent. 
   do {
 
-    // Wait till we have enough room to send some data
-    if ( !(fullness < (mf_size - CHUNKSIZE)) )
+	// Wait till we have enough room to send some data
+	if ( !(fullness < (mf_size - CHUNKSIZE)) )
 	{
-      // Release the SPI bus
-      ft81x_stream_stop(); stopped = 1;
-      
-      // Did we write anything? If so tell the FT813
-      if (written) {
-        ft81x_wr32(REG_MEDIAFIFO_WRITE, mf_wp);
-        written = 0;
-      }
+		// Release the SPI bus
+		ft81x_stream_stop(); stopped = 1;
+		
+		// Did we write anything? If so tell the FT813
+		if (written) {
+		ft81x_wr32(REG_MEDIAFIFO_WRITE, mf_wp);
+		written = 0;
+		}
 
-      // sleep a little let other processes go (1ms).
+		// sleep a little let other processes go (1ms).
 		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(1));
 
-      // Get the read pointer where the GPU is working currently
-      // consuming bytes.
-      mf_rp = ft81x_rd32(REG_MEDIAFIFO_READ);
+		// Get the read pointer where the GPU is working currently
+		// consuming bytes.
+		mf_rp = ft81x_rd32(REG_MEDIAFIFO_READ);
 
-      // Calculate how full our fifo is based upon our read/write pointers
-      fullness = (mf_wp - mf_rp) & (mf_size - 1);
-      
-      continue;
-    }
+		// Calculate how full our fifo is based upon our read/write pointers
+		fullness = (mf_wp - mf_rp) & (mf_size - 1);
+		
+		continue;
+	}
 
-    // resume streaming data if needed
-    if (stopped) {
-      // Start streaming to our fifo starting with our address
-      // same as ft81x_stream_start() but different address area
-      // and no auto wrapping :(
-      ft81x_wrA(mf_base + mf_wp); stopped = 0;
-    }
+	// resume streaming data if needed
+	if (stopped) {
+		// Start streaming to our fifo starting with our address
+		// same as ft81x_stream_start() but different address area
+		// and no auto wrapping :(
+		ft81x_wrA(mf_base + mf_wp); stopped = 0;
+	}
 
-    // write up to the very end of the fifo buffer
-    rds = (mf_size - mf_wp);
-    if (rds > CHUNKSIZE) {
-      rds = CHUNKSIZE;
-    }
+	// write up to the very end of the fifo buffer
+	rds = (mf_size - mf_wp);
+	if (rds > CHUNKSIZE) {
+		rds = CHUNKSIZE;
+	}
 
-    // default write size to chunk size or enough for the end of the fifo
-    ts = rds;
+	// default write size to chunk size or enough for the end of the fifo
+	ts = rds;
 
-    // if we have less to send than we can then update transmit size
-    if (size < ts) {
-      ts = size;
-    }
+	// if we have less to send than we can then update transmit size
+	if (size < ts) {
+		ts = size;
+	}
 
-    // write the block to the FT81X
-    ft81x_wrN((uint8_t *)buffer, ts);
+	// write the block to the FT81X
+	ft81x_wrN((uint8_t *)buffer, ts);
 
-    // increment the pointers/counters
-    buffer+=ts;
-    mf_wp+=ts;
-    fullness+=ts;
-    size-=ts;
-    written+=ts;
+	// increment the pointers/counters
+	buffer+=ts;
+	mf_wp+=ts;
+	fullness+=ts;
+	size-=ts;
+	written+=ts;
 
 	// Sleep (10ms)
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(10));
 
-    // loop around if we overflow the fifo.
-    mf_wp&=(mf_size-1);
-    
-    // force flush if we reached the end of the fifo buffer
-    if(!mf_wp) fullness =- mf_size;
-    
+	// loop around if we overflow the fifo.
+	mf_wp&=(mf_size-1);
+
+	// force flush if we reached the end of the fifo buffer
+	if(!mf_wp) fullness =- mf_size;
+
   } while (size);
 
   // Release the SPI bus
@@ -2823,8 +2823,8 @@ void ft81x_cSPOOL_MF(uint8_t *buffer, int32_t size)
   
   // Did we write anything? If so tell the FT813
   if (written) {
-    ft81x_wr32(REG_MEDIAFIFO_WRITE, mf_wp);
-    written = 0;
+	ft81x_wr32(REG_MEDIAFIFO_WRITE, mf_wp);
+	written = 0;
   }
 }
 
@@ -2859,7 +2859,7 @@ void ft81x_align(uint32_t written)
   uint8_t dummy[4] = {0x00, 0x00, 0x00, 0x00};
   int8_t align = 4 - (written & 0x3);
   if (align & 0x3)
-    ft81x_cN((uint8_t *)dummy, align);
+	ft81x_cN((uint8_t *)dummy, align);
 }
 
 /*
@@ -2919,9 +2919,9 @@ void ft81x_getfree(uint16_t required)
 	// Sleep (10ms)
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(10));
 
-    uint16_t rp = ft81x_fifo_rp();
-    uint16_t howfull = (ft81x_fifo_wp - rp) & 4095;
-    ft81x_fifo_freespace = MAX_FIFO_SPACE - howfull;
+	uint16_t rp = ft81x_fifo_rp();
+	uint16_t howfull = (ft81x_fifo_wp - rp) & 4095;
+	ft81x_fifo_freespace = MAX_FIFO_SPACE - howfull;
   } while (ft81x_fifo_freespace < required);
   ft81x_stream_start();
 }
@@ -2931,7 +2931,7 @@ void ft81x_checkfree(uint16_t required)
   // check that we have space in our fifo buffer
   // block until the FT81X says we do.
   if (ft81x_fifo_freespace < required) {
-    ft81x_getfree(required);
+	ft81x_getfree(required);
   }
 }
 
@@ -2972,10 +2972,10 @@ void ft81x_cmd32(uint32_t word)
 
   // set trans options.
   if (ft81x_qio) {
-    // Tell the ESP32 SPI ISR to accept MODE_XXX for QIO and DIO
-    trans.base.flags |= SPI_TRANS_MODE_DIOQIO_ADDR;
-    // Set this transaction to QIO
-    trans.base.flags |= SPI_TRANS_MODE_QIO;
+	// Tell the ESP32 SPI ISR to accept MODE_XXX for QIO and DIO
+	trans.base.flags |= SPI_TRANS_MODE_DIOQIO_ADDR;
+	// Set this transaction to QIO
+	trans.base.flags |= SPI_TRANS_MODE_QIO;
   }
 
   trans.base.length = 32;
@@ -3020,10 +3020,10 @@ void ft81x_cN(uint8_t *buffer, uint16_t size)
 
   // set trans options.
   if (ft81x_qio) {
-    // Tell the ESP32 SPI ISR to accept MODE_XXX for QIO and DIO
-    trans.base.flags |= SPI_TRANS_MODE_DIOQIO_ADDR;
-    // Set this transaction to QIO
-    trans.base.flags |= SPI_TRANS_MODE_QIO;
+	// Tell the ESP32 SPI ISR to accept MODE_XXX for QIO and DIO
+	trans.base.flags |= SPI_TRANS_MODE_DIOQIO_ADDR;
+	// Set this transaction to QIO
+	trans.base.flags |= SPI_TRANS_MODE_QIO;
   }
 
   trans.base.length = size * 8;
@@ -3046,18 +3046,18 @@ void ft81x_cSPOOL(uint8_t *buffer, int32_t size)
   int32_t savesize = size;
 
   while(size) {
-    if (size < CHUNKSIZE) {
-      // check that we have enough space then send command
-      ft81x_checkfree(size);
-      ft81x_cN((uint8_t *)buffer, size);
-      // all done
-      break;
-    } else {
-      ft81x_checkfree(CHUNKSIZE);
-      ft81x_cN((uint8_t *)buffer, CHUNKSIZE);
-      size-=CHUNKSIZE; buffer+=CHUNKSIZE;
-      if(size<0) size=0;
-    }
+	if (size < CHUNKSIZE) {
+		// check that we have enough space then send command
+		ft81x_checkfree(size);
+		ft81x_cN((uint8_t *)buffer, size);
+		// all done
+		break;
+	} else {
+		ft81x_checkfree(CHUNKSIZE);
+		ft81x_cN((uint8_t *)buffer, CHUNKSIZE);
+		size-=CHUNKSIZE; buffer+=CHUNKSIZE;
+		if(size<0) size=0;
+	}
   }
 
   int8_t align = (4 - (savesize & 0x3)) & 0x3;
@@ -3109,10 +3109,10 @@ void ft81x_alpha_funct(uint8_t func, uint8_t ref)
   // check that we have enough space then send command
   ft81x_checkfree(4);
   ft81x_cI(
-      ( 0x09UL                 << 24) | // CMD 0x09      24 - 31
-                                        // RESERVED      11 - 23
-      ( (func       & 0x7L)    <<  8) | // func           8 - 10
-      ( (ref        & 0xffL)   <<  0)   // ref            0 -  7
+	( 0x09UL				 << 24) | // CMD 0x09	  24 - 31
+									// RESERVED	  11 - 23
+	( (func	   & 0x7L)	<<  8) | // func		   8 - 10
+	( (ref		& 0xffL)   <<  0)   // ref			0 -  7
   );
 }
 
@@ -3150,10 +3150,10 @@ void ft81x_bitmap_layout(uint8_t format, uint16_t linestride, uint16_t height)
   // check that we have enough space then send command
   ft81x_checkfree(4);
   ft81x_cI(
-      ( 0x07UL                 << 24) | // CMD 0x07      24 - 31
-      ( (format     & 0x1fL)   << 19) | // format        19 - 23
-      ( (linestride & 0x3ffL)  <<  9) | // linestride     9 - 18
-      ( (height     & 0x1ffL)  <<  0)   // height         0 -  8
+	( 0x07UL				 << 24) | // CMD 0x07	  24 - 31
+	( (format	 & 0x1fL)   << 19) | // format		19 - 23
+	( (linestride & 0x3ffL)  <<  9) | // linestride	 9 - 18
+	( (height	 & 0x1ffL)  <<  0)   // height		 0 -  8
   );
 }
 
@@ -3167,10 +3167,10 @@ void ft81x_bitmap_layout_h(uint8_t linestride, uint8_t height)
   // check that we have enough space then send command
   ft81x_checkfree(4);
   ft81x_cI(
-      ( 0x28UL                 << 24) | // CMD 0x28      24 - 31
-                                        // RESERVED       4 - 23
-      ( (linestride & 0x3L)    <<  2) | // linestride     2 -  3
-      ( (height     & 0x3L)    <<  0)   // height         0 -  1
+	( 0x28UL				 << 24) | // CMD 0x28	  24 - 31
+									// RESERVED	   4 - 23
+	( (linestride & 0x3L)	<<  2) | // linestride	 2 -  3
+	( (height	 & 0x3L)	<<  0)   // height		 0 -  1
   );
 }
 
@@ -3184,13 +3184,13 @@ void ft81x_bitmap_size(uint8_t filter, uint8_t wrapx, uint8_t wrapy, uint16_t wi
   // check that we have enough space then send command
   ft81x_checkfree(4);
   ft81x_cI(
-      ( 0x08UL                 << 24) | // CMD 0x08      24 - 31
-                                        // RESERVED      21 - 23
-      ( (filter     & 0x1L)    << 20) | // filter        20 - 20
-      ( (wrapx      & 0x1L)    << 19) | // wrapx         19 - 19
-      ( (wrapy      & 0x1L)    << 18) | // wrapy         18 - 18
-      ( (width      & 0x1ffL)   <<  9) | // width          9 - 17
-      ( (height     & 0x1ffL)   <<  0)   // height         0 -  8
+	( 0x08UL				 << 24) | // CMD 0x08	  24 - 31
+									// RESERVED	  21 - 23
+	( (filter	 & 0x1L)	<< 20) | // filter		20 - 20
+	( (wrapx	  & 0x1L)	<< 19) | // wrapx		 19 - 19
+	( (wrapy	  & 0x1L)	<< 18) | // wrapy		 18 - 18
+	( (width	  & 0x1ffL)   <<  9) | // width		  9 - 17
+	( (height	 & 0x1ffL)   <<  0)   // height		 0 -  8
   );
 }
 
@@ -3688,11 +3688,11 @@ void ft81x_vertex2ii(int16_t x, int16_t y, uint8_t handle, uint8_t cell)
   // check that we have enough space then send command
   ft81x_checkfree(4);
   ft81x_cI(
-      ( 0x02UL                 << 30) | // CMD 0x02      30 - 31
-      ( (x          & 0x1ffL)  << 21) | // x             21 - 29
-      ( (y          & 0x1ffL)  << 12) | // y             12 - 20
-      ( (handle     & 0x1fL)   <<  7) | // handle         7 - 11
-      ( (cell       & 0x7fL)   <<  0)   // cell           0 -  6
+	( 0x02UL				 << 30) | // CMD 0x02	  30 - 31
+	( (x		  & 0x1ffL)  << 21) | // x			 21 - 29
+	( (y		  & 0x1ffL)  << 12) | // y			 12 - 20
+	( (handle	 & 0x1fL)   <<  7) | // handle		 7 - 11
+	( (cell	   & 0x7fL)   <<  0)   // cell		   0 -  6
   );
 }
 
@@ -4470,12 +4470,12 @@ void ft81x_calibrate()
   ft81x_bgcolor_rgb32(0x402000);
   ft81x_fgcolor_rgb32(0x703800);
   ft81x_cmd_dlstart();   // Set REG_CMD_DL when done
-  ft81x_clear();         // Clear the display
-  ft81x_getfree(0);      // trigger FT81x to read the command buffer
+  ft81x_clear();		 // Clear the display
+  ft81x_getfree(0);	  // trigger FT81x to read the command buffer
 
   ft81x_cmd_text(180, 30, 40, OPT_CENTER, "Please tap on the dot..");
   //ft81x_cmd_calibrate(0);// Calibration command
-  //ft81x_cmd_swap();      // Set AUTO swap at end of display list
+  //ft81x_cmd_swap();	  // Set AUTO swap at end of display list
 
   ft81x_stream_stop();   // Finish streaming to command buffer
   // Wait till the Logo is finished
@@ -4499,9 +4499,9 @@ void ft81x_cmd_setrotate(uint32_t r)
 
   // portrait mode swap w & h
   if (r & 2) {
-    int t = ft81x_display_height;
-    ft81x_display_height = ft81x_display_width;
-    ft81x_display_width = t;
+	int t = ft81x_display_height;
+	ft81x_display_height = ft81x_display_width;
+	ft81x_display_width = t;
   }
 }
 
@@ -4700,9 +4700,9 @@ void ft81x_logo()
   ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
   ft81x_cFFFFFF(0x31);  // Logo command
 #if 1 /* Does work without having to swap display list */
-  ft81x_cmd_swap();     // Set AUTO swap at end of display list
+  ft81x_cmd_swap();	 // Set AUTO swap at end of display list
 #endif
-  ft81x_getfree(0);     // trigger FT81x to read the command buffer
+  ft81x_getfree(0);	 // trigger FT81x to read the command buffer
   ft81x_stream_stop();  // Finish streaming to command buffer
   // Wait till the Logo is finished
 #if 0 /* Original */
@@ -4719,9 +4719,9 @@ void ft81x_logo()
 ///----------------------------------------------------------------------------
 void TestLCD(void)
 {
-    debug("LCD: Test device access...\r\n");
+	debug("LCD: Test device access...\r\n");
 
-    if (GetPowerControlState(LCD_POWER_ENABLE) == OFF)
+	if (GetPowerControlState(LCD_POWER_ENABLE) == OFF)
 	{
 		debug("Power Control: LCD Power enable bring turned on\r\n");
 		PowerControl(LCD_POWER_ENABLE, ON);
@@ -4729,7 +4729,7 @@ void TestLCD(void)
 	}
 	else { debugWarn("Power Control: LCD Power enable already on\r\n"); }
 
-    if (GetPowerControlState(LCD_POWER_DOWN) == ON)
+	if (GetPowerControlState(LCD_POWER_DOWN) == ON)
 	{
 		debug("Power Control: LCD Power down being turned off\r\n");
 		PowerControl(LCD_POWER_DOWN, OFF);
@@ -4737,7 +4737,7 @@ void TestLCD(void)
 	}
 	else { debugWarn("Power Control: LCD Power down already off\r\n"); }
 
-    debug("LCD: Restart core...\r\n");
+	debug("LCD: Restart core...\r\n");
 	restart_core();
 
 	// Read CHIP ID address until it returns a valid result.
@@ -4762,43 +4762,43 @@ void TestLCD(void)
 #endif
 	else { debugErr("LCD: Chip ID problem, reports 0x%04x\r\n", ft81x_chip_id); }
 
-    debug("LCD: Single byte width selected\r\n");
+	debug("LCD: Single byte width selected\r\n");
 	select_spi_byte_width();
 
-    debug("LCD: Turning the backlight off (PWM set to 0)\r\n");
+	debug("LCD: Turning the backlight off (PWM set to 0)\r\n");
 	ft81x_backlight_off();
 
-    debug("LCD: FIFO reset\r\n");
+	debug("LCD: FIFO reset\r\n");
 	ft81x_fifo_reset();
 
-    debug("LCD: Init display settings\r\n");
+	debug("LCD: Init display settings\r\n");
 	ft81x_init_display_settings();
 
 #if 1 /* Added */
 	ft81x_wake(32);
 #endif
 
-    debug("LCD: Test black screen\r\n");
+	debug("LCD: Test black screen\r\n");
 	test_black_screen();
 
-    debug("LCD: Test white screen\r\n");
+	debug("LCD: Test white screen\r\n");
 	test_white_screen();
 
-    debug("LCD: Init GPIO\r\n");
+	debug("LCD: Init GPIO\r\n");
 	ft81x_init_gpio();
 
-    debug("LCD: Test logo\r\n");
+	debug("LCD: Test logo\r\n");
 	test_logo();
 
-    debug("LCD: Test memory operation\r\n");
+	debug("LCD: Test memory operation\r\n");
 	test_memory_ops();
 
-    debug("LCD: Test display\r\n");
+	debug("LCD: Test display\r\n");
 	test_display();
 
-    debug("LCD: Test color cycle\r\n");
+	debug("LCD: Test color cycle\r\n");
 	test_cycle_colors();
 
-    debug("LCD: Test dots\r\n");
+	debug("LCD: Test dots\r\n");
 	test_dots();
 }

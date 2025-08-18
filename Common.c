@@ -543,7 +543,7 @@ void BuildLanguageLinkTable(uint8 languageSelection)
 
 #if 0 /* Normal */
 	// Attempt to find the file on the SD file system
-    if ((f_stat((const TCHAR*)&languageFilename[0], &fno)) != FR_OK)
+	if ((f_stat((const TCHAR*)&languageFilename[0], &fno)) != FR_OK)
 	{
 		debugWarn("Language file not found: %s\r\n", &languageFilename[0]);
 	}

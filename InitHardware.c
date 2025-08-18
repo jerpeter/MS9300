@@ -497,7 +497,7 @@ void SetupPowerOnDetectGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_OUT;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Power Good Battery Charge: Port 0, Pin 12, Input, External pullup, 1.8V
@@ -507,7 +507,7 @@ void SetupPowerOnDetectGPIO(void)
 	setupGPIO.func = MXC_GPIO_FUNC_IN;
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
-    MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_Config(&setupGPIO);
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Power Button Int: Port 1, Pin 15, Input, External pullup, Active high, 1.8V
@@ -689,7 +689,7 @@ void SetupAllGPIO(void)
 	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Expansion_irq, NULL);
 	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
 #if 1 /* Original */
-    MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 #else /* Wait until Expansion I2C Bridge is powered to enable */
 #endif
 
@@ -1711,24 +1711,24 @@ void SetupCellModuleRxUART(void)
 {
 	int status;
 
-    status = MXC_UART_Init(MXC_UART0, UART_BAUD);
-    if (status != E_SUCCESS) { debugErr("UART0 failed init with code: %d\r\n", status); }
+	status = MXC_UART_Init(MXC_UART0, UART_BAUD);
+	if (status != E_SUCCESS) { debugErr("UART0 failed init with code: %d\r\n", status); }
 
-    // Move to Interrupt init
+	// Move to Interrupt init
 	NVIC_ClearPendingIRQ(UART0_IRQn);
-    NVIC_DisableIRQ(UART0_IRQn);
-    MXC_NVIC_SetVector(UART0_IRQn, UART0_Handler);
-    NVIC_EnableIRQ(UART0_IRQn);
+	NVIC_DisableIRQ(UART0_IRQn);
+	MXC_NVIC_SetVector(UART0_IRQn, UART0_Handler);
+	NVIC_EnableIRQ(UART0_IRQn);
 
-    // Setup the asynchronous request
-    uart0ReadRequest.uart = MXC_UART0;
-    uart0ReadRequest.rxData = g_Uart0_RxBuffer;
+	// Setup the asynchronous request
+	uart0ReadRequest.uart = MXC_UART0;
+	uart0ReadRequest.rxData = g_Uart0_RxBuffer;
 	uart0ReadRequest.rxLen = 1; // Trigger size
-    uart0ReadRequest.txLen = 0;
-    uart0ReadRequest.callback = UART0_Read_Callback;
+	uart0ReadRequest.txLen = 0;
+	uart0ReadRequest.callback = UART0_Read_Callback;
 
-    status = MXC_UART_TransactionAsync(&uart0ReadRequest);
-    if (status != E_SUCCESS) { debugErr("Uart0 Read setup (async) failed with code: %d\r\n", status); }
+	status = MXC_UART_TransactionAsync(&uart0ReadRequest);
+	if (status != E_SUCCESS) { debugErr("Uart0 Read setup (async) failed with code: %d\r\n", status); }
 
 #if 1 /* Test to check interrupt flags set */
 	debug("Uart0: Interrupt enables are 0x%0x, Int flags are 0x%0x, Status is 0x%0x\r\n", MXC_UART0->int_en, MXC_UART0->int_fl, MXC_UART0->stat);
@@ -1743,24 +1743,24 @@ void SetupCellModuleTxUART(void)
 {
 	int status;
 
-    status = MXC_UART_Init(MXC_UART1, UART_BAUD);
-    if (status != E_SUCCESS) { debugErr("UART1 failed init with code: %d\r\n", status); }
+	status = MXC_UART_Init(MXC_UART1, UART_BAUD);
+	if (status != E_SUCCESS) { debugErr("UART1 failed init with code: %d\r\n", status); }
 
-    // Move to Interrupt init
-    NVIC_ClearPendingIRQ(UART1_IRQn);
-    NVIC_DisableIRQ(UART1_IRQn);
-    MXC_NVIC_SetVector(UART1_IRQn, UART1_Handler);
-    NVIC_EnableIRQ(UART1_IRQn);
+	// Move to Interrupt init
+	NVIC_ClearPendingIRQ(UART1_IRQn);
+	NVIC_DisableIRQ(UART1_IRQn);
+	MXC_NVIC_SetVector(UART1_IRQn, UART1_Handler);
+	NVIC_EnableIRQ(UART1_IRQn);
 
-    // Setup the asynchronous request
-    uart1ReadRequest.uart = MXC_UART1;
-    uart1ReadRequest.rxData = g_Uart1_RxBuffer;
+	// Setup the asynchronous request
+	uart1ReadRequest.uart = MXC_UART1;
+	uart1ReadRequest.rxData = g_Uart1_RxBuffer;
 	uart1ReadRequest.rxLen = 1; // Trigger size
-    uart1ReadRequest.txLen = 0;
-    uart1ReadRequest.callback = UART1_Read_Callback;
+	uart1ReadRequest.txLen = 0;
+	uart1ReadRequest.callback = UART1_Read_Callback;
 
-    status = MXC_UART_TransactionAsync(&uart1ReadRequest);
-    if (status != E_SUCCESS) { debugErr("Uart1 Read setup (async) failed with code: %d\r\n", status); }
+	status = MXC_UART_TransactionAsync(&uart1ReadRequest);
+	if (status != E_SUCCESS) { debugErr("Uart1 Read setup (async) failed with code: %d\r\n", status); }
 
 #if 1 /* Test to check interrupt flags set */
 	debug("Uart1: Interrupt enables are 0x%0x, Int flags are 0x%0x, Status is 0x%0x\r\n", MXC_UART1->int_en, MXC_UART1->int_fl, MXC_UART1->stat);
@@ -1775,25 +1775,25 @@ void SetupDebugUART(void)
 {
 	int status;
 
-    status = MXC_UART_Init(MXC_UART2, UART_BAUD);
-    if (status != E_SUCCESS) { } // Where to report?
+	status = MXC_UART_Init(MXC_UART2, UART_BAUD);
+	if (status != E_SUCCESS) { } // Where to report?
 
 #if 0 /* Rx Interrupt setup, however due to MCU errata it's possible to lock up the UART with simultaneous Tx/Rx */
-    // Move to Interrupt init
+	// Move to Interrupt init
 	NVIC_ClearPendingIRQ(UART2_IRQn);
-    NVIC_DisableIRQ(UART2_IRQn);
-    MXC_NVIC_SetVector(UART2_IRQn, UART2_Handler);
-    NVIC_EnableIRQ(UART2_IRQn);
+	NVIC_DisableIRQ(UART2_IRQn);
+	MXC_NVIC_SetVector(UART2_IRQn, UART2_Handler);
+	NVIC_EnableIRQ(UART2_IRQn);
 
-    // Setup the asynchronous request
-    uart2ReadRequest.uart = MXC_UART2;
-    uart2ReadRequest.rxData = g_Uart2_RxBuffer;
-    uart2ReadRequest.rxLen = 1; // Turns out this is not buffer space but trigger level //UART_BUFFER_SIZE;
-    uart2ReadRequest.txLen = 0;
-    uart2ReadRequest.callback = UART2_Read_Callback;
+	// Setup the asynchronous request
+	uart2ReadRequest.uart = MXC_UART2;
+	uart2ReadRequest.rxData = g_Uart2_RxBuffer;
+	uart2ReadRequest.rxLen = 1; // Turns out this is not buffer space but trigger level //UART_BUFFER_SIZE;
+	uart2ReadRequest.txLen = 0;
+	uart2ReadRequest.callback = UART2_Read_Callback;
 
-    status = MXC_UART_TransactionAsync(&uart2ReadRequest);
-    if (status != E_NO_ERROR) { debugErr("Debug Uart2 Read setup (async) failed with code: %d\r\n", status); }
+	status = MXC_UART_TransactionAsync(&uart2ReadRequest);
+	if (status != E_NO_ERROR) { debugErr("Debug Uart2 Read setup (async) failed with code: %d\r\n", status); }
 #endif
 }
 
@@ -1805,15 +1805,15 @@ void UART0_Write_Blocking(uint8_t* data, uint32_t size)
 {
 	int error;
 
-    mxc_uart_req_t uart0WriteRequest;
-    uart0WriteRequest.uart = MXC_UART0;
-    uart0WriteRequest.txData = data;
-    uart0WriteRequest.txLen = size;
-    uart0WriteRequest.rxLen = 0;
-    uart0WriteRequest.callback = NULL;
+	mxc_uart_req_t uart0WriteRequest;
+	uart0WriteRequest.uart = MXC_UART0;
+	uart0WriteRequest.txData = data;
+	uart0WriteRequest.txLen = size;
+	uart0WriteRequest.rxLen = 0;
+	uart0WriteRequest.callback = NULL;
 
-    error = MXC_UART_Transaction(&uart0WriteRequest);
-    if (error != E_NO_ERROR) { debugErr("Uart0 write failed with code: %d\r\n", error); }
+	error = MXC_UART_Transaction(&uart0WriteRequest);
+	if (error != E_NO_ERROR) { debugErr("Uart0 write failed with code: %d\r\n", error); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1824,15 +1824,15 @@ void UART1_Write_Blocking(uint8_t* data, uint32_t size)
 {
 	int error;
 
-    mxc_uart_req_t uart1WriteRequest;
-    uart1WriteRequest.uart = MXC_UART1;
-    uart1WriteRequest.txData = data;
-    uart1WriteRequest.txLen = size;
-    uart1WriteRequest.rxLen = 0;
-    uart1WriteRequest.callback = NULL;
+	mxc_uart_req_t uart1WriteRequest;
+	uart1WriteRequest.uart = MXC_UART1;
+	uart1WriteRequest.txData = data;
+	uart1WriteRequest.txLen = size;
+	uart1WriteRequest.rxLen = 0;
+	uart1WriteRequest.callback = NULL;
 
-    error = MXC_UART_Transaction(&uart1WriteRequest);
-    if (error != E_NO_ERROR) { debugErr("Uart0 write failed with code: %d\r\n", error); }
+	error = MXC_UART_Transaction(&uart1WriteRequest);
+	if (error != E_NO_ERROR) { debugErr("Uart0 write failed with code: %d\r\n", error); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1844,15 +1844,15 @@ void UART0_Write_Async_ISR(uint8_t* data, uint32_t size)
 
 	memcpy(g_Uart0_TxBuffer, data, (size < UART_BUFFER_SIZE) ? size : UART_BUFFER_SIZE);
 
-    mxc_uart_req_t uart0WriteRequest;
-    uart0WriteRequest.uart = MXC_UART0;
-    uart0WriteRequest.txData = g_Uart0_TxBuffer;
-    uart0WriteRequest.txLen = size;
-    uart0WriteRequest.rxLen = 0;
-    uart0WriteRequest.callback = NULL;
+	mxc_uart_req_t uart0WriteRequest;
+	uart0WriteRequest.uart = MXC_UART0;
+	uart0WriteRequest.txData = g_Uart0_TxBuffer;
+	uart0WriteRequest.txLen = size;
+	uart0WriteRequest.rxLen = 0;
+	uart0WriteRequest.callback = NULL;
 
-    error = MXC_UART_TransactionAsync(&uart0WriteRequest);
-    if (error != E_NO_ERROR) { debugErr("Uart0 write setup (async) failed with code: %d\r\n", error); }
+	error = MXC_UART_TransactionAsync(&uart0WriteRequest);
+	if (error != E_NO_ERROR) { debugErr("Uart0 write setup (async) failed with code: %d\r\n", error); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1864,15 +1864,15 @@ void UART1_Write_Async_ISR(uint8_t* data, uint32_t size)
 
 	memcpy(g_Uart1_TxBuffer, data, (size < UART_BUFFER_SIZE) ? size : UART_BUFFER_SIZE);
 
-    mxc_uart_req_t uart1WriteRequest;
-    uart1WriteRequest.uart = MXC_UART1;
-    uart1WriteRequest.txData = g_Uart1_TxBuffer;
-    uart1WriteRequest.txLen = size;
-    uart1WriteRequest.rxLen = 0;
-    uart1WriteRequest.callback = NULL;
+	mxc_uart_req_t uart1WriteRequest;
+	uart1WriteRequest.uart = MXC_UART1;
+	uart1WriteRequest.txData = g_Uart1_TxBuffer;
+	uart1WriteRequest.txLen = size;
+	uart1WriteRequest.rxLen = 0;
+	uart1WriteRequest.callback = NULL;
 
-    error = MXC_UART_TransactionAsync(&uart1WriteRequest);
-    if (error != E_NO_ERROR) { debugErr("Uart1 write setup (async) failed with code: %d\r\n", error); }
+	error = MXC_UART_TransactionAsync(&uart1WriteRequest);
+	if (error != E_NO_ERROR) { debugErr("Uart1 write setup (async) failed with code: %d\r\n", error); }
 }
 
 ///----------------------------------------------------------------------------
@@ -1882,15 +1882,15 @@ int WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* write
 {
 	int status;
 
-    mxc_i2c_req_t masterRequest;
-    masterRequest.i2c = i2cChannel;
-    masterRequest.addr = slaveAddr;
-    masterRequest.tx_buf = writeData;
-    masterRequest.tx_len = writeSize;
-    masterRequest.rx_buf = readData;
-    masterRequest.rx_len = readSize;
-    masterRequest.restart = 0;
-    masterRequest.callback = NULL;
+	mxc_i2c_req_t masterRequest;
+	masterRequest.i2c = i2cChannel;
+	masterRequest.addr = slaveAddr;
+	masterRequest.tx_buf = writeData;
+	masterRequest.tx_len = writeSize;
+	masterRequest.rx_buf = readData;
+	masterRequest.rx_len = readSize;
+	masterRequest.restart = 0;
+	masterRequest.callback = NULL;
 
 #if 0 /* Test special case for EEPROM ID */
 	if (slaveAddr == I2C_ADDR_EEPROM_ID) { masterRequest.restart = 1; }
@@ -1906,7 +1906,7 @@ int WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* write
 	// Test interrupt isolation (for Acc data collection)
 	__disable_irq();
 #endif
-    status = MXC_I2C_MasterTransaction(&masterRequest);
+	status = MXC_I2C_MasterTransaction(&masterRequest);
 #if /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PROTOTYPE_1)
 	// Test interrupt isolation (for Acc data collection)
 	__enable_irq();
@@ -1929,8 +1929,8 @@ int WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* write
 ///----------------------------------------------------------------------------
 void I2C0_IRQHandler(void)
 {
-    MXC_I2C_AsyncHandler(MXC_I2C0);
-    return;
+	MXC_I2C_AsyncHandler(MXC_I2C0);
+	return;
 }
 
 ///----------------------------------------------------------------------------
@@ -1938,8 +1938,8 @@ void I2C0_IRQHandler(void)
 ///----------------------------------------------------------------------------
 void I2C1_IRQHandler(void)
 {
-    MXC_I2C_AsyncHandler(MXC_I2C1);
-    return;
+	MXC_I2C_AsyncHandler(MXC_I2C1);
+	return;
 }
 #endif
 
@@ -1950,32 +1950,32 @@ void SetupI2C(void)
 {
 	int error;
 
-    // Setup I2C0 as Master (1.8V) 
-    error = MXC_I2C_Init(MXC_I2C0, 1, 0);
-    if (error != E_NO_ERROR) { debugErr("I2C0 init (master) failed to initialize with code: %d\r\n", error); }
+	// Setup I2C0 as Master (1.8V) 
+	error = MXC_I2C_Init(MXC_I2C0, 1, 0);
+	if (error != E_NO_ERROR) { debugErr("I2C0 init (master) failed to initialize with code: %d\r\n", error); }
 
-    // Setup I2C1 as Master (3.3V) 
-    error = MXC_I2C_Init(MXC_I2C1, 1, 0);
-    if (error != E_NO_ERROR) { debugErr("I2C1 init (master) failed to initialize with code: %d\r\n", error); }
+	// Setup I2C1 as Master (3.3V) 
+	error = MXC_I2C_Init(MXC_I2C1, 1, 0);
+	if (error != E_NO_ERROR) { debugErr("I2C1 init (master) failed to initialize with code: %d\r\n", error); }
 
 #if 0 /* Needed if setting up the MXC I2C as a slave */
-    MXC_NVIC_SetVector(I2C0_IRQn, I2C0_IRQHandler);
-    NVIC_EnableIRQ(I2C0_IRQn);
-    MXC_NVIC_SetVector(I2C1_IRQn, I2C1_IRQHandler);
-    NVIC_EnableIRQ(I2C1_IRQn);
+	MXC_NVIC_SetVector(I2C0_IRQn, I2C0_IRQHandler);
+	NVIC_EnableIRQ(I2C0_IRQn);
+	MXC_NVIC_SetVector(I2C1_IRQn, I2C1_IRQHandler);
+	NVIC_EnableIRQ(I2C1_IRQn);
 #endif
 
 	// Set I2C speed, either Standard (MXC_I2C_STD_MODE = 100000) or Fast (MXC_I2C_FAST_SPEED = 400000)
 #if 1 /* Fast Speed */
-    MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_FAST_SPEED);
-    MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_FAST_SPEED);
+	MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_FAST_SPEED);
+	MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_FAST_SPEED);
 #elif 1 /* Standard */
-    MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_STD_MODE);
-    MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_STD_MODE);
+	MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_STD_MODE);
+	MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_STD_MODE);
 #else /* Test */
 #define MXC_I2C_STD_TEST 75000 // Can't be lower than 58,593 to fit in hi/lo
-    //MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_STD_TEST);
-    //MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_STD_TEST);
+	//MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_STD_TEST);
+	//MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_STD_TEST);
 	MXC_I2C0->clk_hi = 0x1FF;
 	MXC_I2C0->clk_lo = 0x1FF;
 	MXC_I2C1->clk_hi = 0x1FF;
@@ -1989,14 +1989,14 @@ void SetupI2C(void)
 ///----------------------------------------------------------------------------
 void SetupWatchdog(void)
 {
-    // Check if watchdog caused reset
+	// Check if watchdog caused reset
 	if (MXC_WDT_GetResetFlag(MXC_WDT0))
 	{
 		MXC_WDT_ClearResetFlag(MXC_WDT0);
 		MXC_WDT_DisableReset(MXC_WDT0);
 		MXC_WDT_Disable(MXC_WDT0);
 		debugErr("Watchdog reset the unit\r\n");
-    }
+	}
 
 	// Reset the Watchdog peripheral 
 	MXC_WDT_Init(MXC_WDT0);
@@ -2011,7 +2011,7 @@ void SetupWatchdog(void)
 	MXC_WDT_ResetTimer(MXC_WDT0);
 
 #if 0 /* Todo: After hardware checks pass, enable once the executive loop runs */
-    MXC_WDT_Enable(MXC_WDT0);
+	MXC_WDT_Enable(MXC_WDT0);
 #endif
 }
 
@@ -2036,17 +2036,17 @@ void SetupICC(void)
 #if 0 /* Skip global enable since it starts both ICC's and we don't want ICC1 */
 	MXC_ICC_Enable();
 #else /* Manual enable of ICC0 */
-    // Invalidate cache and wait until ready
-    MXC_ICC0->cache_ctrl &= ~MXC_F_ICC_CACHE_CTRL_ENABLE;
-    MXC_ICC0->invalidate = 1;
+	// Invalidate cache and wait until ready
+	MXC_ICC0->cache_ctrl &= ~MXC_F_ICC_CACHE_CTRL_ENABLE;
+	MXC_ICC0->invalidate = 1;
 
-    timeout = 0x8000; // Arbitrary value
+	timeout = 0x8000; // Arbitrary value
 	while (!(MXC_ICC0->cache_ctrl & MXC_F_ICC_CACHE_CTRL_READY)) { if (timeout-- == 0) { debugErr("ICC: timed out invalidating\r\n"); break; } }
 
-    // Enable Cache
-    MXC_ICC0->cache_ctrl |= MXC_F_ICC_CACHE_CTRL_ENABLE;
-    timeout = 0x8000; // Arbitrary value
-    while (!(MXC_ICC0->cache_ctrl & MXC_F_ICC_CACHE_CTRL_READY)) { if (timeout-- == 0) { debugErr("ICC: timed out enabling\r\n"); break; } }
+	// Enable Cache
+	MXC_ICC0->cache_ctrl |= MXC_F_ICC_CACHE_CTRL_ENABLE;
+	timeout = 0x8000; // Arbitrary value
+	while (!(MXC_ICC0->cache_ctrl & MXC_F_ICC_CACHE_CTRL_READY)) { if (timeout-- == 0) { debugErr("ICC: timed out enabling\r\n"); break; } }
 #endif
 }
 
@@ -2055,7 +2055,7 @@ void SetupICC(void)
 ///----------------------------------------------------------------------------
 void SPI3_IRQHandler(void)
 {
-    MXC_SPI_AsyncHandler(MXC_SPI3);
+	MXC_SPI_AsyncHandler(MXC_SPI3);
 }
 
 ///----------------------------------------------------------------------------
@@ -2063,7 +2063,7 @@ void SPI3_IRQHandler(void)
 ///----------------------------------------------------------------------------
 void SPI2_IRQHandler(void)
 {
-    MXC_SPI_AsyncHandler(MXC_SPI2);
+	MXC_SPI_AsyncHandler(MXC_SPI2);
 }
 
 ///----------------------------------------------------------------------------
@@ -2071,7 +2071,7 @@ void SPI2_IRQHandler(void)
 ///----------------------------------------------------------------------------
 void SPI_Callback(mxc_spi_req_t *req, int result)
 {
-    // SPI data processing
+	// SPI data processing
 }
 
 ///----------------------------------------------------------------------------
@@ -2251,26 +2251,26 @@ void echoUSB(void);
 
 // This EP assignment must match the Configuration Descriptor
 msc_cfg_t msc_cfg = {
-    1, /* EP OUT */
-    MXC_USBHS_MAX_PACKET, /* OUT max packet size */
-    2, /* EP IN */
-    MXC_USBHS_MAX_PACKET, /* IN max packet size */
+	1, /* EP OUT */
+	MXC_USBHS_MAX_PACKET, /* OUT max packet size */
+	2, /* EP IN */
+	MXC_USBHS_MAX_PACKET, /* IN max packet size */
 };
 
 msc_idstrings_t ids = {
-    "NOMIS", /* Vendor string.  Maximum of 8 bytes */
-    "MSC FLASH DRIVE", /* Product string.  Maximum of 16 bytes */
-    "1.0" /* Version string.  Maximum of 4 bytes */
+	"NOMIS", /* Vendor string.  Maximum of 8 bytes */
+	"MSC FLASH DRIVE", /* Product string.  Maximum of 16 bytes */
+	"1.0" /* Version string.  Maximum of 4 bytes */
 };
 
 // This EP assignment must match the Configuration Descriptor
 acm_cfg_t acm_cfg = {
-    2, /* EP OUT */
-    MXC_USBHS_MAX_PACKET, /* OUT max packet size */
-    3, /* EP IN */
-    MXC_USBHS_MAX_PACKET, /* IN max packet size */
-    4, /* EP Notify */
-    MXC_USBHS_MAX_PACKET, /* Notify max packet size */
+	2, /* EP OUT */
+	MXC_USBHS_MAX_PACKET, /* OUT max packet size */
+	3, /* EP IN */
+	MXC_USBHS_MAX_PACKET, /* IN max packet size */
+	4, /* EP Notify */
+	MXC_USBHS_MAX_PACKET, /* Notify max packet size */
 };
 
 // Functions to control "disk" memory. See msc.h for definitions
@@ -2281,7 +2281,7 @@ msc_mem_t mem = { mscmem_Init, mscmem_Start, mscmem_Stop, mscmem_Ready, mscmem_S
 ///----------------------------------------------------------------------------
 void delay_us(unsigned int usec)
 {
-    MXC_TMR_Delay(MXC_TMR5, usec);
+	MXC_TMR_Delay(MXC_TMR5, usec);
 }
 
 ///----------------------------------------------------------------------------
@@ -2289,134 +2289,134 @@ void delay_us(unsigned int usec)
 ///----------------------------------------------------------------------------
 void SetupUSBComposite(void)
 {
-    maxusb_cfg_options_t usb_opts;
+	maxusb_cfg_options_t usb_opts;
 
-    debug("Waiting for VBUS...\r\n");
+	debug("Waiting for VBUS...\r\n");
 
-    // Initialize state
-    configured = 0;
-    suspended = 0;
-    event_flags = 0;
-    remote_wake_en = 0;
+	// Initialize state
+	configured = 0;
+	suspended = 0;
+	event_flags = 0;
+	remote_wake_en = 0;
 
-    // Start out in full speed
-    usb_opts.enable_hs = 1; // 0 for Full Speed, 1 for High Speed
-    usb_opts.delay_us = delay_us; // Function used for delays
-    usb_opts.init_callback = usbStartupCallback;
-    usb_opts.shutdown_callback = usbShutdownCallback;
+	// Start out in full speed
+	usb_opts.enable_hs = 1; // 0 for Full Speed, 1 for High Speed
+	usb_opts.delay_us = delay_us; // Function used for delays
+	usb_opts.init_callback = usbStartupCallback;
+	usb_opts.shutdown_callback = usbShutdownCallback;
 
-    // Initialize the usb module
-    if (MXC_USB_Init(&usb_opts) != 0) { debugErr("USB Init failed\r\n"); }
+	// Initialize the usb module
+	if (MXC_USB_Init(&usb_opts) != 0) { debugErr("USB Init failed\r\n"); }
 
-    // Initialize the enumeration module
-    if (enum_init() != 0) { debugErr("Enumeration Init failed\r\n"); }
+	// Initialize the enumeration module
+	if (enum_init() != 0) { debugErr("Enumeration Init failed\r\n"); }
 
 #if USB_COMPOSITE_OPTION /* Original - Composite MSC + CDC-ACM */
-    // Register enumeration data
-    enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&composite_device_descriptor, 0);
-    enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&composite_config_descriptor, 0);
-    if (usb_opts.enable_hs) {
-        // Two additional descriptors needed for high-speed operation
-        enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&composite_config_descriptor_hs, 0);
-        enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&composite_device_qualifier_descriptor,
-                                 0);
-    }
-    enum_register_descriptor(ENUM_DESC_STRING, lang_id_desc, 0);
-    enum_register_descriptor(ENUM_DESC_STRING, mfg_id_desc, 1);
-    enum_register_descriptor(ENUM_DESC_STRING, prod_id_desc, 2);
-    enum_register_descriptor(ENUM_DESC_STRING, serial_id_desc, 3);
-    enum_register_descriptor(ENUM_DESC_STRING, cdcacm_func_desc, 4);
-    enum_register_descriptor(ENUM_DESC_STRING, msc_func_desc, 5);
+	// Register enumeration data
+	enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&composite_device_descriptor, 0);
+	enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&composite_config_descriptor, 0);
+	if (usb_opts.enable_hs) {
+		// Two additional descriptors needed for high-speed operation
+		enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&composite_config_descriptor_hs, 0);
+		enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&composite_device_qualifier_descriptor,
+									0);
+	}
+	enum_register_descriptor(ENUM_DESC_STRING, lang_id_desc, 0);
+	enum_register_descriptor(ENUM_DESC_STRING, mfg_id_desc, 1);
+	enum_register_descriptor(ENUM_DESC_STRING, prod_id_desc, 2);
+	enum_register_descriptor(ENUM_DESC_STRING, serial_id_desc, 3);
+	enum_register_descriptor(ENUM_DESC_STRING, cdcacm_func_desc, 4);
+	enum_register_descriptor(ENUM_DESC_STRING, msc_func_desc, 5);
 
-    // Handle configuration
-    enum_register_callback(ENUM_SETCONFIG, setconfigCallback_Composite, NULL);
+	// Handle configuration
+	enum_register_callback(ENUM_SETCONFIG, setconfigCallback_Composite, NULL);
 
-    // Handle feature set/clear
-    enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
-    enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
+	// Handle feature set/clear
+	enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
+	enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
 
-    // Initialize the class driver
-    if (msc_init(&composite_config_descriptor.msc_interface_descriptor, &ids, &mem) != 0) { debugErr("MSC Init failed\r\n"); }
-    if (acm_init(&composite_config_descriptor.comm_interface_descriptor) != 0) { debugErr("CDC/ACM Init failed\r\n"); }
+	// Initialize the class driver
+	if (msc_init(&composite_config_descriptor.msc_interface_descriptor, &ids, &mem) != 0) { debugErr("MSC Init failed\r\n"); }
+	if (acm_init(&composite_config_descriptor.comm_interface_descriptor) != 0) { debugErr("CDC/ACM Init failed\r\n"); }
 
 #elif USB_CDC_ACM_ONLY_OPTION /* CDC-ACM only */
-    /* Register enumeration data */
-    enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&device_descriptor, 0);
-    enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
+	/* Register enumeration data */
+	enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&device_descriptor, 0);
+	enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
 
-    if (usb_opts.enable_hs) {
-        /* Two additional descriptors needed for high-speed operation */
-        enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
-        enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&device_qualifier_descriptor, 0);
-    }
+	if (usb_opts.enable_hs) {
+		/* Two additional descriptors needed for high-speed operation */
+		enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
+		enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&device_qualifier_descriptor, 0);
+	}
 
-    enum_register_descriptor(ENUM_DESC_STRING, lang_id_desc_cdcacm, 0);
-    enum_register_descriptor(ENUM_DESC_STRING, mfg_id_desc_cdcacm, 1);
-    enum_register_descriptor(ENUM_DESC_STRING, prod_id_desc_cdcacm, 2);
-    enum_register_descriptor(ENUM_DESC_STRING, serial_id_desc_cdcacm, 3);
-    enum_register_descriptor(ENUM_DESC_STRING, cdcacm_func_desc_cdcacm, 4);
+	enum_register_descriptor(ENUM_DESC_STRING, lang_id_desc_cdcacm, 0);
+	enum_register_descriptor(ENUM_DESC_STRING, mfg_id_desc_cdcacm, 1);
+	enum_register_descriptor(ENUM_DESC_STRING, prod_id_desc_cdcacm, 2);
+	enum_register_descriptor(ENUM_DESC_STRING, serial_id_desc_cdcacm, 3);
+	enum_register_descriptor(ENUM_DESC_STRING, cdcacm_func_desc_cdcacm, 4);
 
-    /* Handle configuration */
-    enum_register_callback(ENUM_SETCONFIG, setconfigCallback_CDCACM, NULL);
+	/* Handle configuration */
+	enum_register_callback(ENUM_SETCONFIG, setconfigCallback_CDCACM, NULL);
 
-    /* Handle feature set/clear */
-    enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
-    enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
+	/* Handle feature set/clear */
+	enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
+	enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
 
-    /* Initialize the class driver */
-    if (acm_init(&config_descriptor.comm_interface_descriptor) != 0) {
-        debugErr("USB: acm_init() failed\r\n");
-        while (1) {}
-    }
+	/* Initialize the class driver */
+	if (acm_init(&config_descriptor.comm_interface_descriptor) != 0) {
+		debugErr("USB: acm_init() failed\r\n");
+		while (1) {}
+	}
 
 #elif USB_MSC_ONLY_OPTION /* MSC only */
-    /* Register enumeration data */
-    enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&device_descriptor, 0);
-    enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
+	/* Register enumeration data */
+	enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&device_descriptor, 0);
+	enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
 
-    if (usb_opts.enable_hs) {
-        /* Two additional descriptors needed for high-speed operation */
-        enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
-        enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&device_qualifier_descriptor, 0);
-    }
+	if (usb_opts.enable_hs) {
+		/* Two additional descriptors needed for high-speed operation */
+		enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
+		enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&device_qualifier_descriptor, 0);
+	}
 
-    enum_register_descriptor(ENUM_DESC_STRING, lang_id_desc_msc, 0);
-    enum_register_descriptor(ENUM_DESC_STRING, mfg_id_desc_msc, 1);
-    enum_register_descriptor(ENUM_DESC_STRING, prod_id_desc_msc, 2);
-    enum_register_descriptor(ENUM_DESC_STRING, serial_id_desc_msc, 3);
+	enum_register_descriptor(ENUM_DESC_STRING, lang_id_desc_msc, 0);
+	enum_register_descriptor(ENUM_DESC_STRING, mfg_id_desc_msc, 1);
+	enum_register_descriptor(ENUM_DESC_STRING, prod_id_desc_msc, 2);
+	enum_register_descriptor(ENUM_DESC_STRING, serial_id_desc_msc, 3);
 
-    /* Handle configuration */
-    enum_register_callback(ENUM_SETCONFIG, setconfigCallback_MSC, NULL);
+	/* Handle configuration */
+	enum_register_callback(ENUM_SETCONFIG, setconfigCallback_MSC, NULL);
 
-    /* Handle feature set/clear */
-    enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
-    enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
+	/* Handle feature set/clear */
+	enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
+	enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
 
-    /* Initialize the class driver */
-    if (msc_init(&config_descriptor.msc_interface_descriptor, &ids, &mem) != 0) {
-        debugErr("USB: msc_init() failed\r\n");
-        while (1) {}
-    }
+	/* Initialize the class driver */
+	if (msc_init(&config_descriptor.msc_interface_descriptor, &ids, &mem) != 0) {
+		debugErr("USB: msc_init() failed\r\n");
+		while (1) {}
+	}
 #endif
 
-    // Register callbacks
+	// Register callbacks
 #if USB_COMPOSITE_OPTION /* Original - Composite MSC + CDC-ACM */
-    MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_Composite, NULL);
-    MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_Composite, NULL);
-    acm_register_callback(ACM_CB_READ_READY, usbReadCallback);
+	MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_Composite, NULL);
+	MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_Composite, NULL);
+	acm_register_callback(ACM_CB_READ_READY, usbReadCallback);
 #elif USB_CDC_ACM_ONLY_OPTION /* CDC-ACM */
-    MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_CDCACM, NULL);
-    MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_CDCACM, NULL);
-    acm_register_callback(ACM_CB_READ_READY, usbReadCallback);
+	MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_CDCACM, NULL);
+	MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_CDCACM, NULL);
+	acm_register_callback(ACM_CB_READ_READY, usbReadCallback);
 #elif USB_MSC_ONLY_OPTION /* MSC only */
-    MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_MSC, NULL);
-    MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_MSC, NULL);
+	MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_MSC, NULL);
+	MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_MSC, NULL);
 #endif
 
-    // Start with USB in low power mode
-    usbAppSleep();
+	// Start with USB in low power mode
+	usbAppSleep();
 #if 1 /* Original */
-    NVIC_EnableIRQ(USB_IRQn);
+	NVIC_EnableIRQ(USB_IRQn);
 #else /* Test delayed start so that the USB driver isn't initializing while the unit is going through init */
 	MXC_USB_Disconnect();
 #endif
@@ -2427,30 +2427,30 @@ void SetupUSBComposite(void)
 ///----------------------------------------------------------------------------
 void echoUSB(void)
 {
-    int chars;
-    uint8_t buffer[BUFFER_SIZE];
-    //uint8_t echoText[32];
+	int chars;
+	uint8_t buffer[BUFFER_SIZE];
+	//uint8_t echoText[32];
 
-    if ((chars = acm_canread()) > 0) {
-        if (chars > BUFFER_SIZE) {
-            chars = BUFFER_SIZE;
-        }
+	if ((chars = acm_canread()) > 0) {
+		if (chars > BUFFER_SIZE) {
+			chars = BUFFER_SIZE;
+		}
 
-        // Read the data from USB
-        if (acm_read(buffer, chars) != chars) {
-            debugErr("acm_read() failed\r\n");
-            return;
-        }
+		// Read the data from USB
+		if (acm_read(buffer, chars) != chars) {
+			debugErr("acm_read() failed\r\n");
+			return;
+		}
 
-        // Echo it back
-        if (acm_present()) {
-            //sprintf((char*)&echoText[0], "Echo: ");
-            //acm_write(&echoText[0], (unsigned int)strlen((char*)&echoText[0]));
-            if (acm_write(buffer, chars) != chars) {
-                debugErr("acm_write() failed\r\n");
-            }
-        }
-    }
+		// Echo it back
+		if (acm_present()) {
+			//sprintf((char*)&echoText[0], "Echo: ");
+			//acm_write(&echoText[0], (unsigned int)strlen((char*)&echoText[0]));
+			if (acm_write(buffer, chars) != chars) {
+				debugErr("acm_write() failed\r\n");
+			}
+		}
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -2460,18 +2460,18 @@ int usbStartupCallback()
 {
 	debugRaw("<U-sc>");
 
-    // Startup the HIRC96M clock if it's not on already
-    if (!(MXC_GCR->clk_ctrl & MXC_F_GCR_CLK_CTRL_HIRC96_EN)) {
-        MXC_GCR->clk_ctrl |= MXC_F_GCR_CLK_CTRL_HIRC96_EN;
+	// Startup the HIRC96M clock if it's not on already
+	if (!(MXC_GCR->clk_ctrl & MXC_F_GCR_CLK_CTRL_HIRC96_EN)) {
+		MXC_GCR->clk_ctrl |= MXC_F_GCR_CLK_CTRL_HIRC96_EN;
 
-        if (MXC_SYS_Clock_Timeout(MXC_F_GCR_CLK_CTRL_HIRC96_RDY) != E_NO_ERROR) {
-            return E_TIME_OUT;
-        }
-    }
+		if (MXC_SYS_Clock_Timeout(MXC_F_GCR_CLK_CTRL_HIRC96_RDY) != E_NO_ERROR) {
+			return E_TIME_OUT;
+		}
+	}
 
-    MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_USB);
+	MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_USB);
 
-    return E_NO_ERROR;
+	return E_NO_ERROR;
 }
 
 ///----------------------------------------------------------------------------
@@ -2481,9 +2481,9 @@ int usbShutdownCallback()
 {
 	debugRaw("<U-xc>");
 
-    MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_USB);
+	MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_USB);
 
-    return E_NO_ERROR;
+	return E_NO_ERROR;
 }
 
 uint8_t g_mscDelayState = OFF;
@@ -2495,50 +2495,50 @@ int setconfigCallback_Composite(MXC_USB_SetupPkt *sud, void *cbdata)
 {
 	debugRaw("<U-cc>");
 
-    /* Confirm the configuration value */
-    if (sud->wValue == composite_config_descriptor.config_descriptor.bConfigurationValue)
+	/* Confirm the configuration value */
+	if (sud->wValue == composite_config_descriptor.config_descriptor.bConfigurationValue)
 	{
-        configured = 1;
-        MXC_SETBIT(&event_flags, EVENT_ENUM_COMP);
+		configured = 1;
+		MXC_SETBIT(&event_flags, EVENT_ENUM_COMP);
 
-        if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED)
+		if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED)
 		{
-            msc_cfg.out_ep = composite_config_descriptor_hs.endpoint_descriptor_1.bEndpointAddress & 0x7;
-            msc_cfg.out_maxpacket = composite_config_descriptor_hs.endpoint_descriptor_1.wMaxPacketSize;
-            msc_cfg.in_ep = composite_config_descriptor_hs.endpoint_descriptor_2.bEndpointAddress & 0x7;
-            msc_cfg.in_maxpacket = composite_config_descriptor_hs.endpoint_descriptor_2.wMaxPacketSize;
-        }
+			msc_cfg.out_ep = composite_config_descriptor_hs.endpoint_descriptor_1.bEndpointAddress & 0x7;
+			msc_cfg.out_maxpacket = composite_config_descriptor_hs.endpoint_descriptor_1.wMaxPacketSize;
+			msc_cfg.in_ep = composite_config_descriptor_hs.endpoint_descriptor_2.bEndpointAddress & 0x7;
+			msc_cfg.in_maxpacket = composite_config_descriptor_hs.endpoint_descriptor_2.wMaxPacketSize;
+		}
 		else // Not high speed
 		{
-            msc_cfg.out_ep = composite_config_descriptor.endpoint_descriptor_1.bEndpointAddress & 0x7;
-            msc_cfg.out_maxpacket = composite_config_descriptor.endpoint_descriptor_1.wMaxPacketSize;
-            msc_cfg.in_ep = composite_config_descriptor.endpoint_descriptor_2.bEndpointAddress & 0x7;
-            msc_cfg.in_maxpacket = composite_config_descriptor.endpoint_descriptor_2.wMaxPacketSize;
-        }
+			msc_cfg.out_ep = composite_config_descriptor.endpoint_descriptor_1.bEndpointAddress & 0x7;
+			msc_cfg.out_maxpacket = composite_config_descriptor.endpoint_descriptor_1.wMaxPacketSize;
+			msc_cfg.in_ep = composite_config_descriptor.endpoint_descriptor_2.bEndpointAddress & 0x7;
+			msc_cfg.in_maxpacket = composite_config_descriptor.endpoint_descriptor_2.wMaxPacketSize;
+		}
 
-        acm_cfg.out_ep = composite_config_descriptor.endpoint_descriptor_4.bEndpointAddress & 0x7;
-        acm_cfg.out_maxpacket = composite_config_descriptor.endpoint_descriptor_4.wMaxPacketSize;
-        acm_cfg.in_ep = composite_config_descriptor.endpoint_descriptor_5.bEndpointAddress & 0x7;
-        acm_cfg.in_maxpacket = composite_config_descriptor.endpoint_descriptor_5.wMaxPacketSize;
-        acm_cfg.notify_ep = composite_config_descriptor.endpoint_descriptor_3.bEndpointAddress & 0x7;
-        acm_cfg.notify_maxpacket = composite_config_descriptor.endpoint_descriptor_3.wMaxPacketSize;
+		acm_cfg.out_ep = composite_config_descriptor.endpoint_descriptor_4.bEndpointAddress & 0x7;
+		acm_cfg.out_maxpacket = composite_config_descriptor.endpoint_descriptor_4.wMaxPacketSize;
+		acm_cfg.in_ep = composite_config_descriptor.endpoint_descriptor_5.bEndpointAddress & 0x7;
+		acm_cfg.in_maxpacket = composite_config_descriptor.endpoint_descriptor_5.wMaxPacketSize;
+		acm_cfg.notify_ep = composite_config_descriptor.endpoint_descriptor_3.bEndpointAddress & 0x7;
+		acm_cfg.notify_maxpacket = composite_config_descriptor.endpoint_descriptor_3.wMaxPacketSize;
 
 #if 0 /* Test */
 		debugRaw("<msc/%d/%d,acm/%d/%d/%d>", msc_cfg.out_maxpacket, msc_cfg.in_maxpacket, acm_cfg.out_maxpacket, acm_cfg.in_maxpacket, acm_cfg.notify_maxpacket);
 #endif
 		if (g_mscDelayState == ON) { SoftUsecWait(1 * SOFT_SECS); }
-        msc_configure(&msc_cfg);
-        return acm_configure(&acm_cfg);
-        /* Configure the device class */
-    }
+		msc_configure(&msc_cfg);
+		return acm_configure(&acm_cfg);
+		/* Configure the device class */
+	}
 	else if (sud->wValue == 0)
 	{
-        configured = 0;
-        msc_deconfigure();
-        return acm_deconfigure();
-    }
+		configured = 0;
+		msc_deconfigure();
+		return acm_deconfigure();
+	}
 
-    return -1;
+	return -1;
 }
 
 #elif USB_CDC_ACM_ONLY_OPTION /* CDC-ACM only */
@@ -2549,28 +2549,28 @@ int setconfigCallback_CDCACM(MXC_USB_SetupPkt *sud, void *cbdata)
 {
 	debugRaw("<U-cc>");
 
-    /* Confirm the configuration value */
-    if (sud->wValue == config_descriptor.config_descriptor.bConfigurationValue) {
-        configured = 1;
-        MXC_SETBIT(&event_flags, EVENT_ENUM_COMP);
+	/* Confirm the configuration value */
+	if (sud->wValue == config_descriptor.config_descriptor.bConfigurationValue) {
+		configured = 1;
+		MXC_SETBIT(&event_flags, EVENT_ENUM_COMP);
 
-        acm_cfg.out_ep = config_descriptor.endpoint_descriptor_4.bEndpointAddress & 0x7;
-        acm_cfg.out_maxpacket = config_descriptor.endpoint_descriptor_4.wMaxPacketSize;
-        acm_cfg.in_ep = config_descriptor.endpoint_descriptor_5.bEndpointAddress & 0x7;
-        acm_cfg.in_maxpacket = config_descriptor.endpoint_descriptor_5.wMaxPacketSize;
-        acm_cfg.notify_ep = config_descriptor.endpoint_descriptor_3.bEndpointAddress & 0x7;
-        acm_cfg.notify_maxpacket = config_descriptor.endpoint_descriptor_3.wMaxPacketSize;
+		acm_cfg.out_ep = config_descriptor.endpoint_descriptor_4.bEndpointAddress & 0x7;
+		acm_cfg.out_maxpacket = config_descriptor.endpoint_descriptor_4.wMaxPacketSize;
+		acm_cfg.in_ep = config_descriptor.endpoint_descriptor_5.bEndpointAddress & 0x7;
+		acm_cfg.in_maxpacket = config_descriptor.endpoint_descriptor_5.wMaxPacketSize;
+		acm_cfg.notify_ep = config_descriptor.endpoint_descriptor_3.bEndpointAddress & 0x7;
+		acm_cfg.notify_maxpacket = config_descriptor.endpoint_descriptor_3.wMaxPacketSize;
 
 #if 0 /* Test */
 		debugRaw("<acm/%d/%d/%d>", acm_cfg.out_maxpacket, acm_cfg.in_maxpacket, acm_cfg.notify_maxpacket);
 #endif
-        return acm_configure(&acm_cfg); /* Configure the device class */
-    } else if (sud->wValue == 0) {
-        configured = 0;
-        return acm_deconfigure();
-    }
+		return acm_configure(&acm_cfg); /* Configure the device class */
+	} else if (sud->wValue == 0) {
+		configured = 0;
+		return acm_deconfigure();
+	}
 
-    return -1;
+	return -1;
 }
 
 #elif USB_MSC_ONLY_OPTION /* MSC only */
@@ -2581,35 +2581,35 @@ int setconfigCallback_MSC(MXC_USB_SetupPkt *sud, void *cbdata)
 {
 	debugRaw("<U-cc>");
 
-    /* Confirm the configuration value */
-    if (sud->wValue == config_descriptor.config_descriptor.bConfigurationValue) {
-        configured = 1;
-        MXC_SETBIT(&event_flags, EVENT_ENUM_COMP);
+	/* Confirm the configuration value */
+	if (sud->wValue == config_descriptor.config_descriptor.bConfigurationValue) {
+		configured = 1;
+		MXC_SETBIT(&event_flags, EVENT_ENUM_COMP);
 
-        if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
-            msc_cfg.out_ep = config_descriptor_hs.endpoint_descriptor_1.bEndpointAddress & 0x7;
-            msc_cfg.out_maxpacket = config_descriptor_hs.endpoint_descriptor_1.wMaxPacketSize;
-            msc_cfg.in_ep = config_descriptor_hs.endpoint_descriptor_2.bEndpointAddress & 0x7;
-            msc_cfg.in_maxpacket = config_descriptor_hs.endpoint_descriptor_2.wMaxPacketSize;
-        } else {
-            msc_cfg.out_ep = config_descriptor.endpoint_descriptor_1.bEndpointAddress & 0x7;
-            msc_cfg.out_maxpacket = config_descriptor.endpoint_descriptor_1.wMaxPacketSize;
-            msc_cfg.in_ep = config_descriptor.endpoint_descriptor_2.bEndpointAddress & 0x7;
-            msc_cfg.in_maxpacket = config_descriptor.endpoint_descriptor_2.wMaxPacketSize;
-        }
+		if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
+			msc_cfg.out_ep = config_descriptor_hs.endpoint_descriptor_1.bEndpointAddress & 0x7;
+			msc_cfg.out_maxpacket = config_descriptor_hs.endpoint_descriptor_1.wMaxPacketSize;
+			msc_cfg.in_ep = config_descriptor_hs.endpoint_descriptor_2.bEndpointAddress & 0x7;
+			msc_cfg.in_maxpacket = config_descriptor_hs.endpoint_descriptor_2.wMaxPacketSize;
+		} else {
+			msc_cfg.out_ep = config_descriptor.endpoint_descriptor_1.bEndpointAddress & 0x7;
+			msc_cfg.out_maxpacket = config_descriptor.endpoint_descriptor_1.wMaxPacketSize;
+			msc_cfg.in_ep = config_descriptor.endpoint_descriptor_2.bEndpointAddress & 0x7;
+			msc_cfg.in_maxpacket = config_descriptor.endpoint_descriptor_2.wMaxPacketSize;
+		}
 
 #if 0 /* Test */
 		debugRaw("<msc/%d/%d>", msc_cfg.out_maxpacket, msc_cfg.in_maxpacket);
 #endif
 		if (g_mscDelayState == ON) { SoftUsecWait(1 * SOFT_SECS); }
-        return msc_configure(&msc_cfg); /* Configure the device class */
+		return msc_configure(&msc_cfg); /* Configure the device class */
 
-    } else if (sud->wValue == 0) {
-        configured = 0;
-        return msc_deconfigure();
-    }
+	} else if (sud->wValue == 0) {
+		configured = 0;
+		return msc_deconfigure();
+	}
 
-    return -1;
+	return -1;
 }
 #endif
 
@@ -2618,14 +2618,14 @@ int setconfigCallback_MSC(MXC_USB_SetupPkt *sud, void *cbdata)
 ///----------------------------------------------------------------------------
 static int setfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata)
 {
-    if (sud->wValue == FEAT_REMOTE_WAKE) {
-        remote_wake_en = 1;
-    } else {
-        // Unknown callback
-        return -1;
-    }
+	if (sud->wValue == FEAT_REMOTE_WAKE) {
+		remote_wake_en = 1;
+	} else {
+		// Unknown callback
+		return -1;
+	}
 
-    return 0;
+	return 0;
 }
 
 ///----------------------------------------------------------------------------
@@ -2633,14 +2633,14 @@ static int setfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata)
 ///----------------------------------------------------------------------------
 static int clrfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata)
 {
-    if (sud->wValue == FEAT_REMOTE_WAKE) {
-        remote_wake_en = 0;
-    } else {
-        // Unknown callback
-        return -1;
-    }
+	if (sud->wValue == FEAT_REMOTE_WAKE) {
+		remote_wake_en = 0;
+	} else {
+		// Unknown callback
+		return -1;
+	}
 
-    return 0;
+	return 0;
 }
 
 ///----------------------------------------------------------------------------
@@ -2648,9 +2648,9 @@ static int clrfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata)
 ///----------------------------------------------------------------------------
 static void usbAppSleep(void)
 {
-    suspended = 1;
+	suspended = 1;
 
-    // Todo: Any low power code to place here?
+	// Todo: Any low power code to place here?
 }
 
 ///----------------------------------------------------------------------------
@@ -2658,9 +2658,9 @@ static void usbAppSleep(void)
 ///----------------------------------------------------------------------------
 static void usbAppWakeup(void)
 {
-    suspended = 0;
+	suspended = 0;
 
-    // Todo: Any power up code to place here?
+	// Todo: Any power up code to place here?
 }
 
 #if USB_COMPOSITE_OPTION /* Composite MSC + CDC-ACM */
@@ -2671,61 +2671,61 @@ int usbEventCallback_Composite(maxusb_event_t evt, void *data)
 {
 	debugRaw("<U-ec:%d>", evt);
 
-    /* Set event flag */
-    MXC_SETBIT(&event_flags, evt);
+	/* Set event flag */
+	MXC_SETBIT(&event_flags, evt);
 
-    switch (evt) {
-    case MAXUSB_EVENT_NOVBUS:
-        MXC_USB_EventDisable(MAXUSB_EVENT_BRST);
-        MXC_USB_EventDisable(MAXUSB_EVENT_SUSP);
-        MXC_USB_EventDisable(MAXUSB_EVENT_DPACT);
-        MXC_USB_Disconnect();
-        configured = 0;
-        enum_clearconfig();
-        msc_deconfigure();
-        acm_deconfigure();
-        usbAppSleep();
-        break;
-    case MAXUSB_EVENT_VBUS:
-        MXC_USB_EventClear(MAXUSB_EVENT_BRST);
-        MXC_USB_EventEnable(MAXUSB_EVENT_BRST, usbEventCallback_Composite, NULL);
-        MXC_USB_EventClear(MAXUSB_EVENT_BRSTDN);
-        MXC_USB_EventEnable(MAXUSB_EVENT_BRSTDN, usbEventCallback_Composite, NULL);
-        MXC_USB_EventClear(MAXUSB_EVENT_SUSP);
-        MXC_USB_EventEnable(MAXUSB_EVENT_SUSP, usbEventCallback_Composite, NULL);
-        MXC_USB_Connect();
-        usbAppSleep();
-        break;
-    case MAXUSB_EVENT_BRST:
-        usbAppWakeup();
-        enum_clearconfig();
-        msc_deconfigure();
-        acm_deconfigure();
-        configured = 0;
-        suspended = 0;
-        break;
-    case MAXUSB_EVENT_BRSTDN:
-        if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
-            enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&composite_config_descriptor_hs,
-                                     0);
-            enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&composite_config_descriptor, 0);
-        } else {
-            enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&composite_config_descriptor, 0);
-            enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&composite_config_descriptor_hs,
-                                     0);
-        }
-        break;
-    case MAXUSB_EVENT_SUSP:
-        usbAppSleep();
-        break;
-    case MAXUSB_EVENT_DPACT:
-        usbAppWakeup();
-        break;
-    default:
-        break;
-    }
+	switch (evt) {
+	case MAXUSB_EVENT_NOVBUS:
+		MXC_USB_EventDisable(MAXUSB_EVENT_BRST);
+		MXC_USB_EventDisable(MAXUSB_EVENT_SUSP);
+		MXC_USB_EventDisable(MAXUSB_EVENT_DPACT);
+		MXC_USB_Disconnect();
+		configured = 0;
+		enum_clearconfig();
+		msc_deconfigure();
+		acm_deconfigure();
+		usbAppSleep();
+		break;
+	case MAXUSB_EVENT_VBUS:
+		MXC_USB_EventClear(MAXUSB_EVENT_BRST);
+		MXC_USB_EventEnable(MAXUSB_EVENT_BRST, usbEventCallback_Composite, NULL);
+		MXC_USB_EventClear(MAXUSB_EVENT_BRSTDN);
+		MXC_USB_EventEnable(MAXUSB_EVENT_BRSTDN, usbEventCallback_Composite, NULL);
+		MXC_USB_EventClear(MAXUSB_EVENT_SUSP);
+		MXC_USB_EventEnable(MAXUSB_EVENT_SUSP, usbEventCallback_Composite, NULL);
+		MXC_USB_Connect();
+		usbAppSleep();
+		break;
+	case MAXUSB_EVENT_BRST:
+		usbAppWakeup();
+		enum_clearconfig();
+		msc_deconfigure();
+		acm_deconfigure();
+		configured = 0;
+		suspended = 0;
+		break;
+	case MAXUSB_EVENT_BRSTDN:
+		if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
+			enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&composite_config_descriptor_hs,
+										0);
+			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&composite_config_descriptor, 0);
+		} else {
+			enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&composite_config_descriptor, 0);
+			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&composite_config_descriptor_hs,
+										0);
+		}
+		break;
+	case MAXUSB_EVENT_SUSP:
+		usbAppSleep();
+		break;
+	case MAXUSB_EVENT_DPACT:
+		usbAppWakeup();
+		break;
+	default:
+		break;
+	}
 
-    return 0;
+	return 0;
 }
 
 #elif USB_CDC_ACM_ONLY_OPTION /* CDC-ACM only */
@@ -2736,57 +2736,57 @@ int usbEventCallback_CDCACM(maxusb_event_t evt, void *data)
 {
 	debugRaw("<U-ec:%d>", evt);
 
-    /* Set event flag */
-    MXC_SETBIT(&event_flags, evt);
+	/* Set event flag */
+	MXC_SETBIT(&event_flags, evt);
 
-    switch (evt) {
-    case MAXUSB_EVENT_NOVBUS:
-        MXC_USB_EventDisable(MAXUSB_EVENT_BRST);
-        MXC_USB_EventDisable(MAXUSB_EVENT_SUSP);
-        MXC_USB_EventDisable(MAXUSB_EVENT_DPACT);
-        MXC_USB_Disconnect();
-        configured = 0;
-        enum_clearconfig();
-        acm_deconfigure();
-        usbAppSleep();
-        break;
-    case MAXUSB_EVENT_VBUS:
-        MXC_USB_EventClear(MAXUSB_EVENT_BRST);
-        MXC_USB_EventEnable(MAXUSB_EVENT_BRST, usbEventCallback_CDCACM, NULL);
-        MXC_USB_EventClear(MAXUSB_EVENT_BRSTDN);
-        MXC_USB_EventEnable(MAXUSB_EVENT_BRSTDN, usbEventCallback_CDCACM, NULL);
-        MXC_USB_EventClear(MAXUSB_EVENT_SUSP);
-        MXC_USB_EventEnable(MAXUSB_EVENT_SUSP, usbEventCallback_CDCACM, NULL);
-        MXC_USB_Connect();
-        usbAppSleep();
-        break;
-    case MAXUSB_EVENT_BRST:
-        usbAppWakeup();
-        enum_clearconfig();
-        acm_deconfigure();
-        configured = 0;
-        suspended = 0;
-        break;
-    case MAXUSB_EVENT_BRSTDN:
-        if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
-            enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor_hs, 0);
-            enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor, 0);
-        } else {
-            enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
-            enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
-        }
-        break;
-    case MAXUSB_EVENT_SUSP:
-        usbAppSleep();
-        break;
-    case MAXUSB_EVENT_DPACT:
-        usbAppWakeup();
-        break;
-    default:
-        break;
-    }
+	switch (evt) {
+	case MAXUSB_EVENT_NOVBUS:
+		MXC_USB_EventDisable(MAXUSB_EVENT_BRST);
+		MXC_USB_EventDisable(MAXUSB_EVENT_SUSP);
+		MXC_USB_EventDisable(MAXUSB_EVENT_DPACT);
+		MXC_USB_Disconnect();
+		configured = 0;
+		enum_clearconfig();
+		acm_deconfigure();
+		usbAppSleep();
+		break;
+	case MAXUSB_EVENT_VBUS:
+		MXC_USB_EventClear(MAXUSB_EVENT_BRST);
+		MXC_USB_EventEnable(MAXUSB_EVENT_BRST, usbEventCallback_CDCACM, NULL);
+		MXC_USB_EventClear(MAXUSB_EVENT_BRSTDN);
+		MXC_USB_EventEnable(MAXUSB_EVENT_BRSTDN, usbEventCallback_CDCACM, NULL);
+		MXC_USB_EventClear(MAXUSB_EVENT_SUSP);
+		MXC_USB_EventEnable(MAXUSB_EVENT_SUSP, usbEventCallback_CDCACM, NULL);
+		MXC_USB_Connect();
+		usbAppSleep();
+		break;
+	case MAXUSB_EVENT_BRST:
+		usbAppWakeup();
+		enum_clearconfig();
+		acm_deconfigure();
+		configured = 0;
+		suspended = 0;
+		break;
+	case MAXUSB_EVENT_BRSTDN:
+		if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
+			enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor_hs, 0);
+			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor, 0);
+		} else {
+			enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
+			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
+		}
+		break;
+	case MAXUSB_EVENT_SUSP:
+		usbAppSleep();
+		break;
+	case MAXUSB_EVENT_DPACT:
+		usbAppWakeup();
+		break;
+	default:
+		break;
+	}
 
-    return 0;
+	return 0;
 }
 
 #elif USB_MSC_ONLY_OPTION /* MSC only */
@@ -2797,63 +2797,63 @@ int usbEventCallback_MSC(maxusb_event_t evt, void *data)
 {
 	debugRaw("<U-ec:%d>", evt);
 
-    /* Set event flag */
-    MXC_SETBIT(&event_flags, evt);
+	/* Set event flag */
+	MXC_SETBIT(&event_flags, evt);
 
-    switch (evt) {
-    case MAXUSB_EVENT_NOVBUS:
-        MXC_USB_EventDisable(MAXUSB_EVENT_BRST);
-        MXC_USB_EventDisable(MAXUSB_EVENT_SUSP);
-        MXC_USB_EventDisable(MAXUSB_EVENT_DPACT);
-        MXC_USB_Disconnect();
-        configured = 0;
-        enum_clearconfig();
-        msc_deconfigure();
-        usbAppSleep();
-        break;
+	switch (evt) {
+	case MAXUSB_EVENT_NOVBUS:
+		MXC_USB_EventDisable(MAXUSB_EVENT_BRST);
+		MXC_USB_EventDisable(MAXUSB_EVENT_SUSP);
+		MXC_USB_EventDisable(MAXUSB_EVENT_DPACT);
+		MXC_USB_Disconnect();
+		configured = 0;
+		enum_clearconfig();
+		msc_deconfigure();
+		usbAppSleep();
+		break;
 
-    case MAXUSB_EVENT_VBUS:
-        MXC_USB_EventClear(MAXUSB_EVENT_BRST);
-        MXC_USB_EventEnable(MAXUSB_EVENT_BRST, usbEventCallback_MSC, NULL);
-        MXC_USB_EventClear(MAXUSB_EVENT_BRSTDN);
-        MXC_USB_EventEnable(MAXUSB_EVENT_BRSTDN, usbEventCallback_MSC, NULL);
-        MXC_USB_EventClear(MAXUSB_EVENT_SUSP);
-        MXC_USB_EventEnable(MAXUSB_EVENT_SUSP, usbEventCallback_MSC, NULL);
-        MXC_USB_Connect();
-        usbAppSleep();
-        break;
+	case MAXUSB_EVENT_VBUS:
+		MXC_USB_EventClear(MAXUSB_EVENT_BRST);
+		MXC_USB_EventEnable(MAXUSB_EVENT_BRST, usbEventCallback_MSC, NULL);
+		MXC_USB_EventClear(MAXUSB_EVENT_BRSTDN);
+		MXC_USB_EventEnable(MAXUSB_EVENT_BRSTDN, usbEventCallback_MSC, NULL);
+		MXC_USB_EventClear(MAXUSB_EVENT_SUSP);
+		MXC_USB_EventEnable(MAXUSB_EVENT_SUSP, usbEventCallback_MSC, NULL);
+		MXC_USB_Connect();
+		usbAppSleep();
+		break;
 
-    case MAXUSB_EVENT_BRST:
-        usbAppWakeup();
-        enum_clearconfig();
-        msc_deconfigure();
-        configured = 0;
-        suspended = 0;
-        break;
+	case MAXUSB_EVENT_BRST:
+		usbAppWakeup();
+		enum_clearconfig();
+		msc_deconfigure();
+		configured = 0;
+		suspended = 0;
+		break;
 
-    case MAXUSB_EVENT_BRSTDN:
-        if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
-            enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor_hs, 0);
-            enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor, 0);
-        } else {
-            enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
-            enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
-        }
-        break;
+	case MAXUSB_EVENT_BRSTDN:
+		if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
+			enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor_hs, 0);
+			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor, 0);
+		} else {
+			enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
+			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
+		}
+		break;
 
-    case MAXUSB_EVENT_SUSP:
-        usbAppSleep();
-        break;
+	case MAXUSB_EVENT_SUSP:
+		usbAppSleep();
+		break;
 
-    case MAXUSB_EVENT_DPACT:
-        usbAppWakeup();
-        break;
+	case MAXUSB_EVENT_DPACT:
+		usbAppWakeup();
+		break;
 
-    default:
-        break;
-    }
+	default:
+		break;
+	}
 
-    return 0;
+	return 0;
 }
 #endif
 
@@ -2862,7 +2862,7 @@ int usbEventCallback_MSC(maxusb_event_t evt, void *data)
 ///----------------------------------------------------------------------------
 void USB_IRQHandler(void)
 {
-    MXC_USB_EventHandler();
+	MXC_USB_EventHandler();
 }
 
 ///----------------------------------------------------------------------------
@@ -2913,7 +2913,7 @@ void USB_IRQHandler(void)
 	}
 #endif
 
-    return 0;
+	return 0;
 }
 
 ///----------------------------------------------------------------------------
@@ -2972,10 +2972,10 @@ static char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012
 ///----------------------------------------------------------------------------
 void generateMessage(unsigned length)
 {
-    for (int i = 0; i < length; i++) {
-        /*Generate some random data to put in file*/
-        message[i] = charset[rand() % (sizeof(charset) - 1)];
-    }
+	for (int i = 0; i < length; i++) {
+		/*Generate some random data to put in file*/
+		message[i] = charset[rand() % (sizeof(charset) - 1)];
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -2983,18 +2983,18 @@ void generateMessage(unsigned length)
 ///----------------------------------------------------------------------------
 int mount(void)
 {
-    fs = &fs_obj;
-    if ((err = f_mount(fs, "", 1)) != FR_OK) { //Mount the default drive to fs now
-        debugErr("Unable to open flash drive: %s\r\n", FF_ERRORS[err]);
-        f_mount(NULL, "", 0);
-    } else {
-        debug("Flash drive mounted\r\n");
-        mounted = 1;
-    }
+	fs = &fs_obj;
+	if ((err = f_mount(fs, "", 1)) != FR_OK) { //Mount the default drive to fs now
+		debugErr("Unable to open flash drive: %s\r\n", FF_ERRORS[err]);
+		f_mount(NULL, "", 0);
+	} else {
+		debug("Flash drive mounted\r\n");
+		mounted = 1;
+	}
 
-    f_getcwd(cwd, sizeof(cwd)); //Set the Current working directory
+	f_getcwd(cwd, sizeof(cwd)); //Set the Current working directory
 
-    return err;
+	return err;
 }
 
 ///----------------------------------------------------------------------------
@@ -3002,14 +3002,14 @@ int mount(void)
 ///----------------------------------------------------------------------------
 int umount(void)
 {
-    if ((err = f_mount(NULL, "", 0)) != FR_OK) { //Unmount the default drive from its mount point
-        debugErr("Unable to unmount volume: %s\r\n", FF_ERRORS[err]);
-    } else {
-        debug("Flash drive unmounted\r\n");
-        mounted = 0;
-    }
+	if ((err = f_mount(NULL, "", 0)) != FR_OK) { //Unmount the default drive from its mount point
+		debugErr("Unable to unmount volume: %s\r\n", FF_ERRORS[err]);
+	} else {
+		debug("Flash drive unmounted\r\n");
+		mounted = 0;
+	}
 
-    return err;
+	return err;
 }
 
 ///----------------------------------------------------------------------------
@@ -3017,15 +3017,15 @@ int umount(void)
 ///----------------------------------------------------------------------------
 int formatSDHC(void)
 {
-    debugWarn("\n\n*****THE DRIVE WILL BE FORMATTED IN 5 SECONDS*****r\n");
-    debugWarn("**************PRESS ANY KEY TO ABORT**************\r\n\n");
-    MXC_UART_ClearRXFIFO(MXC_UART2);
-    MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(5000));
-    if (MXC_UART_GetRXFIFOAvailable(MXC_UART2) > 0) {
-        return E_ABORT;
-    }
+	debugWarn("\n\n*****THE DRIVE WILL BE FORMATTED IN 5 SECONDS*****r\n");
+	debugWarn("**************PRESS ANY KEY TO ABORT**************\r\n\n");
+	MXC_UART_ClearRXFIFO(MXC_UART2);
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(5000));
+	if (MXC_UART_GetRXFIFOAvailable(MXC_UART2) > 0) {
+		return E_ABORT;
+	}
 
-    debug("Formatting flash drive...\r\n");
+	debug("Formatting flash drive...\r\n");
 
 #if 0 /* For version FF13 and FF14 */
 	if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) != FR_OK)
@@ -3034,21 +3034,21 @@ int formatSDHC(void)
 	if ((err = f_mkfs("", &setupFS, work, sizeof(work))) != FR_OK)
 #endif
 	{ //Format the default drive to FAT32
-        debugErr("Formatting flash drive/device failed: %s\r\n", FF_ERRORS[err]);
-    } else {
-        debug("Flash drive formatted\n");
-    }
+		debugErr("Formatting flash drive/device failed: %s\r\n", FF_ERRORS[err]);
+	} else {
+		debug("Flash drive formatted\n");
+	}
 
-    mount();
+	mount();
 
-    if ((err = f_setlabel("NOMIS")) != FR_OK) {
-        debugErr("Setting drive label failed: %s\r\n", FF_ERRORS[err]);
-        f_mount(NULL, "", 0);
-    }
+	if ((err = f_setlabel("NOMIS")) != FR_OK) {
+		debugErr("Setting drive label failed: %s\r\n", FF_ERRORS[err]);
+		f_mount(NULL, "", 0);
+	}
 
-    umount();
+	umount();
 
-    return err;
+	return err;
 }
 
 ///----------------------------------------------------------------------------
@@ -3056,22 +3056,22 @@ int formatSDHC(void)
 ///----------------------------------------------------------------------------
 int getSize(void)
 {
-    if (!mounted) {
-        mount();
-    }
+	if (!mounted) {
+		mount();
+	}
 
-    if ((err = f_getfree(&volume, &clusters_free, &fs)) != FR_OK) {
-        debugErr("Problem finding free size of card: %s\r\n", FF_ERRORS[err]);
-        f_mount(NULL, "", 0);
-    }
+	if ((err = f_getfree(&volume, &clusters_free, &fs)) != FR_OK) {
+		debugErr("Problem finding free size of card: %s\r\n", FF_ERRORS[err]);
+		f_mount(NULL, "", 0);
+	}
 
-    sectors_total = (fs->n_fatent - 2) * fs->csize;
-    sectors_free = clusters_free * fs->csize;
+	sectors_total = (fs->n_fatent - 2) * fs->csize;
+	sectors_free = clusters_free * fs->csize;
 
-    debug("Disk Size: %u bytes\n", sectors_total / 2);
-    debug("Available: %u bytes\n", sectors_free / 2);
+	debug("Disk Size: %u bytes\n", sectors_total / 2);
+	debug("Available: %u bytes\n", sectors_free / 2);
 
-    return err;
+	return err;
 }
 
 ///----------------------------------------------------------------------------
@@ -3079,35 +3079,35 @@ int getSize(void)
 ///----------------------------------------------------------------------------
 int ls(void)
 {
-    if (!mounted) {
-        mount();
-    }
+	if (!mounted) {
+		mount();
+	}
 
-    debug("Listing Contents of %s - \r\n", cwd);
+	debug("Listing Contents of %s - \r\n", cwd);
 
-    if ((err = f_opendir(&dir, cwd)) == FR_OK) {
-        while (1) {
-            err = f_readdir(&dir, &fno);
-            if (err != FR_OK || fno.fname[0] == 0)
-                break;
+	if ((err = f_opendir(&dir, cwd)) == FR_OK) {
+		while (1) {
+			err = f_readdir(&dir, &fno);
+			if (err != FR_OK || fno.fname[0] == 0)
+				break;
 
-            debug("%s/%s", cwd, fno.fname);
+			debug("%s/%s", cwd, fno.fname);
 
-            if (fno.fattrib & AM_DIR) {
-                debug("/");
-            }
+			if (fno.fattrib & AM_DIR) {
+				debug("/");
+			}
 
-            debug("\n");
-        }
-        f_closedir(&dir);
-    } else {
-        debugErr("Unable to opening directory\r\n");
-        return err;
-    }
+			debug("\n");
+		}
+		f_closedir(&dir);
+	} else {
+		debugErr("Unable to opening directory\r\n");
+		return err;
+	}
 
-    debug("\nFinished listing contents\r\n");
+	debug("\nFinished listing contents\r\n");
 
-    return err;
+	return err;
 }
 
 ///----------------------------------------------------------------------------
@@ -3115,41 +3115,41 @@ int ls(void)
 ///----------------------------------------------------------------------------
 int createFile(void)
 {
-    unsigned int length = 128;
+	unsigned int length = 128;
 
-    if (!mounted) {
-        mount();
-    }
+	if (!mounted) {
+		mount();
+	}
 
-    debug("Enter the name of the text file: \r\n");
-    scanf("%255s", filename);
-    debug("Enter the length of the file: (256 max)\r\n");
-    scanf("%d", &length);
-    debug("Creating file %s with length %d\n", filename, length);
+	debug("Enter the name of the text file: \r\n");
+	scanf("%255s", filename);
+	debug("Enter the length of the file: (256 max)\r\n");
+	scanf("%d", &length);
+	debug("Creating file %s with length %d\n", filename, length);
 
-    if ((err = f_open(&file, (const TCHAR *)filename, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) {
-        debugErr("Unable to open file: %s\n", FF_ERRORS[err]);
-        f_mount(NULL, "", 0);
-        return err;
-    }
-    debug("File opened\n");
+	if ((err = f_open(&file, (const TCHAR *)filename, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) {
+		debugErr("Unable to open file: %s\n", FF_ERRORS[err]);
+		f_mount(NULL, "", 0);
+		return err;
+	}
+	debug("File opened\n");
 
-    generateMessage(length);
+	generateMessage(length);
 
-    if ((err = f_write(&file, &message, length, &bytes_written)) != FR_OK) {
-        debugErr("Unable to write file: %s\r\n", FF_ERRORS[err]);
-        f_mount(NULL, "", 0);
-        return err;
-    }
-    debug("%d bytes written to file\r\n", bytes_written);
+	if ((err = f_write(&file, &message, length, &bytes_written)) != FR_OK) {
+		debugErr("Unable to write file: %s\r\n", FF_ERRORS[err]);
+		f_mount(NULL, "", 0);
+		return err;
+	}
+	debug("%d bytes written to file\r\n", bytes_written);
 
-    if ((err = f_close(&file)) != FR_OK) {
-        debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]);
-        f_mount(NULL, "", 0);
-        return err;
-    }
-    debug("File closed\n");
-    return err;
+	if ((err = f_close(&file)) != FR_OK) {
+		debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]);
+		f_mount(NULL, "", 0);
+		return err;
+	}
+	debug("File closed\n");
+	return err;
 }
 
 ///----------------------------------------------------------------------------
@@ -3157,41 +3157,41 @@ int createFile(void)
 ///----------------------------------------------------------------------------
 int appendFile(void)
 {
-    unsigned int length = 0;
+	unsigned int length = 0;
 
-    if (!mounted) {
-        mount();
-    }
+	if (!mounted) {
+		mount();
+	}
 
-    debug("Type name of file to append: \r\n");
-    scanf("%255s", filename);
-    debug("Type length of random data to append: \r\n");
-    scanf("%d", &length);
+	debug("Type name of file to append: \r\n");
+	scanf("%255s", filename);
+	debug("Type length of random data to append: \r\n");
+	scanf("%d", &length);
 
-    if ((err = f_stat((const TCHAR *)filename, &fno)) != FR_OK) {
-        debugErr("File %s doesn't exist\r\n", (const TCHAR *)filename);
-        return err;
-    }
-    if ((err = f_open(&file, (const TCHAR *)filename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK) {
-        debugErr("Unable to open file %s\r\n", FF_ERRORS[err]);
-        return err;
-    }
-    debug("File opened\n");
+	if ((err = f_stat((const TCHAR *)filename, &fno)) != FR_OK) {
+		debugErr("File %s doesn't exist\r\n", (const TCHAR *)filename);
+		return err;
+	}
+	if ((err = f_open(&file, (const TCHAR *)filename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK) {
+		debugErr("Unable to open file %s\r\n", FF_ERRORS[err]);
+		return err;
+	}
+	debug("File opened\n");
 
-    generateMessage(length);
+	generateMessage(length);
 
-    if ((err = f_write(&file, &message, length, &bytes_written)) != FR_OK) {
-        debugErr("Unable to write file: %s\r\n", FF_ERRORS[err]);
-        return err;
-    }
-    debug("Bytes written to file: %d\n", bytes_written);
+	if ((err = f_write(&file, &message, length, &bytes_written)) != FR_OK) {
+		debugErr("Unable to write file: %s\r\n", FF_ERRORS[err]);
+		return err;
+	}
+	debug("Bytes written to file: %d\n", bytes_written);
 
-    if ((err = f_close(&file)) != FR_OK) {
-        debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]);
-        return err;
-    }
-    debug("File closed\r\n");
-    return err;
+	if ((err = f_close(&file)) != FR_OK) {
+		debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]);
+		return err;
+	}
+	debug("File closed\r\n");
+	return err;
 }
 
 ///----------------------------------------------------------------------------
@@ -3199,29 +3199,29 @@ int appendFile(void)
 ///----------------------------------------------------------------------------
 int mkdir(void)
 {
-    if (!mounted) {
-        mount();
-    }
+	if (!mounted) {
+		mount();
+	}
 
-    debug("Enter directory name: \r\n");
-    scanf("%255s", directory);
+	debug("Enter directory name: \r\n");
+	scanf("%255s", directory);
 
-    err = f_stat((const TCHAR *)directory, &fno);
-    if (err == FR_NO_FILE) {
-        debug("Creating directory...\r\n");
+	err = f_stat((const TCHAR *)directory, &fno);
+	if (err == FR_NO_FILE) {
+		debug("Creating directory...\r\n");
 
-        if ((err = f_mkdir((const TCHAR *)directory)) != FR_OK) {
-            debugErr("Unable to create directory: %s\r\n", FF_ERRORS[err]);
-            f_mount(NULL, "", 0);
-            return err;
-        } else {
-            debug("Directory %s created\r\n", directory);
-        }
+		if ((err = f_mkdir((const TCHAR *)directory)) != FR_OK) {
+			debugErr("Unable to create directory: %s\r\n", FF_ERRORS[err]);
+			f_mount(NULL, "", 0);
+			return err;
+		} else {
+			debug("Directory %s created\r\n", directory);
+		}
 
-    } else {
-        debugWarn("Directory already exists\r\n");
-    }
-    return err;
+	} else {
+		debugWarn("Directory already exists\r\n");
+	}
+	return err;
 }
 
 ///----------------------------------------------------------------------------
@@ -3229,28 +3229,28 @@ int mkdir(void)
 ///----------------------------------------------------------------------------
 int cd(void)
 {
-    if (!mounted) {
-        mount();
-    }
+	if (!mounted) {
+		mount();
+	}
 
-    debug("Directory to change into: \r\n");
-    scanf("%255s", directory);
+	debug("Directory to change into: \r\n");
+	scanf("%255s", directory);
 
-    if ((err = f_stat((const TCHAR *)directory, &fno)) == FR_NO_FILE) {
-        debugWarn("Directory doesn't exist (Did you mean mkdir?)\r\n");
-        return err;
-    }
+	if ((err = f_stat((const TCHAR *)directory, &fno)) == FR_NO_FILE) {
+		debugWarn("Directory doesn't exist (Did you mean mkdir?)\r\n");
+		return err;
+	}
 
-    if ((err = f_chdir((const TCHAR *)directory)) != FR_OK) {
-        debugErr("Unable to chdir: %s\r\n", FF_ERRORS[err]);
-        f_mount(NULL, "", 0);
-        return err;
-    }
+	if ((err = f_chdir((const TCHAR *)directory)) != FR_OK) {
+		debugErr("Unable to chdir: %s\r\n", FF_ERRORS[err]);
+		f_mount(NULL, "", 0);
+		return err;
+	}
 
-    debug("Changed to %s\r\n", directory);
-    f_getcwd(cwd, sizeof(cwd));
+	debug("Changed to %s\r\n", directory);
+	f_getcwd(cwd, sizeof(cwd));
 
-    return err;
+	return err;
 }
 
 ///----------------------------------------------------------------------------
@@ -3258,24 +3258,24 @@ int cd(void)
 ///----------------------------------------------------------------------------
 int delete(void)
 {
-    if (!mounted) {
-        mount();
-    }
+	if (!mounted) {
+		mount();
+	}
 
-    debug("File or directory to delete (always recursive)\r\n");
-    scanf("%255s", filename);
+	debug("File or directory to delete (always recursive)\r\n");
+	scanf("%255s", filename);
 
-    if ((err = f_stat((const TCHAR *)filename, &fno)) == FR_NO_FILE) {
-        debugErr("File or directory doesn't exist\r\n");
-        return err;
-    }
+	if ((err = f_stat((const TCHAR *)filename, &fno)) == FR_NO_FILE) {
+		debugErr("File or directory doesn't exist\r\n");
+		return err;
+	}
 
-    if ((err = f_unlink(filename)) != FR_OK) {
-        debugErr("Unable to delete file\r\n");
-        return err;
-    }
-    debug("Deleted file %s\r\n", filename);
-    return err;
+	if ((err = f_unlink(filename)) != FR_OK) {
+		debugErr("Unable to delete file\r\n");
+		return err;
+	}
+	debug("Deleted file %s\r\n", filename);
+	return err;
 }
 
 ///----------------------------------------------------------------------------
@@ -3283,7 +3283,7 @@ int delete(void)
 ///----------------------------------------------------------------------------
 int example(uint8_t formatDrive)
 {
-    unsigned int length = 256;
+	unsigned int length = 256;
 
 	if (formatDrive)
 	{
@@ -3293,112 +3293,112 @@ int example(uint8_t formatDrive)
 		}
 	}
 
-    //open SD Card
-    if ((err = mount()) != FR_OK) { debugErr("Unable to open flash drive: %s\r\n", FF_ERRORS[err]); return err; }
-    debug("Flash drive opened\n");
+	//open SD Card
+	if ((err = mount()) != FR_OK) { debugErr("Unable to open flash drive: %s\r\n", FF_ERRORS[err]); return err; }
+	debug("Flash drive opened\n");
 
-    if ((err = f_setlabel("NOMIS")) != FR_OK) { debugErr("Problem setting drive label: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+	if ((err = f_setlabel("NOMIS")) != FR_OK) { debugErr("Problem setting drive label: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
-    if ((err = f_getfree(&volume, &clusters_free, &fs)) != FR_OK) { debugErr("Problem finding free size of card: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+	if ((err = f_getfree(&volume, &clusters_free, &fs)) != FR_OK) { debugErr("Problem finding free size of card: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
-    if ((err = f_getlabel(&volume, volume_label, &volume_sn)) != FR_OK) { debugErr("Problem reading drive label: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err;  }
+	if ((err = f_getlabel(&volume, volume_label, &volume_sn)) != FR_OK) { debugErr("Problem reading drive label: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err;  }
 
-    if ((err = f_open(&file, "0:HelloWorld.txt", FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]);f_mount(NULL, "", 0); return err; }
-    debug("File opened\n");
+	if ((err = f_open(&file, "0:HelloWorld.txt", FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]);f_mount(NULL, "", 0); return err; }
+	debug("File opened\n");
 
-    generateMessage(length);
+	generateMessage(length);
 
-    if ((err = f_write(&file, &message, length, &bytes_written)) != FR_OK) { debugErr("Unable to write file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
-    debug("%d bytes written to file\n", bytes_written);
+	if ((err = f_write(&file, &message, length, &bytes_written)) != FR_OK) { debugErr("Unable to write file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+	debug("%d bytes written to file\n", bytes_written);
 
-    if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
-    debug("File closed\n");
+	if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+	debug("File closed\n");
 
-    if ((err = f_chmod("HelloWorld.txt", 0, AM_RDO | AM_ARC | AM_SYS | AM_HID)) != FR_OK) { debugErr("Problem with chmod: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+	if ((err = f_chmod("HelloWorld.txt", 0, AM_RDO | AM_ARC | AM_SYS | AM_HID)) != FR_OK) { debugErr("Problem with chmod: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
-    err = f_stat("MaximSDHC", &fno);
-    if (err == FR_NO_FILE) {
-        debug("Creating directory...\r\n");
-        if ((err = f_mkdir("MaximSDHC")) != FR_OK) { debugErr("Unable to create directory: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
-    }
+	err = f_stat("MaximSDHC", &fno);
+	if (err == FR_NO_FILE) {
+		debug("Creating directory...\r\n");
+		if ((err = f_mkdir("MaximSDHC")) != FR_OK) { debugErr("Unable to create directory: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+	}
 	else
 	{
 		f_unlink("0:MaximSDHC/HelloMaxim.txt");
 	}
 
-    debug("Renaming File...\r\n");
-    if ((err = f_rename("0:HelloWorld.txt", "0:MaximSDHC/HelloMaxim.txt")) != FR_OK) { /* /cr: clearify 0:file notation */ debugErr("Unable to move file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+	debug("Renaming File...\r\n");
+	if ((err = f_rename("0:HelloWorld.txt", "0:MaximSDHC/HelloMaxim.txt")) != FR_OK) { /* /cr: clearify 0:file notation */ debugErr("Unable to move file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
-    if ((err = f_chdir("/MaximSDHC")) != FR_OK) { debugErr("Problem with chdir: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+	if ((err = f_chdir("/MaximSDHC")) != FR_OK) { debugErr("Problem with chdir: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
-    debug("Attempting to read back file...\r\n");
-    if ((err = f_open(&file, "HelloMaxim.txt", FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+	debug("Attempting to read back file...\r\n");
+	if ((err = f_open(&file, "HelloMaxim.txt", FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
-    if ((err = f_read(&file, &message, bytes_written, &bytes_read)) != FR_OK) { debugErr("Unable to read file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+	if ((err = f_read(&file, &message, bytes_written, &bytes_read)) != FR_OK) { debugErr("Unable to read file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
-    debug("Read Back %d bytes\r\n", bytes_read);
-    debug("Message: %s\r\n", message);
+	debug("Read Back %d bytes\r\n", bytes_read);
+	debug("Message: %s\r\n", message);
 
-    if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
-    debug("File closed\n");
+	if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
+	debug("File closed\n");
 
-    //unmount SD Card
-    //f_mount(fs, "", 0);
-    if ((err = f_mount(NULL, "", 0)) != FR_OK) { debugErr("Problem unmounting volume: %s\r\n", FF_ERRORS[err]); return err; }
+	//unmount SD Card
+	//f_mount(fs, "", 0);
+	if ((err = f_mount(NULL, "", 0)) != FR_OK) { debugErr("Problem unmounting volume: %s\r\n", FF_ERRORS[err]); return err; }
 
-    return 0;
+	return 0;
 }
 
 void TestDriveAndFilesystem(void)
 {
-    FF_ERRORS[0] = "FR_OK";
-    FF_ERRORS[1] = "FR_DISK_ERR";
-    FF_ERRORS[2] = "FR_INT_ERR";
-    FF_ERRORS[3] = "FR_NOT_READY";
-    FF_ERRORS[4] = "FR_NO_FILE";
-    FF_ERRORS[5] = "FR_NO_PATH";
-    FF_ERRORS[6] = "FR_INVLAID_NAME";
-    FF_ERRORS[7] = "FR_DENIED";
-    FF_ERRORS[8] = "FR_EXIST";
-    FF_ERRORS[9] = "FR_INVALID_OBJECT";
-    FF_ERRORS[10] = "FR_WRITE_PROTECTED";
-    FF_ERRORS[11] = "FR_INVALID_DRIVE";
-    FF_ERRORS[12] = "FR_NOT_ENABLED";
-    FF_ERRORS[13] = "FR_NO_FILESYSTEM";
-    FF_ERRORS[14] = "FR_MKFS_ABORTED";
-    FF_ERRORS[15] = "FR_TIMEOUT";
-    FF_ERRORS[16] = "FR_LOCKED";
-    FF_ERRORS[17] = "FR_NOT_ENOUGH_CORE";
-    FF_ERRORS[18] = "FR_TOO_MANY_OPEN_FILES";
-    FF_ERRORS[19] = "FR_INVALID_PARAMETER";
-    srand(12347439);
-    int run = 1, input = -1;
+	FF_ERRORS[0] = "FR_OK";
+	FF_ERRORS[1] = "FR_DISK_ERR";
+	FF_ERRORS[2] = "FR_INT_ERR";
+	FF_ERRORS[3] = "FR_NOT_READY";
+	FF_ERRORS[4] = "FR_NO_FILE";
+	FF_ERRORS[5] = "FR_NO_PATH";
+	FF_ERRORS[6] = "FR_INVLAID_NAME";
+	FF_ERRORS[7] = "FR_DENIED";
+	FF_ERRORS[8] = "FR_EXIST";
+	FF_ERRORS[9] = "FR_INVALID_OBJECT";
+	FF_ERRORS[10] = "FR_WRITE_PROTECTED";
+	FF_ERRORS[11] = "FR_INVALID_DRIVE";
+	FF_ERRORS[12] = "FR_NOT_ENABLED";
+	FF_ERRORS[13] = "FR_NO_FILESYSTEM";
+	FF_ERRORS[14] = "FR_MKFS_ABORTED";
+	FF_ERRORS[15] = "FR_TIMEOUT";
+	FF_ERRORS[16] = "FR_LOCKED";
+	FF_ERRORS[17] = "FR_NOT_ENOUGH_CORE";
+	FF_ERRORS[18] = "FR_TOO_MANY_OPEN_FILES";
+	FF_ERRORS[19] = "FR_INVALID_PARAMETER";
+	srand(12347439);
+	int run = 1, input = -1;
 
-    while (run)
+	while (run)
 	{
-        f_getcwd(cwd, sizeof(cwd));
+		f_getcwd(cwd, sizeof(cwd));
 
-        debug("\nChoose one of the following options: \r\n");
-        debug("0. Find the Size of the SD Card and Free Space\r\n");
-        debug("1. Format the Card\r\n");
-        debug("2. Manually Mount Card\r\n");
-        debug("3. List Contents of Current Directory\r\n");
-        debug("4. Create a Directory\r\n");
-        debug("5. Move into a Directory (cd)\r\n");
-        debug("6. Create a File of Random Data\r\n");
-        debug("7. Add Random Data to an Existing File\r\n");
-        debug("8. Delete a File\r\n");
-        debug("9. Format Card and Run Exmaple of FatFS Operations\r\n");
-        debug("10. Unmount Card and Quit\r\n");
-        debug("%s>>", cwd);
+		debug("\nChoose one of the following options: \r\n");
+		debug("0. Find the Size of the SD Card and Free Space\r\n");
+		debug("1. Format the Card\r\n");
+		debug("2. Manually Mount Card\r\n");
+		debug("3. List Contents of Current Directory\r\n");
+		debug("4. Create a Directory\r\n");
+		debug("5. Move into a Directory (cd)\r\n");
+		debug("6. Create a File of Random Data\r\n");
+		debug("7. Add Random Data to an Existing File\r\n");
+		debug("8. Delete a File\r\n");
+		debug("9. Format Card and Run Exmaple of FatFS Operations\r\n");
+		debug("10. Unmount Card and Quit\r\n");
+		debug("%s>>", cwd);
 
-        input = -1;
-        scanf("%d", &input);
-        debug("%d\n", input);
+		input = -1;
+		scanf("%d", &input);
+		debug("%d\n", input);
 
-        err = 0;
+		err = 0;
 
-        switch (input)
+		switch (input)
 		{
 			case 0: getSize(); break;
 			case 1: formatSDHC(); break;
@@ -3414,11 +3414,11 @@ void TestDriveAndFilesystem(void)
 			default: debugErr("Invalid Selection %d!\r\n", input); err = -1; break;
 		}
 
-        if (err >= 0 && err <= 20) { debugErr("Function Returned with code: %d\r\n", FF_ERRORS[err]); }
+		if (err >= 0 && err <= 20) { debugErr("Function Returned with code: %d\r\n", FF_ERRORS[err]); }
 		else { debug("Function Returned with code: %d\r\n", err); }
 
-        MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
-    }
+		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
+	}
 }
 
 typedef enum {
@@ -3462,7 +3462,7 @@ int CreateFilesystem_eMMCFlash(void)
 	return (status);
 }
 
-#define MXC_SDHC_LIB_CMD6       0x060A
+#define MXC_SDHC_LIB_CMD6	0x060A
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -3539,48 +3539,48 @@ int MXC_SDHC_Lib_SetHighSpeedTiming(mxc_sdhc_hs_timing highSpeedTiming)
 ///----------------------------------------------------------------------------
 uint8_t SetupSDHCeMMC(void)
 {
-    mxc_sdhc_cfg_t cfg;
+	mxc_sdhc_cfg_t cfg;
 	mxc_sdhc_hs_timing timingMode;
 	mxc_sdhc_lib_card_type cardType;
 
-    // Initialize SDHC peripheral
-    cfg.bus_voltage = MXC_SDHC_Bus_Voltage_1_8;
-    cfg.block_gap = 0;
+	// Initialize SDHC peripheral
+	cfg.bus_voltage = MXC_SDHC_Bus_Voltage_1_8;
+	cfg.block_gap = 0;
 #if 0 /* Normal */
-    cfg.clk_div = 0x96; // Large divide ratio, setting frequency to 400 kHz during Card Identification phase
+	cfg.clk_div = 0x96; // Large divide ratio, setting frequency to 400 kHz during Card Identification phase
 #elif 0 /* Test full speed init */
-    //cfg.clk_div = 0; // Full speed
+	//cfg.clk_div = 0; // Full speed
 #else /* Test slowest speed */
 	cfg.clk_div = 0x12C; // Large divide ratio for testing formatting
 #endif
 
 #if 0 /* Interface call assigns incorrect GPIO (P0.31/SDHC_CDN and P1.2/SDHC_WP) */
-    if (MXC_SDHC_Init(&cfg) != E_NO_ERROR) { debugErr("SDHC/eMMC initialization failed\r\n"); }
+	if (MXC_SDHC_Init(&cfg) != E_NO_ERROR) { debugErr("SDHC/eMMC initialization failed\r\n"); }
 #else /* Manual setup */
 	mxc_gpio_cfg_t gpio_cfg_sdhc_1 = { GPIO_SDHC_PORT, (GPIO_SDHC_CLK_PIN | GPIO_SDHC_CMD_PIN | GPIO_SDHC_DAT0_PIN | GPIO_SDHC_DAT1_PIN | GPIO_SDHC_DAT2_PIN | GPIO_SDHC_DAT3_PIN),
 										MXC_GPIO_FUNC_ALT1, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
 
-    MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_SDHC);
+	MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_SDHC);
 
 #if 1 /* Test */
 	mxc_gpio_cfg_t gpio_sdhc_cmd = { GPIO_SDHC_PORT, GPIO_SDHC_CMD_PIN, MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
-    MXC_GPIO_Config(&gpio_sdhc_cmd);
+	MXC_GPIO_Config(&gpio_sdhc_cmd);
 	MXC_GPIO_OutClr(GPIO_SDHC_PORT, GPIO_SDHC_CMD_PIN);
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(74)); // Delay 74 clock cycles, but unsure of clock, going with 74ms to be sure
 #endif
 
-    MXC_GPIO_Config(&gpio_cfg_sdhc_1);
-    gpio_cfg_sdhc_1.port->vssel &= ~(gpio_cfg_sdhc_1.mask); // Set voltage select to MXC_GPIO_VSSEL_VDDIO, since it seems digital interface is at 1.8V
+	MXC_GPIO_Config(&gpio_cfg_sdhc_1);
+	gpio_cfg_sdhc_1.port->vssel &= ~(gpio_cfg_sdhc_1.mask); // Set voltage select to MXC_GPIO_VSSEL_VDDIO, since it seems digital interface is at 1.8V
 #if 1 /* Normal set to 2x borrowing from example */
 	debug("SDHC: Setting GPIO drive strength to 2x\r\n");
-    gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 2x (borrowing from internal driver)
+	gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 2x (borrowing from internal driver)
 #elif 0 /* Test drive strength 4x */
 	debug("SDHC: Setting GPIO drive strength to 4x\r\n");
-    gpio_cfg_sdhc_1.port->ds_sel1 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 4x
+	gpio_cfg_sdhc_1.port->ds_sel1 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 4x
 #elif 0 /* Test drive strength 8x */
 	debug("SDHC: Setting GPIO drive strength to 8x\r\n");
-    gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 8x
-    gpio_cfg_sdhc_1.port->ds_sel1 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 8x
+	gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 8x
+	gpio_cfg_sdhc_1.port->ds_sel1 |= gpio_cfg_sdhc_1.mask; // Set drive strength to 8x
 #else /* Test drive strength 1x (MCU default) */
 	debug("SDHC: Setting GPIO drive strength to 1x\r\n");
 #endif
@@ -3588,14 +3588,14 @@ uint8_t SetupSDHCeMMC(void)
 	// Setup the 1.8V Signaling Enable
 	MXC_SDHC->host_cn_2 |= MXC_F_SDHC_HOST_CN_2_1_8V_SIGNAL;
 
-    if (MXC_SDHC_RevA_Init((mxc_sdhc_reva_regs_t *)MXC_SDHC, &cfg) != E_NO_ERROR) { debugErr("SDHC/eMMC initialization failed\r\n"); }
+	if (MXC_SDHC_RevA_Init((mxc_sdhc_reva_regs_t *)MXC_SDHC, &cfg) != E_NO_ERROR) { debugErr("SDHC/eMMC initialization failed\r\n"); }
 #endif
 
-    // Set up card to get it ready for a transaction
-    if (MXC_SDHC_Lib_InitCard(10) == E_NO_ERROR) { debug("SDHC: Card/device Initialized\r\n"); }
+	// Set up card to get it ready for a transaction
+	if (MXC_SDHC_Lib_InitCard(10) == E_NO_ERROR) { debug("SDHC: Card/device Initialized\r\n"); }
 	else { debugWarn("SDHC: No card/device response\n"); }
 
-    cardType = MXC_SDHC_Lib_Get_Card_Type();
+	cardType = MXC_SDHC_Lib_Get_Card_Type();
 	if (cardType == CARD_MMC) { debug("SDHC: Card type discovered is MMC/eMMC\r\n"); }
 	else if (cardType == CARD_SDHC) { debug("SDHC: Card type discovered is SD/SDHC\r\n"); }
 	else { cardType = CARD_NONE; debugWarn("SDHC: No card type found\r\n"); }
@@ -3631,25 +3631,25 @@ uint8_t SetupSDHCeMMC(void)
 #endif
 
 #if 1 /* Normal */
-    // Configure for best clock divider, must not exceed 52 MHz for eMMC in Legacy mode, or use lower clock rate for High Speed DDR mode (max 30MHz)
+	// Configure for best clock divider, must not exceed 52 MHz for eMMC in Legacy mode, or use lower clock rate for High Speed DDR mode (max 30MHz)
 #if 1 /* Limit setting HS SDR to 60MHz until data exchange verified */
 	if (SystemCoreClock > 96000000)
 #else /* More selective control on clock selection allowing HS SDR to run 60MHz */
-    if (((SystemCoreClock > 96000000) && (timingMode == MXC_SDHC_LIB_LEGACY_TIMING)) || (timingMode == MXC_SDHC_LIB_HIGH_SPEED_TIMING_DDR))
+	if (((SystemCoreClock > 96000000) && (timingMode == MXC_SDHC_LIB_LEGACY_TIMING)) || (timingMode == MXC_SDHC_LIB_HIGH_SPEED_TIMING_DDR))
 #endif
 	{
-        //debug("SD clock ratio (at card/device) is 4:1, %dMHz, (eMMC not to exceed 52 MHz for legacy or high speed modes)\r\n", (SystemCoreClock / 4));
-        //MXC_SDHC_Set_Clock_Config(1);
-        //debug("SD clock ratio: Super slow (%dHz)\r\n", (SystemCoreClock / (2 * 0x96)));
-        //MXC_SDHC_Set_Clock_Config(0x96);
-        debug("SD clock ratio: Extermely slow (%dHz)\r\n", (SystemCoreClock / (2 * 0x12C)));
-        MXC_SDHC_Set_Clock_Config(0x12C);
-    }
+		//debug("SD clock ratio (at card/device) is 4:1, %dMHz, (eMMC not to exceed 52 MHz for legacy or high speed modes)\r\n", (SystemCoreClock / 4));
+		//MXC_SDHC_Set_Clock_Config(1);
+		//debug("SD clock ratio: Super slow (%dHz)\r\n", (SystemCoreClock / (2 * 0x96)));
+		//MXC_SDHC_Set_Clock_Config(0x96);
+		debug("SD clock ratio: Extermely slow (%dHz)\r\n", (SystemCoreClock / (2 * 0x12C)));
+		MXC_SDHC_Set_Clock_Config(0x12C);
+	}
 	else // Use smallest clock divider for fastest clock rate (max 60MHz)
 	{
-        debug("SD clock ratio (at card/device) is 2:1, %dMHz\r\n", (SystemCoreClock / 2));
-        MXC_SDHC_Set_Clock_Config(0);
-    }
+		debug("SD clock ratio (at card/device) is 2:1, %dMHz\r\n", (SystemCoreClock / 2));
+		MXC_SDHC_Set_Clock_Config(0);
+	}
 #else /* Test */
 	debug("SD clock ratio (at card/device) is 2:1, %dMHz\r\n", (SystemCoreClock / 2));
 	MXC_SDHC_Set_Clock_Config(0);
@@ -3702,7 +3702,7 @@ void SetupDriveAndFilesystem(void)
 	else { debug("Drive(eMMC): Formatted successfully\r\n"); }
 #endif
 
-    // Mount the default drive to determine if the filesystem is created
+	// Mount the default drive to determine if the filesystem is created
 	if ((err = f_mount(&fs_obj, "", 1)) != FR_OK)
 	{
 		// Check if failure was due to no filesystem
@@ -3774,14 +3774,14 @@ void SetupDriveAndFilesystem(void)
 			}
 #endif
 		}
-    }
+	}
 	else // Mount successful
 	{
-        debug("Drive(eMMC): mounted successfully\r\n");
+		debug("Drive(eMMC): mounted successfully\r\n");
 #if 1 /* Test */
-        mounted = 1;
+		mounted = 1;
 #endif
-    }
+	}
 
 	// Check if filesystem available
 	if (mounted)
@@ -3800,7 +3800,7 @@ void SetupDriveAndFilesystem(void)
 ///----------------------------------------------------------------------------
 void GetDriveSize(void)
 {
-    if ((err = f_getfree(&volume, &clusters_free, &fs)) != FR_OK) { debugErr("Unable to find free size of card: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); }
+	if ((err = f_getfree(&volume, &clusters_free, &fs)) != FR_OK) { debugErr("Unable to find free size of card: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); }
 }
 
 ///----------------------------------------------------------------------------
@@ -3866,29 +3866,29 @@ void SetupInteralPITTimer(uint8_t channel, uint16_t freq)
 	// Start timer clock
 	MXC_SYS_ClockEnable(mxcTimerClock);
 
-    // Clear interrupt flag
-    mxcTimerPtr->intr = MXC_F_TMR_INTR_IRQ;
+	// Clear interrupt flag
+	mxcTimerPtr->intr = MXC_F_TMR_INTR_IRQ;
 
-    // Set the prescaler (TMR_PRES_4096)
+	// Set the prescaler (TMR_PRES_4096)
 	mxcTimerPtr->cn |= (MXC_S_TMR_CN_PRES_DIV1);
 
-    // Set the mode
+	// Set the mode
 	mxcTimerPtr->cn |= TMR_MODE_CONTINUOUS << MXC_F_TMR_CN_TMODE_POS;
 
 	// Set the polarity
-    mxcTimerPtr->cn |= (0) << MXC_F_TMR_CN_TPOL_POS; // Polarity (0 or 1) doesn't matter
+	mxcTimerPtr->cn |= (0) << MXC_F_TMR_CN_TPOL_POS; // Polarity (0 or 1) doesn't matter
 
 	// Init the compare value
-    mxcTimerPtr->cmp = (60000000 / freq);
+	mxcTimerPtr->cmp = (60000000 / freq);
 
 	// Init the counter
-    mxcTimerPtr->cnt = 0x1;
+	mxcTimerPtr->cnt = 0x1;
 
 	// Setup the Timer 0 interrupt
 	NVIC_ClearPendingIRQ(timerIrqNum);
-    NVIC_DisableIRQ(timerIrqNum);
-    MXC_NVIC_SetVector(timerIrqNum, irqHandlerFunc);
-    NVIC_EnableIRQ(timerIrqNum);
+	NVIC_DisableIRQ(timerIrqNum);
+	MXC_NVIC_SetVector(timerIrqNum, irqHandlerFunc);
+	NVIC_EnableIRQ(timerIrqNum);
 }
 
 ///----------------------------------------------------------------------------
@@ -3948,28 +3948,28 @@ void SetupHalfSecondTickTimer(void)
 	MXC_SYS_Reset_Periph(MXC_SYS_RESET_TIMER2);
 	MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TIMER2);
 
-    // Clear interrupt flag
-    CYCLIC_HALF_SEC_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
+	// Clear interrupt flag
+	CYCLIC_HALF_SEC_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
 
 	// Disable the PWM Output (datasheet says it's disabled on reset, but not showing that to be the case)
 	CYCLIC_HALF_SEC_TIMER_NUM->cn |= (MXC_S_TMR_CN_PWMCKBD_DIS);
 
-    // Set the prescaler (TMR_PRES_4096)
+	// Set the prescaler (TMR_PRES_4096)
 	CYCLIC_HALF_SEC_TIMER_NUM->cn |= (MXC_F_TMR_CN_PRES3);
 	CYCLIC_HALF_SEC_TIMER_NUM->cn |= (MXC_S_TMR_CN_PRES_DIV4096);
 
-    // Set the mode
+	// Set the mode
 	CYCLIC_HALF_SEC_TIMER_NUM->cn |= (MXC_S_TMR_CN_TMODE_CONTINUOUS);
 
 	// Set the polarity
-    CYCLIC_HALF_SEC_TIMER_NUM->cn |= (MXC_S_TMR_CN_TPOL_ACTIVELO); // Polarity (0 or 1) doesn't matter
+	CYCLIC_HALF_SEC_TIMER_NUM->cn |= (MXC_S_TMR_CN_TPOL_ACTIVELO); // Polarity (0 or 1) doesn't matter
 
 	// Init the compare value
-    //CYCLIC_HALF_SEC_TIMER_NUM->cmp = 7324; // 60MHz clock / 4096 = 14648 counts/sec, 1/2 second count = 7324
+	//CYCLIC_HALF_SEC_TIMER_NUM->cmp = 7324; // 60MHz clock / 4096 = 14648 counts/sec, 1/2 second count = 7324
 	CYCLIC_HALF_SEC_TIMER_NUM->cmp = 30000000; // Note: For some reason the prescaler peripheral clock divider isn't working as described in the datasheet
 
 	// Init the counter
-    CYCLIC_HALF_SEC_TIMER_NUM->cnt = 0x1;
+	CYCLIC_HALF_SEC_TIMER_NUM->cnt = 0x1;
 
 	// Setup the Timer 0 interrupt
 	NVIC_ClearPendingIRQ(TMR2_IRQn);
@@ -3982,16 +3982,16 @@ void SetupHalfSecondTickTimer(void)
 
 	//debug("Timer2 Control register: 0x%04x\r\n", CYCLIC_HALF_SEC_TIMER_NUM->cn);
 #else /* Internal RTC based off of Sub-Second Alarm register, will generate interrupts in sleep modes */
-    while (MXC_RTC_Init(0, 0) == E_BUSY) {}
-    while (MXC_RTC_DisableInt(MXC_F_RTC_CTRL_SSEC_ALARM_EN) == E_BUSY) {}
-    while (MXC_RTC_SetSubsecondAlarm(2048) == E_BUSY) {} // 4K clock, 2048 = 1/2 second
+	while (MXC_RTC_Init(0, 0) == E_BUSY) {}
+	while (MXC_RTC_DisableInt(MXC_F_RTC_CTRL_SSEC_ALARM_EN) == E_BUSY) {}
+	while (MXC_RTC_SetSubsecondAlarm(2048) == E_BUSY) {} // 4K clock, 2048 = 1/2 second
 	MXC_NVIC_SetVector(RTC_IRQn, Internal_rtc_alarms);
-    while (MXC_RTC_EnableInt(MXC_F_RTC_CTRL_SSEC_ALARM_EN) == E_BUSY) {}
-    while (MXC_RTC_Start() == E_BUSY) {}
+	while (MXC_RTC_EnableInt(MXC_F_RTC_CTRL_SSEC_ALARM_EN) == E_BUSY) {}
+	while (MXC_RTC_Start() == E_BUSY) {}
 
 #if 1 /* Test */
 	// Needed?
-    NVIC_EnableIRQ(RTC_IRQn);
+	NVIC_EnableIRQ(RTC_IRQn);
 #endif
 #endif
 }
@@ -4038,7 +4038,7 @@ void TestI2CDeviceAddresses(void)
 #if 1 /* Test device addresses */
 	uint8_t regAddr;
 	uint8_t regData[2];
-    mxc_i2c_req_t masterRequest;
+	mxc_i2c_req_t masterRequest;
 	int status;
 	uint8_t numDevices;
 
@@ -5258,7 +5258,7 @@ extern volatile uint32_t g_lifetimePeriodicSecondCount;
 	debug("Sample clock: Max successive ADC read sample rate is %lu actual (%lu), SPT: %0.2f\r\n", (g_sampleCount >> 6), g_sampleCount, (double)((float)sampleProcessTiming / (float)g_sampleCount));
 	//------------------------------------------------------------------------------------------------------------------------------------------
 
-    SysTick->CTRL = 0; /* Disable */
+	SysTick->CTRL = 0; /* Disable */
 	AD4695_ExitConversionMode();
 	PowerControl(ADC_RESET, ON);
 #endif
@@ -5356,12 +5356,12 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Setup Watchdog
 	//-------------------------------------------------------------------------
-    SetupWatchdog();
+	SetupWatchdog();
 
 	//-------------------------------------------------------------------------
 	// Enable the instruction cache
 	//-------------------------------------------------------------------------
-    SetupICC();
+	SetupICC();
 
 	//-------------------------------------------------------------------------
 	// Init the LCD display

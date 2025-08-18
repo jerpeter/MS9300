@@ -29,9 +29,9 @@
 ///----------------------------------------------------------------------------
 #define NMEA_TOKS_COMPARE   (1)
 #define NMEA_TOKS_PERCENT   (2)
-#define NMEA_TOKS_WIDTH     (3)
-#define NMEA_TOKS_TYPE      (4)
-#define NMEA_CONVSTR_BUF    (256)
+#define NMEA_TOKS_WIDTH	 (3)
+#define NMEA_TOKS_TYPE	  (4)
+#define NMEA_CONVSTR_BUF	(256)
 #define NMEA_TIMEPARSE_BUF  (256)
 #define NMEA_DEF_PARSEBUFF  (1024)
 #define NMEA_MIN_PARSEBUFF  (256)
@@ -40,36 +40,36 @@ void nmea_error(const char *str);
 
 typedef struct _nmeaGPGGA
 {
-	nmeaTIME utc;       /**< UTC of position (just time) */
-	double  lat;        /**< Latitude in NDEG - [degree][min].[sec/60] */
-	char    ns;         /**< [N]orth or [S]outh */
-	double  lon;        /**< Longitude in NDEG - [degree][min].[sec/60] */
-	char    ew;         /**< [E]ast or [W]est */
-	int     sig;        /**< GPS quality indicator (0 = Invalid; 1 = Fix; 2 = Differential, 3 = Sensitive) */
-	int     satinuse;   /**< Number of satellites in use (not those in view) */
-	double  HDOP;       /**< Horizontal dilution of precision */
-	double  elv;        /**< Antenna altitude above/below mean sea level (geoid) */
-	char    elv_units;  /**< [M]eters (Antenna height unit) */
-	double  diff;       /**< Geoidal separation (Diff. between WGS-84 earth ellipsoid and mean sea level. '-' = geoid is below WGS-84 ellipsoid) */
-	char    diff_units; /**< [M]eters (Units of geoidal separation) */
+	nmeaTIME utc;	   /**< UTC of position (just time) */
+	double  lat;		/**< Latitude in NDEG - [degree][min].[sec/60] */
+	char	ns;		 /**< [N]orth or [S]outh */
+	double  lon;		/**< Longitude in NDEG - [degree][min].[sec/60] */
+	char	ew;		 /**< [E]ast or [W]est */
+	int	 sig;		/**< GPS quality indicator (0 = Invalid; 1 = Fix; 2 = Differential, 3 = Sensitive) */
+	int	 satinuse;   /**< Number of satellites in use (not those in view) */
+	double  HDOP;	   /**< Horizontal dilution of precision */
+	double  elv;		/**< Antenna altitude above/below mean sea level (geoid) */
+	char	elv_units;  /**< [M]eters (Antenna height unit) */
+	double  diff;	   /**< Geoidal separation (Diff. between WGS-84 earth ellipsoid and mean sea level. '-' = geoid is below WGS-84 ellipsoid) */
+	char	diff_units; /**< [M]eters (Units of geoidal separation) */
 	double  dgps_age;   /**< Time in seconds since last DGPS update */
-	int     dgps_sid;   /**< DGPS station ID number */
+	int	 dgps_sid;   /**< DGPS station ID number */
 } nmeaGPGGA;
 
 typedef struct _nmeaGPGLL
 {
-	double  lat;        /**< Latitude in NDEG - [degree][min].[sec/60] */
-	char    ns;         /**< [N]orth or [S]outh */
-	double  lon;        /**< Longitude in NDEG - [degree][min].[sec/60] */
-	char	ew;         /**< [E]ast or [W]est */
-	nmeaTIME utc;       /**< UTC of position (just time) */
+	double  lat;		/**< Latitude in NDEG - [degree][min].[sec/60] */
+	char	ns;		 /**< [N]orth or [S]outh */
+	double  lon;		/**< Longitude in NDEG - [degree][min].[sec/60] */
+	char	ew;		 /**< [E]ast or [W]est */
+	nmeaTIME utc;	   /**< UTC of position (just time) */
 	char	sta;		/**< Status, A= data valid, V= Data not valid */
-	char    sig;        /**< Signal integrity, A=autonomous, D=differential, E=Estimated, N=not valid, S=Simulator */
+	char	sig;		/**< Signal integrity, A=autonomous, D=differential, E=Estimated, N=not valid, S=Simulator */
 } nmeaGPGLL;
 
 typedef struct _nmeaGPZDA
 {
-	nmeaTIME utc;       /**< UTC (full time) */
+	nmeaTIME utc;	   /**< UTC (full time) */
 	int		lzHours;	/**< Local zone hours */
 	int		lzMins;		/**< Local zone minutes */
 } nmeaGPZDA;
@@ -557,19 +557,19 @@ void HandleGGA(uint8* message)
 	//========================================================================================================
 	// Format: --GGA,hhmmss.sss,llll.llll,a,yyyyy.yyyy,a,x,uu,v.v,w.w,M,x.x,M,,zzzz
 	//========================================================================================================
-	//<|> Field      <|> Name               <|> Description
+	//<|> Field	  <|> Name			   <|> Description
 	//========================================================================================================
-	//<|> hhmmss.sss <|> UTC Time           <|> UTC of position in hhmmss.sss format, (000000.000 ~ 235959.999)
-	//<|> llll.llll  <|> Latitude           <|> Latitude in ddmm.mmmm format. Leading zeros are inserted.
-	//<|> a          <|> N/S Indicator      <|> �N� = North, �S� = South
-	//<|> yyyyy.yyyy <|> Longitude          <|> Longitude in dddmm.mmmm format. Leading zeros are inserted.
-	//<|> a          <|> E/W Indicator      <|> 'E' = East, 'W' = West
-	//<|> x          <|> GPS quality        <|> GPS quality, 0: Position unavailable, 1: Valid position - SPS mode, 2: Valid position - differential GPS mode
-	//<|> uu         <|> Satellites Used    <|> Number of satellites in use, (00 ~ 24)
-	//<|> v.v        <|> HDOP               <|> Horizontal dilution of precision, (0.0 ~ 99.9)
-	//<|> w.w        <|> Altitude           <|> Mean sea level altitude (-9999.9 ~ 17999.9) in meter
-	//<|> x.x        <|> Geoidal Separation <|> In meter
-	//<|> zzzz       <|> DGPS Station ID    <|> Differential reference station ID, 0000 ~ 1023, NULL when DGPS not used
+	//<|> hhmmss.sss <|> UTC Time		   <|> UTC of position in hhmmss.sss format, (000000.000 ~ 235959.999)
+	//<|> llll.llll  <|> Latitude		   <|> Latitude in ddmm.mmmm format. Leading zeros are inserted.
+	//<|> a		  <|> N/S Indicator	  <|> �N� = North, �S� = South
+	//<|> yyyyy.yyyy <|> Longitude		  <|> Longitude in dddmm.mmmm format. Leading zeros are inserted.
+	//<|> a		  <|> E/W Indicator	  <|> 'E' = East, 'W' = West
+	//<|> x		  <|> GPS quality		<|> GPS quality, 0: Position unavailable, 1: Valid position - SPS mode, 2: Valid position - differential GPS mode
+	//<|> uu		 <|> Satellites Used	<|> Number of satellites in use, (00 ~ 24)
+	//<|> v.v		<|> HDOP			   <|> Horizontal dilution of precision, (0.0 ~ 99.9)
+	//<|> w.w		<|> Altitude		   <|> Mean sea level altitude (-9999.9 ~ 17999.9) in meter
+	//<|> x.x		<|> Geoidal Separation <|> In meter
+	//<|> zzzz	   <|> DGPS Station ID	<|> Differential reference station ID, 0000 ~ 1023, NULL when DGPS not used
 	//========================================================================================================
 
 	if (14 != nmea_scanf((char*)message, (int)strlen((char*)message), "GPGGA,%s,%f,%C,%f,%C,%d,%d,%f,%f,%C,%f,%C,%f,%d",
@@ -684,15 +684,15 @@ void HandleGLL(uint8* message)
 	// Format: --GLL,llll.llll,a,yyyyy.yyyy,b,hhmmss.sss,A,a
 	// Sample: GPGLL,3259.6000,N,09640.8761,W,084429.000,A,A
 	//========================================================================================================
-	//<|> Field      <|> Name             <|> Description
+	//<|> Field	  <|> Name			 <|> Description
 	//========================================================================================================
-	//<|> llll.llll  <|> Latitude         <|> Latitude in ddmm.mmmm format. Leading zeros are inserted
-	//<|> a          <|> N/S Indicator    <|> �N� = North, �S� = South
-	//<|> yyyyy.yyyy <|> Longitude        <|> Longitude in dddmm.mmmm format. Leading zeros are inserted
-	//<|> b          <|> E/W Indicator    <|> 'E' = East, 'W' = West
-	//<|> hhmmss.sss <|> UTC Time         <|> UTC of position in hhmmss.sss format, (000000.000 ~ 235959.999)
-	//<|> A          <|> Status           <|> A= data valid, V= Data not valid
-	//<|> A          <|> Signal integrity <|> A=autonomous, D=differential, E=Estimated, N=not valid, S=Simulator
+	//<|> llll.llll  <|> Latitude		 <|> Latitude in ddmm.mmmm format. Leading zeros are inserted
+	//<|> a		  <|> N/S Indicator	<|> �N� = North, �S� = South
+	//<|> yyyyy.yyyy <|> Longitude		<|> Longitude in dddmm.mmmm format. Leading zeros are inserted
+	//<|> b		  <|> E/W Indicator	<|> 'E' = East, 'W' = West
+	//<|> hhmmss.sss <|> UTC Time		 <|> UTC of position in hhmmss.sss format, (000000.000 ~ 235959.999)
+	//<|> A		  <|> Status		   <|> A= data valid, V= Data not valid
+	//<|> A		  <|> Signal integrity <|> A=autonomous, D=differential, E=Estimated, N=not valid, S=Simulator
 	//========================================================================================================
 
 	if (7 != nmea_scanf((char*)message, (int)strlen((char*)message), "GPGLL,%f,%C,%f,%C,%s,%c,%c", &gll.lat, &gll.ns, &gll.lon, &gll.ew, &timeBuff, &gll.sta, &gll.sig))
@@ -798,9 +798,9 @@ void HandleZDA(uint8* message)
 	//========================================================================================================
 	// Format: --ZDA,hhmmss.sss,dd,mm,yyyy,xx,yy*hh<CR><LF>
 	//========================================================================================================
-	//<|> Field      <|> Name             <|> Description
+	//<|> Field	  <|> Name			 <|> Description
 	//========================================================================================================
-	//<|> hhmmss.sss <|> UTC Time         <|> UTC of position in hhmmss.sss format, (000000.000 ~ 235959.999)
+	//<|> hhmmss.sss <|> UTC Time		 <|> UTC of position in hhmmss.sss format, (000000.000 ~ 235959.999)
 	//<|> dd		 <|> UTC day		  <|> 01 to 31
 	//<|> mm		 <|> UTC month		  <|> 01 to 12
 	//<|> yyyy		 <|> UTC year		  <|> Four-digit year number

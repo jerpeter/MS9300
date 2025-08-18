@@ -32,9 +32,9 @@
  ******************************************************************************/
 
 /**
- * @file    mscmem.h
+ * @file	mscmem.h
  * @brief   Memory routines used by the USB Mass Storage Class example.
- *          See the msc_mem_t structure in msc.h for function details.
+ *		  See the msc_mem_t structure in msc.h for function details.
  */
 
 #ifndef MAX32650_USB_COMPOSITEDEVICE_MSC_CDC_MSCMEM_H_
@@ -68,7 +68,7 @@ uint32_t mscmem_Size(void);
 
 /**
  * @brief   Reads 512 bytes of data from the memory.
- * @param   lba     The index of the 512 byte block to read.
+ * @param   lba	 The index of the 512 byte block to read.
  * @param   buffer  A byte array of at least 512 bytes to hold the values read.
  * @returns 0 if reading is successful, non-zero if an error occurred.
  * @returns
@@ -77,7 +77,7 @@ int mscmem_Read(uint32_t lba, uint8_t *buffer);
 
 /**
  * @brief   Writes 512 bytes of data to the memory.
- * @param   lba     The index of the 512 byte block to write.
+ * @param   lba	 The index of the 512 byte block to write.
  * @param   buffer  A byte array of at least 512 bytes holding the values to write.
  * @returns 0 if writing is successful, non-zero if an error occurred.
  * @returns

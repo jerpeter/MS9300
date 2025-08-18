@@ -170,7 +170,7 @@ static int tps25750_block_read(struct tps25750 *tps, uint8_t reg, void *val, siz
 	if (len + 1 > TPS_MAX_LEN)
 		return E_INVALID;
 
-    // Read in the desired bytes plus the byte count (+1)
+	// Read in the desired bytes plus the byte count (+1)
 	ret = WriteI2CDevice(MXC_I2C0, I2C_ADDR_USBC_PORT_CONTROLLER, &reg, sizeof(uint8_t), data, (len + 1));
 
 	if (ret)
@@ -1051,7 +1051,7 @@ int tps25750_find_max_source_curr(struct tps25750 *tps)
 	 * as following:
 	 * PDO1: byte 3
 	 * PDO2: byte 7
-	 *    ...
+	 *	...
 	 * PDO7: byte 27
 	 * See pg.28 in TPS25750 Host Interface Technical Reference
 	 * Manual (Rev. A)
@@ -1260,8 +1260,8 @@ int tps25750_probe(void)
 	psy_cfg.drv_data = tps;
 
 	tps->psy = devm_power_supply_register(tps->dev,
-					      &tps25750_psy_desc,
-					      &psy_cfg);
+						  &tps25750_psy_desc,
+						  &psy_cfg);
 	if (IS_ERR(tps->psy)) {
 		ret = PTR_ERR(tps->psy);
 		goto err_role_put;

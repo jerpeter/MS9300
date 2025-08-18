@@ -376,7 +376,7 @@ void AppendMonitorLogEntryFile(void)
 	// -------------------------------------
 	// Monitor Log Binary file write
 	// -------------------------------------
-    if ((f_open(&file, (const TCHAR*)s_monitorLogFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
+	if ((f_open(&file, (const TCHAR*)s_monitorLogFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
 		debugErr("Unable to open file: %s\r\n", s_monitorLogFilename);
 	}
@@ -409,7 +409,7 @@ void AppendMonitorLogEntryFile(void)
 	// -------------------------------------
 	// Monitor Log Human Readable file write
 	// -------------------------------------
-    if ((f_open(&file, (const TCHAR*)s_monitorLogHumanReadableFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
+	if ((f_open(&file, (const TCHAR*)s_monitorLogHumanReadableFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
 		debugErr("Unable to open file: %s\r\n", s_monitorLogHumanReadableFilename);
 	}
@@ -509,7 +509,7 @@ void InitMonitorLogTableFromLogFile(void)
 	// -------------------------------------
 	// Monitor Log Binary file read
 	// -------------------------------------
-    if ((f_stat((const TCHAR*)s_monitorLogFilename, NULL)) != FR_OK)
+	if ((f_stat((const TCHAR*)s_monitorLogFilename, NULL)) != FR_OK)
 	{ 
 		debugWarn("Warning: Monitor Log File not found or has not yet been created\r\n");
 	}
@@ -596,7 +596,7 @@ void AddOnOffLogTimestamp(uint8 onOffState)
 	FIL file;
 	uint32_t writeSize;
 
-    if ((f_open(&file, (const TCHAR*)s_onOffLogHumanReadableFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
+	if ((f_open(&file, (const TCHAR*)s_onOffLogHumanReadableFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
 		debugErr("Unable to open file: %s\r\n", s_onOffLogHumanReadableFilename);
 	}
@@ -704,7 +704,7 @@ void AppendBatteryLogEntryFile(uint8 eventType)
 #endif
 	DATE_TIME_STRUCT ct = GetCurrentTime();
 
-    if ((f_open(&file, (const TCHAR*)pathAndFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
+	if ((f_open(&file, (const TCHAR*)pathAndFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
 		debugErr("FAT file system: Unable to open file: %s\r\n", pathAndFilename);
 	}
@@ -753,7 +753,7 @@ void StartBatteryLog(void)
 	char pathAndFilename[] = LOGS_PATH BATTERY_LOG_FILE;
 	DATE_TIME_STRUCT ct = GetCurrentTime();
 
-    if ((f_open(&file, (const TCHAR*)pathAndFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
+	if ((f_open(&file, (const TCHAR*)pathAndFilename, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
 		debugErr("FAT file system: Unable to open file: %s\r\n", pathAndFilename);
 	}
@@ -799,7 +799,7 @@ void DumpBatteryLog(void)
 	char logData;
 
 	// Check if the Battery Log file does not exit
-    if (f_stat((const TCHAR*)pathAndFilename, NULL) == FR_OK)
+	if (f_stat((const TCHAR*)pathAndFilename, NULL) == FR_OK)
 	{
 		// Try to create new Battery log file
 		if ((f_open(&file, (const TCHAR*)pathAndFilename, FA_READ)) != FR_OK)

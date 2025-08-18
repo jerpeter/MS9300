@@ -1649,7 +1649,7 @@ void Test1Wire(void)
 	ds2484_data* data = &s_ds2484_data;
 	uint8_t temp1;
 
-    debug("1-Wire Master: Test device access...\r\n");
+	debug("1-Wire Master: Test device access...\r\n");
 
 	debug("1-Wire Mux: Setting Mux for Smart Sensor: Geophone 1\r\n");
 	SetSmartSensorMuxA0State(0);
@@ -1657,7 +1657,7 @@ void Test1Wire(void)
 	debug("1-Wire Mux: Enabling Mux\r\n");
 	SetSmartSensorMuxEnableState(ON);
 
-    debug("1-Wire Master: Powering up (disabling sleep)\r\n");
+	debug("1-Wire Master: Powering up (disabling sleep)\r\n");
 	SetSmartSensorSleepState(OFF);
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(10));
 

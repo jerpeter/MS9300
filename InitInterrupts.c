@@ -75,17 +75,17 @@ void SetupInteralSampleTimer(uint16_t sampleRate)
 	MXC_SYS_Reset_Periph(MXC_SYS_RESET_TIMER1);
 	MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_TIMER1);
 
-    // Clear interrupt flag
-    INTERNAL_SAMPLING_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
+	// Clear interrupt flag
+	INTERNAL_SAMPLING_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
 
-    // Set the prescaler (TMR_PRES_4096)
+	// Set the prescaler (TMR_PRES_4096)
 	INTERNAL_SAMPLING_TIMER_NUM->cn |= (MXC_S_TMR_CN_PRES_DIV1);
 
-    // Set the mode
+	// Set the mode
 	INTERNAL_SAMPLING_TIMER_NUM->cn |= TMR_MODE_CONTINUOUS << MXC_F_TMR_CN_TMODE_POS;
 
 	// Set the polarity
-    INTERNAL_SAMPLING_TIMER_NUM->cn |= (0) << MXC_F_TMR_CN_TPOL_POS; // Polarity (0 or 1) doesn't matter
+	INTERNAL_SAMPLING_TIMER_NUM->cn |= (0) << MXC_F_TMR_CN_TPOL_POS; // Polarity (0 or 1) doesn't matter
 
 	/*
 		32768 = 1,831 compare, add 1 count every 18.2857 cycles (trim)
@@ -97,16 +97,16 @@ void SetupInteralSampleTimer(uint16_t sampleRate)
 	*/
 
 	// Init the compare value
-    INTERNAL_SAMPLING_TIMER_NUM->cmp = (60000000 / sampleRate);
+	INTERNAL_SAMPLING_TIMER_NUM->cmp = (60000000 / sampleRate);
 
 	// Init the counter
-    INTERNAL_SAMPLING_TIMER_NUM->cnt = 0x1;
+	INTERNAL_SAMPLING_TIMER_NUM->cnt = 0x1;
 
 	// Setup the Timer 0 interrupt
 	NVIC_ClearPendingIRQ(TMR1_IRQn);
-    NVIC_DisableIRQ(TMR1_IRQn);
-    MXC_NVIC_SetVector(TMR1_IRQn, Sample_irq);
-    NVIC_EnableIRQ(TMR1_IRQn);
+	NVIC_DisableIRQ(TMR1_IRQn);
+	MXC_NVIC_SetVector(TMR1_IRQn, Sample_irq);
+	NVIC_EnableIRQ(TMR1_IRQn);
 }
 
 ///----------------------------------------------------------------------------
@@ -132,8 +132,8 @@ void StopInteralSampleTimer(void)
 ///----------------------------------------------------------------------------
 void GPIO0_IRQHandler(void)
 {
-    //debug("GPIO Int Handler Port 0 processing...\r\n");
-    MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO0));
+	//debug("GPIO Int Handler Port 0 processing...\r\n");
+	MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO0));
 }
 
 ///----------------------------------------------------------------------------
@@ -141,8 +141,8 @@ void GPIO0_IRQHandler(void)
 ///----------------------------------------------------------------------------
 void GPIO1_IRQHandler(void)
 {
-    //debug("GPIO Int Handler Port 1 processing...\r\n");
-    MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO1));
+	//debug("GPIO Int Handler Port 1 processing...\r\n");
+	MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO1));
 }
 
 ///----------------------------------------------------------------------------
@@ -150,8 +150,8 @@ void GPIO1_IRQHandler(void)
 ///----------------------------------------------------------------------------
 void GPIO2_IRQHandler(void)
 {
-    //debug("GPIO Int Handler Port 2 processing...\r\n");
-    MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO2));
+	//debug("GPIO Int Handler Port 2 processing...\r\n");
+	MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO2));
 }
 
 ///----------------------------------------------------------------------------
@@ -159,8 +159,8 @@ void GPIO2_IRQHandler(void)
 ///----------------------------------------------------------------------------
 void GPIO3_IRQHandler(void)
 {
-    //debug("GPIO Int Handler Port 3 processing...\r\n");
-    MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO3));
+	//debug("GPIO Int Handler Port 3 processing...\r\n");
+	MXC_GPIO_Handler(MXC_GPIO_GET_IDX(MXC_GPIO3));
 }
 
 ///----------------------------------------------------------------------------
@@ -182,6 +182,6 @@ void InitInterrupts_MS9300(void)
 #endif
 #endif
 
-    __enable_irq();
+	__enable_irq();
 }
 
