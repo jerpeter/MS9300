@@ -192,47 +192,27 @@ void UartPutc(uint8 c, int32 channel)
 	// Check if channel is USB CDC/ACM serial
 	if (channel == CRAFT_COM_PORT)
 	{
-#if 0 /* Test */
-		if (GLOBAL_DEBUG_PRINT_PORT == 4)
+		if (GetPowerControlState(CELL_ENABLE) == ON)
 		{
-			MXC_UART_WriteCharacter(MXC_UART2, c);
+			MXC_UART_WriteCharacter(MXC_UART1, c);
 		}
-		else
-#endif
-        // Verfiy USB serial channel is available
-		if (acm_present())
+        // Check if USB serial channel is available
+		else if (acm_present())
 		{
             if (acm_write(&c, sizeof(c)) != sizeof(c))
 			{
 				debugErr("USB CDC/ACM serial transfer failed trying to send <%c>\r\n", c);
 			}
 		}
-#if 0 /* Normal */
-		else { debugErr("USB CDC/ACM serial unavailable\r\n"); }
-#else /* Test Expansion RS232 */
-		else
+		// Check if Expansion RS232 is available
+		else if (GetPowerControlState(EXPANSION_ENABLE) == ON)
 		{
 			Expansion_UART_WriteCharacter(c);
 		}
-#endif
 	}
 	else // channel is UART serial
 	{
-#if 0 /* Test */
-		if (GLOBAL_DEBUG_PRINT_PORT == 4)
-		{
-extern uint8_t g_expansionActive;
-			if (g_expansionActive)
-			{
-				Expansion_UART_WriteCharacter(c);
-			}
-
-			return;
-		}
-#endif
-
-		if (channel == LTE_COM_PORT) { port = MXC_UART0; }
-		else if (channel == BLE_COM_PORT) { port = MXC_UART1; }
+		if (channel == LTE_TX_COM_PORT) { port = MXC_UART1; }
 		else /* (channel == GLOBAL_DEBUG_PRINT_PORT) */ { port = MXC_UART2; }
 
 #if 1 /* Framework driver blocks waiting forever for TX FIFO space to be available */
@@ -293,8 +273,7 @@ uint8 UartCharWaiting(int32 channel)
 {
 	mxc_uart_regs_t* port;
 
-	if (channel == LTE_COM_PORT) { port = MXC_UART0; }
-	else if (channel == BLE_COM_PORT) { port = MXC_UART1; }
+	if (channel == LTE_RX_COM_PORT) { port = MXC_UART0; }
 	else /* (channel == GLOBAL_DEBUG_PRINT_PORT) */ { port = MXC_UART2; }
 
 	return (MXC_UART_GetRXFIFOAvailable(port));
@@ -308,8 +287,7 @@ uint8 UartGetc(int32 channel, uint8 mode)
 	mxc_uart_regs_t* port;
 	volatile uint32 uartTimeout = UART_TIMEOUT_COUNT;
 
-	if (channel == LTE_COM_PORT) { port = MXC_UART0; }
-	else if (channel == BLE_COM_PORT) { port = MXC_UART1; }
+	if (channel == LTE_RX_COM_PORT) { port = MXC_UART0; }
 	else /* (channel == GLOBAL_DEBUG_PRINT_PORT) */ { port = MXC_UART2; }
 
 	if (mode == UART_BLOCK)
@@ -1308,7 +1286,6 @@ extern void ReadUartBridgeRxFIFO(uint8_t* readData, uint8_t count);
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8_t g_expansionActive = 0;
 void ExpansionBridgeInit(void)
 {
 	PowerControl(EXPANSION_ENABLE, ON);
@@ -1458,8 +1435,6 @@ void ExpansionBridgeInit(void)
 		SoftUsecWait(5 * SOFT_MSECS);
 	}
 #endif
-
-	g_expansionActive = YES;
 
 extern uint8_t g_expansionIrqActive;
 	g_expansionIrqActive = 0;

@@ -350,13 +350,10 @@ enum {
 #define CYCLIC_EVENT_TIME_THRESHOLD		(4 * 2)
 #define UPDATE_TIME_EVENT_THRESHOLD		(60 * 2)
 
-// LTE serial port - UART 0
+// Cell LTE serial, RX port is UART 0, TX port is UART 1
 #define LTE_BAUDRATE	115200
-#define LTE_COM_PORT	0
-
-// BLE serial port - UART 1
-#define BLE_BAUDRATE	115200
-#define BLE_COM_PORT	1
+#define LTE_RX_COM_PORT	0
+#define LTE_TX_COM_PORT	1
 
 // Debug serial port - UART 2
 #define DEBUG_BAUDRATE	115200
@@ -366,7 +363,7 @@ enum {
 #define CRAFT_COM_PORT	3 // Actual number insignificant, distinguish from the other UART ports
 
 // Define Project Debug Port
-#define GLOBAL_DEBUG_PRINT_PORT	DEBUG_COM_PORT //CRAFT_COM_PORT
+#define GLOBAL_DEBUG_PRINT_PORT	DEBUG_COM_PORT
 
 #define TOTAL_UNIQUE_EVENT_NUMBERS		(65535)
 #define EVENT_NUMBER_CACHE_MAX_ENTRIES	(TOTAL_UNIQUE_EVENT_NUMBERS + 1)
