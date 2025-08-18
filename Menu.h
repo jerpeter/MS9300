@@ -69,6 +69,21 @@ enum {
 	BATTERY_LOG_TAG,
 	ALTERNATE_TAG,
 	FCC_TEST_ALL_TAG,
+	ACCESS_POINT_NAME_TAG,
+	PDN_AUTH_PROTOCOL_TAG,
+	PDN_USERNAME_TAG,
+	PDN_PASSWORD_TAG,
+	AUTH_NONE_TAG,
+	AUTH_PAP_TAG,
+	AUTH_CHAP_TAG,
+	LISTEN_FOR_REMOTE_CONNECT_TAG,
+	NO_AUTO_DIALOUT_ONLY_TAG,
+	YES_KEEP_MODEM_ONLINE_TAG,
+	DIAL_OUT_SERVER_TAG,
+	SERVER_PORT_TAG,
+	LISTEN_SERVER_PORT_TAG,
+	CELL_MODEM_SETUP_TAG,
+	CELL_UART_RESET_TAG,
 	// Add new separators before this line
 	TOTAL_TAGS
 };
@@ -407,13 +422,20 @@ enum {
 	LOG_RESULTS
 };
 
+// PDN Auth Protocol stuff
+enum {
+	AUTH_NONE = 0,
+	AUTH_PAP = 1,
+	AUTH_CHAP = 2
+};
+
 // Modem Retries stuff
-#define MODEM_RETRY_DEFAULT_VALUE	2
+#define MODEM_RETRY_DEFAULT_VALUE	1
 #define MODEM_RETRY_MIN_VALUE		1
 #define MODEM_RETRY_MAX_VALUE		9
 
 // Modem Retry Time stuff
-#define MODEM_RETRY_TIME_DEFAULT_VALUE	2
+#define MODEM_RETRY_TIME_DEFAULT_VALUE	1
 #define MODEM_RETRY_TIME_MIN_VALUE		1
 #define MODEM_RETRY_TIME_MAX_VALUE		60
 
@@ -458,6 +480,15 @@ enum {
 #define SEISMIC_TRIGGER_MIN_VALUE		64		//3
 #define SEISMIC_TRIGGER_MAX_VALUE		0x8000	//0x0800
 #define SEISMIC_TRIGGER_ADJUST_FILTER	(SEISMIC_TRIGGER_MIN_VALUE * 32)
+
+// ADO & TCP Server Port
+#define ADO_SERVER_PORT_DEFAULT_VALUE	8005
+#define ADO_SERVER_PORT_MIN_VALUE		1
+#define ADO_SERVER_PORT_MAX_VALUE		65534
+
+#define TCP_SERVER_LISTEN_PORT_DEFAULT_VALUE	8005
+#define TCP_SERVER_LISTEN_PORT_MIN_VALUE		1
+#define TCP_SERVER_LISTEN_PORT_MAX_VALUE		65534
 
 // Unlock Code stuff
 #define UNLOCK_CODE_DEFAULT_VALUE	0
@@ -516,7 +547,8 @@ enum {
 	GPS_LOCATION_DISPLAY_CHOICE,
 	CHECK_SUMMARY_FILE_CHOICE,
 	TESTING_CHOICE,
-	FCC_TESTING_CHOICE
+	FCC_TESTING_CHOICE,
+	CELL_UART_RESET_CHOICE
 };
 
 // Config Menu types
@@ -984,6 +1016,7 @@ void BarResultMenuHandler(uint8 key, void* data);
 void BaudRateMenuHandler(uint8 key, void* data);
 void BitAccuracyMenuHandler(uint8 key, void* data);
 void CalibratonDateSourceMenuHandler(uint8 key, void* data);
+void CellTcpServerMenuHandler(uint8 key, void* data);
 void ConfigMenuHandler(uint8 key, void* data);
 void CustomCurveMenuHandler(uint8 key, void* data);
 void DisplacementMenuHandler(uint8 key, void* data);
@@ -1003,6 +1036,7 @@ void ModeMenuHandler(uint8 key, void* data);
 void ModemDialOutTypeMenuHandler(uint8 key, void* data);
 void ModemSetupMenuHandler(uint8 key, void* data);
 void MonitorLogMenuHandler(uint8 key, void* data);
+void PdnAuthProtocolMenuHandler(uint8 key, void* data);
 void PeakAccMenuHandler(uint8 key, void* data);
 void PretriggerSizeMenuHandler(uint8 key, void* data);
 void PrinterEnableMenuHandler(uint8 key, void* data);
@@ -1037,6 +1071,9 @@ void ZeroEventNumberMenuHandler(uint8 key, void* data);
 //----------------------------------------
 // User Input Menu Enter and Esc Handlers
 //----------------------------------------
+void AccessPointNameMenuHandler(uint8 key, void* data);
+void AdoServerMenuHandler(uint8 key, void* data);
+void AdoServerPortMenuHandler(uint8 key, void* data);
 void AirTriggerMenuHandler(uint8 key, void* data);
 void AlarmOneSeismicLevelMenuHandler(uint8 key, void* data);
 void AlarmOneAirLevelMenuHandler(uint8 key, void* data);
@@ -1058,6 +1095,8 @@ void ModemRetryMenuHandler(uint8 key, void* data);
 void ModemRetryTimeMenuHandler(uint8 key, void* data);
 void NotesMenuHandler(uint8 key, void* data);
 void OperatorMenuHandler(uint8 key, void* data);
+void PdnUsernameMenuHandler(uint8 key, void* data);
+void PdnPasswordMenuHandler(uint8 key, void* data);
 void PercentOfLimitTriggerMenuHandler(uint8 keyPressed, void* data);
 void RecordTimeMenuHandler(uint8 key, void* data);
 void SaveRecordMenuHandler(uint8 key, void* data);
@@ -1065,6 +1104,7 @@ void SeismicLocationMenuHandler(uint8 key, void* data);
 void SeismicTriggerMenuHandler(uint8 key, void* data);
 void SerialNumberMenuHandler(uint8 key, void* data);
 void StoredEventLimitMenuHandler(uint8 key, void* data);
+void TcpServerListenPortMenuHandler(uint8 key, void* data);
 void UnlockCodeMenuHandler(uint8 key, void* data);
 void UtcZoneOffsetMenuHandler(uint8 key, void* data);
 void WeightPerDelayMenuHandler(uint8 key, void* data);
