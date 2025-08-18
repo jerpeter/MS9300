@@ -16,6 +16,7 @@
 
 #include "i2c.h"
 #include "gpio.h"
+#include "uart.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -1108,6 +1109,12 @@ void Eic_low_battery_irq(void);
 void Tc_typematic_irq(void);
 void StartInteralPITTimer(PIT_TIMER_NUM);
 void StopInteralPITTimer(PIT_TIMER_NUM);
+void UART0_Read_Callback(mxc_uart_req_t *req, int error);
+void UART1_Read_Callback(mxc_uart_req_t *req, int error);
+void UART2_Read_Callback(mxc_uart_req_t *req, int error);
+void UART0_Handler(void);
+void UART1_Handler(void);
+void UART2_Handler(void);
 
 #if EXTERNAL_SAMPLING_SOURCE
 void Tc_ms_timer_irq(void);
@@ -1170,5 +1177,8 @@ uint8_t IsSeismicSensorAnAccelerometer(uint16_t seismicSensorType);
 void GetAccelerometerChannelData(ACC_DATA_STRUCT* channelData);
 void StartAccelerometerAquisition(void);
 void StopAccelerometerAquisition(void);
+
+// Filesystem
+int CreateFilesystem_eMMCFlash(void);
 
 #endif // _COMMON_H_
