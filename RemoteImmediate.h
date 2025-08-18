@@ -76,6 +76,8 @@ void HandleACK(CMD_BUFFER_STRUCT* inCmd);
 void HandleNAK(CMD_BUFFER_STRUCT* inCmd);
 void HandleCAN(CMD_BUFFER_STRUCT* inCmd);
 
+void HandleESC(CMD_BUFFER_STRUCT* inCmd);
+
 // Function: handleGMN - Start Monitoring waveform/bargraph/combo.
 void handleGMN(CMD_BUFFER_STRUCT* inCmd);
 // Function: handleHLP - Halt Monitoring waveform/bargraph/combo.

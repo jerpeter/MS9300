@@ -27,6 +27,8 @@
 #include "RemoteHandler.h"
 #include "fastmath.h"
 #include "ff.h"
+#include "mxc_errors.h"
+#include "uart.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -167,7 +169,7 @@ void HandleDDP(CMD_BUFFER_STRUCT* inCmd)
 {
 	UNUSED(inCmd);
 
-	if (	g_disableDebugPrinting == YES)
+	if (g_disableDebugPrinting == YES)
 	{
 		g_disableDebugPrinting = NO;
 	}
@@ -1358,6 +1360,31 @@ void HandleCAN(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void HandleESC(CMD_BUFFER_STRUCT* inCmd)
+{
+	UNUSED(inCmd);
+
+	debug("Remote Handler: Escape sequence found\r\n");
+
+	if (g_cellModemSetupRecord.tcpServer == YES)
+	{
+		// Need to relock the system
+		RemoteSystemLock(SET);
+
+		// Need to re-enter datamode for the TCP server
+		int strLen, status;
+		SoftUsecWait(1 * SOFT_SECS);
+		debug("+++...\r\n"); sprintf((char*)g_spareBuffer, "+++\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+		SoftUsecWait(1 * SOFT_SECS);
+		debug("AT#XTCPSEND\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+	}
+
+	g_modemStatus.remoteResponse = ESCAPE_SEQUENCE;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 {
 	/* Sample Output from Supergraphics
@@ -1914,12 +1941,16 @@ void HandleDEM(CMD_BUFFER_STRUCT* inCmd)
 		// Check if idle (not actively monitoring) and not in the Summary Menu (which utilizes the event data buffer)
 		else if ((g_sampleProcessing == IDLE_STATE) && (g_activeMenu != SUMMARY_MENU))
 		{
+#if 0 /* Not enough room to cache events to internal RAM */
 			if (CacheEventToRam(eventNumToSend, &g_demXferStructPtr->dloadEventRec.eventRecord) == EVENT_CACHE_FAILURE)
 			{
 				SendErrorMsg((uint8*)"DEMe", (uint8*)MSGTYPE_ERROR_NO_EVENT);
 				return;
 			}
-
+#else /* Plain uncompressed file send is caching to packets in transfer so only event record needed to be cached */
+			GetEventFileRecord(eventNumToSend, &g_demXferStructPtr->dloadEventRec.eventRecord);
+#endif
+			// Todo: Fix event data buffer reference or change compressed data send caching
 			g_demXferStructPtr->dataPtr = g_demXferStructPtr->startDataPtr = (uint8*)&g_eventDataBuffer[0];
 		}
 		else // Actively monitoring, no compressed event data file and can't use event data buffer to cache the event
@@ -2166,6 +2197,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 		eventDataXferLength = dataSizeRemaining;
 		g_transferCount += dataSizeRemaining;
 
+#if 1 /* Normal */
 		if (dataSizeRemaining > CMD_BUFFER_SIZE)
 		{
 			while (dataSizeRemaining > CMD_BUFFER_SIZE)
@@ -2183,8 +2215,46 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 
 				dataOffset += CMD_BUFFER_SIZE;
 				dataSizeRemaining -= CMD_BUFFER_SIZE;
+
+#if 1 /* Test small delay in between packets for cell transfers */
+				if (GetPowerControlState(CELL_ENABLE) == ON)
+				{
+					SoftUsecWait(150 * SOFT_MSECS);
+					debug("DEM small delay between packets\r\n");
+				}
+#endif
 			}
 		}
+#else
+		uint16_t packetDataSize = 64;
+		if (dataSizeRemaining > packetDataSize)
+		{
+			while (dataSizeRemaining > packetDataSize)
+			{
+				CacheEventDataToBuffer(g_demXferStructPtr->dloadEventRec.eventRecord.summary.eventNumber, (uint8*)g_demXferStructPtr->xmitBuffer, dataOffset, packetDataSize);
+#if ENDIAN_CONVERISON
+				// No conversion needed since reading from stored Big Endian event to send out Big Endian
+#endif
+				g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->xmitBuffer, packetDataSize, g_transmitCRC);
+
+				if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, packetDataSize, NO_CONVERSION) == MODEM_SEND_FAILED)
+				{
+					g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
+				}
+
+				dataOffset += packetDataSize;
+				dataSizeRemaining -= packetDataSize;
+
+#if 1 /* Test small delay in between packets for cell transfers */
+				if (GetPowerControlState(CELL_ENABLE) == ON)
+				{
+					SoftUsecWait(1 * SOFT_MSECS);
+					debug("DEM small delay between packets\r\n");
+				}
+#endif
+			}
+		}
+#endif
 
 		if (dataSizeRemaining)
 		{
@@ -2255,7 +2325,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 		g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 	}
 
-	debug("CRC=%d g_transferCount=%d errorStatus=%s\r\n", g_transmitCRC, g_transferCount, (g_demXferStructPtr->errorStatus == MODEM_SEND_FAILED) ? "Failed" : "Passed");
+	debug("CRC=%d g_transferCount=%d errorStatus=%s\r\n", __builtin_bswap32(g_transmitCRC), __builtin_bswap32(g_transferCount), (g_demXferStructPtr->errorStatus == MODEM_SEND_FAILED) ? "Failed" : "Passed");
 
 	return;
 }
