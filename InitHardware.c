@@ -337,105 +337,86 @@ extern void test_logo(void);
 ///----------------------------------------------------------------------------
 void InitCellLTE(void)
 {
-#if 0 /* Test */
-	debug("Cell/LTE: Init delay (5 secs)...\r\n");
-	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(5));
-#endif
-
-#if 0 /* Test */
-	while (1)
-	{
-		debug("Cell/LTE: Powering on...\r\n");
-		PowerControl(CELL_ENABLE, ON);
-		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(2));
-		debug("Cell/LTE: Powering off...\r\n");
-		PowerControl(CELL_ENABLE, OFF);
-		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(2));
-	}
-#endif
-
 	if(GetPowerControlState(CELL_ENABLE) == OFF)
 	{
 		debug("Cell/LTE: Powering section...\r\n");
 		PowerControl(CELL_ENABLE, ON);
-		//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(3));
-		//debug("Cell/LTE: Disabling LTE reset...\r\n");
-		//PowerControl(LTE_RESET, OFF);
+		SoftUsecWait(1 * SOFT_SECS); // Small charge up delay
+		debug("Cell/LTE: Disabling LTE reset...\r\n");
+		PowerControl(LTE_RESET, OFF);
+
+		if (CheckforModemReady(6) == YES)
+		{
+			// Flag for yes if prior state was not available
+			g_modemStatus.modemAvailable = YES;
+			ClearSoftTimer(MODEM_DELAY_TIMER_NUM);
+		}
 	}
+
+#if 1 /* Test TCP Server */
+#if 0 /* Test removal */
+		// Temp disable Auto Dialout
+		g_modemSetupRecord.modemStatus = NO;
+		ClearSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM);
+#endif
+
+		int strLen, status;
+#if 0 /* Test */
+		// System mode setting
+		//debug("AT%%XSYSTEMMODE...\r\n"); sprintf((char*)g_spareBuffer, "AT%%XSYSTEMMODE=0,1,0,0\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+
+#if 0 /* Test verify */
+		SoftUsecWait(3 * SOFT_SECS);
+		{ ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+
+		debug("AT%%XSYSTEMMODE?...\r\n"); sprintf((char*)g_spareBuffer, "AT%%XSYSTEMMODE?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+		SoftUsecWait(3 * SOFT_SECS);
+		{ ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+#endif
+#endif
+		if (strlen(g_cellModemSetupRecord.pdnApn))
+		{
+			// PDN/APN setting, AT+CGDCONT=0,"IP","psmtneofin"
+			debug("AT+CGDCONT=0,\"IP\",\"%s\"...\r\n", g_cellModemSetupRecord.pdnApn); sprintf((char*)g_spareBuffer, "AT+CGDCONT=0,\"IP\",\"%s\"\r\n", g_cellModemSetupRecord.pdnApn); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		}
+
+		if (g_cellModemSetupRecord.pdnAuthProtocol != AUTH_NONE)
+		{
+			debug("AT+CGAUTH=0,%d,\"%s\",\"%s\"...\r\n", g_cellModemSetupRecord.pdnAuthProtocol, g_cellModemSetupRecord.pdnUsername, g_cellModemSetupRecord.pdnPassword);
+			sprintf((char*)g_spareBuffer, "AT+CGAUTH=0,%d,\"%s\",\"%s\"\r\n", g_cellModemSetupRecord.pdnAuthProtocol, g_cellModemSetupRecord.pdnUsername, g_cellModemSetupRecord.pdnPassword);
+			strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		}
+
+#if 0 /* Test verify */
+		debug("AT+CGDCONT?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CGDCONT?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+		{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+#endif
+		debug("AT+CFUN=1...\r\n"); sprintf((char*)g_spareBuffer, "AT+CFUN=1\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+		{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+
+		while (g_modemStatus.remoteResponse != MODEM_CELL_NETWORK_REGISTERED)
+		{
+			debug("AT+CEREG?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CEREG?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+			{ SoftUsecWait(1000 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		}
+
+		debug("AT#XTCPSVR=1,%d...\r\n", g_cellModemSetupRecord.tcpServerListenPort); sprintf((char*)g_spareBuffer, "AT#XTCPSVR=1,%d\r\n", g_cellModemSetupRecord.tcpServerListenPort); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+		{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+
+		while ((g_modemStatus.remoteResponse == TCP_SERVER_NOT_STARTED) || (g_modemStatus.remoteResponse == ERROR_RESPONSE))
+		{
+			SoftUsecWait(5 * SOFT_SECS);
+			debug("AT#XTCPSVR=1,%d...\r\n", g_cellModemSetupRecord.tcpServerListenPort); sprintf((char*)g_spareBuffer, "AT#XTCPSVR=1,%d\r\n", g_cellModemSetupRecord.tcpServerListenPort); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		}
+
+		debug("AT#XTCPSEND"); sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+		{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+ #endif
 
 	//debug("Cell/LTE: Powered...\r\n");
-
-#if 0 /* Test */
-	debug("Cell/LTE: Waiting on device to send info... (Press Power or any key to stop)\r\n");
-	debugRaw("\r\n");
-	while (1)
-	{
-extern uint8_t uart0BufferFull;
-extern uint32_t uart0BufferCount;
-extern uint8_t uart1BufferFull;
-extern uint32_t uart1BufferCount;
-		if (uart0BufferFull)
-		{
-			//debugRaw("<%s> (U0, %d chars)\r\n", (char*)&g_spareBuffer[2048], uart0BufferCount);
-			UNUSED(uart0BufferCount); debugRaw("%s", (char*)&g_spareBuffer[2048]);
-			uart0BufferFull = NO;
-		}
-
-		if (uart1BufferFull)
-		{
-			debugRaw("<%s> (U1, %d chars)\r\n", (char*)&g_spareBuffer[4096], uart1BufferCount);
-			uart0BufferFull = NO;
-		}
-
-		if (GetPowerOnButtonState() == ON) { debug("Cell/LTE: Loop break\r\n"); break; }
-		if (READ_KEY_BUTTON_MAP) { debug("Cell/LTE: Loop break\r\n"); break; }
-	}
-#endif
-
-#if 1 /* Test, turns out default module firmware doesn't respond to requests per FAE */
-	//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(3));
-
-	int status = 0; int strLen;
-	sprintf((char*)g_spareBuffer, "+++\r\n"); debug("Cell/LTE: Issuing <+++>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
-	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
-
-	sprintf((char*)g_spareBuffer, "ATE1\r\n"); debug("Cell/LTE: Issuing <ATE1>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
-	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
-
-	sprintf((char*)g_spareBuffer, "AT+CGMI\r\n"); debug("Cell/LTE: Issuing <AT+CGMI>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
-	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
-
-	sprintf((char*)g_spareBuffer, "AT+CGMM\r\n"); debug("Cell/LTE: Issuing <AT+CGMM>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
-	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
-
-	sprintf((char*)g_spareBuffer, "AT+CGMR\r\n"); debug("Cell/LTE: Issuing <AT+CGMR>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
-	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
-
-	sprintf((char*)g_spareBuffer, "AT+CEMODE\r\n"); debug("Cell/LTE: Issuing <AT+CEMODE>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
-	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
-
-
-	sprintf((char*)g_spareBuffer, "AT+CFUN?\r\n"); debug("Cell/LTE: Issuing <AT+CFUN?>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
-	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
-
-	sprintf((char*)g_spareBuffer, "AT+CGMI\r\n"); debug("Cell/LTE: Issuing <AT+CGMI>...\r\n"); strLen = (int)strlen((char*)g_spareBuffer);
-	status = MXC_UART_Write(MXC_UART1, g_spareBuffer , &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
-	debug("Cell/LTE: Uart0 S:0x%x, F:0x%x, Uart1 S:0x%x, F:0x%x\r\n", MXC_UART_GetStatus(MXC_UART0), MXC_UART_GetFlags(MXC_UART0), MXC_UART_GetStatus(MXC_UART1), MXC_UART_GetFlags(MXC_UART1));
-#endif
-
-#if 0 /* Test loop writing for Uart TX identificaiton */
-	while (1)
-	{
-		status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); } MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(50));
-	}
-#endif
 
 #if 0 /* Shut down power to cell module */
 	PowerControl(CELL_ENABLE, OFF);
@@ -1719,152 +1700,14 @@ uint8_t g_Uart0_RxBuffer[UART_BUFFER_SIZE];
 uint8_t g_Uart0_TxBuffer[UART_BUFFER_SIZE];
 uint8_t g_Uart1_RxBuffer[UART_BUFFER_SIZE];
 uint8_t g_Uart1_TxBuffer[UART_BUFFER_SIZE];
-uint8_t g_Uart2_RxBuffer[UART_BUFFER_SIZE];
-uint8_t g_Uart2_TxBuffer[UART_BUFFER_SIZE];
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-uint8_t uart0BufferFull = NO;
-uint32_t uart0BufferCount = 0;
-void UART0_Read_Callback(mxc_uart_req_t *req, int error)
-{
-    // UART0 receive processing
-#if 1 /* Test */
-	if(req->rxLen)
-	{
-#if 1 /* Copy to spare buffer */
-		// Check if buffer has been read
-		if (uart0BufferFull == NO)
-		{
-			memcpy(&g_spareBuffer[2048], req->rxData, req->rxLen);
-			uart0BufferCount = req->rxLen;
-		}
-		else // (uart0BufferFull == YES)
-		{
-			// Check if the added Rx length fits into the unread buffer size of 2K (minus 1 for null)
-			if ((uart0BufferCount + req->rxLen) < 2047)
-			{
-				memcpy(&g_spareBuffer[(2048 + uart0BufferCount)], req->rxData, req->rxLen);
-				uart0BufferCount += req->rxLen;
-			}
-		}
-#if 0 /* Print buffer immediately */
-		debug("Cell/LTE data receive: <%s> (%d chars)\r\n", (char*)g_spareBuffer, req->rxLen);
-#else
-		uart0BufferFull = YES;
-#endif
-#else /* Use Uart buffer */
-		debug("Cell/LTE data receive: <%s> (%d chars)\r\n", (char*)g_Uart0_RxBuffer, req->rxLen);
-#endif
-
-#if 0 /* Clearing of flags should be handled by the driver */
-		// Clear flags
-		MXC_UART0->int_fl = 0x0000003F;
-#else /* Async handler only seems to run once and shuts down, so need to re-register */
-extern mxc_uart_req_t uart0ReadRequest;
-		uint8_t status = MXC_UART_TransactionAsync(&uart0ReadRequest);
-		if (status != E_SUCCESS) { debugErr("Uart0 Read setup (async) failed with code: %d\r\n", status); }
-#endif
-	}
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-uint8_t uart1BufferFull = NO;
-uint32_t uart1BufferCount = 0;
-void UART1_Read_Callback(mxc_uart_req_t *req, int error)
-{
-    // UART1 receive processing
-#if 1 /* Test */
-	if(req->rxLen)
-	{
-		memcpy(&g_spareBuffer[4096], req->rxData, req->rxLen);
-		uart1BufferCount = req->rxLen;
-
-		uart1BufferFull = YES;
-
-		// Clearing of flags should be handled by the driver
-
-		// Async handler only seems to run once and shuts down, so need to re-register
-extern mxc_uart_req_t uart1ReadRequest;
-		uint8_t status = MXC_UART_TransactionAsync(&uart1ReadRequest);
-		if (status != E_SUCCESS) { debugErr("Uart1 Read setup (async) failed with code: %d\r\n", status); }
-	}
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void UART2_Read_Callback(mxc_uart_req_t *req, int error)
-{
-	 uint16_t rxIndex = 0;
-
-	//debugRaw("<'>");
-
-    // UART2 receive processing
-#if 1 /* Test */
-	while (rxIndex != req->rxLen)
-	{
-		// Raise the Craft Data flag (only once needed)
-		if (!rxIndex) { g_modemStatus.craftPortRcvFlag = YES; }
-
-		// Write the received data into the buffer
-		*g_isrMessageBufferPtr->writePtr = req->rxData[rxIndex++];
-
-		// Advance the buffer pointer
-		g_isrMessageBufferPtr->writePtr++;
-
-		// Check if buffer pointer goes beyond the end
-		if (g_isrMessageBufferPtr->writePtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE))
-		{
-			// Reset the buffer pointer to the beginning of the buffer
-			g_isrMessageBufferPtr->writePtr = g_isrMessageBufferPtr->msg;
-		}
-	}
-
-	// Clearing of flags should be handled by the driver
-
-	// Async handler only seems to run once and shuts down, so need to re-register
-extern mxc_uart_req_t uart2ReadRequest;
-	uint8_t status = MXC_UART_TransactionAsync(&uart2ReadRequest);
-	if (status != E_SUCCESS) { debugErr("Uart2 Read setup (async) failed with code: %d\r\n", status); }
-#endif
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void UART0_Handler(void)
-{
-    MXC_UART_AsyncHandler(MXC_UART0);
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void UART1_Handler(void)
-{
-    MXC_UART_AsyncHandler(MXC_UART1);
-}
-
-///----------------------------------------------------------------------------
-///	Function Break
-///----------------------------------------------------------------------------
-void UART2_Handler(void)
-{
-    MXC_UART_AsyncHandler(MXC_UART2);
-}
+//uint8_t g_Uart2_RxBuffer[UART_BUFFER_SIZE];
+//uint8_t g_Uart2_TxBuffer[UART_BUFFER_SIZE];
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
 mxc_uart_req_t uart0ReadRequest; // Needs persistant storage because Maxim UART driver grabs only a reference to the request object
-mxc_uart_req_t uart1ReadRequest; // Needs persistant storage because Maxim UART driver grabs only a reference to the request object
-void SetupUART(void)
+void SetupCellModuleRxUART(void)
 {
 	int status;
 
@@ -1877,6 +1720,29 @@ void SetupUART(void)
     MXC_NVIC_SetVector(UART0_IRQn, UART0_Handler);
     NVIC_EnableIRQ(UART0_IRQn);
 
+    // Setup the asynchronous request
+    uart0ReadRequest.uart = MXC_UART0;
+    uart0ReadRequest.rxData = g_Uart0_RxBuffer;
+	uart0ReadRequest.rxLen = 1; // Trigger size
+    uart0ReadRequest.txLen = 0;
+    uart0ReadRequest.callback = UART0_Read_Callback;
+
+    status = MXC_UART_TransactionAsync(&uart0ReadRequest);
+    if (status != E_SUCCESS) { debugErr("Uart0 Read setup (async) failed with code: %d\r\n", status); }
+
+#if 1 /* Test to check interrupt flags set */
+	debug("Uart0: Interrupt enables are 0x%0x, Int flags are 0x%0x, Status is 0x%0x\r\n", MXC_UART0->int_en, MXC_UART0->int_fl, MXC_UART0->stat);
+#endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+mxc_uart_req_t uart1ReadRequest; // Needs persistant storage because Maxim UART driver grabs only a reference to the request object
+void SetupCellModuleTxUART(void)
+{
+	int status;
+
     status = MXC_UART_Init(MXC_UART1, UART_BAUD);
     if (status != E_SUCCESS) { debugErr("UART1 failed init with code: %d\r\n", status); }
 
@@ -1887,29 +1753,16 @@ void SetupUART(void)
     NVIC_EnableIRQ(UART1_IRQn);
 
     // Setup the asynchronous request
-    uart0ReadRequest.uart = MXC_UART0;
-    uart0ReadRequest.rxData = g_Uart0_RxBuffer;
-    //uart0ReadRequest.rxLen = UART_BUFFER_SIZE;
-	uart0ReadRequest.rxLen = 1; // Trigger size
-    uart0ReadRequest.txLen = 0;
-    uart0ReadRequest.callback = UART0_Read_Callback;
-
-    // Setup the asynchronous request
     uart1ReadRequest.uart = MXC_UART1;
     uart1ReadRequest.rxData = g_Uart1_RxBuffer;
-    //uart1ReadRequest.rxLen = UART_BUFFER_SIZE;
 	uart1ReadRequest.rxLen = 1; // Trigger size
     uart1ReadRequest.txLen = 0;
     uart1ReadRequest.callback = UART1_Read_Callback;
-
-    status = MXC_UART_TransactionAsync(&uart0ReadRequest);
-    if (status != E_SUCCESS) { debugErr("Uart0 Read setup (async) failed with code: %d\r\n", status); }
 
     status = MXC_UART_TransactionAsync(&uart1ReadRequest);
     if (status != E_SUCCESS) { debugErr("Uart1 Read setup (async) failed with code: %d\r\n", status); }
 
 #if 1 /* Test to check interrupt flags set */
-	debug("Uart0: Interrupt enables are 0x%0x, Int flags are 0x%0x, Status is 0x%0x\r\n", MXC_UART0->int_en, MXC_UART0->int_fl, MXC_UART0->stat);
 	debug("Uart1: Interrupt enables are 0x%0x, Int flags are 0x%0x, Status is 0x%0x\r\n", MXC_UART1->int_en, MXC_UART1->int_fl, MXC_UART1->stat);
 #endif
 }
@@ -2169,7 +2022,10 @@ void SetupWatchdog(void)
 #define SPI_SPEED_ADC 60000000 // Bit Rate
 #endif
 //#define SPI_SPEED_LCD 12000000 // Bit Rate, LCD can go up but Accelerometer won't work at 16 MHz and above
+// Works at 10 MHz
 #define SPI_SPEED_LCD 10000000 // Bit Rate, Trying LCD at less than 11 MHz per odd note in programmers guide, LCD can go up but Accelerometer won't work at 16 MHz and above
+// Mostly works at 14 MHz but Acc sometimes doesn't init right away and a couple LCD glitches (needs SPI2 mods to really verify)
+//#define SPI_SPEED_LCD 14000000 // Trying alternatives, at 15MHz the ACC occsaionally hangs
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -2332,7 +2188,8 @@ void SetupSPI2_LCDAndAcc(void)
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_SPI2->ctrl0 &= ~MXC_F_SPI_CTRL0_SS_SEL; } // Clear Master SS select control
 
 	status = MXC_SPI_Init(MXC_SPI2, YES, NO, 1, LOW, SPI_SPEED_LCD);
-	if (status != E_SUCCESS) { debugErr("SPI2 (LCD) Init failed with code: %d\r\n", status); }
+	if (status != E_SUCCESS) { debugErr("SPI2 (LCD/ACC) Init failed with code: %d\r\n", status); }
+	else { debug("SPI2 (LCD/ACC) Init with clock freq: %d\r\n", SPI_SPEED_LCD); }
 
 	// Set standard SPI 4-wire (MISO/MOSI, full duplex)
 	MXC_SPI_SetWidth(MXC_SPI2, SPI_WIDTH_STANDARD);
@@ -2342,6 +2199,18 @@ void SetupSPI2_LCDAndAcc(void)
 
 #if 1 /* Test moving setting the data size once per init since this doesn't change and setting requires disabling the SPI */
 	MXC_SPI_SetDataSize(MXC_SPI2, SPI_8_BIT_DATA_SIZE);
+#endif
+
+#if 0 /* Test */
+	// Try to change the drive strength to 2x
+	//gpio_cfg_spi2.port->ds_sel0 |= gpio_cfg_spi2.mask; // Set drive strength to 8x
+
+	// Try to change the drive strength to 4x
+	//gpio_cfg_spi2.port->ds_sel1 |= gpio_cfg_spi2.mask; // Set drive strength to 8x
+
+	// Try to change the drive strength to 8x
+	//gpio_cfg_spi2.port->ds_sel0 |= gpio_cfg_spi2.mask; // Set drive strength to 8x
+	//gpio_cfg_spi2.port->ds_sel1 |= gpio_cfg_spi2.mask; // Set drive strength to 8x
 #endif
 }
 
@@ -2422,7 +2291,7 @@ void SetupUSBComposite(void)
 {
     maxusb_cfg_options_t usb_opts;
 
-    debug("Waiting for VBUS...\n");
+    debug("Waiting for VBUS...\r\n");
 
     // Initialize state
     configured = 0;
@@ -2654,6 +2523,9 @@ int setconfigCallback_Composite(MXC_USB_SetupPkt *sud, void *cbdata)
         acm_cfg.notify_ep = composite_config_descriptor.endpoint_descriptor_3.bEndpointAddress & 0x7;
         acm_cfg.notify_maxpacket = composite_config_descriptor.endpoint_descriptor_3.wMaxPacketSize;
 
+#if 0 /* Test */
+		debugRaw("<msc/%d/%d,acm/%d/%d/%d>", msc_cfg.out_maxpacket, msc_cfg.in_maxpacket, acm_cfg.out_maxpacket, acm_cfg.in_maxpacket, acm_cfg.notify_maxpacket);
+#endif
 		if (g_mscDelayState == ON) { SoftUsecWait(1 * SOFT_SECS); }
         msc_configure(&msc_cfg);
         return acm_configure(&acm_cfg);
@@ -2689,6 +2561,9 @@ int setconfigCallback_CDCACM(MXC_USB_SetupPkt *sud, void *cbdata)
         acm_cfg.notify_ep = config_descriptor.endpoint_descriptor_3.bEndpointAddress & 0x7;
         acm_cfg.notify_maxpacket = config_descriptor.endpoint_descriptor_3.wMaxPacketSize;
 
+#if 0 /* Test */
+		debugRaw("<acm/%d/%d/%d>", acm_cfg.out_maxpacket, acm_cfg.in_maxpacket, acm_cfg.notify_maxpacket);
+#endif
         return acm_configure(&acm_cfg); /* Configure the device class */
     } else if (sud->wValue == 0) {
         configured = 0;
@@ -2723,6 +2598,9 @@ int setconfigCallback_MSC(MXC_USB_SetupPkt *sud, void *cbdata)
             msc_cfg.in_maxpacket = config_descriptor.endpoint_descriptor_2.wMaxPacketSize;
         }
 
+#if 0 /* Test */
+		debugRaw("<msc/%d/%d>", msc_cfg.out_maxpacket, msc_cfg.in_maxpacket);
+#endif
 		if (g_mscDelayState == ON) { SoftUsecWait(1 * SOFT_SECS); }
         return msc_configure(&msc_cfg); /* Configure the device class */
 
@@ -3031,7 +2909,7 @@ void USB_IRQHandler(void)
 	{
 		debug("Passing along serial data: <%s>\r\n", (char*)g_debugBuffer);
 		int len = numChars;
-		uint8_t status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &len); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+		uint8_t status = MXC_UART_Write(MXC_UART1, g_debugBuffer, &len); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 	}
 #endif
 
@@ -3147,7 +3025,7 @@ int formatSDHC(void)
         return E_ABORT;
     }
 
-    debug("Formatting flash drive...\n");
+    debug("Formatting flash drive...\r\n");
 
 #if 0 /* For version FF13 and FF14 */
 	if ((err = f_mkfs("", FM_ANY, 0, work, sizeof(work))) != FR_OK)
@@ -3440,7 +3318,7 @@ int example(uint8_t formatDrive)
 
     err = f_stat("MaximSDHC", &fno);
     if (err == FR_NO_FILE) {
-        debug("Creating directory...\n");
+        debug("Creating directory...\r\n");
         if ((err = f_mkdir("MaximSDHC")) != FR_OK) { debugErr("Unable to create directory: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
     }
 	else
@@ -3448,12 +3326,12 @@ int example(uint8_t formatDrive)
 		f_unlink("0:MaximSDHC/HelloMaxim.txt");
 	}
 
-    debug("Renaming File...\n");
+    debug("Renaming File...\r\n");
     if ((err = f_rename("0:HelloWorld.txt", "0:MaximSDHC/HelloMaxim.txt")) != FR_OK) { /* /cr: clearify 0:file notation */ debugErr("Unable to move file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
     if ((err = f_chdir("/MaximSDHC")) != FR_OK) { debugErr("Problem with chdir: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
-    debug("Attempting to read back file...\n");
+    debug("Attempting to read back file...\r\n");
     if ((err = f_open(&file, "HelloMaxim.txt", FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
 
     if ((err = f_read(&file, &message, bytes_written, &bytes_read)) != FR_OK) { debugErr("Unable to read file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); return err; }
@@ -3550,6 +3428,39 @@ typedef enum {
 	MXC_SDHC_LIB_HS400_TIMING, // 3
 	MXC_SDHC_LIB_HIGH_SPEED_TIMING_DDR = 5 // 5
 } mxc_sdhc_hs_timing;
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int CreateFilesystem_eMMCFlash(void)
+{
+	MKFS_PARM setupFS = { FM_ANY, 0, 0, 0, 0 };
+	int status = E_FAIL;
+
+	if ((err = f_mkfs("", &setupFS, work, sizeof(work))) != FR_OK)
+	{
+		debugErr("Drive(eMMC): Formatting failed with error %s\r\n", FF_ERRORS[err]);
+	}
+	else
+	{
+		debug("Drive(eMMC): Formatted successfully\r\n");
+
+		// Remount
+		if ((err = f_mount(&fs_obj, "", 1)) != FR_OK)
+		{
+			debugErr("Drive(eMMC): filed to mount after formatting, with error %s\r\n", FF_ERRORS[err]);
+			f_mount(NULL, "", 0);
+		}
+		else if ((err = f_setlabel("NOMIS")) != FR_OK)
+		{
+			debugErr("Drive(eMMC): Setting label failed with error %s\r\n", FF_ERRORS[err]);
+			f_mount(NULL, "", 0);
+		}
+		else { status = E_SUCCESS; }
+	}
+
+	return (status);
+}
 
 #define MXC_SDHC_LIB_CMD6       0x060A
 ///----------------------------------------------------------------------------
@@ -5460,9 +5371,10 @@ void InitSystemHardware_MS9300(void)
 #endif
 
 	//-------------------------------------------------------------------------
-	// Setup UART0 (LTE) and UART1 (BLE)
+	// Setup Cell Module UARTs (Cell LTE Rx on U0) and (Cell LTE Tx on U1)
 	//-------------------------------------------------------------------------
-	SetupUART();
+	SetupCellModuleRxUART(); // Uart0
+	SetupCellModuleTxUART(); // Uart1
 
 	//-------------------------------------------------------------------------
 	// Setup I2C0 (1.8V devices) and I2C1 (3.3V devices)
@@ -5591,7 +5503,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initalize the Expansion I2C UART Bridge
 	//-------------------------------------------------------------------------
-#if 1 /* Normal */
+#if 0 /* Normal */
 	ExpansionBridgeInit(); debug("Expansion I2C Uart Bridge: Init complete\r\n");
 #else /* New modded Alpha board I2C doesn't work if epxansion powered */
 #endif
