@@ -104,6 +104,8 @@ static const COMMAND_MESSAGE_STRUCT s_cmdMessageTable[ TOTAL_COMMAND_MESSAGES ] 
 	{ 'N', 'A', 'K', HandleNAK },		// Nack
 	{ 'C', 'A', 'N', HandleCAN },		// Cancel
 
+	{ '+', '+', '+', HandleESC },		// Escape sequence
+
 #if 1 /* Test */
 	{ 'D', 'B', 'L', HandleDBL },		// Cancel
 #endif
@@ -131,11 +133,6 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 {
 	uint8 cmdIndex = 0;
 		
-	if (g_modemStatus.testingFlag == YES) g_disableDebugPrinting = NO;
-
-	// Commented out since one command (UCM) can blow the buffer and lockup the unit
-	//debug("\nCMH:<%s>\r\n", cmdMsg->msg);
-
 	// Fill in the data
 	CHAR_UPPER_CASE(cmdMsg->msg[0]);
 	CHAR_UPPER_CASE(cmdMsg->msg[1]);
@@ -149,7 +146,7 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 		
 		// If the system is now locked and there is a xfer in progress, 
 		// halt the xfer. This is used as a break command.
-		if (	(YES == g_modemStatus.systemIsLockedFlag) &&
+		if ((YES == g_modemStatus.systemIsLockedFlag) &&
 			(YES == g_modemStatus.xferMutex))
 		{
 			g_modemStatus.xferState = NOP_CMD;
@@ -217,18 +214,158 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 			{
 				if (strcmp(OK_RESP_STRING, (char*)&cmdMsg->msg[0]) == 0)
 				{
-					g_modemStatus.remoteResponse = OK_RESPONSE;
-					//debug("RCMH: OK response found\r\n");
+					//if (g_modemStatus.remoteResponse != CONNECT_RESPONSE) { g_modemStatus.remoteResponse = OK_RESPONSE; }
+					//g_modemStatus.remoteResponse = OK_RESPONSE;
+					debug("RCMH: OK response found\r\n");
 				}
 				else if (strcmp(CONNECT_RESP_STRING, (char*)&cmdMsg->msg[0]) == 0)
 				{
 					g_modemStatus.remoteResponse = CONNECT_RESPONSE;
 					//debug("RCMH: CONNECT response found\r\n");
 				}
+				else if (strcmp(CONNECT_RESP_STRING_2, (char*)&cmdMsg->msg[0]) == 0)
+				{
+					g_modemStatus.remoteResponse = CONNECT_RESPONSE;
+					debug("RCMH: Cell CONNECT response found\r\n");
+				}
+				//else if (strcmp(READY_RESP_STRING, (char*)&cmdMsg->msg[0]) == 0)
+				else if ((strcmp(READY_RESP_STRING, (char*)&cmdMsg->msg[0]) == 0) || (strcmp(READY_RESP_STRING_ALT, (char*)&cmdMsg->msg[0]) == 0))
+				{
+					g_modemStatus.remoteResponse = READY_RESPONSE;
+					debug("RCMH: Cell Ready response found\r\n");
+				}
+				else if (strcmp(AT_CMD_DATAMODE_EXIT, (char*)&cmdMsg->msg[0]) == 0)
+				{
+					g_modemStatus.remoteResponse = DATAMODE_EXIT;
+					debug("RCMH: Cell Datamode exit\r\n");
+				}
+				else if (strncmp(MODEM_HOME_NETWORK, (char*)&cmdMsg->msg[0], 11) == 0)
+				{
+					g_modemStatus.remoteResponse = MODEM_CELL_NETWORK_REGISTERED;
+					debug("RCMH: Modem Home network registered\r\n");
+				}
+				else if (strncmp(MODEM_ROAMING_NETWORK, (char*)&cmdMsg->msg[0], 11) == 0)
+				{
+					g_modemStatus.remoteResponse = MODEM_CELL_NETWORK_REGISTERED;
+					debug("RCMH: Modem Roaming network registered\r\n");
+				}
+				else if (strncmp(CMDMODE_CMD_STRING, (char*)&cmdMsg->msg[0], 3) == 0)
+				{
+					g_modemStatus.remoteResponse = TCP_CLIENT_DISCONNECT;
+					debug("RCMH: Cell TCP Client Disconnect found\r\n");
+					g_modemStatus.remoteConnectionActive = NO;
+
+					// Check if not handling ADO meaning TCP Server mode only since ADO disconnect also sends the modem escape
+					if (g_autoDialoutState == AUTO_DIAL_IDLE)
+					{
+						HandleESC(NULL);
+					}
+				}
+				else if (strncmp(TCP_CLIENT_STRING, (char*)&cmdMsg->msg[0], 9) == 0)
+				{
+					if(strstr((char*)&cmdMsg->msg[0], "not connected"))
+					{
+						g_modemStatus.remoteResponse = TCP_CLIENT_NOT_CONNECTED;
+					}
+					else
+					{
+						debug("RCMH: TCP Client unknown response\r\n");
+					}
+				}
+				else if (strncmp(TCP_SERVER_STRING, (char*)&cmdMsg->msg[0], 9) == 0)
+				{
+					g_modemStatus.remoteConnectionActive = NO;
+
+					if(strstr((char*)&cmdMsg->msg[0], "not started"))
+					{
+						debug("RCMH: TCP Server not started\r\n");
+						g_modemStatus.remoteResponse = TCP_SERVER_NOT_STARTED;
+
+						// No reason TCP Server shouldn't start through TCP Sever start procedure if cell modem connection good, reset the whole process
+						ShutdownPdnAndCellModem();
+						PowerControl(LTE_RESET, ON);
+						PowerControl(CELL_ENABLE, OFF);
+
+						if (g_cellModemSetupRecord.tcpServer == YES)
+						{
+							g_tcpServerStartStage = 1;
+							AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_SEC), TcpServerStartCallback);
+						}
+						else { g_tcpServerStartStage = 0; }
+					}
+					else if(strstr((char*)&cmdMsg->msg[0], "started"))
+					{
+						debug("RCMH: TCP Server started\r\n");
+						g_modemStatus.remoteResponse = TCP_SERVER_STARTED;
+					}
+					else if(strstr((char*)&cmdMsg->msg[0], "stopped"))
+					{
+						debug("RCMH: TCP Server stopped\r\n");
+
+						// Check if the TCP Server stopped on it's own (and not from ADO starting and not 24 hour cycle change)
+						if ((g_cellModemSetupRecord.tcpServer == YES) && (g_autoDialoutState == AUTO_DIAL_IDLE) && (!getSystemEventState(CYCLE_CHANGE_EVENT)))
+						{
+							ShutdownPdnAndCellModem();
+							PowerControl(LTE_RESET, ON);
+							PowerControl(CELL_ENABLE, OFF);
+
+							// Some sort of TCP Server error, need to restart
+							g_tcpServerStartStage = 1;
+							AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_SEC), TcpServerStartCallback);
+						}
+					}
+					else if(strstr((char*)&cmdMsg->msg[0], "disconnected"))
+					{
+						debug("RCMH: TCP Server disconnected\r\n");
+					}
+					else if(strstr((char*)&cmdMsg->msg[0], "connected"))
+					{
+						char* loc = strstr((char*)&cmdMsg->msg[0], "connected");
+						if (loc) { *loc = '\0'; }
+						debug("RCMH: TCP Server Incoming connection from IP: %s\r\n", (char*)&cmdMsg->msg[11]);
+						g_modemStatus.remoteConnectionActive = YES;
+					}
+					else
+					{
+						debug("RCMH: TCP Server unknown response\r\n");
+					}
+				}
+				else if (strcmp(AT_CMD_ERROR, (char*)&cmdMsg->msg[0]) == 0)
+				{
+					g_modemStatus.remoteResponse = ERROR_RESPONSE;
+					debug("RCMH: Command response error\r\n");
+				}
+				else if (strcmp(AT_CMD_XMODEM, (char*)&cmdMsg->msg[0]) == 0)
+				{
+					// XMODEM shouldn't be seen unless there's a modem error, best to restart
+					debug("RCMH: XMODEM notificaiton found, need to restart\r\n");
+					ShutdownPdnAndCellModem();
+					PowerControl(LTE_RESET, ON);
+					PowerControl(CELL_ENABLE, OFF);
+
+					// Reset ADO state
+					g_autoDialoutState = AUTO_DIAL_IDLE;
+
+					if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
+					{
+						AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_modemSetupRecord.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
+					}
+					else // ADO Events only
+					{
+						ClearSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM);
+					}
+
+					if (g_cellModemSetupRecord.tcpServer == YES)
+					{
+						g_tcpServerStartStage = 1;
+						AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_SEC), TcpServerStartCallback);
+					}
+					else { g_tcpServerStartStage = 0; }
+				}
 				else
 				{
 					g_modemStatus.remoteResponse = UNKNOWN_RESPONSE;
-					//debug("RCMH: Unknown response found, %d chars (%s)\r\n", strlen((char*)&cmdMsg->msg[0]), (char*)&cmdMsg->msg[0]);
+					debug("RCMH: Unknown response found, %d chars (%s)\r\n", strlen((char*)&cmdMsg->msg[0]), (char*)&cmdMsg->msg[0]);
 				}
 			}
 			//else { debug("RCMH: Unknown response found\r\n"); }
@@ -343,12 +480,6 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 		}
 	}
 
-		
-	if ((g_modemStatus.testingFlag == YES) && (g_modemStatus.testingPrintFlag == YES))
-	{
-		g_disableDebugPrinting = YES;
-	}
-
 	return (0);
 }
 
@@ -404,9 +535,6 @@ void ProcessCraftData()
 {
 	uint8 newPoolBuffer = NO;
 
-	// Halt all debugging message when recieving data.	
-	if (g_modemStatus.testingFlag == YES) g_disableDebugPrinting = NO;
-
 #if 0 /* Original */
 	// Check status and then reset it to no error.
 	if (CMD_MSG_OVERFLOW_ERR == g_isrMessageBufferPtr->status)
@@ -437,17 +565,17 @@ void ProcessCraftData()
 #if 0 /* Normal */
 		debugRaw("<%c>", *g_isrMessageBufferPtr->readPtr);
 #elif 1 /* Adjust to show non-printable chars */
-		if (i < 10)
+		if (i < 50)
 		{
 			if((*g_isrMessageBufferPtr->readPtr > 0x1F) && (*g_isrMessageBufferPtr->readPtr < 0x7F)) { debugRaw("<%c>", *g_isrMessageBufferPtr->readPtr); }
 			else { debugRaw("<%02x>", *g_isrMessageBufferPtr->readPtr); }
 		}
-		else if (i == 10) { debugRaw("<...>"); }
+		else if (i == 50) { debugRaw("<...>"); }
 		i++;
 #endif
 
 		// Check if not a <CR> or <LF> termination marker
-		if ((*g_isrMessageBufferPtr->readPtr != 0x0A) && (*g_isrMessageBufferPtr->readPtr != 0x0D))
+		if ((*g_isrMessageBufferPtr->readPtr != '\r') && (*g_isrMessageBufferPtr->readPtr != '\n'))
 		{
 			// Check if not the first character of a message and not a non-printing character, essentially allowing only alphanumeric chars to start a message
 			if (!((g_msgPool[s_msgWriteIndex].size == 0) && (*g_isrMessageBufferPtr->readPtr < 0x20)))
@@ -502,6 +630,8 @@ void ProcessCraftData()
 
 		if (YES == newPoolBuffer)
 		{
+			debug("PCD: New Msg (%c, %d)\r\n", (char)g_msgPool[s_msgWriteIndex].msg[0], g_msgPool[s_msgWriteIndex].size);
+
 			newPoolBuffer = NO;
 
 			// The message is now complete so go to the next message pool buffer.
@@ -510,7 +640,12 @@ void ProcessCraftData()
 			{
 				s_msgWriteIndex = 0;
 			}
-			
+
+			// Clear the new buffer
+			memset(g_msgPool[s_msgWriteIndex].msg, 0, CMD_BUFFER_SIZE);
+			g_msgPool[s_msgWriteIndex].size = 0;
+			g_msgPool[s_msgWriteIndex].writePtr = g_msgPool[s_msgWriteIndex].msg;
+
 			// Flag to indicate complete message to process
 			raiseSystemEventFlag(CRAFT_PORT_EVENT);
 		}
@@ -523,11 +658,6 @@ void ProcessCraftData()
 		}
 	}
 
-	if ((g_modemStatus.testingFlag == YES) && (g_modemStatus.testingPrintFlag == YES))
-	{
-		g_disableDebugPrinting = YES;
-	}
-	
 	return;
 }
 
@@ -567,14 +697,13 @@ void CraftInitStatusFlags(void)
 	// Check if the Modem setup record is valid and Modem status is yes
 	if ((!g_modemSetupRecord.invalid) && (g_modemSetupRecord.modemStatus == YES))
 	{
-#if 0 /* Use flag a different way, to signal modem is connected and responding */
-		// Signal that the modem is available
-		g_modemStatus.modemAvailable = YES;
-#else
-		// Signal that the modem is not available
+#if 0 /* Original - External modem */
 		g_modemStatus.modemAvailable = NO;
-#endif
 		AssignSoftTimer(MODEM_DELAY_TIMER_NUM, (MODEM_ATZ_DELAY), ModemDelayTimerCallback);
+#else /* Cell modem */
+		// Can't check for cell modem ready since message processing isn't available until init completes
+		g_modemStatus.modemAvailable = YES;
+#endif
 	}
 	else
 	{
@@ -590,10 +719,11 @@ void CraftInitStatusFlags(void)
 	g_modemStatus.ringIndicator = 0;
 	g_modemStatus.xferPrintState = NO;
 	
-	// Modem is being tested/debugged set debug to true.
-	g_modemStatus.testingPrintFlag = g_disableDebugPrinting;		
-	// Modem is being tested/debugged, set to print to the PC
-	g_modemStatus.testingFlag = OFF;
+	g_modemStatus.remoteConnectionActive = NO;
+
+	g_modemStatus.spare = 0;
+
+	memset(&g_cellConnectStats, 0, sizeof(g_cellConnectStats));
 }
 
 ///----------------------------------------------------------------------------
@@ -658,6 +788,59 @@ uint8_t CheckforModem(uint16_t timeoutHalfSeconds)
 	else { g_modemStatus.modemAvailable = NO; }
 
 	g_modemStatus.remoteResponse = NO_RESPONSE;
+
+	return (modemFound);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void CheckAndProcessCellModemData(uint16_t timeoutHalfSeconds)
+{
+	uint32_t halfSecCompare = g_lifetimeHalfSecondTickCount;
+
+	g_modemStatus.systemIsLockedFlag = YES;
+	g_modemStatus.remoteResponse = NO_RESPONSE;
+
+	while (g_lifetimeHalfSecondTickCount < (halfSecCompare + timeoutHalfSeconds))
+	{
+		ProcessCraftData();
+		if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); }
+
+		if (g_modemStatus.remoteResponse != NO_RESPONSE) { break; }
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t CheckforModemReady(uint16_t timeoutHalfSeconds)
+{
+	uint8_t modemFound = NO;
+	uint8_t modemPowered = NO;
+
+	if(GetPowerControlState(CELL_ENABLE) == OFF)
+	{
+		debug("Cell/LTE: Powering section...\r\n");
+		PowerControl(CELL_ENABLE, ON);
+		SoftUsecWait(1 * SOFT_SECS); // Small charge up delay
+		PowerControl(LTE_RESET, OFF);
+		modemPowered = YES;
+	}
+
+	CheckAndProcessCellModemData(timeoutHalfSeconds);
+
+	if (g_modemStatus.remoteResponse == READY_RESPONSE) { modemFound = YES; g_modemStatus.modemAvailable = YES; debug("Cell Modem: Ready\r\n"); }
+	else { g_modemStatus.modemAvailable = NO; debugWarn("Cell Modem: Not ready\r\n"); }
+
+	g_modemStatus.remoteResponse = NO_RESPONSE;
+
+	if (modemPowered == YES)
+	{
+		debug("Cell/LTE: Power down...\r\n");
+		PowerControl(LTE_RESET, ON);
+		PowerControl(CELL_ENABLE, OFF);
+	}
 
 	return (modemFound);
 }

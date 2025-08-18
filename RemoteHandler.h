@@ -38,6 +38,8 @@ void InitCraftInterruptBuffers(void);
 void RemoteSystemLock(uint8_t lockState);
 void CheckAndProcessModemData(uint16_t timeoutHalfSeconds);
 uint8_t CheckforModem(uint16_t timeoutHalfSeconds);
+void CheckAndProcessCellModemData(uint16_t timeoutHalfSeconds);
+uint8_t CheckforModemReady(uint16_t timeoutHalfSeconds);
 
 #endif // _REMOTE_COMMON_H_
 
