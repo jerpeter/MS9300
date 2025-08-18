@@ -42,6 +42,7 @@
 #include "ff.h"
 #include "wdt.h"
 #include "usb.h"
+#include "uart.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -335,6 +336,175 @@ void Sensor_detect_4_irq(void)
 #endif
 }
 #endif
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+#if 0 /* Test */
+uint8_t uart0BufferFull = NO;
+uint32_t uart0BufferCount = 0;
+#endif
+void UART0_Read_Callback(mxc_uart_req_t *req, int error)
+{
+    // UART0 receive processing
+#if 1 /* Test */
+	{
+#if 0 /* Initial testing */
+	if(req->rxLen)
+	{
+#if 1 /* Copy to spare buffer */
+		// Check if buffer has been read
+		if (uart0BufferFull == NO)
+		{
+			memset(&g_spareBuffer[2048], 0, 2048);
+			memcpy(&g_spareBuffer[2048], req->rxData, req->rxLen);
+			uart0BufferCount = req->rxLen;
+		}
+		else // (uart0BufferFull == YES)
+		{
+			// Check if the added Rx length fits into the unread buffer size of 2K (minus 1 for null)
+			if ((uart0BufferCount + req->rxLen) < 2047)
+			{
+				memcpy(&g_spareBuffer[(2048 + uart0BufferCount)], req->rxData, req->rxLen);
+				uart0BufferCount += req->rxLen;
+			}
+		}
+#if 0 /* Print buffer immediately */
+		debug("Cell/LTE data receive: <%s> (%d chars)\r\n", (char*)g_spareBuffer, req->rxLen);
+#else
+		uart0BufferFull = YES;
+#endif
+#else /* Use Uart buffer */
+		debug("Cell/LTE data receive: <%s> (%d chars)\r\n", (char*)g_Uart0_RxBuffer, req->rxLen);
+#endif
+
+#else /* Redirect to craft buffer */
+	uint16_t rxIndex = 0;
+	while (rxIndex != req->rxLen)
+	{
+		// Raise the Craft Data flag (only once needed)
+		if (!rxIndex) { g_modemStatus.craftPortRcvFlag = YES; }
+
+		// Write the received data into the buffer
+		*g_isrMessageBufferPtr->writePtr = req->rxData[rxIndex++];
+
+		// Advance the buffer pointer
+		g_isrMessageBufferPtr->writePtr++;
+
+		// Check if buffer pointer goes beyond the end
+		if (g_isrMessageBufferPtr->writePtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE))
+		{
+			// Reset the buffer pointer to the beginning of the buffer
+			g_isrMessageBufferPtr->writePtr = g_isrMessageBufferPtr->msg;
+		}
+	}
+#endif
+
+#if 0 /* Clearing of flags should be handled by the driver */
+		// Clear flags
+		MXC_UART0->int_fl = 0x0000003F;
+#else /* Async handler only seems to run once and shuts down, so need to re-register */
+extern mxc_uart_req_t uart0ReadRequest;
+		uint8_t status = MXC_UART_TransactionAsync(&uart0ReadRequest);
+		if (status != E_SUCCESS) { debugErr("Uart0 Read setup (async) failed with code: %d\r\n", status); }
+#endif
+	}
+#endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+#if 0 /* Test */
+uint8_t uart1BufferFull = NO;
+uint32_t uart1BufferCount = 0;
+#endif
+void UART1_Read_Callback(mxc_uart_req_t *req, int error)
+{
+    // UART1 receive processing
+#if 1 /* Test */
+	if(req->rxLen)
+	{
+#if 0 /* Test */
+		memcpy(&g_spareBuffer[4096], req->rxData, req->rxLen);
+		uart1BufferCount = req->rxLen;
+
+		uart1BufferFull = YES;
+#endif
+		debugErr("Should not get Rx data on Uart1, Found: <%.*s> (%d chars)\r\n", req->rxLen, req->rxData, req->rxLen);
+
+		// Clearing of flags should be handled by the driver
+
+		// Async handler only seems to run once and shuts down, so need to re-register
+extern mxc_uart_req_t uart1ReadRequest;
+		uint8_t status = MXC_UART_TransactionAsync(&uart1ReadRequest);
+		if (status != E_SUCCESS) { debugErr("Uart1 Read setup (async) failed with code: %d\r\n", status); }
+	}
+#endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void UART2_Read_Callback(mxc_uart_req_t *req, int error)
+{
+	 uint16_t rxIndex = 0;
+
+	//debugRaw("<'>");
+
+    // UART2 receive processing
+#if 1 /* Test */
+	while (rxIndex != req->rxLen)
+	{
+		// Raise the Craft Data flag (only once needed)
+		if (!rxIndex) { g_modemStatus.craftPortRcvFlag = YES; }
+
+		// Write the received data into the buffer
+		*g_isrMessageBufferPtr->writePtr = req->rxData[rxIndex++];
+
+		// Advance the buffer pointer
+		g_isrMessageBufferPtr->writePtr++;
+
+		// Check if buffer pointer goes beyond the end
+		if (g_isrMessageBufferPtr->writePtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE))
+		{
+			// Reset the buffer pointer to the beginning of the buffer
+			g_isrMessageBufferPtr->writePtr = g_isrMessageBufferPtr->msg;
+		}
+	}
+
+	// Clearing of flags should be handled by the driver
+
+	// Async handler only seems to run once and shuts down, so need to re-register
+extern mxc_uart_req_t uart2ReadRequest;
+	uint8_t status = MXC_UART_TransactionAsync(&uart2ReadRequest);
+	if (status != E_SUCCESS) { debugErr("Uart2 Read setup (async) failed with code: %d\r\n", status); }
+#endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void UART0_Handler(void)
+{
+    MXC_UART_AsyncHandler(MXC_UART0);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void UART1_Handler(void)
+{
+    MXC_UART_AsyncHandler(MXC_UART1);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void UART2_Handler(void)
+{
+    MXC_UART_AsyncHandler(MXC_UART2);
+}
 
 ///----------------------------------------------------------------------------
 ///	Function Break
