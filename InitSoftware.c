@@ -169,7 +169,9 @@ void LoadUnitConfig(void)
 		{
 			// Re-Initialize the RS232 with the stored baud rate
 		}
-#else /* Test */
+#endif
+
+#if 0 /* Enable only when using the Expansion RS232 */
 		ExpansionBridgeChangeBaud(g_unitConfig.baudRate);
 #endif
 
@@ -205,6 +207,34 @@ void LoadModemSetupRecord(void)
 		debug("Modem Setup record is valid\r\n");
 #endif
 		ValidateModemSetupParameters();
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void LoadCellModemSetupRecord(void)
+{
+	GetRecordData(&g_cellModemSetupRecord, 0, REC_CELL_MODEM_SETUP_TYPE);
+
+	// Check if the Cell Modem Setup Record is invalid
+	if (g_cellModemSetupRecord.invalid)
+	{
+		// Warn the user
+		debugWarn("Cell Modem setup record not found.\r\n");
+
+		// Initialize the Cell Modem Setup Record
+		LoadCellModemSetupRecordDefaults();
+
+		// Save the Cell Modem Setup Record
+		SaveRecordData(&g_cellModemSetupRecord, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
+	}
+	else
+	{
+#if EXTENDED_DEBUG
+		debug("Cell Modem Setup record is valid\r\n");
+#endif
+		ValidateCellModemSetupParameters();
 	}
 }
 
@@ -412,6 +442,11 @@ void InitSoftwareSettings_MS9300(void)
 	LoadModemSetupRecord();	debug("Modem Setup record loaded\r\n");
 
 	//-------------------------------------------------------------------------
+	// Load the Modem Setup Record
+	//-------------------------------------------------------------------------
+	LoadCellModemSetupRecord();	debug("Cell Modem Setup record loaded\r\n");
+
+	//-------------------------------------------------------------------------
 	// Add OnOff Log Timestamp
 	//-------------------------------------------------------------------------
 	AddOnOffLogTimestamp(ON); debug("On/Off Log timestamp appended\r\n");
@@ -431,6 +466,11 @@ void InitSoftwareSettings_MS9300(void)
 	// Init AutoDialout
 	//-------------------------------------------------------------------------
 	InitAutoDialout(); debug("Auto Dialout initialized\r\n");
+
+	//-------------------------------------------------------------------------
+	// Init AutoDialout
+	//-------------------------------------------------------------------------
+	InitTcpListenServer(); debug("TCP Listen Server initialized\r\n");
 
 	//-------------------------------------------------------------------------
 	// Init Monitor Log
