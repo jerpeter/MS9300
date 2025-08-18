@@ -29,6 +29,8 @@
 #include "Sensor.h"
 #include "stdlib.h"
 
+#include "mxc_errors.h"
+
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
@@ -628,7 +630,20 @@ extern uint32_t testLifetimeCurrentAvgCount;
 						clearedFSRecord = YES;
 					}
 
-					if (MessageBox(getLangText(CONFIRM_TEXT), getLangText(ERASE_ALL_NON_ESSENTIAL_SYSTEM_FILES_Q_TEXT), MB_YESNO) == MB_FIRST_CHOICE)
+					choice = MessageBox(getLangText(CONFIRM_TEXT), getLangText(ERASE_ALL_NON_ESSENTIAL_SYSTEM_FILES_Q_TEXT), MB_YESNO);
+
+					if (choice == MB_SPECIAL_ACTION)
+					{
+						if (MessageBox(getLangText(CONFIRM_TEXT), "RECREATE FAT FILE SYSTEM? WARNING: THIS WILL ERASE ALL CURRENT CONTENTS. REPLACED ESSENTIAL FILES AFTER.", MB_YESNO) == MB_FIRST_CHOICE)
+						{
+							if (CreateFilesystem_eMMCFlash() == E_SUCCESS)
+							{
+								InitEventNumberCache();
+								InitSummaryListFile();
+							}
+						}
+					}
+					else if (choice == MB_FIRST_CHOICE)
 					{
 						// Delete Non-Essential files
 						DeleteNonEssentialFiles();
