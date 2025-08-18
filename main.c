@@ -616,7 +616,8 @@ static uint8_t s_eventCount = 0;
 		g_powerButtonAction = 0;
 	}
 #endif
-#if 1 /* Test */
+
+#if 0 /* Test */
 extern uint8_t uart0BufferFull;
 extern uint32_t uart0BufferCount;
 extern uint8_t uart1BufferFull;
