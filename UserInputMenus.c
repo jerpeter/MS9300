@@ -21,6 +21,7 @@
 #include "RemoteHandler.h"
 #include "TextTypes.h"
 #include "Sensor.h"
+#include "PowerManagement.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -30,6 +31,7 @@
 ///	Externs
 ///----------------------------------------------------------------------------
 #include "Globals.h"
+extern USER_MENU_STRUCT adoServerPortMenu[];
 extern USER_MENU_STRUCT alarmTwoMenu[];
 extern USER_MENU_STRUCT alarmOneSeismicLevelMenu[];
 extern USER_MENU_STRUCT alarmOneAirLevelMenu[];
@@ -44,6 +46,7 @@ extern USER_MENU_STRUCT barChannelMenu[];
 extern USER_MENU_STRUCT barResultMenu[];
 extern USER_MENU_STRUCT barIntervalDataTypeMenu[];
 extern USER_MENU_STRUCT bitAccuracyMenu[];
+extern USER_MENU_STRUCT cellTcpServerMenu[];
 extern USER_MENU_STRUCT configMenu[];
 extern USER_MENU_STRUCT customCurveMenu[];
 extern USER_MENU_STRUCT distanceToSourceMenu[];
@@ -59,6 +62,8 @@ extern USER_MENU_STRUCT modemRetryTimeMenu[];
 extern USER_MENU_STRUCT modeMenu[];
 extern USER_MENU_STRUCT notesMenu[];
 extern USER_MENU_STRUCT operatorMenu[];
+extern USER_MENU_STRUCT pdnAuthProtocolMenu[];
+extern USER_MENU_STRUCT pdnPasswordMenu[];
 extern USER_MENU_STRUCT percentLimitTriggerMenu[];
 extern USER_MENU_STRUCT recalibrateMenu[];
 extern USER_MENU_STRUCT recordTimeMenu[];
@@ -83,6 +88,126 @@ extern USER_MENU_STRUCT weightPerDelayMenu[];
 
 //*****************************************************************************
 //=============================================================================
+// Access Point Name Menu
+//=============================================================================
+//*****************************************************************************
+#define ACCESS_POINT_NAME_MENU_ENTRIES 5
+#define MAX_ACCESS_POINT_NAME_CHARS 32
+USER_MENU_STRUCT accessPointNameMenu[ACCESS_POINT_NAME_MENU_ENTRIES] = {
+{ACCESS_POINT_NAME_TAG, 0, NULL_TEXT, NO_TAG,
+	{INSERT_USER_MENU_INFO(STRING_TYPE, ACCESS_POINT_NAME_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {MAX_ACCESS_POINT_NAME_CHARS}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
+{END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&AccessPointNameMenuHandler}}
+};
+
+//------------------------------
+// Access Point Name Menu Handler
+//------------------------------
+void AccessPointNameMenuHandler(uint8 keyPressed, void* data)
+{
+	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
+
+	if (keyPressed == ENTER_KEY)
+	{
+		strcpy((char*)(&g_cellModemSetupRecord.pdnApn), (char*)data);
+		debug("Access Point Name: <%s>, Length: %d\r\n", g_cellModemSetupRecord.pdnApn, strlen((char*)g_cellModemSetupRecord.pdnApn));
+
+		SETUP_USER_MENU_MSG(&pdnAuthProtocolMenu, g_cellModemSetupRecord.pdnAuthProtocol);
+	}
+	else if (keyPressed == ESC_KEY)
+	{
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryTimeMenu, &g_modemSetupRecord.retryTime,
+			MODEM_RETRY_TIME_DEFAULT_VALUE, MODEM_RETRY_TIME_MIN_VALUE, MODEM_RETRY_TIME_MAX_VALUE);
+	}
+
+	JUMP_TO_ACTIVE_MENU();
+}
+
+//*****************************************************************************
+//=============================================================================
+// ADO Server Menu
+//=============================================================================
+//*****************************************************************************
+#define ADO_SERVER_MENU_ENTRIES 5
+#define MAX_ADO_SERVER_CHARS 32
+USER_MENU_STRUCT adoServerMenu[ADO_SERVER_MENU_ENTRIES] = {
+{DIAL_OUT_SERVER_TAG, 0, NULL_TEXT, NO_TAG,
+	{INSERT_USER_MENU_INFO(STRING_TYPE, ADO_SERVER_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {MAX_ADO_SERVER_CHARS}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
+{END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&AdoServerMenuHandler}}
+};
+
+//------------------------
+// ADO Server Menu Handler
+//------------------------
+void AdoServerMenuHandler(uint8 keyPressed, void* data)
+{
+	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
+
+	if (keyPressed == ENTER_KEY)
+	{
+		strcpy((char*)(&g_cellModemSetupRecord.server), (char*)data);
+		debug("ADO Server: <%s>, Length: %d\r\n", g_cellModemSetupRecord.server, strlen((char*)g_cellModemSetupRecord.server));
+
+		if (strlen((char*)g_cellModemSetupRecord.server))
+		{
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&adoServerPortMenu, &g_cellModemSetupRecord.serverPort, ADO_SERVER_PORT_DEFAULT_VALUE, ADO_SERVER_PORT_MIN_VALUE, ADO_SERVER_PORT_MAX_VALUE);
+		}
+		else
+		{
+			SETUP_USER_MENU_MSG(&accessPointNameMenu, &g_cellModemSetupRecord.pdnApn);
+		}
+	}
+	else if (keyPressed == ESC_KEY)
+	{
+		SETUP_USER_MENU_MSG(&modemSetupMenu, g_modemSetupRecord.modemStatus);
+	}
+
+	JUMP_TO_ACTIVE_MENU();
+}
+
+//*****************************************************************************
+//=============================================================================
+// ADO Server Port Menu
+//=============================================================================
+//*****************************************************************************
+#define ADO_SERVER_PORT_MENU_ENTRIES 4
+USER_MENU_STRUCT adoServerPortMenu[ADO_SERVER_PORT_MENU_ENTRIES] = {
+{SERVER_PORT_TAG, 0, NULL_TEXT, NO_TAG,
+	{INSERT_USER_MENU_INFO(INTEGER_WORD_TYPE, ADO_SERVER_PORT_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(NO_TYPE, NO_ALT_TYPE)}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
+{END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&AdoServerPortMenuHandler}}
+};
+
+//---------------------------------------
+// ADO Server Port Menu Handler
+//---------------------------------------
+void AdoServerPortMenuHandler(uint8 keyPressed, void* data)
+{
+	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
+
+	if (keyPressed == ENTER_KEY)
+	{
+		g_cellModemSetupRecord.serverPort = *((uint16*)data);
+		debug("ADO Server Port: %d\r\n", g_cellModemSetupRecord.serverPort);
+
+		SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, g_modemSetupRecord.dialOutType);
+	}
+	else if (keyPressed == ESC_KEY)
+	{
+		SETUP_USER_MENU_MSG(&adoServerMenu, &g_cellModemSetupRecord.server);
+	}
+
+	JUMP_TO_ACTIVE_MENU();
+}
+
+//*****************************************************************************
+//=============================================================================
 // Air Trigger Menu
 //=============================================================================
 //*****************************************************************************
@@ -103,7 +228,7 @@ void AirTriggerMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_triggerRecord.trec.airTriggerLevel = AirTriggerConvert(*((uint32*)data));
 
 		if (g_triggerRecord.trec.airTriggerLevel == NO_TRIGGER_CHAR)
@@ -235,7 +360,7 @@ void AlarmOneSeismicLevelMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_unitConfig.alarmOneSeismicLevel = *((uint32*)data);
 		
 		if (g_unitConfig.alarmOneSeismicLevel == NO_TRIGGER_CHAR)
@@ -291,7 +416,7 @@ void AlarmOneAirLevelMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_unitConfig.alarmOneAirLevel = AirTriggerConvert(*((uint32*)data));
 		
 		debug("Alarm 1 Air Level: %d\r\n", g_unitConfig.alarmOneAirLevel);
@@ -341,7 +466,7 @@ void AlarmOneTimeMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_unitConfig.alarmOneTime = *((float*)data);
 		
 		debug("Alarm 1 Time: %f\r\n", (double)g_unitConfig.alarmOneTime);
@@ -396,7 +521,7 @@ void AlarmTwoSeismicLevelMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_unitConfig.alarmTwoSeismicLevel = *((uint32*)data);
 		
 		if (g_unitConfig.alarmTwoSeismicLevel == NO_TRIGGER_CHAR)
@@ -452,7 +577,7 @@ void AlarmTwoAirLevelMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_unitConfig.alarmTwoAirLevel = AirTriggerConvert(*((uint32*)data));
 		
 		debug("Alarm 2 Air Level: %d\r\n", g_unitConfig.alarmTwoAirLevel);
@@ -502,7 +627,7 @@ void AlarmTwoTimeMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_unitConfig.alarmTwoTime = *((float*)data);
 		
 		debug("Alarm 2 Time: %f\r\n", (double)g_unitConfig.alarmTwoTime);
@@ -560,7 +685,7 @@ void CompanyMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		strcpy((char*)(&g_triggerRecord.trec.client), (char*)data);
 		debug("Company: <%s>, Length: %d\r\n", g_triggerRecord.trec.client, strlen((char*)g_triggerRecord.trec.client));
 		
@@ -604,7 +729,7 @@ void CopiesMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_unitConfig.copies = *((uint8*)data);
 		debug("Battery Log Timer: %d\r\n", g_unitConfig.copies);
 
@@ -697,7 +822,7 @@ void DistanceToSourceMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_triggerRecord.trec.dist_to_source = *((float*)data);
 
 		if (g_unitConfig.unitsOfMeasure == METRIC_TYPE)
@@ -783,7 +908,7 @@ void LcdImpulseTimeMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_triggerRecord.berec.impulseMenuUpdateSecs = *((uint8*)data);
 
 		debug("LCD Impulse Menu Update Seconds: %d\r\n", g_triggerRecord.berec.impulseMenuUpdateSecs);
@@ -870,7 +995,7 @@ void LcdTimeoutMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_unitConfig.lcdTimeout = *((uint8*)data);
 
 		debug("LCD Timeout: %d\r\n", g_unitConfig.lcdTimeout);
@@ -911,7 +1036,7 @@ void ModemDialMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		strcpy((char*)(&g_modemSetupRecord.dial), (char*)data);
 		debug("Modem Dial: <%s>, Length: %d\r\n", g_modemSetupRecord.dial, strlen((char*)g_modemSetupRecord.dial));
 
@@ -961,7 +1086,11 @@ void ModemDialOutCycleTimeMenuHandler(uint8 keyPressed, void* data)
 	{
 		g_modemSetupRecord.dialOutCycleTime = *((uint16*)data);
 
+#if 0 /* Original */
 		SETUP_USER_MENU_MSG(&modemResetMenu, &g_modemSetupRecord.reset);
+#else
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryMenu, &g_modemSetupRecord.retries, MODEM_RETRY_DEFAULT_VALUE, MODEM_RETRY_MIN_VALUE, MODEM_RETRY_MAX_VALUE);
+#endif
 	}
 	else if (keyPressed == ESC_KEY)
 	{
@@ -996,7 +1125,7 @@ void ModemInitMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		strcpy((char*)(&g_modemSetupRecord.init), (char*)data);
 		debug("Modem Init: <%s>, Length: %d\r\n", g_modemSetupRecord.init, strlen((char*)g_modemSetupRecord.init));
 
@@ -1033,12 +1162,11 @@ void ModemResetMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		strcpy((char*)(&g_modemSetupRecord.reset), (char*)data);
 		debug("Modem Reset: <%s>, Length: %d\r\n", g_modemSetupRecord.reset, strlen((char*)g_modemSetupRecord.reset));
 
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryMenu, &g_modemSetupRecord.retries,
-			MODEM_RETRY_DEFAULT_VALUE, MODEM_RETRY_MIN_VALUE, MODEM_RETRY_MAX_VALUE);
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryMenu, &g_modemSetupRecord.retries, MODEM_RETRY_DEFAULT_VALUE, MODEM_RETRY_MIN_VALUE, MODEM_RETRY_MAX_VALUE);
 	}
 	else if (keyPressed == ESC_KEY)
 	{
@@ -1085,16 +1213,26 @@ void ModemRetryMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_modemSetupRecord.retries = *((uint8*)data);
 		debug("Modem Retries: %d\r\n", g_modemSetupRecord.retries);
 		
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryTimeMenu, &g_modemSetupRecord.retryTime,
-			MODEM_RETRY_TIME_DEFAULT_VALUE, MODEM_RETRY_TIME_MIN_VALUE, MODEM_RETRY_TIME_MAX_VALUE);
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryTimeMenu, &g_modemSetupRecord.retryTime, MODEM_RETRY_TIME_DEFAULT_VALUE, MODEM_RETRY_TIME_MIN_VALUE, MODEM_RETRY_TIME_MAX_VALUE);
 	}
 	else if (keyPressed == ESC_KEY)
 	{
+#if 0 /* Original */
 		SETUP_USER_MENU_MSG(&modemResetMenu, &g_modemSetupRecord.reset);
+#else
+		if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
+		{
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemDialOutCycleTimeMenu, &g_modemSetupRecord.dialOutCycleTime, MODEM_DIAL_OUT_TIMER_DEFAULT_VALUE, MODEM_DIAL_OUT_TIMER_MIN_VALUE, MODEM_DIAL_OUT_TIMER_MAX_VALUE);
+		}
+		else
+		{
+			SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, g_modemSetupRecord.dialOutType);
+		}
+#endif
 	}
 
 	JUMP_TO_ACTIVE_MENU();
@@ -1122,17 +1260,19 @@ void ModemRetryTimeMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_modemSetupRecord.retryTime = *((uint8*)data);
 		debug("Modem Retry Time: %d\r\n", g_modemSetupRecord.retryTime);
 		
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode,
-			UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+#if 0 /* Original */
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+#else /* Add in Cell Modem setup */
+		SETUP_USER_MENU_MSG(&accessPointNameMenu, &g_cellModemSetupRecord.pdnApn);
+#endif
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryMenu, &g_modemSetupRecord.retries,
-			MODEM_RETRY_DEFAULT_VALUE, MODEM_RETRY_MIN_VALUE, MODEM_RETRY_MAX_VALUE);
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryMenu, &g_modemSetupRecord.retries, MODEM_RETRY_DEFAULT_VALUE, MODEM_RETRY_MIN_VALUE, MODEM_RETRY_MAX_VALUE);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
@@ -1165,7 +1305,7 @@ void NotesMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		strcpy((char*)(&g_triggerRecord.trec.comments), (char*)data);
 		debug("Notes: <%s>, Length: %d\r\n", g_triggerRecord.trec.comments, strlen((char*)g_triggerRecord.trec.comments));
 
@@ -1205,7 +1345,7 @@ void OperatorMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		strcpy((char*)(&g_triggerRecord.trec.oper), (char*)data);
 		debug("Operator: <%s>, Length: %d\r\n", g_triggerRecord.trec.oper, strlen((char*)g_triggerRecord.trec.oper));
 
@@ -1255,6 +1395,89 @@ void OperatorMenuHandler(uint8 keyPressed, void* data)
 				DISTANCE_TO_SOURCE_DEFAULT_VALUE, DISTANCE_TO_SOURCE_INCREMENT_VALUE,
 				DISTANCE_TO_SOURCE_MIN_VALUE, DISTANCE_TO_SOURCE_MAX_VALUE);
 		}
+	}
+
+	JUMP_TO_ACTIVE_MENU();
+}
+
+//*****************************************************************************
+//=============================================================================
+// PDN Username Menu
+//=============================================================================
+//*****************************************************************************
+#define PDN_USERNAME_MENU_ENTRIES 5
+#define MAX_PDN_USERNAME_CHARS 32
+USER_MENU_STRUCT pdnUsernameMenu[PDN_USERNAME_MENU_ENTRIES] = {
+{PDN_USERNAME_TAG, 0, NULL_TEXT, NO_TAG,
+	{INSERT_USER_MENU_INFO(STRING_TYPE, PDN_USERNAME_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {MAX_PDN_USERNAME_CHARS}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
+{END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&PdnUsernameMenuHandler}}
+};
+
+//------------------------------
+// PDN Username Menu Handler
+//------------------------------
+void PdnUsernameMenuHandler(uint8 keyPressed, void* data)
+{
+	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
+
+	if (keyPressed == ENTER_KEY)
+	{
+		strcpy((char*)(&g_cellModemSetupRecord.pdnUsername), (char*)data);
+		debug("PDN Username: <%s>, Length: %d\r\n", g_cellModemSetupRecord.pdnUsername, strlen((char*)g_cellModemSetupRecord.pdnUsername));
+
+		SETUP_USER_MENU_MSG(&pdnPasswordMenu, &g_cellModemSetupRecord.pdnPassword);
+	}
+	else if (keyPressed == ESC_KEY)
+	{
+		SETUP_USER_MENU_MSG(&pdnAuthProtocolMenu, g_cellModemSetupRecord.pdnAuthProtocol);
+	}
+
+	JUMP_TO_ACTIVE_MENU();
+}
+
+//*****************************************************************************
+//=============================================================================
+// PDN Password Menu
+//=============================================================================
+//*****************************************************************************
+#define PDN_PASSWORD_MENU_ENTRIES 5
+#define MAX_PDN_PASSWORD_CHARS 32
+USER_MENU_STRUCT pdnPasswordMenu[PDN_PASSWORD_MENU_ENTRIES] = {
+{PDN_PASSWORD_TAG, 0, NULL_TEXT, NO_TAG,
+	{INSERT_USER_MENU_INFO(STRING_TYPE, PDN_PASSWORD_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {MAX_PDN_PASSWORD_CHARS}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
+{END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&PdnPasswordMenuHandler}}
+};
+
+//------------------------------
+// PDN Password Menu Handler
+//------------------------------
+void PdnPasswordMenuHandler(uint8 keyPressed, void* data)
+{
+	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
+
+	if (keyPressed == ENTER_KEY)
+	{
+		strcpy((char*)(&g_cellModemSetupRecord.pdnPassword), (char*)data);
+		debug("PDN Password: <%s>, Length: %d\r\n", g_cellModemSetupRecord.pdnPassword, strlen((char*)g_cellModemSetupRecord.pdnPassword));
+
+		if (strlen(g_cellModemSetupRecord.pdnApn))
+		{
+			SETUP_USER_MENU_MSG(&cellTcpServerMenu, g_cellModemSetupRecord.tcpServer);
+		}
+		else
+		{
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+		}
+	}
+	else if (keyPressed == ESC_KEY)
+	{
+		SETUP_USER_MENU_MSG(&pdnUsernameMenu, &g_cellModemSetupRecord.pdnUsername);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
@@ -1354,7 +1577,7 @@ void RecordTimeMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_triggerRecord.trec.record_time = *((uint32*)data);
 		debug("Record Time: %d\r\n", g_triggerRecord.trec.record_time);
 
@@ -1410,7 +1633,7 @@ void SaveRecordMenuHandler(uint8 keyPressed, void* data)
 	uint8 match = NO;
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		if (strlen((char*)data) != 0)
 		{
 			debug("Save Record Name: <%s>\r\n", (char*)data);
@@ -1518,7 +1741,7 @@ void SeismicLocationMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		strcpy((char*)(&g_triggerRecord.trec.loc), (char*)data);
 		debug("Seismic Location: <%s>, Length: %d\r\n", g_triggerRecord.trec.loc, strlen((char*)g_triggerRecord.trec.loc));
 
@@ -1555,7 +1778,7 @@ void SeismicTriggerMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_triggerRecord.trec.seismicTriggerLevel = *((uint32*)data);
 
 		if (g_triggerRecord.trec.seismicTriggerLevel == NO_TRIGGER_CHAR)
@@ -1619,7 +1842,7 @@ void SerialNumberMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		debug("Serial #: <%s>, Length: %d\r\n", (char*)data, strlen((char*)data));
 		strcpy((char*)g_factorySetupRecord.unitSerialNumber, (char*)data);
 
@@ -1690,6 +1913,42 @@ void StoredEventLimitMenuHandler(uint8 keyPressed, void* data)
 
 //*****************************************************************************
 //=============================================================================
+// TCP Server Listen Port Menu
+//=============================================================================
+//*****************************************************************************
+#define TCP_SERVER_LISTEN_PORT_MENU_ENTRIES 4
+USER_MENU_STRUCT tcpServerListenPortMenu[TCP_SERVER_LISTEN_PORT_MENU_ENTRIES] = {
+{LISTEN_SERVER_PORT_TAG, 0, NULL_TEXT, NO_TAG,
+	{INSERT_USER_MENU_INFO(INTEGER_WORD_TYPE, TCP_SERVER_LISTEN_PORT_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(NO_TYPE, NO_ALT_TYPE)}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
+{END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&TcpServerListenPortMenuHandler}}
+};
+
+//---------------------------------------
+// TCP Server Listen Port Menu Handler
+//---------------------------------------
+void TcpServerListenPortMenuHandler(uint8 keyPressed, void* data)
+{
+	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
+
+	if (keyPressed == ENTER_KEY)
+	{
+		g_cellModemSetupRecord.tcpServerListenPort = *((uint16*)data);
+		debug("TCP Server Listen Port: %d\r\n", g_cellModemSetupRecord.tcpServerListenPort);
+
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+	}
+	else if (keyPressed == ESC_KEY)
+	{
+		SETUP_USER_MENU_MSG(&cellTcpServerMenu, g_cellModemSetupRecord.tcpServer);
+	}
+
+	JUMP_TO_ACTIVE_MENU();
+}
+
+//*****************************************************************************
+//=============================================================================
 // Weight per Delay Menu
 //=============================================================================
 //*****************************************************************************
@@ -1710,7 +1969,7 @@ void WeightPerDelayMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_triggerRecord.trec.weight_per_delay = *((float*)data);
 
 		if (g_unitConfig.unitsOfMeasure == METRIC_TYPE)
@@ -1752,12 +2011,13 @@ void UnlockCodeMenuHandler(uint8 keyPressed, void* data)
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	
 	if (keyPressed == ENTER_KEY)
-	{	
+	{
 		g_modemSetupRecord.unlockCode = *((uint16*)data);
 
 		debug("Modem Unlock Code: %4d\r\n", g_modemSetupRecord.unlockCode);
 
 		SaveRecordData(&g_modemSetupRecord, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
+		SaveRecordData(&g_cellModemSetupRecord, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
 
 #if 0 /* Original */
 		if (READ_DCD == NO_CONNECTION)
@@ -1768,6 +2028,7 @@ void UnlockCodeMenuHandler(uint8 keyPressed, void* data)
 			CraftInitStatusFlags();
 		}
 
+#if 0 /* Original */
 		OverlayMessage(getLangText(STATUS_TEXT), "CHECKING FOR MODEM...", 0);
 		if (CheckforModem(6) == YES)
 		{
@@ -1792,21 +2053,83 @@ void UnlockCodeMenuHandler(uint8 keyPressed, void* data)
 
 				MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK);
 			}
-#endif
 		}
-		else { MessageBox(getLangText(STATUS_TEXT), "MODEM NOT FOUND. PLEASE CONNECT OR RESET IT.", MB_OK); }
+#endif
+#else /* Cell modem */
+		OverlayMessage(getLangText(STATUS_TEXT), "CHECKING FOR CELL MODEM...", 0);
+
+		// Check if the modem is current on, which means there's a chance of an active connection
+		if (GetPowerControlState(CELL_ENABLE) == ON)
+		{
+			ShutdownPdnAndCellModem();
+		}
+		PowerControl(LTE_RESET, ON);
+		PowerControl(CELL_ENABLE, OFF);
+
+		// Wait some time for the cell module to really power down
+		SoftUsecWait(5 * SOFT_SECS);
+
+		// Check for cell modem ready after making sure the cell module is powered off
+		if (CheckforModemReady(6) == YES)
+		{
+			OverlayMessage(getLangText(STATUS_TEXT), "MODEM FOUND.", (2 * SOFT_SECS));
+		}
+		else
+		{
+			MessageBox(getLangText(STATUS_TEXT), "MODEM NOT FOUND. PLEASE CONNECT OR RESET IT.", MB_OK);
+		}
+
+		if (g_cellModemSetupRecord.tcpServer == YES)
+		{
+			//OverlayMessage(getLangText(STATUS_TEXT), "CELL MODEM STARTNG LISTEN SERVER. PLEASE WAIT A MOMENT", (0 * SOFT_SECS));
+
+			debug("Cell/LTE: TCP server selected, setting timer to start in 5 seconds\r\n");
+			g_tcpServerStartStage = 1;
+			AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_SEC), TcpServerStartCallback);
+		}
+		else
+		{
+			debug("Cell/LTE: TCP server not selected\r\n");
+			ClearSoftTimer(TCP_SERVER_START_NUM);
+			g_tcpServerStartStage = 0;
+		}
+#endif
+		// Reset ADO state
+		g_autoDialoutState = IDLE_STATE;
 
 		if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
 		{
+			debug("Auto Dialout: Events/Config/Status selected, starting timer (set for %d minutes)\r\n", g_modemSetupRecord.dialOutCycleTime);
 			AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_modemSetupRecord.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
+		}
+		else // ADO Events only
+		{
+			ClearSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM);
 		}
 
 		SETUP_USER_MENU_MSG(&configMenu, DEFAULT_ITEM_1);
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryTimeMenu, &g_modemSetupRecord.retryTime,
-			MODEM_RETRY_TIME_DEFAULT_VALUE, MODEM_RETRY_TIME_MIN_VALUE, MODEM_RETRY_TIME_MAX_VALUE);
+		if (strlen(g_cellModemSetupRecord.pdnApn))
+		{
+			if (g_cellModemSetupRecord.tcpServer == YES)
+			{
+				SETUP_USER_MENU_MSG(&tcpServerListenPortMenu, &g_cellModemSetupRecord.tcpServerListenPort);
+			}
+			else
+			{
+				SETUP_USER_MENU_MSG(&cellTcpServerMenu, g_cellModemSetupRecord.tcpServer);
+			}
+		}
+		else if (g_cellModemSetupRecord.pdnAuthProtocol == AUTH_NONE)
+		{
+			SETUP_USER_MENU_MSG(&pdnAuthProtocolMenu, g_cellModemSetupRecord.pdnAuthProtocol);
+		}
+		else
+		{
+			SETUP_USER_MENU_MSG(&pdnPasswordMenu, &g_cellModemSetupRecord.pdnPassword);
+		}
 	}
 
 	JUMP_TO_ACTIVE_MENU();

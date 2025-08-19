@@ -32,8 +32,11 @@
 ///	Externs
 ///----------------------------------------------------------------------------
 #include "Globals.h"
+extern USER_MENU_STRUCT accessPointNameMenu[];
 extern USER_MENU_STRUCT acousticSensorTypeMenu[];
 extern USER_MENU_STRUCT adChannelVerificationMenu[];
+extern USER_MENU_STRUCT adoServerMenu[];
+extern USER_MENU_STRUCT adoServerPortMenu[];
 extern USER_MENU_STRUCT airTriggerMenu[];
 extern USER_MENU_STRUCT alarmOneMenu[];
 extern USER_MENU_STRUCT alarmTwoMenu[];
@@ -79,9 +82,13 @@ extern USER_MENU_STRUCT modemDialMenu[];
 extern USER_MENU_STRUCT modemDialOutCycleTimeMenu[];
 extern USER_MENU_STRUCT modemInitMenu[];
 extern USER_MENU_STRUCT modemResetMenu[];
+extern USER_MENU_STRUCT modemRetryMenu[];
 extern USER_MENU_STRUCT modemSetupMenu[];
 extern USER_MENU_STRUCT monitorLogMenu[];
 extern USER_MENU_STRUCT operatorMenu[];
+extern USER_MENU_STRUCT pdnAuthProtocolMenu[];
+extern USER_MENU_STRUCT pdnUsernameMenu[];
+extern USER_MENU_STRUCT pdnPasswordMenu[];
 extern USER_MENU_STRUCT peakAccMenu[];
 extern USER_MENU_STRUCT percentLimitTriggerMenu[];
 extern USER_MENU_STRUCT pretriggerSizeMenu[];
@@ -111,8 +118,10 @@ extern USER_MENU_STRUCT summaryIntervalMenu[];
 extern USER_MENU_STRUCT syncFileExistsMenu[];
 extern USER_MENU_STRUCT timerModeFreqMenu[];
 extern USER_MENU_STRUCT timerModeMenu[];
+extern USER_MENU_STRUCT tcpServerListenPortMenu[];
 extern USER_MENU_STRUCT unitsOfMeasureMenu[];
 extern USER_MENU_STRUCT unitsOfAirMenu[];
+extern USER_MENU_STRUCT unlockCodeMenu[];
 extern USER_MENU_STRUCT usbSyncModeMenu[];
 extern USER_MENU_STRUCT utcZoneOffsetMenu[];
 extern USER_MENU_STRUCT vectorSumMenu[];
@@ -1432,8 +1441,10 @@ void BaudRateMenuHandler(uint8 keyPressed, void* data)
 		debug("Baud menu: changing to Baud selection (%d)\r\n", g_unitConfig.baudRate);
 #endif
 #endif
-		ExpansionBridgeChangeBaud(g_unitConfig.baudRate);
 
+#if 0 /* Enable only when using the Expansion RS232 */
+		ExpansionBridgeChangeBaud(g_unitConfig.baudRate);
+#endif
 		SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
 
 		SETUP_USER_MENU_MSG(&configMenu, DEFAULT_ITEM_1);
@@ -1521,6 +1532,60 @@ void BitAccuracyMenuHandler(uint8 keyPressed, void* data)
 
 //*****************************************************************************
 //=============================================================================
+// Cell TCP Server
+//=============================================================================
+//*****************************************************************************
+#define CELL_TCP_SERVER_MENU_ENTRIES 4
+USER_MENU_STRUCT cellTcpServerMenu[CELL_TCP_SERVER_MENU_ENTRIES] = {
+{LISTEN_FOR_REMOTE_CONNECT_TAG, 0, NULL_TEXT, NO_TAG,
+	{INSERT_USER_MENU_INFO(SELECT_TYPE, CELL_TCP_SERVER_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
+{ITEM_1, 0, NULL_TEXT, NO_AUTO_DIALOUT_ONLY_TAG, {NO}},
+{ITEM_2, 0, NULL_TEXT, YES_KEEP_MODEM_ONLINE_TAG, {YES}},
+{END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&CellTcpServerMenuHandler}}
+};
+
+//-------------------------------
+// Cell TCP Server Menu Handler
+//-------------------------------
+void CellTcpServerMenuHandler(uint8 keyPressed, void* data)
+{
+	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
+	uint16 newItemIndex = *((uint16*)data);
+
+	if (keyPressed == ENTER_KEY)
+	{
+		g_cellModemSetupRecord.tcpServer = (uint8)cellTcpServerMenu[newItemIndex].data;
+
+#if 0 /* Original */
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+#else
+		if (g_cellModemSetupRecord.tcpServer == YES)
+		{
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&tcpServerListenPortMenu, &g_cellModemSetupRecord.tcpServerListenPort, TCP_SERVER_LISTEN_PORT_DEFAULT_VALUE, TCP_SERVER_LISTEN_PORT_MIN_VALUE, TCP_SERVER_LISTEN_PORT_MAX_VALUE);
+		}
+		else
+		{
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+		}
+#endif
+	}
+	else if (keyPressed == ESC_KEY)
+	{
+		if (g_cellModemSetupRecord.pdnAuthProtocol == AUTH_NONE)
+		{
+			SETUP_USER_MENU_MSG(&pdnAuthProtocolMenu, g_cellModemSetupRecord.pdnAuthProtocol);
+		}
+		else
+		{
+			SETUP_USER_MENU_MSG(&pdnPasswordMenu, &g_cellModemSetupRecord.pdnPassword);
+		}
+	}
+
+	JUMP_TO_ACTIVE_MENU();
+}
+
+//*****************************************************************************
+//=============================================================================
 // Config Menu
 //=============================================================================
 //*****************************************************************************
@@ -1538,6 +1603,9 @@ USER_MENU_STRUCT configMenu[CONFIG_MENU_ENTRIES] = {
 {NO_TAG, 0, NULL_TEXT,			BATTERY_LOG_TAG, {BATTERY_LOG_TIMER}},
 {NO_TAG, 0, BAUD_RATE_TEXT,				NO_TAG, {BAUD_RATE}},
 {NO_TAG, 0, CALIBRATION_DATE_TEXT,		NO_TAG, {CALIBRATION_DATE}},
+#if 1 /* Rename of Modem Setup */
+{NO_TAG, 0, NULL_TEXT,		CELL_MODEM_SETUP_TAG, {MODEM_SETUP}},
+#endif
 {NO_TAG, 0, CHAN_VERIFICATION_TEXT,		NO_TAG, {CHANNEL_VERIFICATION}},
 {NO_TAG, 0, CYCLE_END_TIME_24HR_TEXT,	NO_TAG, {CYCLE_END_TIME_HOUR}},
 {NO_TAG, 0, DATE_TIME_TEXT,				NO_TAG, {DATE_TIME}},
@@ -1553,7 +1621,9 @@ USER_MENU_STRUCT configMenu[CONFIG_MENU_ENTRIES] = {
 #if 1 /* New */
 {NO_TAG, 0, LEGACY_DQM_LIMIT_TEXT,		NO_TAG, {LEGACY_DQM_LIMIT}},
 #endif
+#if 0 /* Original */
 {NO_TAG, 0, MODEM_SETUP_TEXT,			NO_TAG, {MODEM_SETUP}},
+#endif
 {NO_TAG, 0, MONITOR_LOG_TEXT,			NO_TAG, {MONITOR_LOG}},
 {NO_TAG, 0, PRETRIGGER_SIZE_TEXT,		NO_TAG, {PRETRIGGER_SIZE}},
 {NO_TAG, 0, RS232_POWER_SAVINGS_TEXT,	NO_TAG, {RS232_POWER_SAVINGS}},
@@ -1620,7 +1690,7 @@ void ConfigMenuHandler(uint8 keyPressed, void* data)
 			break;
 
 			case (BATTERY_LOG_TIMER):
-				SETUP_USER_MENU_FOR_INTEGERS_MSG(&copiesMenu, &g_unitConfig.copies, 5, 1, 255);
+				SETUP_USER_MENU_FOR_INTEGERS_MSG(&copiesMenu, &g_unitConfig.copies, 5, 0, 255);
 			break;
 
 			case (BAUD_RATE):
@@ -1702,6 +1772,23 @@ void ConfigMenuHandler(uint8 keyPressed, void* data)
 			break;
 
 			case (MODEM_SETUP):
+				if (g_autoDialoutState == AUTO_DIAL_ACTIVE)
+				{
+					if (MessageBox(getLangText(WARNING_TEXT), "AUTO DIALOUT IS CURRENTLY ACTIVE. CONTINUE WITH CELL MODEM SETUP?", MB_YESNO) == MB_SECOND_CHOICE)
+					{
+						SETUP_USER_MENU_MSG(&configMenu, MODEM_SETUP);
+						break;
+					}
+				}
+				else if (g_modemStatus.remoteConnectionActive == YES)
+				{
+					if (MessageBox(getLangText(WARNING_TEXT), "A REMOTE CONNECTION IS CURRENTLY ACTIVE. CONTINUE WITH CELL MODEM SETUP?", MB_YESNO) == MB_SECOND_CHOICE)
+					{
+						SETUP_USER_MENU_MSG(&configMenu, MODEM_SETUP);
+						break;
+					}
+				}
+
 				SETUP_USER_MENU_MSG(&modemSetupMenu, g_modemSetupRecord.modemStatus);
 			break;
 
@@ -2341,7 +2428,7 @@ void HardwareIDMenuHandler(uint8 keyPressed, void* data)
 // Help Menu
 //=============================================================================
 //*****************************************************************************
-#define HELP_MENU_ENTRIES 9
+#define HELP_MENU_ENTRIES 10
 USER_MENU_STRUCT helpMenu[HELP_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, HELP_MENU_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, HELP_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
@@ -2356,6 +2443,7 @@ USER_MENU_STRUCT helpMenu[HELP_MENU_ENTRIES] = {
 {ITEM_5, 0, CHECK_SUMMARY_FILE_TEXT,	NO_TAG, {CHECK_SUMMARY_FILE_CHOICE}},
 {ITEM_6, 0, NULL_TEXT,					DUMP_BATTERY_LOG_TAG, {TESTING_CHOICE}},
 {ITEM_7, 0, NULL_TEXT,					FCC_TEST_ALL_TAG, {FCC_TESTING_CHOICE}},
+{ITEM_7, 0, NULL_TEXT,					CELL_UART_RESET_TAG, {CELL_UART_RESET_CHOICE}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&HelpMenuHandler}}
 };
 
@@ -2437,17 +2525,18 @@ extern void DumpBatteryLog(void);
 			SmartSensorTest();
 #endif
 		}
-		else // FCC_TESTING_CHOICE
+		else if (helpMenu[newItemIndex].data == FCC_TESTING_CHOICE)
 		{
+#if 0 /* Original */
 			if(GetPowerControlState(CELL_ENABLE) == OFF)
 			{
 				debug("Cell/LTE: Powering section...\r\n");
 				PowerControl(CELL_ENABLE, ON);
 			}
-
-			debug("FCC Testing All: Setting up Combo Mode 8K sampling with Auto Trigger timer...\r\n");
+#endif
+			debug("FCC Testing All: Setting up Combo Mode 4K sampling with Auto Trigger timer...\r\n");
 			g_triggerRecord.opMode = COMBO_MODE;
-			g_triggerRecord.trec.sample_rate = SAMPLE_RATE_8K;
+			g_triggerRecord.trec.sample_rate = SAMPLE_RATE_4K;
 			g_triggerRecord.trec.samplingMethod = FIXED_SAMPLING;
 			g_triggerRecord.srec.sensitivity = LOW;
 			g_triggerRecord.trec.dist_to_source = 0;
@@ -2471,12 +2560,28 @@ extern void DumpBatteryLog(void);
 
 			if (CheckAndDisplayErrorThatPreventsMonitoring(PROMPT) == NO)
 			{
-				MessageBox(getLangText(STATUS_TEXT), "STARTING COMBO 8K WITH AUTO EVENT GENERATION, CELL ENABLED", MB_OK);
+				MessageBox(getLangText(STATUS_TEXT), "STARTING COMBO 4K WITH AUTO EVENT GENERATION, CELL ENABLED", MB_OK);
 
-				AssignSoftTimer(AUTO_EVENT_GENERATION_NUM, (1 * TICKS_PER_MIN), AutoEventGenerationCallback);
+				AssignSoftTimer(AUTO_EVENT_GENERATION_NUM, (20 * TICKS_PER_MIN), AutoEventGenerationCallback);
 
 				// Safe to enter monitor mode
 				SETUP_MENU_WITH_DATA_MSG(MONITOR_MENU, (uint32)g_triggerRecord.opMode);
+			}
+		}
+		else if (helpMenu[newItemIndex].data == CELL_UART_RESET_CHOICE)
+		{
+			if (MessageBox(getLangText(STATUS_TEXT), "RESET CELL MODEM RECEIVE UART (UART0)?", MB_YESNO) == MB_FIRST_CHOICE)
+			{
+extern void SetupCellModuleRxUART(void);
+				SetupCellModuleRxUART();
+				OverlayMessage(getLangText(STATUS_TEXT), "UART0 RESET DONE", (1 * SOFT_SECS));
+			}
+
+			if (MessageBox(getLangText(STATUS_TEXT), "RESET CELL MODEM TRANSMIT UART (UART1)?", MB_YESNO) == MB_FIRST_CHOICE)
+			{
+extern void SetupCellModuleTxUART(void);
+				SetupCellModuleTxUART();
+				OverlayMessage(getLangText(STATUS_TEXT), "UART1 RESET DONE", (1 * SOFT_SECS));
 			}
 		}
 	}
@@ -2509,7 +2614,7 @@ void InfoMenuHandler(uint8 keyPressed, void* data)
 {
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	//uint16 newItemIndex = *((uint16*)data);
-	UNUSED(data);	
+	UNUSED(data);
 
 	if (keyPressed == ENTER_KEY)
 	{
@@ -2765,12 +2870,20 @@ void ModemDialOutTypeMenuHandler(uint8 keyPressed, void* data)
 		}
 		else
 		{
+#if 0 /* Original */
 			SETUP_USER_MENU_MSG(&modemResetMenu, &g_modemSetupRecord.reset);
+#else
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryMenu, &g_modemSetupRecord.retries, MODEM_RETRY_DEFAULT_VALUE, MODEM_RETRY_MIN_VALUE, MODEM_RETRY_MAX_VALUE);
+#endif
 		}
 	}
 	else if (keyPressed == ESC_KEY)
 	{
+#if 0 /* Original */
 		SETUP_USER_MENU_MSG(&modemDialMenu, &g_modemSetupRecord.dial);
+#else
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&adoServerPortMenu, &g_cellModemSetupRecord.serverPort, ADO_SERVER_PORT_DEFAULT_VALUE, ADO_SERVER_PORT_MIN_VALUE, ADO_SERVER_PORT_MAX_VALUE);
+#endif
 	}
 
 	JUMP_TO_ACTIVE_MENU();
@@ -2783,8 +2896,13 @@ void ModemDialOutTypeMenuHandler(uint8 keyPressed, void* data)
 //*****************************************************************************
 #define MODEM_SETUP_MENU_ENTRIES 4
 USER_MENU_STRUCT modemSetupMenu[MODEM_SETUP_MENU_ENTRIES] = {
+#if 0 /* Original */
 {TITLE_PRE_TAG, 0, MODEM_SETUP_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, MODEM_SETUP_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
+#else
+{CELL_MODEM_SETUP_TAG, 0, NULL_TEXT, NO_TAG,
+	{INSERT_USER_MENU_INFO(SELECT_TYPE, MODEM_SETUP_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
+#endif
 {ITEM_1, 0, YES_TEXT,	NO_TAG, {YES}},
 {ITEM_2, 0, NO_TEXT,	NO_TAG, {NO}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&ModemSetupMenuHandler}}
@@ -2804,7 +2922,11 @@ void ModemSetupMenuHandler(uint8 keyPressed, void* data)
 
 		if (g_modemSetupRecord.modemStatus == YES)
 		{
+#if 0 /* Original */
 			SETUP_USER_MENU_MSG(&modemInitMenu, &g_modemSetupRecord.init);
+#else
+			SETUP_USER_MENU_MSG(&adoServerMenu, &g_cellModemSetupRecord.server);
+#endif
 			if (g_modemStatus.systemIsLockedFlag == NO) { AssignSoftTimer(SYSTEM_LOCK_TIMER_NUM, REMOTE_SYSTEM_LOCK_TIMEOUT, SystemLockTimerCallback); }
 		}
 		else // Modem Setup is NO
@@ -2820,6 +2942,18 @@ void ModemSetupMenuHandler(uint8 keyPressed, void* data)
 			g_modemStatus.ringIndicator = 0;
 
 			ClearSoftTimer(SYSTEM_LOCK_TIMER_NUM);
+
+			ClearSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM);
+			ClearSoftTimer(TCP_SERVER_START_NUM);
+			g_autoDialoutState = IDLE_STATE;
+			g_tcpServerStartStage = 0;
+
+			if (GetPowerControlState(CELL_ENABLE) == ON)
+			{
+				ShutdownPdnAndCellModem();
+				PowerControl(LTE_RESET, ON);
+				PowerControl(CELL_ENABLE, OFF);
+			}
 
 			SaveRecordData(&g_modemSetupRecord, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
 			SETUP_USER_MENU_MSG(&configMenu, DEFAULT_ITEM_1);
@@ -2874,6 +3008,52 @@ void MonitorLogMenuHandler(uint8 keyPressed, void* data)
 	else if (keyPressed == ESC_KEY)
 	{
 		SETUP_USER_MENU_MSG(&configMenu, MONITOR_LOG);
+	}
+
+	JUMP_TO_ACTIVE_MENU();
+}
+
+//*****************************************************************************
+//=============================================================================
+// PDN Auth Protocol Menu
+//=============================================================================
+//*****************************************************************************
+#define PDN_AUTH_PROTOCOL_MENU_ENTRIES 5
+USER_MENU_STRUCT pdnAuthProtocolMenu[PDN_AUTH_PROTOCOL_MENU_ENTRIES] = {
+{PDN_AUTH_PROTOCOL_TAG, 0, NULL_TEXT, NO_TAG,
+	{INSERT_USER_MENU_INFO(SELECT_TYPE, PDN_AUTH_PROTOCOL_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
+// 0(None), 1(PAP), 2(CHAP)
+{ITEM_1, 0, NULL_TEXT,	AUTH_NONE_TAG, {AUTH_NONE}},
+{ITEM_2, 0, NULL_TEXT,	AUTH_PAP_TAG, {AUTH_PAP}},
+{ITEM_3, 0, NULL_TEXT,	AUTH_CHAP_TAG, {AUTH_CHAP}},
+{END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&PdnAuthProtocolMenuHandler}}
+};
+
+//-------------------------
+// PDN Auth Protocol Menu Handler
+//-------------------------
+void PdnAuthProtocolMenuHandler(uint8 keyPressed, void* data)
+{
+	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
+	uint16 newItemIndex = *((uint16*)data);
+
+	if (keyPressed == ENTER_KEY)
+	{
+		g_cellModemSetupRecord.pdnAuthProtocol = (uint8)pdnAuthProtocolMenu[newItemIndex].data;
+		debug("PDN Auth Protocol: %d\r\n", g_cellModemSetupRecord.pdnAuthProtocol);
+
+		if (g_cellModemSetupRecord.pdnAuthProtocol == AUTH_NONE)
+		{
+			SETUP_USER_MENU_MSG(&cellTcpServerMenu, g_cellModemSetupRecord.tcpServer);
+		}
+		else // Setup Username and Password
+		{
+			SETUP_USER_MENU_MSG(&pdnUsernameMenu, &g_cellModemSetupRecord.pdnUsername);
+		}
+	}
+	else if (keyPressed == ESC_KEY)
+	{
+		SETUP_USER_MENU_MSG(&accessPointNameMenu, &g_cellModemSetupRecord.pdnApn);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
