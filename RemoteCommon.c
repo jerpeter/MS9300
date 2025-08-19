@@ -746,17 +746,6 @@ void AutoDialoutStateMachine(void)
 				// Advance to Connected state
 				g_autoDialoutState = AUTO_DIAL_CONNECTED;
 			}
-			// Check if the TCP Client failed to connect to the server
-			else if (g_modemStatus.remoteResponse == TCP_CLIENT_NOT_CONNECTED)
-			{
-				// Retry server connection
-#if 0 /* Normal */
-				debug("AT#XTCPCLI=1,\"ONLINE.NOMIS.COM\",8005...\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPCLI=1,\"ONLINE.NOMIS.COM\",8005\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-#else /* Test */
-				debug("AT#XTCPCLI=1,\"%s\",%d...\r\n", g_cellModemSetupRecord.server, g_cellModemSetupRecord.serverPort);
-				sprintf((char*)g_spareBuffer, "AT#XTCPCLI=1,\"%s\",%d\r\n", g_cellModemSetupRecord.server, g_cellModemSetupRecord.serverPort); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-#endif
-			}
 			// Check if the timer has surpassed 1 minute
 			else if ((g_lifetimeHalfSecondTickCount - timer) > (1 * TICKS_PER_MIN))
 			{
@@ -772,6 +761,18 @@ void AutoDialoutStateMachine(void)
 #else
 				// Advance to Modem Reset state
 				g_autoDialoutState = AUTO_DIAL_RESET;
+#endif
+			}
+			// Check if the TCP Client failed to connect to the server
+			else if (g_modemStatus.remoteResponse == TCP_CLIENT_NOT_CONNECTED)
+			{
+				g_modemStatus.remoteResponse = NO_RESPONSE;
+				// Retry server connection
+#if 0 /* Normal */
+				debug("AT#XTCPCLI=1,\"ONLINE.NOMIS.COM\",8005...\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPCLI=1,\"ONLINE.NOMIS.COM\",8005\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+#else /* Test */
+				debug("AT#XTCPCLI=1,\"%s\",%d...\r\n", g_cellModemSetupRecord.server, g_cellModemSetupRecord.serverPort);
+				sprintf((char*)g_spareBuffer, "AT#XTCPCLI=1,\"%s\",%d\r\n", g_cellModemSetupRecord.server, g_cellModemSetupRecord.serverPort); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 #endif
 			}
 		break;
