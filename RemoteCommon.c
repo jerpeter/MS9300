@@ -684,17 +684,25 @@ void AutoDialoutStateMachine(void)
 				CellConnectStatsUpdate();
 				debug("ADO: Cell network connect time was %d seconds (Avg: %d)\r\n", GetCellConnectStatsLastConenct(), GetCellConnectStatsAverage());
 #endif
-#if 0 /* Normal */
-				debug("AT#XTCPCLI=1,\"ONLINE.NOMIS.COM\",8005...\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPCLI=1,\"ONLINE.NOMIS.COM\",8005\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-#else /* Test */
 				debug("AT#XTCPCLI=1,\"%s\",%d...\r\n", g_cellModemSetupRecord.server, g_cellModemSetupRecord.serverPort);
 				sprintf((char*)g_spareBuffer, "AT#XTCPCLI=1,\"%s\",%d\r\n", g_cellModemSetupRecord.server, g_cellModemSetupRecord.serverPort); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-#endif
+
 				// Update timer to current tick count
 				timer = g_lifetimeHalfSecondTickCount;
 
 				// Advance to Connecting state
 				g_autoDialoutState = AUTO_DIAL_CONNECTING;
+			}
+			else if (GetCurrentCellConnectTime() > CELL_NETWORK_CONNECT_TIMEOUT)
+			{
+				// Couldn't find a cell network to attach/register, give up and retry later
+				debugWarn("ADO: Failed to find cell network\r\n");
+
+				// Update timer to current tick count
+				timer = g_lifetimeHalfSecondTickCount;
+
+				// Advance to Retry state
+				g_autoDialoutState = AUTO_DIAL_RETRY;
 			}
 			else if (g_lifetimeHalfSecondTickCount == timer)
 			{
@@ -750,7 +758,7 @@ void AutoDialoutStateMachine(void)
 			else if ((g_lifetimeHalfSecondTickCount - timer) > (1 * TICKS_PER_MIN))
 			{
 				// Couldn't establish a connection, give up and retry later
-				debug("ADO: Failed to find connection\r\n");
+				debugWarn("ADO: Failed to find connection\r\n");
 
 				// Update timer to current tick count
 				timer = g_lifetimeHalfSecondTickCount;
@@ -767,13 +775,10 @@ void AutoDialoutStateMachine(void)
 			else if (g_modemStatus.remoteResponse == TCP_CLIENT_NOT_CONNECTED)
 			{
 				g_modemStatus.remoteResponse = NO_RESPONSE;
+
 				// Retry server connection
-#if 0 /* Normal */
-				debug("AT#XTCPCLI=1,\"ONLINE.NOMIS.COM\",8005...\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPCLI=1,\"ONLINE.NOMIS.COM\",8005\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-#else /* Test */
 				debug("AT#XTCPCLI=1,\"%s\",%d...\r\n", g_cellModemSetupRecord.server, g_cellModemSetupRecord.serverPort);
 				sprintf((char*)g_spareBuffer, "AT#XTCPCLI=1,\"%s\",%d\r\n", g_cellModemSetupRecord.server, g_cellModemSetupRecord.serverPort); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-#endif
 			}
 		break;
 
@@ -1002,7 +1007,7 @@ void AutoDialoutStateMachine(void)
 				}
 				debug("AT+CEREG?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CEREG?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 #if 1 /* Test */
-				g_cellConnectStats[0] = g_lifetimeHalfSecondTickCount;
+				SetStartCellConnectTime();
 #endif
 #endif
 				// Start back at Init state
