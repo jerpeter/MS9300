@@ -58,7 +58,7 @@ typedef enum
 #define LED_1_BIT							(1 << LED_1)
 #define LED_2_BIT							(1 << LED_2) // 21st bit
 
-#if 1 /* Original 6600 mAh Battery pack */
+#if 0 /* Original 6600 mAh Battery pack */
 #define BATTERY_PACK_SINGLE_CAPACITY	6600 // mAh
 #define BATTERY_PACK_DOUBLE_CAPACITY	13200 // mAh
 #define BATTERY_PACK_SINGLE_STANDARD_CURRENT	1320 // mA
