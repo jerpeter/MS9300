@@ -851,33 +851,29 @@ void HandleCycleChangeEvent(void)
 		HandleManualCalibration();
 	}
 
-	// Check if Auto Dialout processing is not active
-	if (g_autoDialoutState == AUTO_DIAL_IDLE)
+	// Check if Auto Dialout state machine is idle and ADO doesn't have any connections during the day
+	if ((g_autoDialoutState == AUTO_DIAL_IDLE) && (__autoDialoutTbl.currentCycleConnects == 0))
 	{
-#if 0 /* Original */
-		// At cycle change reset the modem (to better handle problems with USR modems)
-		g_autoRetries = 0;
-		ModemResetProcess();
-#else /* New AutoDialOut Config/Status if no events during the day */
-		// Check if Auto Dial Out in Events only mode and no active connections during the current cycle
-		if ((g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_ONLY) && (__autoDialoutTbl.currentCycleConnects == 0))
+		// Attempt an ADO for once a day status in case of no events
+		if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_ONLY)
 		{
 			if (CheckAutoDialoutStatusAndFlagIfAvailable() == YES)
 			{
 				// Set current cycle connections to a special 0xFFFF so that incrementing by 1 will leave this zero, excluding this call out from counting in the current cycle stats
 				__autoDialoutTbl.currentCycleConnects = 0xFFFF;
 			}
+			else // Catch all for either ADO Events only not being able to start (not changing current cycle connects) or ADO Events/Config/Status not making any calls out during the day
+			{
+				// Some sort of problem preventing ADO from running successfully, try a modem reset
+				g_autoRetries = 0;
+				ModemResetProcess();
+			}
 		}
-		else
-		{
-			// Reset current day number of connections
-			__autoDialoutTbl.currentCycleConnects = 0;
-
-			// At cycle change reset the modem (to better handle problems with USR modems)
-			g_autoRetries = 0;
-			ModemResetProcess();
-		}
-#endif
+	}
+	else // ADO made connections during the day
+	{
+		// Reset current day number of connections
+		__autoDialoutTbl.currentCycleConnects = 0;
 	}
 }
 
