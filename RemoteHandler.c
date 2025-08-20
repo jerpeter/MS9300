@@ -249,6 +249,17 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 					g_modemStatus.remoteResponse = MODEM_CELL_NETWORK_REGISTERED;
 					debug("RCMH: Modem Roaming network registered\r\n");
 				}
+				else if (strncmp(MODEM_UNKNOWN_NETWORK, (char*)&cmdMsg->msg[0], 11) == 0)
+				{
+					g_modemStatus.remoteResponse = UNKNOWN_NETWORK_RESPONSE;
+					debug("RCMH: Unknown network, searching for coverage... (%d)\r\n", GetCurrentCellConnectTime());
+				}
+				else if (strncmp(MODEM_NOT_REGISTERED_NETWORK, (char*)&cmdMsg->msg[0], 11) == 0)
+				{
+					g_modemStatus.remoteResponse = NOT_REGISTERED_RESPONSE;
+					if (strlen((char*)&cmdMsg->msg[0]) < 13) { debug("RCMH: Not registered, attaching to operator (no TAC)... (%d)\r\n", GetCurrentCellConnectTime()); }
+					else { debug("RCMH: Not registered, attaching to operator (TAC/Cell: %s)... (%d)\r\n", (char*)&cmdMsg->msg[12], GetCurrentCellConnectTime()); }
+				}
 				else if (strncmp(CMDMODE_CMD_STRING, (char*)&cmdMsg->msg[0], 3) == 0)
 				{
 					g_modemStatus.remoteResponse = TCP_CLIENT_DISCONNECT;
