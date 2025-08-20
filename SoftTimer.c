@@ -850,7 +850,7 @@ void TcpServerStartCallback(void)
 			AssignSoftTimer(TCP_SERVER_START_NUM, (1 * TICKS_PER_SEC), TcpServerStartCallback);
 		}
 		// Check if the current cell connect time is greater than 10 minutes (600 seconds)
-		else if (GetCurrentCellConnectTime() > (600))
+		else if (GetCurrentCellConnectTime() > CELL_NETWORK_CONNECT_TIMEOUT)
 		{
 			// Reset state
 			g_tcpServerStartStage = 0;
@@ -861,7 +861,7 @@ void TcpServerStartCallback(void)
 			PowerControl(CELL_ENABLE, OFF);
 
 			// Try TCP Server again after a delay
-			debug("TCP Server: No cell network connection found after 10 minutes, retrying after delay\r\n");
+			debugWarn("TCP Server: No cell network connection found after 10 minutes, retrying after delay\r\n");
 			AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_MIN), TcpServerStartCallback);
 		}
 		else
