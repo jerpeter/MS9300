@@ -4436,7 +4436,7 @@ void ValidatePowerOn(void)
 		MXC_GPIO_OutSet(GPIO_USB_AUX_POWER_ENABLE_PORT, GPIO_USB_AUX_POWER_ENABLE_PIN); // Enable
 
 		ft81x_init();
-		ft81x_NomisChargingScreen();
+		ft81x_NomisChargingScreen(NO);
 
 		// Test delay before I2C startup since it starts with some failures
 		SoftUsecWait(50 * SOFT_MSECS);
@@ -4452,7 +4452,9 @@ void ValidatePowerOn(void)
 		FuelGaugeInit();
 		BatteryChargerInit();
 
-		SoftUsecWait(1 * SOFT_SECS);
+		ft81x_NomisChargingScreen(YES);
+
+		SoftUsecWait(3 * SOFT_SECS);
 		PowerControl(LCD_POWER_DOWN, ON);
 		PowerControl(LCD_POWER_ENABLE, OFF);
 
@@ -4493,9 +4495,18 @@ void ValidatePowerOn(void)
 					// Break the While loop and proceed with unit startup
 					break;
 				}
+				else
+				{
+					ft81x_init();
+					ft81x_NomisChargingScreen(YES);
+					SoftUsecWait(3 * SOFT_SECS);
+					PowerControl(LCD_POWER_DOWN, ON);
+					PowerControl(LCD_POWER_ENABLE, OFF);
+				}
 			}
 
-			if (g_lifetimeHalfSecondTickCount == timer)
+			// Check if cyclic timer has surpassed
+			if (g_lifetimeHalfSecondTickCount >= timer)
 			{
 				timer = g_lifetimeHalfSecondTickCount + 8;
 				PowerControl(LED_2, ON);
