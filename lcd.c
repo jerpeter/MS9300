@@ -2044,7 +2044,7 @@ void ft81x_NomisLoadScreen(void)
 	ft81x_wait_finish();
 }
 
-void ft81x_NomisChargingScreen(void)
+void ft81x_NomisChargingScreen(uint8 batteryStats)
 {
 	ft81x_stream_start(); // Start streaming
 	ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
@@ -2055,12 +2055,21 @@ void ft81x_NomisChargingScreen(void)
 	ft81x_fgcolor_rgb32(0xffffff); // White
 
 	// Startup text
-	ft81x_cmd_text((FT81X_DISPLAY_WIDTH / 2), (FT81X_DISPLAY_HEIGHT / 4), 31, OPT_CENTER, "NOMIS SEISMOGRAPHS");
-	ft81x_cmd_text((FT81X_DISPLAY_WIDTH / 2), (FT81X_DISPLAY_HEIGHT / 3), 31, OPT_CENTER, "MS-9300");
-	ft81x_cmd_text((FT81X_DISPLAY_WIDTH / 2), (FT81X_DISPLAY_HEIGHT / 5 * 3), 25, OPT_CENTER, "Charging detected...");
+	ft81x_cmd_text((FT81X_DISPLAY_WIDTH / 2), (FT81X_DISPLAY_HEIGHT / 4), 31, OPT_CENTER, "NOMIS SEISMOGRAPHS"); // Heigth 120
+	ft81x_cmd_text((FT81X_DISPLAY_WIDTH / 2), (FT81X_DISPLAY_HEIGHT / 3), 31, OPT_CENTER, "MS-9300"); // Heigth 160
+	ft81x_cmd_text((FT81X_DISPLAY_WIDTH / 2), (FT81X_DISPLAY_HEIGHT / 5 * 3), 25, OPT_CENTER, "Charging detected..."); // Heigth 288
+
+	if (batteryStats)
+	{
+		int vVal = FuelGaugeGetVoltage();
+		int cVal = FuelGaugeGetCurrent();
+		int tVal = FuelGaugeGetTemperature();
+		sprintf((char*)g_debugBuffer, "Battery: %0.3fV, %dmA, %dF", (double)((float)vVal / 1000), (cVal / 1000), tVal);
+		ft81x_cmd_text((FT81X_DISPLAY_WIDTH / 2), 220, 25, OPT_CENTER, (char*)g_debugBuffer); // Heigth 220
+	}
 
 	// Spinner
-	ft81x_cmd_spinner(FT81X_DISPLAY_WIDTH / 2, 380, 3, 0);
+	ft81x_cmd_spinner(FT81X_DISPLAY_WIDTH / 2, 380, 3, 0); // Heigth 380
 
 	ft81x_display();
 	ft81x_cmd_swap();	 // Set AUTO swap at end of display list
