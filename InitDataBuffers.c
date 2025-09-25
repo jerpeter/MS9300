@@ -167,6 +167,14 @@ void InitDataBuffs(uint8 opMode)
 		// Get the total size (in words) needed for caching the total number of Bar Intervals for the Summary Interval period selected (+1 spare)
 		barIntervalOffsetInWords = ((((g_triggerRecord.bgrec.summaryInterval / g_triggerRecord.bgrec.barInterval) + 1) * sizeof(BARGRAPH_BAR_INTERVAL_DATA)) / 2);
 
+#if 1 /* Correction */
+		// Make sure Bar Interval offset is bounded by BARGRAPH_BAR_INTERVAL_DATA bytes (by word count) to prevent overwritting into the Combo - Waveform buffer
+		if ((barIntervalOffsetInWords % (sizeof(BARGRAPH_BAR_INTERVAL_DATA) / 2)) != 0)
+		{
+			barIntervalOffsetInWords += (barIntervalOffsetInWords % (sizeof(BARGRAPH_BAR_INTERVAL_DATA) / 2));
+		}
+#endif
+
 		// Init Bar Interval pointers
 		g_bargraphBarIntervalWritePtr = (BARGRAPH_BAR_INTERVAL_DATA*)&(g_eventDataBuffer[0]);
 		g_bargraphBarIntervalReadPtr = (BARGRAPH_BAR_INTERVAL_DATA*)&(g_eventDataBuffer[0]);
