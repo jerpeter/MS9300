@@ -2056,18 +2056,24 @@ void UnlockCodeMenuHandler(uint8 keyPressed, void* data)
 		}
 #endif
 #else /* Cell modem */
+		// Reset SLM version string so that it can be read from the Cell module device again
+		memset(g_cellConnectStats.slmVersion, 0, sizeof(g_cellConnectStats.slmVersion));
+		memset(g_cellConnectStats.cellModemFwVersion, 0, sizeof(g_cellConnectStats.cellModemFwVersion));
+		memset(g_cellConnectStats.cellModemImei, 0, sizeof(g_cellConnectStats.cellModemImei));
+
 		OverlayMessage(getLangText(STATUS_TEXT), "CHECKING FOR CELL MODEM...", 0);
 
 		// Check if the modem is current on, which means there's a chance of an active connection
 		if (GetPowerControlState(CELL_ENABLE) == ON)
 		{
 			ShutdownPdnAndCellModem();
-		}
-		PowerControl(LTE_RESET, ON);
-		PowerControl(CELL_ENABLE, OFF);
 
-		// Wait some time for the cell module to really power down
-		SoftUsecWait(5 * SOFT_SECS);
+			PowerControl(LTE_RESET, ON);
+			PowerControl(CELL_ENABLE, OFF);
+
+			// Wait some time for the cell module to really power down
+			SoftUsecWait(5 * SOFT_SECS);
+		}
 
 		// Check for cell modem ready after making sure the cell module is powered off
 		if (CheckforModemReady(6) == YES)
@@ -2084,14 +2090,14 @@ void UnlockCodeMenuHandler(uint8 keyPressed, void* data)
 			//OverlayMessage(getLangText(STATUS_TEXT), "CELL MODEM STARTNG LISTEN SERVER. PLEASE WAIT A MOMENT", (0 * SOFT_SECS));
 
 			debug("Cell/LTE: TCP server selected, setting timer to start in 5 seconds\r\n");
-			g_tcpServerStartStage = 1;
+			g_tcpServerStartStage = TCP_SERVER_INIT;
 			AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_SEC), TcpServerStartCallback);
 		}
 		else
 		{
 			debug("Cell/LTE: TCP server not selected\r\n");
 			ClearSoftTimer(TCP_SERVER_START_NUM);
-			g_tcpServerStartStage = 0;
+			g_tcpServerStartStage = TCP_SERVER_IDLE;
 		}
 #endif
 		// Reset ADO state
