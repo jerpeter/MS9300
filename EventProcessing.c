@@ -1991,6 +1991,17 @@ void GetEventFilename(uint16 newFileEventNumber)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void GetEREventRecordFilename(uint16 newFileEventNumber)
+{
+	uint16 lowerBounds, upperBounds;
+
+	GetSubDirLowerAndUpperBounds(newFileEventNumber, &lowerBounds, &upperBounds);
+	sprintf(g_spareFileName, "%s%s %d-%d/%s%d.nsE", ER_DATA_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds, EVT_FILE, newFileEventNumber);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void GetERDataFilename(uint16 newFileEventNumber)
 {
 	uint16 lowerBounds, upperBounds;
@@ -2008,7 +2019,7 @@ void MakeDirectoryIfNotPresent(char* path, uint16 newFileEventNumber)
 	char directoryPath[64];
 
 	GetSubDirLowerAndUpperBounds(newFileEventNumber, &lowerBounds, &upperBounds);
-	sprintf(directoryPath, "%s%s %d-%d", EVENTS_PATH, EVTS_SUB_DIR, lowerBounds, upperBounds);
+	sprintf(directoryPath, "%s%s %d-%d", path, EVTS_SUB_DIR, lowerBounds, upperBounds);
 
 extern FRESULT err; //FFat Result (Struct)
 extern FILINFO fno; //FFat File Information Object

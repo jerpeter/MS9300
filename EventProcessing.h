@@ -124,6 +124,7 @@ int WriteWithSizeFix(int file, void* bufferPtr, uint32 length);
 
 void CheckStoredEventsCapEventsLimit(void);
 void GetEventFilename(uint16 newFileEventNumber);
+void GetEREventRecordFilename(uint16 newFileEventNumber);
 void GetERDataFilename(uint16 newFileEventNumber);
 void MakeDirectoryIfNotPresent(char* path, uint16 newFileEventNumber);
 
