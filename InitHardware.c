@@ -1738,6 +1738,16 @@ void SetupCellModuleRxUART(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void ShutdownCellModuleRxUART(void)
+{
+    int status;
+	status = MXC_UART_Shutdown(MXC_UART0);
+	if (status != E_SUCCESS) { debugErr("UART0 failed to shutdown with code: %d\r\n", status); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 mxc_uart_req_t uart1ReadRequest; // Needs persistant storage because Maxim UART driver grabs only a reference to the request object
 void SetupCellModuleTxUART(void)
 {
@@ -1745,6 +1755,12 @@ void SetupCellModuleTxUART(void)
 
 	status = MXC_UART_Init(MXC_UART1, UART_BAUD);
 	if (status != E_SUCCESS) { debugErr("UART1 failed init with code: %d\r\n", status); }
+
+#if 1 /* Test */
+	// Need the Uart Tx side to match the Cell module change to 8N2 to get past 32650 Rx errata needing an extra stop bit
+	status = MXC_UART_SetStopBits(MXC_UART1, MXC_UART_STOP_2);
+	if (status != E_SUCCESS) { debugErr("UART1 Set Stop Bits failed with code: %d\r\n", status); }
+#endif
 
 	// Move to Interrupt init
 	NVIC_ClearPendingIRQ(UART1_IRQn);
@@ -1762,9 +1778,22 @@ void SetupCellModuleTxUART(void)
 	status = MXC_UART_TransactionAsync(&uart1ReadRequest);
 	if (status != E_SUCCESS) { debugErr("Uart1 Read setup (async) failed with code: %d\r\n", status); }
 
-#if 1 /* Test to check interrupt flags set */
+#if 0 /* Test to check interrupt flags set */
 	debug("Uart1: Interrupt enables are 0x%0x, Int flags are 0x%0x, Status is 0x%0x\r\n", MXC_UART1->int_en, MXC_UART1->int_fl, MXC_UART1->stat);
+#else
+	//debug("Uart1: Interrupt enables are 0x%0x, Int flags are 0x%0x, Status is 0x%0x (Stop bits: 1)\r\n", MXC_UART1->int_en, MXC_UART1->int_fl, MXC_UART1->stat);
+	debug("Uart1: Interrupt enables are 0x%0x, Int flags are 0x%0x, Status is 0x%0x (Stop bits: 2)\r\n", MXC_UART1->int_en, MXC_UART1->int_fl, MXC_UART1->stat);
 #endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void ShutdownCellModuleTxUART(void)
+{
+    int status;
+	status = MXC_UART_Shutdown(MXC_UART1);
+	if (status != E_SUCCESS) { debugErr("UART1 failed to shutdown with code: %d\r\n", status); }
 }
 
 ///----------------------------------------------------------------------------
@@ -5384,8 +5413,10 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Setup Cell Module UARTs (Cell LTE Rx on U0) and (Cell LTE Tx on U1)
 	//-------------------------------------------------------------------------
+#if 0 /* Skip setup since this is now handled when the Cell module is taken out of reset */
 	SetupCellModuleRxUART(); // Uart0
 	SetupCellModuleTxUART(); // Uart1
+#endif
 
 	//-------------------------------------------------------------------------
 	// Setup I2C0 (1.8V devices) and I2C1 (3.3V devices)
