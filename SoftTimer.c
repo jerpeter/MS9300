@@ -713,7 +713,14 @@ void BatteryLogTimerCallback(void)
 ///----------------------------------------------------------------------------
 void SystemLockTimerCallback(void)
 {
+	g_cellConnectStats.adoTimeoutCount++;
+	debug("System lock: No activity timer hit, re-locking (Total count: %d)\r\n", g_cellConnectStats.adoTimeoutCount);
 	RemoteSystemLock(SET);
+
+	if (g_modemStatus.remoteConnectionActive == YES)
+	{
+		HandleMRS(NULL);
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -751,7 +758,7 @@ void TcpServerStartCallback(void)
 	//----------------------------------------------------------------
 	// Stage 1
 	//----------------------------------------------------------------
-	if (g_tcpServerStartStage == 1)
+	if (g_tcpServerStartStage == TCP_SERVER_INIT)
 	{
 		//OverlayMessage(getLangText(STATUS_TEXT), "CELL MODEM STARTNG LISTEN SERVER. PLEASE WAIT A MOMENT", (0 * SOFT_SECS));
 
@@ -769,14 +776,11 @@ void TcpServerStartCallback(void)
 				g_modemStatus.modemAvailable = YES;
 				ClearSoftTimer(MODEM_DELAY_TIMER_NUM);
 
-				g_tcpServerStartStage = 2;
+				g_tcpServerStartStage = TCP_SERVER_SET_APN;
 				AssignSoftTimer(TCP_SERVER_START_NUM, (1 * TICKS_PER_SEC), TcpServerStartCallback);
 			}
 			else // No modem found
 			{
-				// Reset state
-				g_tcpServerStartStage = 0;
-
 				// Power down the cell module
 				ShutdownPdnAndCellModem();
 				PowerControl(LTE_RESET, ON);
@@ -784,19 +788,20 @@ void TcpServerStartCallback(void)
 
 				// Try TCP Server again after a delay
 				debug("TCP Server: No modem found, retrying after delay\r\n");
+				g_tcpServerStartStage = TCP_SERVER_INIT;
 				AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_MIN), TcpServerStartCallback);
 			}
 		}
-		else
+		else // Modem is already powered (assume APN, Auth and Cell modem are already active, but no harm re-issuing in case they aren't)
 		{
-			g_tcpServerStartStage = 2;
+			g_tcpServerStartStage = TCP_SERVER_SET_APN;
 			AssignSoftTimer(TCP_SERVER_START_NUM, (1 * TICKS_PER_SEC), TcpServerStartCallback);
 		}
 	}
 	//----------------------------------------------------------------
 	// Stage 2
 	//----------------------------------------------------------------
-	else if (g_tcpServerStartStage == 2)
+	else if (g_tcpServerStartStage == TCP_SERVER_SET_APN)
 	{
 		if (strlen(g_cellModemSetupRecord.pdnApn))
 		{
@@ -804,13 +809,13 @@ void TcpServerStartCallback(void)
 			debug("AT+CGDCONT=0,\"IP\",\"%s\"...\r\n", g_cellModemSetupRecord.pdnApn); sprintf((char*)g_spareBuffer, "AT+CGDCONT=0,\"IP\",\"%s\"\r\n", g_cellModemSetupRecord.pdnApn); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 		}
 
-		g_tcpServerStartStage = 3;
+		g_tcpServerStartStage = TCP_SERVER_SET_AUTH;
 		AssignSoftTimer(TCP_SERVER_START_NUM, (1 * TICKS_PER_SEC), TcpServerStartCallback);
 	}
 	//----------------------------------------------------------------
 	// Stage 3
 	//----------------------------------------------------------------
-	else if (g_tcpServerStartStage == 3)
+	else if (g_tcpServerStartStage == TCP_SERVER_SET_AUTH)
 	{
 		if (g_cellModemSetupRecord.pdnAuthProtocol != AUTH_NONE)
 		{
@@ -819,42 +824,48 @@ void TcpServerStartCallback(void)
 			strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 		}
 
-		g_tcpServerStartStage = 4;
+		g_tcpServerStartStage = TCP_SERVER_CELL_MODEM_START;
 		AssignSoftTimer(TCP_SERVER_START_NUM, (1 * TICKS_PER_SEC), TcpServerStartCallback);
 	}
 	//----------------------------------------------------------------
 	// Stage 4
 	//----------------------------------------------------------------
-	else if (g_tcpServerStartStage == 4)
+	else if (g_tcpServerStartStage == TCP_SERVER_CELL_MODEM_START)
 	{
 		debug("AT+CFUN=1...\r\n"); sprintf((char*)g_spareBuffer, "AT+CFUN=1\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 
 #if 1 /* Test */
 		SetStartCellConnectTime();
 #endif
-		g_tcpServerStartStage = 5;
+		g_tcpServerStartStage = TCP_SERVER_CELL_NETWORK_CONNECTING;
 		AssignSoftTimer(TCP_SERVER_START_NUM, (1 * TICKS_PER_SEC), TcpServerStartCallback);
 	}
 	//----------------------------------------------------------------
 	// Stage 5
 	//----------------------------------------------------------------
-	else if (g_tcpServerStartStage == 5)
+	else if (g_tcpServerStartStage == TCP_SERVER_CELL_NETWORK_CONNECTING)
 	{
+		// Check if a cell network conneciton was established
 		if (g_modemStatus.remoteResponse == MODEM_CELL_NETWORK_REGISTERED)
 		{
 #if 1 /* Test */
 			CellConnectStatsUpdate();
-			debug("TCP Server: Cell network connect time was %d seconds (Avg: %d)\r\n", GetCellConnectStatsLastConenct(), GetCellConnectStatsAverage());
+			debug("TCP Server: Cell network connect time was %d seconds (Avg: %d)\r\n", GetCellConnectStatsLastConnect(), GetCellConnectStatsAverage());
 #endif
-			g_tcpServerStartStage = 6;
+#if 0 /* Test */
+			debug("AT+CCLK...\r\n"); sprintf((char*)g_spareBuffer, "AT+CCLK\r\n"); strLen = (int)strlen((char*)g_spareBuffer); MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen);
+			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+#endif
+#if 1 /* Test */
+			debug("AT+CGDCONT?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CGDCONT?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+#endif
+			g_tcpServerStartStage = TCP_SERVER_CELL_NETWORK_CONNECTED;
 			AssignSoftTimer(TCP_SERVER_START_NUM, (1 * TICKS_PER_SEC), TcpServerStartCallback);
 		}
 		// Check if the current cell connect time is greater than 10 minutes (600 seconds)
 		else if (GetCurrentCellConnectTime() > CELL_NETWORK_CONNECT_TIMEOUT)
 		{
-			// Reset state
-			g_tcpServerStartStage = 0;
-
 			// Power down the cell module
 			ShutdownPdnAndCellModem();
 			PowerControl(LTE_RESET, ON);
@@ -862,58 +873,65 @@ void TcpServerStartCallback(void)
 
 			// Try TCP Server again after a delay
 			debugWarn("TCP Server: No cell network connection found after 10 minutes, retrying after delay\r\n");
+			g_tcpServerStartStage = TCP_SERVER_INIT;
 			AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_MIN), TcpServerStartCallback);
 		}
-		else
+		else // Looking for a cell network conneciton
 		{
 			debug("AT+CEREG?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CEREG?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 
-			g_tcpServerStartStage = 5;
+			g_tcpServerStartStage = TCP_SERVER_CELL_NETWORK_CONNECTING;
 			AssignSoftTimer(TCP_SERVER_START_NUM, (1 * TICKS_PER_SEC), TcpServerStartCallback);
 		}
 	}
 	//----------------------------------------------------------------
 	// Stage 6
 	//----------------------------------------------------------------
-	else if (g_tcpServerStartStage == 6)
+	else if (g_tcpServerStartStage == TCP_SERVER_CELL_NETWORK_CONNECTED)
 	{
-#if 0 /* Original */
-		debug("AT#XTCPSVR=1,8005...\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPSVR=1,8005\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-#else
 		debug("AT#XTCPSVR=1,%d...\r\n", g_cellModemSetupRecord.tcpServerListenPort); sprintf((char*)g_spareBuffer, "AT#XTCPSVR=1,%d\r\n", g_cellModemSetupRecord.tcpServerListenPort); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-#endif
-		g_tcpServerStartStage = 7;
+
+		g_tcpServerStartStage = TCP_SERVER_START;
 		AssignSoftTimer(TCP_SERVER_START_NUM, (1 * TICKS_PER_SEC), TcpServerStartCallback);
 	}
 	//----------------------------------------------------------------
 	// Stage 7
 	//----------------------------------------------------------------
-	else if (g_tcpServerStartStage == 7)
+	else if (g_tcpServerStartStage == TCP_SERVER_START)
 	{
 		if ((g_modemStatus.remoteResponse == TCP_SERVER_NOT_STARTED) || (g_modemStatus.remoteResponse == ERROR_RESPONSE))
 		{
-#if 0 /* Original */
-			debug("AT#XTCPSVR=1,8005...\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPSVR=1,8005\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-#else
 			debug("AT#XTCPSVR=1,%d...\r\n", g_cellModemSetupRecord.tcpServerListenPort); sprintf((char*)g_spareBuffer, "AT#XTCPSVR=1,%d\r\n", g_cellModemSetupRecord.tcpServerListenPort); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-#endif
-			g_tcpServerStartStage = 7;
+
+			g_tcpServerStartStage = TCP_SERVER_START;
 			AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_SEC), TcpServerStartCallback);
 		}
-		else
+		else if (GetCurrentCellOnlineTime() > TCP_SERVER_START_TIMEOUT)
 		{
-			g_tcpServerStartStage = 8;
+			// Power down the cell module
+			ShutdownPdnAndCellModem();
+			PowerControl(LTE_RESET, ON);
+			PowerControl(CELL_ENABLE, OFF);
+
+			// Try TCP Server again after a delay
+			debugWarn("TCP Server: Unable to start server after 1 minute, retrying after delay\r\n");
+			g_tcpServerStartStage = TCP_SERVER_INIT;
+			AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_MIN), TcpServerStartCallback);
+		}
+		else // TCP Server started
+		{
+			g_tcpServerStartStage = TCP_SERVER_UP;
 			AssignSoftTimer(TCP_SERVER_START_NUM, (1 * TICKS_PER_SEC), TcpServerStartCallback);
 		}
 	}
 	//----------------------------------------------------------------
 	// Stage 8
 	//----------------------------------------------------------------
-	else if (g_tcpServerStartStage == 8)
+	else if (g_tcpServerStartStage == TCP_SERVER_UP)
 	{
 		debug("AT#XTCPSEND"); sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 
-		g_tcpServerStartStage = 0;
+		g_tcpServerStartStage = TCP_SERVER_ACTIVE_DATA_MODE;
 		ClearSoftTimer(TCP_SERVER_START_NUM);
 
 		//OverlayMessage(getLangText(STATUS_TEXT), "CELL MODEM TCP LISTEN SERVER STARTED", (0 * SOFT_SECS));
