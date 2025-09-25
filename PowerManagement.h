@@ -132,6 +132,7 @@ void LcdControllerGpioSetup(uint8_t mode);
 void ExpansionPowerGpioSetup(uint8_t mode);
 void ExpansionI2CBridgeGpioSetup(uint8_t mode);
 void CellPowerGpioSetup(uint8_t mode);
+void CellLteUartSetup(uint8_t mode);
 void SetupSPI2_Accelerometer(uint8_t mode);
 
 void GetBattChargerRegister(uint8_t registerAddress, uint16_t* registerContents);

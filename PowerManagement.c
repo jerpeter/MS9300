@@ -151,6 +151,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			debug("LTE Reset: %s\r\n", mode == ON ? "On" : "Off");
 			if (mode == ON) { MXC_GPIO_OutClr(GPIO_LTE_RESET_PORT, GPIO_LTE_RESET_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutSet(GPIO_LTE_RESET_PORT, GPIO_LTE_RESET_PIN); }
+			CellLteUartSetup(!mode);
 			break;
 
 		//----------------------------------------------------------------------------
@@ -400,14 +401,28 @@ void CellPowerGpioSetup(uint8_t mode)
 {
 	if (mode == ON)
 	{
-#if 1 /* Normal */
-		MXC_GPIO_OutSet(GPIO_LTE_RESET_PORT, GPIO_LTE_RESET_PIN); // Disable (Active low)
-#else /* Test without setting these immediately */
-#endif
+
 	}
 	else // (mode == OFF)
 	{
-		MXC_GPIO_OutClr(GPIO_LTE_RESET_PORT, GPIO_LTE_RESET_PIN); // Set low to prevent back powering
+
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void CellLteUartSetup(uint8_t mode)
+{
+	if (mode == ON)
+	{
+		SetupCellModuleRxUART();
+		SetupCellModuleTxUART();
+	}
+	else // (mode == OFF)
+	{
+		ShutdownCellModuleRxUART();
+		ShutdownCellModuleTxUART();
 	}
 }
 
