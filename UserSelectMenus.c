@@ -2443,7 +2443,7 @@ USER_MENU_STRUCT helpMenu[HELP_MENU_ENTRIES] = {
 {ITEM_5, 0, CHECK_SUMMARY_FILE_TEXT,	NO_TAG, {CHECK_SUMMARY_FILE_CHOICE}},
 {ITEM_6, 0, NULL_TEXT,					DUMP_BATTERY_LOG_TAG, {TESTING_CHOICE}},
 {ITEM_7, 0, NULL_TEXT,					FCC_TEST_ALL_TAG, {FCC_TESTING_CHOICE}},
-{ITEM_7, 0, NULL_TEXT,					CELL_UART_RESET_TAG, {CELL_UART_RESET_CHOICE}},
+{ITEM_8, 0, NULL_TEXT,					CELL_UART_RESET_TAG, {CELL_UART_RESET_CHOICE}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&HelpMenuHandler}}
 };
 
@@ -2471,7 +2471,19 @@ void HelpMenuHandler(uint8 keyPressed, void* data)
 				BootLoadManager();
 			}
 
+			sprintf(buildString, "SLM VERSION: %s, CELL MODEM FW: %s, IMEI: %s", ((strlen((char*)g_cellConnectStats.slmVersion) == 0) ? "N/A" : (char*)g_cellConnectStats.slmVersion),
+					((strlen((char*)g_cellConnectStats.cellModemFwVersion) == 0) ? "N/A" : (char*)g_cellConnectStats.cellModemFwVersion),
+					((strlen((char*)g_cellConnectStats.cellModemImei) == 0) ? "N/A" : (char*)g_cellConnectStats.cellModemImei));
+			MessageBox("CELL MODULE", buildString, MB_OK);
+
 			CheckExceptionReportLogExists();
+
+#if 1 /* Test */
+			if (strlen((char*)g_cellConnectStats.cellNetworkIP))
+			{
+				MessageBox(getLangText(STATUS_TEXT), g_cellConnectStats.cellNetworkIP, MB_OK);
+			}
+#endif
 		}
 		else if (helpMenu[newItemIndex].data == SENSOR_CHECK_CHOICE)
 		{
@@ -2572,16 +2584,28 @@ extern void DumpBatteryLog(void);
 		{
 			if (MessageBox(getLangText(STATUS_TEXT), "RESET CELL MODEM RECEIVE UART (UART0)?", MB_YESNO) == MB_FIRST_CHOICE)
 			{
-extern void SetupCellModuleRxUART(void);
 				SetupCellModuleRxUART();
 				OverlayMessage(getLangText(STATUS_TEXT), "UART0 RESET DONE", (1 * SOFT_SECS));
 			}
 
 			if (MessageBox(getLangText(STATUS_TEXT), "RESET CELL MODEM TRANSMIT UART (UART1)?", MB_YESNO) == MB_FIRST_CHOICE)
 			{
-extern void SetupCellModuleTxUART(void);
 				SetupCellModuleTxUART();
 				OverlayMessage(getLangText(STATUS_TEXT), "UART1 RESET DONE", (1 * SOFT_SECS));
+			}
+
+			if (MessageBox(getLangText(STATUS_TEXT), "TEST CELL MODEM AT COMMAND LOOP?", MB_YESNO) == MB_FIRST_CHOICE)
+			{
+				OverlayMessage(getLangText(STATUS_TEXT), "TESTING CELL MODEM AT COMMAND LOOP... PRESS POWER BUTTON TO STOP", 0);
+
+				int strLen;
+				while (GetPowerOnButtonState() == OFF)
+				{
+					debug("AT...\r\n"); sprintf((char*)g_spareBuffer, "AT\r\n"); strLen = (int)strlen((char*)g_spareBuffer); MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen);
+					{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+				}
+
+				OverlayMessage(getLangText(STATUS_TEXT), "CELL MODEM TEST STOPPED", (3 * SOFT_SECS));
 			}
 		}
 	}
@@ -2946,7 +2970,7 @@ void ModemSetupMenuHandler(uint8 keyPressed, void* data)
 			ClearSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM);
 			ClearSoftTimer(TCP_SERVER_START_NUM);
 			g_autoDialoutState = IDLE_STATE;
-			g_tcpServerStartStage = 0;
+			g_tcpServerStartStage = TCP_SERVER_IDLE;
 
 			if (GetPowerControlState(CELL_ENABLE) == ON)
 			{
@@ -3345,6 +3369,23 @@ void RecalibrateMenuHandler(uint8 keyPressed, void* data)
 // Sample Rate Menu
 //=============================================================================
 //*****************************************************************************
+#if 1 /* Test */
+#define CAL_SAMPLE_RATE_MENU_ENTRIES 10
+USER_MENU_STRUCT calSampleRateMenu[CAL_SAMPLE_RATE_MENU_ENTRIES] = {
+{TITLE_PRE_TAG, 0, SAMPLE_RATE_TEXT, TITLE_POST_TAG,
+	{INSERT_USER_MENU_INFO(SELECT_TYPE, CAL_SAMPLE_RATE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_2)}},
+{ITEM_1, SAMPLE_RATE_1K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_1K}},
+{ITEM_2, SAMPLE_RATE_2K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_2K}},
+{ITEM_3, SAMPLE_RATE_4K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_4K}},
+{ITEM_4, SAMPLE_RATE_8K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_8K}},
+{ITEM_5, SAMPLE_RATE_16K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_16K}},
+{ITEM_6, SAMPLE_RATE_32K, NULL_TEXT, EXT_TAG, {SAMPLE_RATE_32K}},
+{ITEM_7, SAMPLE_RATE_32K, NULL_TEXT, INT_TAG, {SAMPLE_RATE_32K}},
+{ITEM_8, SAMPLE_RATE_64K, NULL_TEXT, INT_TAG, {SAMPLE_RATE_64K}},
+{END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&CalSampleRateMenuHandler}}
+};
+#endif
+
 #define SAMPLE_RATE_MENU_ENTRIES 7
 USER_MENU_STRUCT sampleRateMenu[SAMPLE_RATE_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, SAMPLE_RATE_TEXT, TITLE_POST_TAG,
@@ -3378,6 +3419,32 @@ USER_MENU_STRUCT sampleRateComboMenu[SAMPLE_RATE_COMBO_MENU_ENTRIES] = {
 {ITEM_4, SAMPLE_RATE_8K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_8K}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&SampleRateMenuHandler}}
 };
+
+#if 1 /* Test */
+//-------------------------
+// Cal Sample Rate Menu Handler
+//-------------------------
+void CalSampleRateMenuHandler(uint8 keyPressed, void* data)
+{
+	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
+	uint16 newItemIndex = *((uint16*)data);
+
+	if (keyPressed == ENTER_KEY)
+	{
+		g_calSampleRate = calSampleRateMenu[newItemIndex].data;
+		if ((newItemIndex == 7) || (newItemIndex == 8)) { g_calSampleSource = 1; }
+		else { g_calSampleSource = 0; }
+	}
+	else
+	{
+		g_calSampleRate = SAMPLE_RATE_1K;
+		g_calSampleSource = 0;
+	}
+
+	SETUP_MENU_MSG(CAL_SETUP_MENU);
+	JUMP_TO_ACTIVE_MENU();
+}
+#endif
 
 //-------------------------
 // Sample Rate Menu Handler
