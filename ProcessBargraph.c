@@ -121,8 +121,13 @@ void MoveBarIntervalDataToFile(void)
 				}
 				else // New Bar Interval data type option, store A max, then R, V, T max, then A, R, V, T freq (if selected), and finally VS max
 				{
+					// Write Air results out by itself
 					f_write(&file, &g_bargraphBarIntervalReadPtr->aMax, sizeof(g_bargraphBarIntervalReadPtr->aMax), (UINT*)&bytesWritten);
+
+					// Write either R+V+T or R+V+T+Freq
 					f_write(&file, &g_bargraphBarIntervalReadPtr->rMax, (sizeof(g_bargraphBarIntervalReadPtr->rMax) * ((g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE) ? 3 : 7)), (UINT*)&bytesWritten);
+
+					// Write Vector Sum last for both A+R+V+T and A+R+V+T+Freq
 					f_write(&file, &g_bargraphBarIntervalReadPtr->vsMax, sizeof(g_bargraphBarIntervalReadPtr->vsMax), (UINT*)&bytesWritten);
 				}
 #if ENDIAN_CONVERSION
@@ -1148,7 +1153,7 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 {
 	uint32 compressSize;
 	uint32 dataLength = 0;
-
+	uint8 ramCacheSizeForEventDataLargeEnough = NO;
 	FIL file;
 	uint32_t bytesMoved;
 
@@ -1202,7 +1207,7 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 		// Rewrite the event record
 		f_write(&file, &g_pendingBargraphRecord, sizeof(EVT_RECORD), (UINT*)&bytesMoved);
 #if ENDIAN_CONVERSION
-		// Swap event record back to Litte Endian, since cached event record is referenced again
+		// Swap event record to Litte Endian for processing
 		EndianSwapEventRecord(&g_pendingBargraphRecord);
 #endif
 		// Setup for saving data compressed (if Bargraph session is complete)
@@ -1215,11 +1220,19 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 
 				dataLength = (f_size(&file) - sizeof(EVT_RECORD));
 
+#if 0 /* Original */
 				// Cache the Bargraph data for compression event file creation below
 				f_read(&file, (uint8*)&g_eventDataBuffer[0], dataLength, (UINT*)&bytesMoved);
-#if ENDIAN_CONVERSION
-				// Data was read Big Endian (for compression below), no conversion needed
+#else /* Test */
+				if (dataLength < EVENT_BUFF_SIZE_IN_WORDS_PLUS_EVT_RECORD)
+				{
+					ramCacheSizeForEventDataLargeEnough = YES;
+
+					// Cache the Bargraph data for compression event file creation below
+					f_read(&file, (uint8*)&g_eventDataBuffer[0], dataLength, (UINT*)&bytesMoved);
+				}
 #endif
+				// Data read Big Endian (for compression below), no conversion needed
 			}
 		}
 
@@ -1232,7 +1245,61 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 		// Save compressed data file (if Bargraph session is complete)
 		if (status == BARPGRAPH_SESSION_COMPLETE)
 		{
+			//==========================================================================================================
+			// Save compressed event record file
+			//----------------------------------------------------------------------------------------------------------
 			if (g_unitConfig.saveCompressedData != DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA)
+			{
+				// Get new ERData compressed event file name
+				GetEREventRecordFilename(g_pendingBargraphRecord.summary.eventNumber);
+				MakeDirectoryIfNotPresent(ER_DATA_PATH, g_pendingBargraphRecord.summary.eventNumber);
+
+				if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
+				{
+					debugErr("Unable to create EReventrecord event file: %s\r\n", g_spareFileName);
+				}
+				else // File created, write out the event
+				{
+					g_globalFileHandle = &file;
+					g_spareBufferIndex = 0;
+#if ENDIAN_CONVERSION
+					// Swap event record to Big Endian for compression
+					EndianSwapEventRecord(&g_pendingBargraphRecord);
+#endif
+					compressSize = lzo1x_1_compress((void*)&g_pendingBargraphRecord, sizeof(g_pendingBargraphRecord), OUT_FILE);
+
+					// Check if any remaining compressed data is queued
+					if (g_spareBufferIndex)
+					{
+						// Finish writing the remaining compressed data
+						f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesMoved);
+						g_spareBufferIndex = 0;
+					}
+
+					debug("Bargraph Compressed Event Record length: %d (Matches file: %s)\r\n", compressSize, (compressSize == f_size(&file)) ? "Yes" : "No");
+#if ENDIAN_CONVERSION
+					// Swap event record back to Little Endian for processing
+					EndianSwapEventRecord(&g_pendingBargraphRecord);
+#endif
+					// Update the remaining space left
+					UpdateSDCardUsageStats(f_size(&file));
+
+					// Done writing the event file, close the file handle
+					g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+					f_close(&file);
+					SetFileTimestamp(g_spareFileName);
+				}
+			}
+			//==========================================================================================================
+
+			//==========================================================================================================
+			// Save compressed data file
+			//----------------------------------------------------------------------------------------------------------
+#if 0 /* Original */
+			if (g_unitConfig.saveCompressedData != DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA)
+#else /* Test */
+			if ((g_unitConfig.saveCompressedData != DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA) && (ramCacheSizeForEventDataLargeEnough == YES))
+#endif
 			{
 				// Get new compressed event filename and path
 				GetERDataFilename(g_pendingBargraphRecord.summary.eventNumber);
@@ -1251,9 +1318,6 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 					// Check if any remaining compressed data is queued
 					if (g_spareBufferIndex)
 					{
-#if ENDIAN_CONVERSION
-						// No conversion for compressed data
-#endif
 						// Finish writing the remaining compressed data
 						f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesMoved);
 						g_spareBufferIndex = 0;
