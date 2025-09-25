@@ -31,6 +31,11 @@
 #define READY_RESP_STRING_ALT	"REAdy"
 #define CONNECT_RESP_STRING		"CONNECT"
 #define CONNECT_RESP_STRING_2	"#XTCPCLI: 0,\"connected\""
+#define SLM_VERSION_STRING		"#XSLMVER:"
+#define CELL_ESCAPE_CMD_STRING	"+++---"
+#define CELL_MODEM_FW_VERSION	"%SHORTSWVER:"
+#define CELL_MODEM_IMEI			"+CGSN:"
+#define CELL_NETWORK_TIME		"+CCLK:"
 #define TCP_CLIENT_STRING		"#XTCPCLI:"
 #define TCP_SERVER_STRING		"#XTCPSVR:"
 #define NO_ANSWER_RESP_STRING	"NO ANSWER"
@@ -42,9 +47,8 @@
 #define UNL_PROG_RESP_STRING	"UNLx83"
 #define DAI_ERR_RESP_STRING		"DAIx0101"
 
-#define AT_CMD_GET_SYSTEMMODE	"AT%%XSYSTEMMODE?"
-#define AT_CMD_SET_PDP_CONTEXT	"AT+CGDCONT=0,\"IP\","
-#define AT_CMD_PDP_CONTEXT		"AT+CGDCONT?"
+#define AT_CMD_GET_SYSTEMMODE	"AT%XSYSTEMMODE?"
+#define AT_CMD_GET_PDP_CONTEXT	"AT+CGDCONT?"
 #define AT_CMD_MODEM_START		"AT+CFUN=1"
 #define AT_CMD_TCP_CLI_START	"AT#XTCPCLI=1,"
 #define AT_CMD_TCP_CLI_STOP		"AT#XTCPCLI=0"
@@ -52,13 +56,15 @@
 #define AT_CMD_TCP_SVR_STOP		"AT#XTCPSVR=0"
 #define AT_CMD_ENTER_DATA_MODE	"AT#XTCPSEND"
 #define AT_CMD_DATAMODE_EXIT	"#XDATAMODE: 0"
-
-#define MODEM_HOME_NETWORK		"+CEREG: 0,1"
-#define MODEM_ROAMING_NETWORK	"+CEREG: 0,5"
-#define MODEM_UNKNOWN_NETWORK	"+CEREG: 0,4"
-#define MODEM_NOT_REGISTERED_NETWORK	"+CEREG: 0,2"
 #define AT_CMD_ERROR			"ERROR"
 #define AT_CMD_XMODEM			"#XMODEM:"
+
+#define MODEM_PDP_CONTEXT		"+CGDCONT: 0,"
+#define MODEM_HOME_NETWORK				"+CEREG: 0,1"
+#define MODEM_NOT_REGISTERED_NETWORK	"+CEREG: 0,2"
+#define MODEM_UNKNOWN_NETWORK			"+CEREG: 0,4"
+#define MODEM_ROAMING_NETWORK			"+CEREG: 0,5"
+#define MODEM_UICC_ERROR				"+CEREG: 0,90"
 
 #define CMD_MSG_NO_ERR				0x00
 #define CMD_MSG_FULLBUFFER_ERR		0x01
@@ -258,6 +264,21 @@ enum {
 	AUTO_DIAL_FINISH
 };
 
+// TCP Server States
+enum {
+	TCP_SERVER_IDLE = 0,
+	TCP_SERVER_INIT,
+	TCP_SERVER_SET_APN,
+	TCP_SERVER_SET_AUTH,
+	TCP_SERVER_CELL_MODEM_START,
+	TCP_SERVER_CELL_NETWORK_CONNECTING,
+	TCP_SERVER_CELL_NETWORK_CONNECTED,
+	TCP_SERVER_START,
+	TCP_SERVER_UP,
+	TCP_SERVER_ACTIVE_DATA_MODE,
+	TCP_SERVER_PAUSE_FOR_ADO
+};
+
 #define ADO_IDLE		"Idle"
 #define ADO_INIT		"Init"
 #define ADO_CONNECTING	"Connecting"
@@ -271,18 +292,16 @@ enum {
 #define ADO_ACTIVE		"Active"
 #define ADO_FINISH		"Finish"
 
-#define TCP_SVR_IDLE	"Idle"
-#define ADO_INIT		"Init"
-#define ADO_CONNECTING	"Connecting"
-#define ADO_CONNECTED	"Connected"
-#define ADO_RESPONSE	"Response"
-#define ADO_WAIT		"Wait"
-#define ADO_RESET		"Reset"
-#define ADO_RESET_WAIT	"Reset Wait"
-#define ADO_RETRY		"Retry"
-#define ADO_SLEEP		"Sleep"
-#define ADO_ACTIVE		"Active"
-#define ADO_FINISH		"Finish"
+#define TCPSVR_IDLE				"Idle"
+#define TCPSVR_INIT				"Init"
+#define TCPSVR_SET_APN			"APN"
+#define TCPSVR_SET_AUTH			"Auth"
+#define TCPSVR_CELL_START		"Cell start"
+#define TCPSVR_CELL_CONNECTING	"Cell connecting"
+#define TCPSVR_CELL_CONNECTED	"Cell connected"
+#define TCPSVR_START			"Server start"
+#define TCPSVR_UP				"Server up"
+#define TCPSVR_ACTIVE_DATA_MODE	"Active Data mode"
 
 enum {
 	NO_RESPONSE = 0,
@@ -325,6 +344,29 @@ enum {
 
 #define REMOTE_SYSTEM_LOCK_TIMEOUT	(5 * TICKS_PER_MIN)
 #define CELL_NETWORK_CONNECT_TIMEOUT	(600) // In seconds
+#define TCP_SERVER_START_TIMEOUT		(60) // In seconds
+
+typedef struct
+{
+	uint32 startCellConnectTime;
+	uint32 lastCellConnectTime;
+	uint32 lastCellConnectTimestamp;
+	uint32 totalCellConnectTime;
+	uint16 CellConnectAttempts;
+	uint16 CellNotReadyCount;
+	uint16 CellUartResetCount;
+	uint16 CellFailedCommsCheck;
+	uint16 adoConnectionAttempts;
+	uint16 adoConnectionCount;
+	uint16 adoTimeoutCount;
+	uint16 cellUiccError;
+	DATE_TIME_STRUCT lastRemoteConnTime;
+	char cellNetworkIP[100];
+	char slmVersion[8];
+	char cellModemFwVersion[16];
+	char cellModemImei[20];
+	char cellNetworkTime[28];
+} CELL_CONNECT_STATS_STRUCT;
 
 typedef struct
 {
@@ -549,7 +591,7 @@ typedef struct
 	uint16				batteryLevel;
 	uint8				variableTriggerPercentageLevel;
 	uint8				unused[3];
-} SYSTEM_CFG; // Remote DCM/UCM only
+} SYSTEM_CFG; // Remote DCM/UCM only (424 bytes)
 #pragma pack()
 
 
@@ -655,7 +697,8 @@ char* AdoStateGetDebugString(void);
 void SetStartCellConnectTime(void);
 void CellConnectStatsUpdate(void);
 uint32 GetCurrentCellConnectTime(void);
-uint32 GetCellConnectStatsLastConenct(void);
+uint32 GetCurrentCellOnlineTime(void);
+uint32 GetCellConnectStatsLastConnect(void);
 uint32 GetCellConnectStatsAverage(void);
 
 uint8 FirstPassValidateCommandString(char* command);
