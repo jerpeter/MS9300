@@ -150,7 +150,7 @@ void LoadUnitConfig(void)
 		g_unitConfig.flashWrapping = NO;
 #endif
 
-#if 1 /* Force option not to save extra compressed data file */
+#if 0 /* Force option not to save extra compressed data file */
 		// Todo: Update MiniLZO compression to work directly from stored event before removing logic
 		g_unitConfig.saveCompressedData = DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA;
 #endif
