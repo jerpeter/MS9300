@@ -1178,4 +1178,10 @@ void StopAccelerometerAquisition(void);
 // Filesystem
 int CreateFilesystem_eMMCFlash(void);
 
+// Uart Setup
+void SetupCellModuleRxUART(void);
+void SetupCellModuleTxUART(void);
+void ShutdownCellModuleRxUART(void);
+void ShutdownCellModuleTxUART(void);
+
 #endif // _COMMON_H_
