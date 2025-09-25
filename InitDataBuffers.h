@@ -25,6 +25,7 @@
 #define SAMPLE_RATE_8K		8192
 #define SAMPLE_RATE_16K		16384
 #define SAMPLE_RATE_32K		32768
+#define SAMPLE_RATE_64K		65535
 #define SAMPLE_RATE_DEFAULT	1024
 
 #if 0 /* Normal */
