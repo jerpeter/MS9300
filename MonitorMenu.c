@@ -785,8 +785,11 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 					(double)((float)g_rImpulsePeak * 2.5 / 32768), (double)((float)g_tImpulsePeak * 2.5 / 32768), (double)((float)g_vImpulsePeak * 2.5 / 32768));
 			debug("%s, RTV: %s\r\n", (char*)&srBuff[0], (char*)&g_debugBuffer[0]);
 #elif 1 /* Test debug for battery charging effect, Results/ADC */
-			sprintf((char*)&g_debugBuffer[0], "%s %4.3f %4.3f %4.3f, ADC %4d %4d %4d", ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) ? "in/s" : "mm/s"), (double)tempR, (double)tempT, (double)tempV, g_rImpulsePeak, g_tImpulsePeak, g_vImpulsePeak);
-			debug("%s, RTV: %s\r\n", (char*)&srBuff[0], (char*)&g_debugBuffer[0]);
+			if (g_displayBargraphResultsMode == IMPULSE_RESULTS)
+			{
+				sprintf((char*)&g_debugBuffer[0], "%s %4.3f %4.3f %4.3f, ADC %4d %4d %4d", ((g_sensorInfo.unitsFlag == IMPERIAL_TYPE) ? "in/s" : "mm/s"), (double)tempR, (double)tempT, (double)tempV, g_rImpulsePeak, g_tImpulsePeak, g_vImpulsePeak);
+				debug("%s, RTV: %s\r\n", (char*)&srBuff[0], (char*)&g_debugBuffer[0]);
+			}
 #endif
 
 			//-----------------------------------------------------------------------
