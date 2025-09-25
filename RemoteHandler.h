@@ -33,6 +33,7 @@ void RemoteCmdMessageHandlerInit(void);
 //	string and determine if a valid cmd has been received. 
 void RemoteCmdMessageProcessing(void);
 void ProcessCraftData(void);
+void FlushCraftData(void);
 void CraftInitStatusFlags(void);
 void InitCraftInterruptBuffers(void);
 void RemoteSystemLock(uint8_t lockState);
