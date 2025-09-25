@@ -84,6 +84,8 @@ enum {
 	LISTEN_SERVER_PORT_TAG,
 	CELL_MODEM_SETUP_TAG,
 	CELL_UART_RESET_TAG,
+	EXT_TAG,
+	INT_TAG,
 	// Add new separators before this line
 	TOTAL_TAGS
 };
@@ -1064,6 +1066,9 @@ void VectorSumMenuHandler(uint8 key, void* data);
 void VibrationStandardMenuHandler(uint8 keyPressed, void* data);
 void WaveformAutoCalMenuHandler(uint8 key, void* data);
 void ZeroEventNumberMenuHandler(uint8 key, void* data);
+#if 1 /* Test */
+void CalSampleRateMenuHandler(uint8 key, void* data);
+#endif
 //----------------------------------------
 // End of User Select Menu Handlers
 //----------------------------------------
