@@ -180,7 +180,7 @@ void MoveManualCalToFile(void)
 			// Write the event record header and summary
 			f_write(&file, &g_pendingEventRecord, sizeof(EVT_RECORD), (UINT*)&bytesWritten);
 #if ENDIAN_CONVERSION
-			// Swap event record back to Litte Endian, since cached event record is referenced again below
+			// Swap event record to Litte Endian, since cached event record is referenced again below
 			EndianSwapEventRecord(&g_pendingEventRecord);
 #endif
 #if ENDIAN_CONVERSION
@@ -197,6 +197,53 @@ void MoveManualCalToFile(void)
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 			f_close(&file);
 			SetFileTimestamp(g_spareFileName);
+
+			//==========================================================================================================
+			// Save compressed event record file
+			//----------------------------------------------------------------------------------------------------------
+			if (g_unitConfig.saveCompressedData != DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA)
+			{
+				// Get new ERData compressed event file name
+				GetEREventRecordFilename(g_pendingEventRecord.summary.eventNumber);
+				MakeDirectoryIfNotPresent(ER_DATA_PATH, g_pendingEventRecord.summary.eventNumber);
+
+				if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
+				{
+					debugErr("Unable to create EReventrecord event file: %s\r\n", g_spareFileName);
+				}
+				else // File created, write out the event
+				{
+					g_globalFileHandle = &file;
+					g_spareBufferIndex = 0;
+#if ENDIAN_CONVERSION
+					// Swap event record to Big Endian for compression
+					EndianSwapEventRecord(&g_pendingEventRecord);
+#endif
+					compressSize = lzo1x_1_compress((void*)&g_pendingEventRecord, sizeof(g_pendingEventRecord), OUT_FILE);
+
+					// Check if any remaining compressed data is queued
+					if (g_spareBufferIndex)
+					{
+						// Finish writing the remaining compressed data
+						f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesWritten);
+						g_spareBufferIndex = 0;
+					}
+
+					debug("Wave Compressed Event Record length: %d (Matches file: %s)\r\n", compressSize, (compressSize == f_size(&file)) ? "Yes" : "No");
+#if ENDIAN_CONVERSION
+					// Swap event record back to Little Endian for processing
+					EndianSwapEventRecord(&g_pendingEventRecord);
+#endif
+					// Update the remaining space left
+					UpdateSDCardUsageStats(f_size(&file));
+
+					// Done writing the event file, close the file handle
+					g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+					f_close(&file);
+					SetFileTimestamp(g_spareFileName);
+				}
+			}
+			//==========================================================================================================
 
 			//==========================================================================================================
 			// Save compressed data file
@@ -220,9 +267,6 @@ void MoveManualCalToFile(void)
 					// Check if any remaining compressed data is queued
 					if (g_spareBufferIndex)
 					{
-#if ENDIAN_CONVERSION
-						// No conversion for compressed data
-#endif
 						// Finish writing the remaining compressed data
 						f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesWritten);
 						g_spareBufferIndex = 0;
