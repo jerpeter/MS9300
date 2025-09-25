@@ -209,7 +209,7 @@ void StartExternalRtcClock(uint16 sampleRate)
 	// Enabling the sampling interrupt
 	MXC_GPIO_EnableInt(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
 
-#if 0 /* Debug can run in interrupt context, prefer to limit output */
+#if 1 /* Debug can run in interrupt context, prefer to limit output */
 	debug("Starting External RTC Interrupt (SR: %d)\r\n", sampleRate);
 #endif
 
