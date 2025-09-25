@@ -187,7 +187,9 @@ USER_MENU_TAGS_STRUCT g_menuTags[TOTAL_TAGS] = {
 	{"SERVER PORT", SERVER_PORT_TAG},
 	{"LISTEN SERVER PORT", LISTEN_SERVER_PORT_TAG},
 	{"CELL MODEM SETUP", CELL_MODEM_SETUP_TAG},
-	{"CELL UART RESET", CELL_UART_RESET_TAG}
+	{"CELL UART RESET", CELL_UART_RESET_TAG},
+	{"EXT", EXT_TAG},
+	{"INT", INT_TAG}
 };
 uint8 g_monitorOperationMode;
 uint8 g_waitForUser = FALSE;
@@ -321,7 +323,7 @@ uint8 g_spi2InUseByLCD = NO;
 uint8 g_calibrationGeneratePulse = NO;
 uint8 g_bargraphLiveMonitoringBISendActive = NO;
 uint8 g_blmAlertAlarmStatus = 0;
-uint8 g_tcpServerStartStage = 0;
+uint8 g_tcpServerStartStage = TCP_SERVER_IDLE;
 uint8* g_bargraphBarIntervalLiveMonitorBIDataPtr = g_blmBuffer;
 SAMPLE_DATA_STRUCT g_sensorCalPeaks[3] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
 SAMPLE_DATA_STRUCT g_sensorCalFreqCounts;
@@ -353,7 +355,7 @@ uint8 g_adaptiveBoundaryCount;
 uint8 g_adaptiveBoundaryMarker = 0;
 uint16 g_adaptiveSeismicThreshold;
 uint16 g_adaptiveAcousticThreshold;
-uint32 g_cellConnectStats[4];
+CELL_CONNECT_STATS_STRUCT g_cellConnectStats;
 uint32 g_adaptiveSampleDelay;
 uint16* g_adaptiveLastRealSamplePtr;
 time_t g_epochTimeGPS = 0;
@@ -361,5 +363,9 @@ uint32 g_testTimeSinceLastFSWrite = 0xffffffff;
 uint32 g_testTimeSinceLastTrigger = 0xffffffff;
 uint32 g_testTimeSinceLastCycleChange = 0xffffffff;
 uint32 g_testTimeSinceLastCalPulse = 0xffffffff;
+#if 1 /* Test */
+uint32 g_calSampleRate = 1024;
+uint32 g_calSampleSource = 0;
+#endif
 
 // End of the list

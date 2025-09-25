@@ -286,7 +286,7 @@ extern uint8 g_adaptiveBoundaryCount;
 extern uint8 g_adaptiveBoundaryMarker;
 extern uint16 g_adaptiveSeismicThreshold;
 extern uint16 g_adaptiveAcousticThreshold;
-extern uint32 g_cellConnectStats[3];
+extern CELL_CONNECT_STATS_STRUCT g_cellConnectStats;
 extern uint32 g_adaptiveSampleDelay;
 extern uint16* g_adaptiveLastRealSamplePtr;
 extern time_t g_epochTimeGPS;
@@ -294,5 +294,9 @@ extern uint32 g_testTimeSinceLastFSWrite;
 extern uint32 g_testTimeSinceLastTrigger;
 extern uint32 g_testTimeSinceLastCycleChange;
 extern uint32 g_testTimeSinceLastCalPulse;
+#if 1 /* Test */
+extern uint32 g_calSampleRate;
+extern uint32 g_calSampleSource;
+#endif
 
 #endif /* GLOBALS_H_ */
