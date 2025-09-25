@@ -387,7 +387,7 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 						}
 #endif
 #if 0 /* Test */
-						g_tcpServerStartStage = 1;
+						g_tcpServerStartStage = TCP_SERVER_INIT;
 						AssignSoftTimer(TCP_SERVER_START_NUM, (1 * TICKS_PER_SEC), TcpServerStartCallback);
 #endif
 					}
