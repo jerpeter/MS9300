@@ -422,12 +422,12 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 		else { sprintf(debugInfo, "Run Time: %dd %dh %dm", ((runTime) / (3600 * 24)), ((runTime % (3600 * 24)) / 3600), ((runTime % 3600) / 60)); }
 		ft81x_stream_start(); ft81x_cmd_text(550, 140, 28, 0, debugInfo); ft81x_stream_stop();
 
-		// Check if the Cell Modem is actvie (and only display when the LCD screen is being updated)
-		if ((g_modemSetupRecord.modemStatus == YES) && (IsSoftTimerActive(MENU_UPDATE_TIMER_NUM)))
+		// Check if the Cell Modem is actvie (and only display when the LCD screen is being updated or monitoring)
+		if ((g_modemSetupRecord.modemStatus == YES) && ((IsSoftTimerActive(MENU_UPDATE_TIMER_NUM)) || (g_sampleProcessing == ACTIVE_STATE)))
 		{
 			// Cell Config: ADO Events/ADO Evts/Config/Status + Server
 			sprintf(debugInfo, "Cell Modem Config:");
-			ft81x_stream_start(); ft81x_cmd_text(550, 220, 28, 0, debugInfo); ft81x_stream_stop();
+			ft81x_stream_start(); ft81x_cmd_text(550, 200, 28, 0, debugInfo); ft81x_stream_stop();
 
 			if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
 			{
@@ -437,7 +437,7 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 			{
 				sprintf(debugInfo, "    Events only%s", ((g_cellModemSetupRecord.tcpServer == YES) ? " + Svr" : ""));
 			}
-			ft81x_stream_start(); ft81x_cmd_text(550, 240, 28, 0, debugInfo); ft81x_stream_stop();
+			ft81x_stream_start(); ft81x_cmd_text(550, 220, 28, 0, debugInfo); ft81x_stream_stop();
 
 			// Cell Modem: <status>
 			if (g_modemStatus.modemAvailable == NO)
@@ -452,7 +452,7 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 			{
 				sprintf(debugInfo, "Cell Modem: Powered off");
 			}
-			ft81x_stream_start(); ft81x_cmd_text(550, 260, 28, 0, debugInfo); ft81x_stream_stop();
+			ft81x_stream_start(); ft81x_cmd_text(550, 240, 28, 0, debugInfo); ft81x_stream_stop();
 
 			// Current mode: ADO/Server
 			if ((g_cellModemSetupRecord.tcpServer == YES) && (g_autoDialoutState == AUTO_DIAL_IDLE))
@@ -463,12 +463,12 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 			{
 				sprintf(debugInfo, "Curr Mode: Auto Dialout");
 			}
-			ft81x_stream_start(); ft81x_cmd_text(550, 280, 28, 0, debugInfo); ft81x_stream_stop();
+			ft81x_stream_start(); ft81x_cmd_text(550, 260, 28, 0, debugInfo); ft81x_stream_stop();
 
 			// Current state: <state>
 			if ((g_cellModemSetupRecord.tcpServer == YES) && (g_autoDialoutState == AUTO_DIAL_IDLE))
 			{
-				if (g_tcpServerStartStage == 0)
+				if (g_tcpServerStartStage == TCP_SERVER_ACTIVE_DATA_MODE)
 				{
 					if (g_modemStatus.remoteConnectionActive == YES)
 					{
@@ -479,6 +479,14 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 						sprintf(debugInfo, "Curr State: Listening...");
 					}
 				}
+				else if (g_tcpServerStartStage == TCP_SERVER_IDLE)
+				{
+					sprintf(debugInfo, "Curr State: Idle");
+				}
+				else if (g_tcpServerStartStage == TCP_SERVER_INIT)
+				{
+					sprintf(debugInfo, "Curr State: Init");
+				}
 				else
 				{
 					sprintf(debugInfo, "Curr State: Connecting...");
@@ -486,15 +494,15 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 			}
 			else // ADO
 			{
-				sprintf(debugInfo, "Cur State: ADO %s", AdoStateGetDebugString());
+				sprintf(debugInfo, "Curr State: ADO %s", AdoStateGetDebugString());
 			}
-			ft81x_stream_start(); ft81x_cmd_text(550, 300, 28, 0, debugInfo); ft81x_stream_stop();
+			ft81x_stream_start(); ft81x_cmd_text(550, 280, 28, 0, debugInfo); ft81x_stream_stop();
 
 			// Cell Network Connect Time: <data>
 			sprintf(debugInfo, "Cell Network Conn Time:");
-			ft81x_stream_start(); ft81x_cmd_text(550, 320, 28, 0, debugInfo); ft81x_stream_stop();
+			ft81x_stream_start(); ft81x_cmd_text(550, 300, 28, 0, debugInfo); ft81x_stream_stop();
 
-			if ((g_autoDialoutState == AUTO_DIAL_INIT) || (g_tcpServerStartStage == 5))
+			if ((g_autoDialoutState == AUTO_DIAL_INIT) || (g_tcpServerStartStage == TCP_SERVER_CELL_NETWORK_CONNECTING))
 			{
 				sprintf(debugInfo, "    Searching: %ds", GetCurrentCellConnectTime());
 			}
@@ -504,9 +512,31 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 			}
 			else
 			{
-				sprintf(debugInfo, "    Last: %ds (Avg: %ds)", GetCellConnectStatsLastConenct(), GetCellConnectStatsAverage());
+				sprintf(debugInfo, "    Last: %ds (Avg: %ds)", GetCellConnectStatsLastConnect(), GetCellConnectStatsAverage());
 			}
-				ft81x_stream_start(); ft81x_cmd_text(550, 340, 28, 0, debugInfo); ft81x_stream_stop();
+			ft81x_stream_start(); ft81x_cmd_text(550, 320, 28, 0, debugInfo); ft81x_stream_stop();
+
+			if (g_cellConnectStats.lastRemoteConnTime.year == 0)
+			{
+				sprintf(debugInfo, "Last TCP Conn: N/A");
+			}
+			else
+			{
+				sprintf(debugInfo, "Last TCP Conn: %02d:%02d:%02d", g_cellConnectStats.lastRemoteConnTime.hour, g_cellConnectStats.lastRemoteConnTime.min, g_cellConnectStats.lastRemoteConnTime.sec);
+			}
+			ft81x_stream_start(); ft81x_cmd_text(550, 340, 28, 0, debugInfo); ft81x_stream_stop();
+
+			if (g_cellConnectStats.CellNotReadyCount)
+			{
+				sprintf(debugInfo, "NR: %d, UR: %d, CF: %d", g_cellConnectStats.CellNotReadyCount, g_cellConnectStats.CellUartResetCount, g_cellConnectStats.CellFailedCommsCheck);
+				ft81x_stream_start(); ft81x_cmd_text(550, 360, 28, 0, debugInfo); ft81x_stream_stop();
+			}
+
+			if (g_cellConnectStats.cellUiccError)
+			{
+				sprintf(debugInfo, "Cell UICC Error found");
+				ft81x_stream_start(); ft81x_cmd_text(550, 380, 28, 0, debugInfo); ft81x_stream_stop();
+			}
 		}
 	}
 #endif
