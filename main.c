@@ -58,6 +58,7 @@
 #include "lp.h"
 #include "uart.h"
 #include "mxc_sys.h"
+#include "flc.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -1351,13 +1352,37 @@ void UsbDisableIfActive(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#define APPLICATION		((void *)0x10000000) // Internal Flash memory start address
-const char default_boot_name[] = { "Boot.s" };
+const char default_firmware_name[] = { "MS9300.bin" };
+void FirmwareImageCheck(void)
+{
+	sprintf(g_spareFileName, "%s%s", SYSTEM_PATH, default_firmware_name);
+	if (f_stat((const TCHAR*)g_spareFileName, NULL) == FR_OK)
+	{
+		debug("Boot Manager: Firmware image found\r\n");
+		if (MessageBox(getLangText(STATUS_TEXT), "FIRMWARE IMAGE FOUND, START UPDATE PROCESS?", MB_YESNO) == MB_FIRST_CHOICE)
+		{
+			g_quickBootEntryJump = QUICK_BOOT_ENTRY_FROM_MENU;
+			BootLoadManager();
+		}
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+#include "icc.h"
+
+#define BOOTLOADER_BASE_ADDRESS		(0x10200000)
+#define BOOTLOADER_RESET_HANDLER	(BOOTLOADER_BASE_ADDRESS + 0x4)
+
+const char default_boot_name[] = { "MS9300_Bootloader.bin" };
+const char default_boot_bak_name[] = { "MS9300_Bootloader.bak" };
+const char default_boot_bad_name[] = { "MS9300_Bootloader.bad" };
 
 void BootLoadManager(void)
 {
 	static void (*func)(void);
-	func = (void(*)())APPLICATION;
+
 #if 0 /* temp remove while unused */
 	int file = -1;
 	uint32 baudRate;
@@ -1408,10 +1433,150 @@ void BootLoadManager(void)
 			ReportFileSystemAccessProblem("Bootloader access");
 		}
 
-#if 0 /* old hw */
 		sprintf(g_spareFileName, "%s%s", SYSTEM_PATH, default_boot_name);
-		file = open(g_spareFileName, O_RDONLY);
 
+		FIL file;
+		uint32_t readSize;
+		FILINFO fno;
+		uint8_t bootStoredInInternalFlash = NO;
+		uint8_t bootImageFoundInFlashStorage = NO;
+		uint8_t loadBootImage = NO;
+		char imageFilename[50];
+
+		// Check for existance of the Bootloader within internal flash
+		if (*(uint32_t*)BOOTLOADER_RESET_HANDLER != 0xffffffff) { bootStoredInInternalFlash = YES; }
+		debug("Boot Manager: Boot available in flash: %s\r\n", ((bootStoredInInternalFlash == YES) ? "YES" : "NO"));
+		//debug("Boot Manager: Looking for Bootloader image file <%s>\r\n", g_spareFileName);
+
+		// Check for existance of the Bootloader in eMMC flash storage
+		if (f_stat((const TCHAR*)g_spareFileName, &fno) == FR_OK) { bootImageFoundInFlashStorage = YES; }
+		debug("Boot Manager: Boot image located in storage: %s\r\n", ((bootImageFoundInFlashStorage == YES) ? "YES" : "NO"));
+
+		// Check if Boot not available in any form
+		if ((bootStoredInInternalFlash == NO) && (bootImageFoundInFlashStorage == NO))
+		{
+			DisplayFileNotFound(g_spareFileName);
+			debugWarn("Boot Manager: Bootloader not loaded and image not found\r\n");
+			MessageBox(getLangText(WARNING_TEXT), "BOOTLOADER NOT LOADED AND BOOT IMAGE NOT FOUND", MB_OK);
+
+			return; // Bail
+		}
+
+		// Check if Bootloader image is available in eMMC Flash Storage
+		if (bootImageFoundInFlashStorage == YES)
+		{
+			// Check if no Bootloader stored within internal flash
+			if (bootStoredInInternalFlash == NO) { loadBootImage = YES; } // Force loading of Bootloader image from storage to internal flash
+			else if (MessageBox(getLangText(STATUS_TEXT), "BOOTLOADER IMAGE FOUND, LOAD NEW BOOTLOADER?", MB_YESNO) == MB_FIRST_CHOICE)
+			{
+				loadBootImage = YES; // Allow a choice to update Bootloader
+				OverlayMessage(getLangText(APP_LOADER_TEXT), (char*)g_spareBuffer, 0); // Re-display App loader message
+			}
+		}
+
+		// Check if loading a new Bootloader image
+		if (loadBootImage == YES)
+		{
+			debug("Boot Manager: Bootloader firmware found (size: %lu)\r\n", fno.fsize);
+			f_open(&file, g_spareFileName, FA_READ);
+			f_read(&file, g_eventDataBuffer, fno.fsize, (UINT*)&readSize);
+			f_close(&file);
+			//debug("Boot Manager: Loaded %lu bytes into Internal RAM\r\n", readSize);
+
+			uint32 firmwareCRC = CalcCCITT32((uint8*)g_eventDataBuffer, (readSize - 4), SEED_32);
+			uint32 storedFirmwareCRC = __builtin_bswap32(*(uint32*)((uint32)g_eventDataBuffer + (readSize - 4)));
+
+			if (firmwareCRC == storedFirmwareCRC)
+			{
+				debug("Boot Manager: CRC match, boot image validated\r\n");
+				OverlayMessage(getLangText(STATUS_TEXT), "BOOT MANAGER: BOOTLOADER IMAGE VALIDATED", (2 * SOFT_SECS));
+
+				sprintf(imageFilename, "%s%s", SYSTEM_PATH, default_boot_bak_name);
+				if (f_stat((const TCHAR*)imageFilename, &fno) == FR_OK) { f_unlink(imageFilename); } // Remove old bak image file if it exists
+
+				debug("Boot Manager: Renaming Bootloader image file extension <%s>\r\n", default_boot_bak_name);
+				f_rename(g_spareFileName, imageFilename);
+			}
+			else
+			{
+				debugWarn("Boot Manager: CRC mismatch, boot image inavlid or corrupted (0x%x != 0x%x)\r\n", firmwareCRC, storedFirmwareCRC);
+				OverlayMessage(getLangText(STATUS_TEXT), "BOOT MANAGER: BOOT IMAGE FAILED VERIFICATION", (2 * SOFT_SECS));
+
+				sprintf(imageFilename, "%s%s", SYSTEM_PATH, default_boot_bad_name);
+				if (f_stat((const TCHAR*)imageFilename, &fno) == FR_OK) { f_unlink(imageFilename); } // Remove old bad image file if it exists
+
+				debug("Boot Manager: Renaming Bootloader image file extension <%s>\r\n", default_boot_bad_name);
+				OverlayMessage(getLangText(STATUS_TEXT), "BOOT MANAGER: BAD FIRMWARE IMAGE FILE EXTENSION CHANGED", (2 * SOFT_SECS));
+				f_rename(g_spareFileName, imageFilename);
+
+				if (bootStoredInInternalFlash == NO)
+				{
+					return; // Bail
+				}
+			}
+
+			// Load Bootloader image into internal flash
+			uint16_t pagesToErase = ((readSize / MXC_FLASH_PAGE_SIZE) + 1);
+			uint32_t internalFlashAddr = BOOTLOADER_BASE_ADDRESS;
+
+			debug("Boot Manager: Pages to erase %d\r\n", pagesToErase);
+
+			// Disable interrupts
+			__disable_irq();
+
+			// Disable ICC
+			MXC_ICC_DisableInst(MXC_ICC0);
+
+			while (pagesToErase)
+			{
+				//debug("Boot Manager: Page erase at 0x%x\r\n", internalFlashAddr);
+				MXC_FLC_PageErase(internalFlashAddr);
+				internalFlashAddr += MXC_FLASH_PAGE_SIZE;
+				pagesToErase--;
+			}
+			debug("Boot Manager: Flash page erase complete\r\n");
+
+			MXC_FLC_Write(BOOTLOADER_BASE_ADDRESS, readSize, (uint32_t*)&g_eventDataBuffer);
+			debug("Boot Manager: Flash write complete\r\n");
+
+			SetupICC();
+
+			// Disable interrupts
+			__enable_irq();
+
+			if (bootStoredInInternalFlash == YES) {	OverlayMessage(getLangText(STATUS_TEXT), "BOOT MANAGER: BOOTLOADER UPDATE SUCCESSFUL", (2 * SOFT_SECS)); }
+			else {	OverlayMessage(getLangText(STATUS_TEXT), "BOOT MANAGER: BOOTLOADER INSTALL SUCCESSFUL", (2 * SOFT_SECS)); }
+		}
+
+		sprintf(imageFilename, "%s%s", SYSTEM_PATH, default_firmware_name);
+		if (f_stat((const TCHAR*)imageFilename, &fno) != FR_OK)
+		{
+			debugWarn("Boot Manager: Firmware image not found\r\n");
+			OverlayMessage(getLangText(STATUS_TEXT), "FIRMWARE IMAGE NOT FOUND", (2 * SOFT_SECS));
+			return; // Leave function
+		}
+
+		// Ready to jump to the Bootloader
+		debug("Reset Handler at Bootloader address (addr 0x%x): 0x%x\r\n", BOOTLOADER_RESET_HANDLER, *(uint32_t*)BOOTLOADER_RESET_HANDLER);
+		func = (void(*)())(*(uint32_t*)BOOTLOADER_RESET_HANDLER);
+
+		if (func == (void*)0xffffffff)
+		{
+			debugWarn("Boot Manager: Bootloader not found\r\n");
+			return; // Leave function
+		}
+		else
+		{
+			AddOnOffLogTimestamp(JUMP_TO_BOOT);
+
+			// Close filesystem
+			f_mount(NULL, "", 0);
+
+			debug("Trying jump to Bootloader (0x%x)...\r\n", func);
+			func(); // Control passed to Bootloader
+		}
+
+#if 0
 		while (file == -1)
 		{
 			sprintf((char*)g_spareBuffer, "%s %s. %s", getLangText(APP_LOADER_TEXT), getLangText(FILE_NOT_FOUND_TEXT), getLangText(CONNECT_USB_CABLE_TEXT));
@@ -1438,6 +1603,7 @@ void BootLoadManager(void)
 			
 			file = open(g_spareFileName, O_RDONLY);
 		}
+#endif
 
 		// Display initializing message
 		debug("Starting Boot..\r\n");
@@ -1447,6 +1613,7 @@ void BootLoadManager(void)
 
 		ClearLcdDisplay();
 
+#if 0
 		if (Unpack_srec(file) == -1)
 		{
 			debugErr("SREC unpack unsuccessful\r\n");
@@ -1455,6 +1622,7 @@ void BootLoadManager(void)
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 		close(file);
 #endif
+
 #if 0 /* Removed debug log file due to inducing system problems */
 		debug("Dumping debug output to debug log file\r\n");
 		debug("Adding On/Off Log timestamp before jumping to boot\r\n");
@@ -1472,6 +1640,9 @@ void BootLoadManager(void)
 
 		// Close filesystem
 		f_mount(NULL, "", 0);
+
+		// Disable ICC
+		MXC_ICC_DisableInst(MXC_ICC0);
 
 		// Disable interrupts
 		__disable_irq();
