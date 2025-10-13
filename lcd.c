@@ -2019,18 +2019,30 @@ void test_display(
 
 void ft81x_NomisLoadScreen(void)
 {
+#if LCD_RESOURCE_UNAVAILABLE
+	return false;
+#endif
 	ft81x_stream_start(); // Start streaming
 	ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
 	ft81x_clear_color_rgb32(0x0000ff); // Blue
+	//ft81x_clear_color_rgb32(0x4060cf); // Light Blue
 	ft81x_clear();
 	ft81x_color_rgb32(0xffffff); // White
 	ft81x_bgcolor_rgb32(0x0000ff); // Blue
+	//ft81x_bgcolor_rgb32(0x4060cf); // Light Blue
 	ft81x_fgcolor_rgb32(0xffffff); // White
 
 	// Startup text
 	ft81x_cmd_text((FT81X_DISPLAY_WIDTH / 2), (FT81X_DISPLAY_HEIGHT / 4), 31, OPT_CENTER, "NOMIS SEISMOGRAPHS");
 	ft81x_cmd_text((FT81X_DISPLAY_WIDTH / 2), (FT81X_DISPLAY_HEIGHT / 3), 31, OPT_CENTER, "MS-9300");
 	ft81x_cmd_text((FT81X_DISPLAY_WIDTH / 2), (FT81X_DISPLAY_HEIGHT / 5 * 3), 25, OPT_CENTER, "Booting up...");
+
+#if 0
+	// Build version and date
+	sprintf((char*)g_spareBuffer, "Version: %s", g_buildVersion);
+	debug("LCD Version string: <%s>\r\n", (char*)g_spareBuffer);
+	ft81x_cmd_text((FT81X_DISPLAY_WIDTH / 2), (FT81X_DISPLAY_HEIGHT - 25), 22, OPT_CENTER, (char*)g_spareBuffer);
+#endif
 
 	// Spinner
 	ft81x_cmd_spinner(FT81X_DISPLAY_WIDTH / 2, 380, 3, 0);
@@ -2046,6 +2058,9 @@ void ft81x_NomisLoadScreen(void)
 
 void ft81x_NomisChargingScreen(uint8 batteryStats)
 {
+#if LCD_RESOURCE_UNAVAILABLE
+	return false;
+#endif
 	ft81x_stream_start(); // Start streaming
 	ft81x_cmd_dlstart();  // Set REG_CMD_DL when done
 	ft81x_clear_color_rgb32(0x006000); // Green
