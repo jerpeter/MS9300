@@ -46,6 +46,7 @@ extern USER_MENU_STRUCT barChannelMenu[];
 extern USER_MENU_STRUCT barResultMenu[];
 extern USER_MENU_STRUCT barIntervalDataTypeMenu[];
 extern USER_MENU_STRUCT bitAccuracyMenu[];
+extern USER_MENU_STRUCT cellPacketDelayMenu[];
 extern USER_MENU_STRUCT cellTcpServerMenu[];
 extern USER_MENU_STRUCT configMenu[];
 extern USER_MENU_STRUCT customCurveMenu[];
@@ -78,6 +79,7 @@ extern USER_MENU_STRUCT sensitivityMenu[];
 extern USER_MENU_STRUCT storedEventsCapModeMenu[];
 extern USER_MENU_STRUCT storedEventLimitMenu[];
 extern USER_MENU_STRUCT summaryIntervalMenu[];
+extern USER_MENU_STRUCT tcpServerListenPortMenu[];
 extern USER_MENU_STRUCT unlockCodeMenu[];
 extern USER_MENU_STRUCT vibrationStandardMenu[];
 extern USER_MENU_STRUCT weightPerDelayMenu[];
@@ -655,6 +657,61 @@ void AlarmTwoTimeMenuHandler(uint8 keyPressed, void* data)
 		else // g_unitConfig.alarmTwoMode == ALARM_MODE_OFF
 		{
 			SETUP_USER_MENU_MSG(&alarmTwoMenu, g_unitConfig.alarmTwoMode);
+		}
+	}
+
+	JUMP_TO_ACTIVE_MENU();
+}
+
+//*****************************************************************************
+//=============================================================================
+// Cell Packet Delay Menu
+//=============================================================================
+//*****************************************************************************
+#define CELL_PACKET_DELAY_MENU_ENTRIES 4
+USER_MENU_STRUCT cellPacketDelayMenu[CELL_PACKET_DELAY_MENU_ENTRIES] = {
+{CELL_PACKET_DELAY_TAG, 0, NULL_TEXT, NO_TAG,
+	{INSERT_USER_MENU_INFO(INTEGER_WORD_TYPE, CELL_PACKET_DELAY_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {INSERT_USER_MENU_WORD_DATA(MSECS_TYPE, NO_ALT_TYPE)}},
+{NO_TAG, 0, NULL_TEXT, NO_TAG, {}},
+{END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&CellPacketDelayMenuHandler}}
+};
+
+//----------------------------
+// Cell Packet Delay Menu Handler
+//----------------------------
+void CellPacketDelayMenuHandler(uint8 keyPressed, void* data)
+{
+	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
+
+	if (keyPressed == ENTER_KEY)
+	{
+		g_cellModemSetupRecord.packetDelay = *((uint16_t*)data);
+
+		debug("Cell Packet Delay (ms): %d\r\n", g_cellModemSetupRecord.packetDelay);
+
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+	}
+	else if (keyPressed == ESC_KEY)
+	{
+		if (strlen(g_cellModemSetupRecord.pdnApn))
+		{
+			if (g_cellModemSetupRecord.tcpServer == YES)
+			{
+				SETUP_USER_MENU_FOR_INTEGERS_MSG(&tcpServerListenPortMenu, &g_cellModemSetupRecord.tcpServerListenPort, TCP_SERVER_LISTEN_PORT_DEFAULT_VALUE, TCP_SERVER_LISTEN_PORT_MIN_VALUE, TCP_SERVER_LISTEN_PORT_MAX_VALUE);
+			}
+			else
+			{
+				SETUP_USER_MENU_MSG(&cellTcpServerMenu, g_cellModemSetupRecord.tcpServer);
+			}
+		}
+		else if (g_cellModemSetupRecord.pdnAuthProtocol == AUTH_NONE)
+		{
+			SETUP_USER_MENU_MSG(&pdnAuthProtocolMenu, g_cellModemSetupRecord.pdnAuthProtocol);
+		}
+		else
+		{
+			SETUP_USER_MENU_MSG(&pdnPasswordMenu, &g_cellModemSetupRecord.pdnPassword);
 		}
 	}
 
@@ -1472,7 +1529,11 @@ void PdnPasswordMenuHandler(uint8 keyPressed, void* data)
 		}
 		else
 		{
+#if 0 /* Original */
 			SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+#else /* New Cell Packet Delay */
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&cellPacketDelayMenu, &g_cellModemSetupRecord.packetDelay, CELL_PACKET_DELAY_DEFAULT_VALUE, CELL_PACKET_DELAY_MIN_VALUE, CELL_PACKET_DELAY_MAX_VALUE);
+#endif
 		}
 	}
 	else if (keyPressed == ESC_KEY)
@@ -1937,7 +1998,11 @@ void TcpServerListenPortMenuHandler(uint8 keyPressed, void* data)
 		g_cellModemSetupRecord.tcpServerListenPort = *((uint16*)data);
 		debug("TCP Server Listen Port: %d\r\n", g_cellModemSetupRecord.tcpServerListenPort);
 
+#if 0 /* Original */
 		SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+#else /* New Cell Packet Delay */
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&cellPacketDelayMenu, &g_cellModemSetupRecord.packetDelay, CELL_PACKET_DELAY_DEFAULT_VALUE, CELL_PACKET_DELAY_MIN_VALUE, CELL_PACKET_DELAY_MAX_VALUE);
+#endif
 	}
 	else if (keyPressed == ESC_KEY)
 	{
@@ -2117,11 +2182,12 @@ void UnlockCodeMenuHandler(uint8 keyPressed, void* data)
 	}
 	else if (keyPressed == ESC_KEY)
 	{
+#if 0 /* Original */
 		if (strlen(g_cellModemSetupRecord.pdnApn))
 		{
 			if (g_cellModemSetupRecord.tcpServer == YES)
 			{
-				SETUP_USER_MENU_MSG(&tcpServerListenPortMenu, &g_cellModemSetupRecord.tcpServerListenPort);
+				SETUP_USER_MENU_FOR_INTEGERS_MSG(&tcpServerListenPortMenu, &g_cellModemSetupRecord.tcpServerListenPort, TCP_SERVER_LISTEN_PORT_DEFAULT_VALUE, TCP_SERVER_LISTEN_PORT_MIN_VALUE, TCP_SERVER_LISTEN_PORT_MAX_VALUE);
 			}
 			else
 			{
@@ -2136,6 +2202,9 @@ void UnlockCodeMenuHandler(uint8 keyPressed, void* data)
 		{
 			SETUP_USER_MENU_MSG(&pdnPasswordMenu, &g_cellModemSetupRecord.pdnPassword);
 		}
+#else /* New Cell Packet Delay */
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&cellPacketDelayMenu, &g_cellModemSetupRecord.packetDelay, CELL_PACKET_DELAY_DEFAULT_VALUE, CELL_PACKET_DELAY_MIN_VALUE, CELL_PACKET_DELAY_MAX_VALUE);
+#endif
 	}
 
 	JUMP_TO_ACTIVE_MENU();

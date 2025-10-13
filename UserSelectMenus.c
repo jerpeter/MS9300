@@ -59,6 +59,7 @@ extern USER_MENU_STRUCT barResultMenu[];
 extern USER_MENU_STRUCT baudRateMenu[];
 extern USER_MENU_STRUCT bitAccuracyMenu[];
 extern USER_MENU_STRUCT calibratonDateSourceMenu[];
+extern USER_MENU_STRUCT cellPacketDelayMenu[];
 extern USER_MENU_STRUCT companyMenu[];
 extern USER_MENU_STRUCT copiesMenu[];
 extern USER_MENU_STRUCT configMenu[];
@@ -1565,7 +1566,11 @@ void CellTcpServerMenuHandler(uint8 keyPressed, void* data)
 		}
 		else
 		{
+#if 0 /* Original */
 			SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+#else /* New Cell Packet Delay */
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&cellPacketDelayMenu, &g_cellModemSetupRecord.packetDelay, CELL_PACKET_DELAY_DEFAULT_VALUE, CELL_PACKET_DELAY_MIN_VALUE, CELL_PACKET_DELAY_MAX_VALUE);
+#endif
 		}
 #endif
 	}
@@ -2482,7 +2487,8 @@ void HelpMenuHandler(uint8 keyPressed, void* data)
 #if 1 /* Test */
 			if (strlen((char*)g_cellConnectStats.cellNetworkIP))
 			{
-				MessageBox(getLangText(STATUS_TEXT), g_cellConnectStats.cellNetworkIP, MB_OK);
+				sprintf(buildString, "CELL IP: %s,", (char*)g_cellConnectStats.cellNetworkIP);
+				MessageBox(getLangText(STATUS_TEXT), buildString, MB_OK);
 			}
 #endif
 		}
