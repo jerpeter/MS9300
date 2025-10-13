@@ -426,35 +426,33 @@ char* AdoStateGetDebugString(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if 0 /* Not needed yet, unfinished */
 char* TcpServerDebugString(void)
 {
 	char* debugString = NULL;
 
 	switch (g_tcpServerStartStage)
 	{
-		case 0: debugString = ; break;
-		case 1: debugString = ; break;
-		case 2: debugString = ; break;
-		case 3: debugString = ; break;
-		case 4: debugString = ; break;
-		case 5: debugString = ; break;
-		case 6: debugString = ; break;
-		case 7: debugString = ; break;
-		case 8: debugString = ; break;
-		case 9: debugString = ; break;
+		case TCP_SERVER_IDLE: debugString = TCPSVR_IDLE; break;
+		case TCP_SERVER_INIT: debugString = TCPSVR_INIT; break;
+		case TCP_SERVER_SET_APN: debugString = TCPSVR_SET_APN; break;
+		case TCP_SERVER_SET_AUTH: debugString = TCPSVR_SET_AUTH; break;
+		case TCP_SERVER_CELL_MODEM_START: debugString = TCPSVR_CELL_START; break;
+		case TCP_SERVER_CELL_NETWORK_CONNECTING: debugString = TCPSVR_CELL_CONNECTING; break;
+		case TCP_SERVER_CELL_NETWORK_CONNECTED: debugString = TCPSVR_CELL_CONNECTED; break;
+		case TCP_SERVER_START: debugString = TCPSVR_START; break;
+		case TCP_SERVER_UP: debugString = TCPSVR_UP; break;
+		case TCP_SERVER_ACTIVE_DATA_MODE: debugString = TCPSVR_ACTIVE_DATA_MODE; break;
 	}
 
 	return (debugString);
 }
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
 void SetStartCellConnectTime(void)
 {
-	g_cellConnectStats[0] = g_lifetimeHalfSecondTickCount;
+	g_cellConnectStats.startCellConnectTime = g_lifetimeHalfSecondTickCount;
 }
 
 ///----------------------------------------------------------------------------
@@ -462,9 +460,10 @@ void SetStartCellConnectTime(void)
 ///----------------------------------------------------------------------------
 void CellConnectStatsUpdate(void)
 {
-	g_cellConnectStats[1] = ((g_lifetimeHalfSecondTickCount - g_cellConnectStats[0]) / 2);
-	g_cellConnectStats[2] += g_cellConnectStats[1];
-	g_cellConnectStats[3]++;
+	g_cellConnectStats.lastCellConnectTime = ((g_lifetimeHalfSecondTickCount - g_cellConnectStats.startCellConnectTime) / 2);
+	g_cellConnectStats.lastCellConnectTimestamp = g_lifetimeHalfSecondTickCount;
+	g_cellConnectStats.totalCellConnectTime += g_cellConnectStats.lastCellConnectTime;
+	g_cellConnectStats.CellConnectAttempts++;
 }
 
 ///----------------------------------------------------------------------------
@@ -472,15 +471,23 @@ void CellConnectStatsUpdate(void)
 ///----------------------------------------------------------------------------
 uint32 GetCurrentCellConnectTime(void)
 {
-	return ((g_lifetimeHalfSecondTickCount - g_cellConnectStats[0]) / 2);
+	return ((g_lifetimeHalfSecondTickCount - g_cellConnectStats.startCellConnectTime) / 2);
 }
 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint32 GetCellConnectStatsLastConenct(void)
+uint32 GetCurrentCellOnlineTime(void)
 {
-	return(g_cellConnectStats[1]);
+	return ((g_lifetimeHalfSecondTickCount - g_cellConnectStats.lastCellConnectTimestamp) / 2);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint32 GetCellConnectStatsLastConnect(void)
+{
+	return(g_cellConnectStats.lastCellConnectTime);
 }
 
 ///----------------------------------------------------------------------------
@@ -491,8 +498,8 @@ uint32 GetCellConnectStatsAverage(void)
 	uint32 avg;
 
 	// Saftey check to make sure the divisor is never 0
-	if (g_cellConnectStats[3] == 0) { avg = 0; }
-	else { avg = (g_cellConnectStats[2] / g_cellConnectStats[3]); }
+	if (g_cellConnectStats.CellConnectAttempts == 0) { avg = 0; }
+	else { avg = (g_cellConnectStats.totalCellConnectTime / g_cellConnectStats.CellConnectAttempts); }
 
 	return(avg);
 }
@@ -507,7 +514,7 @@ void InitTcpListenServer(void)
 		//OverlayMessage(getLangText(STATUS_TEXT), "CELL MODEM STARTNG LISTEN SERVER. PLEASE WAIT A MOMENT", (0 * SOFT_SECS));
 
 		debug("TCP Listen Server: Selected, setting delayed start timer (15 seconds)\r\n");
-		g_tcpServerStartStage = 1;
+		g_tcpServerStartStage = TCP_SERVER_INIT;
 		AssignSoftTimer(TCP_SERVER_START_NUM, (15 * TICKS_PER_SEC), TcpServerStartCallback);
 	}
 }
@@ -533,7 +540,7 @@ void InitAutoDialout(void)
 	// Update the last stored event
 	__autoDialoutTbl.lastStoredEvent = GetLastStoredEventNumber();
 
-	if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
+	if ((g_modemSetupRecord.modemStatus == YES) && (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS))
 	{
 		debug("Auto Dialout: Events/Config/Status selected, starting timer (set for %d minutes)\r\n", g_modemSetupRecord.dialOutCycleTime);
 		AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_modemSetupRecord.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
@@ -585,22 +592,24 @@ void StartAutoDialoutProcess(void)
 		if (g_cellModemSetupRecord.tcpServer == YES)
 		{
 			// Check if the TCP Server is running
-			if (g_tcpServerStartStage == 0)
+			if (g_tcpServerStartStage == TCP_SERVER_ACTIVE_DATA_MODE)
 			{
 				// Escape out of data mode and stop the TCP Server
-				debug("+++...\r\n"); sprintf((char*)g_spareBuffer, "+++\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+				debug("<Escape sequence>...\r\n"); sprintf((char*)g_spareBuffer, "+++---\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 				{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
 
 				SoftUsecWait(1 * SOFT_SECS);
 
 				// Kill the TCP Server
 				debug("AT#XTCPSVR=0...\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPSVR=0\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+
+				g_tcpServerStartStage = TCP_SERVER_PAUSE_FOR_ADO;
 			}
 			else // the TCP Server is in the processing of starting up
 			{
 				// Need to postpone and reset cell in case of an error
 				debug("Cell/LTE: Postponing TCP Server startup for ADO\r\n");
-				g_tcpServerStartStage = 9;
+				g_tcpServerStartStage = TCP_SERVER_INIT;
 				ClearSoftTimer(TCP_SERVER_START_NUM);
 
 				ShutdownPdnAndCellModem();
@@ -648,6 +657,7 @@ void StartAutoDialoutProcess(void)
 		debug("AT+CEREG?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CEREG?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 #if 1 /* Test */
 		SetStartCellConnectTime();
+		g_cellConnectStats.adoConnectionAttempts++;
 #endif
 #endif
 	}
@@ -682,7 +692,15 @@ void AutoDialoutStateMachine(void)
 			{
 #if 1 /* Test */
 				CellConnectStatsUpdate();
-				debug("ADO: Cell network connect time was %d seconds (Avg: %d)\r\n", GetCellConnectStatsLastConenct(), GetCellConnectStatsAverage());
+				debug("ADO: Cell network connect time was %d seconds (Avg: %d)\r\n", GetCellConnectStatsLastConnect(), GetCellConnectStatsAverage());
+#endif
+#if 0 /* Test */
+				debug("AT+CCLK...\r\n"); sprintf((char*)g_spareBuffer, "AT+CCLK\r\n"); strLen = (int)strlen((char*)g_spareBuffer); MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen);
+				{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+#endif
+#if 1 /* Test */
+				debug("AT+CGDCONT?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CGDCONT?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+				{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
 #endif
 				debug("AT#XTCPCLI=1,\"%s\",%d...\r\n", g_cellModemSetupRecord.server, g_cellModemSetupRecord.serverPort);
 				sprintf((char*)g_spareBuffer, "AT#XTCPCLI=1,\"%s\",%d\r\n", g_cellModemSetupRecord.server, g_cellModemSetupRecord.serverPort); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
@@ -745,9 +763,22 @@ void AutoDialoutStateMachine(void)
 				// Clear remote response
 				g_modemStatus.remoteResponse = NO_RESPONSE;
 
-				// Check if TCP Server didn't start (due to not connecting), but clear if ADO found conneciton
-				if (g_tcpServerStartStage == 9) { g_tcpServerStartStage = 0; }
+				// Check if the TCP Server is active
+				if (g_cellModemSetupRecord.tcpServer == YES)
+				{
+					// Check if TCP Server didn't start or wasn't running
+					if (g_tcpServerStartStage != TCP_SERVER_PAUSE_FOR_ADO)
+					{
+						// Successful ADO conneciton made meaning cell connection good, short circuit to allow the TCP Server to quickly resume after ADO finishes
+						g_tcpServerStartStage = TCP_SERVER_PAUSE_FOR_ADO;
+					}
+				}
 
+#if 1 /* Test*/
+				g_cellConnectStats.adoConnectionCount++;
+				g_cellConnectStats.lastRemoteConnTime = GetCurrentTime();
+				debug("ADO: Server connect @ %02d:%02d:%02d on %d/%d/%d\r\n", g_cellConnectStats.lastRemoteConnTime.hour, g_cellConnectStats.lastRemoteConnTime.min, g_cellConnectStats.lastRemoteConnTime.sec, g_cellConnectStats.lastRemoteConnTime.month, g_cellConnectStats.lastRemoteConnTime.day, g_cellConnectStats.lastRemoteConnTime.year);
+#endif
 				// Update timer to current tick count
 				timer = g_lifetimeHalfSecondTickCount;
 
@@ -910,7 +941,7 @@ void AutoDialoutStateMachine(void)
 #else
 			// ADO Reset called if failed 2x on server connect or 2x failed response from server after 2x GAD, in case server conneciton made need to close the conneciton
 			SoftUsecWait(1 * SOFT_SECS);
-			debug("+++...\r\n"); sprintf((char*)g_spareBuffer, "+++\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+			debug("<Escape sequence>...\r\n"); sprintf((char*)g_spareBuffer, "+++---\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 			SoftUsecWait(1 * SOFT_SECS);
 			debug("AT#XTCPCLI=0...\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPCLI=0\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 #endif
@@ -1029,9 +1060,19 @@ void AutoDialoutStateMachine(void)
 				timer = g_lifetimeHalfSecondTickCount;
 			}
 			// Check if data has not been transmitted in the last 5 minutes
-			else if (((g_lifetimeHalfSecondTickCount - timer) > (5 * TICKS_PER_MIN)) || (g_modemStatus.systemIsLockedFlag == YES))
+			else if ((g_lifetimeHalfSecondTickCount - timer) > (5 * TICKS_PER_MIN))
 			{
 				// No data has been transfered in 5 minutes, tear down connection
+				g_cellConnectStats.adoTimeoutCount++;
+				debug("ADO: No activity timer hit, closing connection (Total count: %d)\r\n", g_cellConnectStats.adoTimeoutCount);
+
+				// Advance to Finish state
+				g_autoDialoutState = AUTO_DIAL_FINISH;
+			}
+			else if (g_modemStatus.systemIsLockedFlag == YES)
+			{
+				// No data has been transfered in 5 minutes, tear down connection
+				debug("ADO: System re-locked, closing connection\r\n");
 
 				// Advance to Finish state
 				g_autoDialoutState = AUTO_DIAL_FINISH;
@@ -1056,6 +1097,8 @@ void AutoDialoutStateMachine(void)
 			// Stop sending BLM data unless remote side requests
 			g_modemStatus.barLiveMonitorOverride = BAR_LIVE_MONITORING_OVERRIDE_STOP;
 #endif
+			debug("ADO: Connection attempts: %u, Connect success: %u, Inactivity timeouts: %u\r\n", g_cellConnectStats.adoConnectionAttempts, g_cellConnectStats.adoConnectionCount, g_cellConnectStats.adoTimeoutCount);
+
 			// Done with Auto Dialout processing, issue a modem reset
 			ModemResetProcess();
 
