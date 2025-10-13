@@ -526,17 +526,20 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 			}
 			ft81x_stream_start(); ft81x_cmd_text(550, 340, 28, 0, debugInfo); ft81x_stream_stop();
 
-			if (g_cellConnectStats.CellNotReadyCount)
-			{
-				sprintf(debugInfo, "NR: %d, UR: %d, CF: %d", g_cellConnectStats.CellNotReadyCount, g_cellConnectStats.CellUartResetCount, g_cellConnectStats.CellFailedCommsCheck);
-				ft81x_stream_start(); ft81x_cmd_text(550, 360, 28, 0, debugInfo); ft81x_stream_stop();
-			}
+			sprintf(debugInfo, "Cell IP: %s", ((strlen((char*)g_cellConnectStats.cellNetworkIP) == 0) ? "N/A" : (char*)g_cellConnectStats.cellNetworkIP));
+			ft81x_stream_start(); ft81x_cmd_text(550, 360, 28, 0, debugInfo); ft81x_stream_stop();
 
 			if (g_cellConnectStats.cellUiccError)
 			{
 				sprintf(debugInfo, "Cell UICC Error found");
 				ft81x_stream_start(); ft81x_cmd_text(550, 380, 28, 0, debugInfo); ft81x_stream_stop();
 			}
+			else if (g_cellConnectStats.CellNotReadyCount)
+			{
+				sprintf(debugInfo, "NR: %d, UR: %d, CF: %d", g_cellConnectStats.CellNotReadyCount, g_cellConnectStats.CellUartResetCount, g_cellConnectStats.CellFailedCommsCheck);
+				ft81x_stream_start(); ft81x_cmd_text(550, 380, 28, 0, debugInfo); ft81x_stream_stop();
+			}
+
 		}
 	}
 #endif
