@@ -86,6 +86,7 @@ enum {
 	CELL_UART_RESET_TAG,
 	EXT_TAG,
 	INT_TAG,
+	CELL_PACKET_DELAY_TAG,
 	// Add new separators before this line
 	TOTAL_TAGS
 };
@@ -195,6 +196,7 @@ enum {
 	HOUR_TYPE,
 	PERCENT_TYPE,
 	PSI_UNIT_TYPE,
+	MSECS_TYPE,
 	// Add types before this line
 	TOTAL_TYPES
 };
@@ -1086,6 +1088,7 @@ void AlarmOneTimeMenuHandler(uint8 key, void* data);
 void AlarmTwoSeismicLevelMenuHandler(uint8 key, void* data);
 void AlarmTwoAirLevelMenuHandler(uint8 key, void* data);
 void AlarmTwoTimeMenuHandler(uint8 key, void* data);
+void CellPacketDelayMenuHandler(uint8 keyPressed, void* data);
 void CompanyMenuHandler(uint8 key, void* data);
 void CopiesMenuHandler(uint8 key, void* data);
 void CycleEndTimeMenuHandler(uint8 keyPressed, void* data);

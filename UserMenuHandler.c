@@ -51,7 +51,8 @@ static USER_TYPE_STRUCT unitTypes[TOTAL_TYPES] = {
 {"g", G_TYPE, 1},
 {"hour", HOUR_TYPE, 1},
 {"%", PERCENT_TYPE, 1},
-{"psi", PSI_UNIT_TYPE, 1}
+{"psi", PSI_UNIT_TYPE, 1},
+{"msecs", MSECS_TYPE, 1}
 };
 
 ///----------------------------------------------------------------------------

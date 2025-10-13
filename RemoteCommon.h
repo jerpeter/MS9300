@@ -346,6 +346,10 @@ enum {
 #define CELL_NETWORK_CONNECT_TIMEOUT	(600) // In seconds
 #define TCP_SERVER_START_TIMEOUT		(60) // In seconds
 
+#define CELL_PACKET_DELAY_DEFAULT_VALUE		35
+#define CELL_PACKET_DELAY_MIN_VALUE			0
+#define CELL_PACKET_DELAY_MAX_VALUE			5000
+
 typedef struct
 {
 	uint32 startCellConnectTime;

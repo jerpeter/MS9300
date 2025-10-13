@@ -359,8 +359,7 @@ typedef struct
 	uint16 tcpServerListenPort;
 	uint8 pdnAuthProtocol;
 	uint8 tcpServer;
-	uint8 unused1;
-	uint8 unused2;
+	uint16 packetDelay;
 } CELL_MODEM_SETUP_STRUCT;
 
 typedef struct
