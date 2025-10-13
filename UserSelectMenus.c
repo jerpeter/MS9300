@@ -2470,6 +2470,7 @@ void HelpMenuHandler(uint8 keyPressed, void* data)
 				g_quickBootEntryJump = QUICK_BOOT_ENTRY_FROM_MENU;
 				BootLoadManager();
 			}
+			else { FirmwareImageCheck(); } // Check for Firmware image to load
 
 			sprintf(buildString, "SLM VERSION: %s, CELL MODEM FW: %s, IMEI: %s", ((strlen((char*)g_cellConnectStats.slmVersion) == 0) ? "N/A" : (char*)g_cellConnectStats.slmVersion),
 					((strlen((char*)g_cellConnectStats.cellModemFwVersion) == 0) ? "N/A" : (char*)g_cellConnectStats.cellModemFwVersion),
@@ -2979,7 +2980,10 @@ void ModemSetupMenuHandler(uint8 keyPressed, void* data)
 				PowerControl(CELL_ENABLE, OFF);
 			}
 
+			g_cellModemSetupRecord.tcpServer = NO;
+
 			SaveRecordData(&g_modemSetupRecord, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
+			SaveRecordData(&g_cellModemSetupRecord, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
 			SETUP_USER_MENU_MSG(&configMenu, DEFAULT_ITEM_1);
 		}
 	}
@@ -3370,7 +3374,7 @@ void RecalibrateMenuHandler(uint8 keyPressed, void* data)
 //=============================================================================
 //*****************************************************************************
 #if 1 /* Test */
-#define CAL_SAMPLE_RATE_MENU_ENTRIES 10
+#define CAL_SAMPLE_RATE_MENU_ENTRIES 11
 USER_MENU_STRUCT calSampleRateMenu[CAL_SAMPLE_RATE_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, SAMPLE_RATE_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, CAL_SAMPLE_RATE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_2)}},
@@ -3379,9 +3383,10 @@ USER_MENU_STRUCT calSampleRateMenu[CAL_SAMPLE_RATE_MENU_ENTRIES] = {
 {ITEM_3, SAMPLE_RATE_4K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_4K}},
 {ITEM_4, SAMPLE_RATE_8K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_8K}},
 {ITEM_5, SAMPLE_RATE_16K, NULL_TEXT, NO_TAG, {SAMPLE_RATE_16K}},
-{ITEM_6, SAMPLE_RATE_32K, NULL_TEXT, EXT_TAG, {SAMPLE_RATE_32K}},
-{ITEM_7, SAMPLE_RATE_32K, NULL_TEXT, INT_TAG, {SAMPLE_RATE_32K}},
-{ITEM_8, SAMPLE_RATE_64K, NULL_TEXT, INT_TAG, {SAMPLE_RATE_64K}},
+{NO_TAG, SAMPLE_RATE_32K, NULL_TEXT, EXT_TAG, {SAMPLE_RATE_32K}},
+{NO_TAG, SAMPLE_RATE_32K, NULL_TEXT, INT_TAG, {SAMPLE_RATE_32K}},
+{NO_TAG, 50000, NULL_TEXT, INT_TAG, {50000}},
+{NO_TAG, 60000, NULL_TEXT, INT_TAG, {60000}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&CalSampleRateMenuHandler}}
 };
 #endif
@@ -3432,16 +3437,27 @@ void CalSampleRateMenuHandler(uint8 keyPressed, void* data)
 	if (keyPressed == ENTER_KEY)
 	{
 		g_calSampleRate = calSampleRateMenu[newItemIndex].data;
-		if ((newItemIndex == 7) || (newItemIndex == 8)) { g_calSampleSource = 1; }
+		//if ((newItemIndex >= 7) && (newItemIndex <= 8)) { g_calSampleSource = 1; }
+		if ((newItemIndex >= 7) && (newItemIndex <= (CAL_SAMPLE_RATE_MENU_ENTRIES - 2))) { g_calSampleSource = 1; }
 		else { g_calSampleSource = 0; }
+		debug("Cal sample rate: %d selected (%s RTC)\r\n", calSampleRateMenu[newItemIndex].data, ((g_calSampleSource == 0) ? "Ext" : "Int"));
+
+		// Reassign soft keys
+		g_keypadTable[SOFT_KEY_1] = KB_SK_1;
+		g_keypadTable[SOFT_KEY_2] = KB_SK_2;
+		g_keypadTable[SOFT_KEY_4] = KB_SK_4;
+
+		SETUP_MENU_MSG(CAL_SETUP_MENU);
 	}
-	else
+	else if (keyPressed == ESC_KEY)
 	{
-		g_calSampleRate = SAMPLE_RATE_1K;
-		g_calSampleSource = 0;
+		//g_calSampleRate = SAMPLE_RATE_1K;
+		//debug("Cal sample rate: default 1K selected\r\n");
+		debug("Cal sample rate: Escape out\r\n");
+		SETUP_MENU_MSG(MAIN_MENU);
 	}
 
-	SETUP_MENU_MSG(CAL_SETUP_MENU);
+	//g_activeMenu = CAL_SETUP_MENU;
 	JUMP_TO_ACTIVE_MENU();
 }
 #endif
