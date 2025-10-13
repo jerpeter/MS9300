@@ -327,6 +327,7 @@ uint8 g_tcpServerStartStage = TCP_SERVER_IDLE;
 uint8* g_bargraphBarIntervalLiveMonitorBIDataPtr = g_blmBuffer;
 SAMPLE_DATA_STRUCT g_sensorCalPeaks[3] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
 SAMPLE_DATA_STRUCT g_sensorCalFreqCounts;
+SAMPLE_DATA_STRUCT g_sensorCalTransitionCounts;
 int32 g_sensorCalChanMin[MAX_NUM_OF_CHANNELS];
 int32 g_sensorCalChanMax[MAX_NUM_OF_CHANNELS];
 int32 g_sensorCalChanAvg[MAX_NUM_OF_CHANNELS];

@@ -258,6 +258,7 @@ extern uint8 g_tcpServerStartStage;
 extern uint8* g_bargraphBarIntervalLiveMonitorBIDataPtr;
 extern SAMPLE_DATA_STRUCT g_sensorCalPeaks[];
 extern SAMPLE_DATA_STRUCT g_sensorCalFreqCounts;
+extern SAMPLE_DATA_STRUCT g_sensorCalTransitionCounts;
 extern int32 g_sensorCalChanMin[MAX_NUM_OF_CHANNELS];
 extern int32 g_sensorCalChanMax[MAX_NUM_OF_CHANNELS];
 extern int32 g_sensorCalChanAvg[MAX_NUM_OF_CHANNELS];

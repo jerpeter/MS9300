@@ -1003,6 +1003,7 @@ void CheckBootloaderAppPresent(void);
 // Main menu prototype extensions
 void HandleSystemEvents(void);
 void BootLoadManager(void);
+void FirmwareImageCheck(void);
 void SystemEventManager(void);
 void MenuEventManager(void);
 void CraftManager(void);
@@ -1047,6 +1048,7 @@ void SetPathSelectAop2State(uint8_t state);
 
 // Init Hardware prototype extensions
 void InitSystemHardware_MS9300(void);
+void SetupICC(void);
 
 // Init Interrupts prototype extensions
 void InitInterrupts_MS9300(void);

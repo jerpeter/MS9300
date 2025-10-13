@@ -53,6 +53,15 @@ typedef struct
 } OFFSET_DATA_STRUCT;
 
 //-------------------------------------------------------------------------------------
+typedef struct
+{
+	uint8 a;
+	uint8 r;
+	uint8 v;
+	uint8 t;
+} SAMPLE_DATA_MARKER_STRUCT;
+
+//-------------------------------------------------------------------------------------
 #pragma pack(1)
 typedef struct
 {
