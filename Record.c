@@ -603,6 +603,7 @@ void LoadCellModemSetupRecordDefaults()
 	strcpy(g_cellModemSetupRecord.server, "ONLINE.NOMIS.COM");
 	g_cellModemSetupRecord.serverPort = 8005;
 	g_cellModemSetupRecord.tcpServerListenPort = 8005;
+	g_cellModemSetupRecord.packetDelay = CELL_PACKET_DELAY_DEFAULT_VALUE;
 }
 
 ///----------------------------------------------------------------------------
