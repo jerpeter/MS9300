@@ -385,6 +385,8 @@ endif
 all:
 # 	Extend the functionality of the "all" recipe here
 	arm-none-eabi-size --format=berkeley $(BUILD_DIR)/$(PROJECT).elf
+	arm-none-eabi-objcopy -O srec $(BUILD_DIR)/$(PROJECT).elf $(BUILD_DIR)/$(PROJECT).srec
+	$(BUILD_DIR)/../srec2bin.exe $(BUILD_DIR)/$(PROJECT).bin -s $(BUILD_DIR)/$(PROJECT).srec
 
 libclean: 
 	$(MAKE)  -f ${PERIPH_DRIVER_DIR}/periphdriver.mk clean.periph
