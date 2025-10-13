@@ -20,6 +20,7 @@
 
 #include "lcd.h"
 #include "PowerManagement.h"
+#include "mxc_errors.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -212,55 +213,87 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 #if 1 /* Process locked data looking for modem command mode responses */
 			if (strlen((char*)&cmdMsg->msg[0]))
 			{
+				//-----------------------------------------------------------------------------------------
+				// OK response
+				//-----------------------------------------------------------------------------------------
 				if (strcmp(OK_RESP_STRING, (char*)&cmdMsg->msg[0]) == 0)
 				{
 					//if (g_modemStatus.remoteResponse != CONNECT_RESPONSE) { g_modemStatus.remoteResponse = OK_RESPONSE; }
 					//g_modemStatus.remoteResponse = OK_RESPONSE;
+#if 1 /* Test */
+					g_modemStatus.spare = OK_RESPONSE;
+#endif
 					debug("RCMH: OK response found\r\n");
 				}
+				//-----------------------------------------------------------------------------------------
+				// Connect response
+				//-----------------------------------------------------------------------------------------
 				else if (strcmp(CONNECT_RESP_STRING, (char*)&cmdMsg->msg[0]) == 0)
 				{
 					g_modemStatus.remoteResponse = CONNECT_RESPONSE;
 					//debug("RCMH: CONNECT response found\r\n");
 				}
+				//-----------------------------------------------------------------------------------------
+				// Conenct #2 response
+				//-----------------------------------------------------------------------------------------
 				else if (strcmp(CONNECT_RESP_STRING_2, (char*)&cmdMsg->msg[0]) == 0)
 				{
 					g_modemStatus.remoteResponse = CONNECT_RESPONSE;
 					debug("RCMH: Cell CONNECT response found\r\n");
 				}
-				//else if (strcmp(READY_RESP_STRING, (char*)&cmdMsg->msg[0]) == 0)
+				//-----------------------------------------------------------------------------------------
+				// Ready response
+				//-----------------------------------------------------------------------------------------
 				else if ((strcmp(READY_RESP_STRING, (char*)&cmdMsg->msg[0]) == 0) || (strcmp(READY_RESP_STRING_ALT, (char*)&cmdMsg->msg[0]) == 0))
 				{
 					g_modemStatus.remoteResponse = READY_RESPONSE;
 					debug("RCMH: Cell Ready response found\r\n");
 				}
+				//-----------------------------------------------------------------------------------------
+				// Datamode exit response
+				//-----------------------------------------------------------------------------------------
 				else if (strcmp(AT_CMD_DATAMODE_EXIT, (char*)&cmdMsg->msg[0]) == 0)
 				{
 					g_modemStatus.remoteResponse = DATAMODE_EXIT;
 					debug("RCMH: Cell Datamode exit\r\n");
 				}
+				//-----------------------------------------------------------------------------------------
+				// Home network registered response
+				//-----------------------------------------------------------------------------------------
 				else if (strncmp(MODEM_HOME_NETWORK, (char*)&cmdMsg->msg[0], 11) == 0)
 				{
 					g_modemStatus.remoteResponse = MODEM_CELL_NETWORK_REGISTERED;
 					debug("RCMH: Modem Home network registered\r\n");
 				}
+				//-----------------------------------------------------------------------------------------
+				// Roaming network registered response
+				//-----------------------------------------------------------------------------------------
 				else if (strncmp(MODEM_ROAMING_NETWORK, (char*)&cmdMsg->msg[0], 11) == 0)
 				{
 					g_modemStatus.remoteResponse = MODEM_CELL_NETWORK_REGISTERED;
 					debug("RCMH: Modem Roaming network registered\r\n");
 				}
+				//-----------------------------------------------------------------------------------------
+				// Unknown network response
+				//-----------------------------------------------------------------------------------------
 				else if (strncmp(MODEM_UNKNOWN_NETWORK, (char*)&cmdMsg->msg[0], 11) == 0)
 				{
 					g_modemStatus.remoteResponse = UNKNOWN_NETWORK_RESPONSE;
 					debug("RCMH: Unknown network, searching for coverage... (%d)\r\n", GetCurrentCellConnectTime());
 				}
+				//-----------------------------------------------------------------------------------------
+				// Not registered network response
+				//-----------------------------------------------------------------------------------------
 				else if (strncmp(MODEM_NOT_REGISTERED_NETWORK, (char*)&cmdMsg->msg[0], 11) == 0)
 				{
 					g_modemStatus.remoteResponse = NOT_REGISTERED_RESPONSE;
 					if (strlen((char*)&cmdMsg->msg[0]) < 13) { debug("RCMH: Not registered, attaching to operator (no TAC)... (%d)\r\n", GetCurrentCellConnectTime()); }
 					else { debug("RCMH: Not registered, attaching to operator (TAC/Cell: %s)... (%d)\r\n", (char*)&cmdMsg->msg[12], GetCurrentCellConnectTime()); }
 				}
-				else if (strncmp(CMDMODE_CMD_STRING, (char*)&cmdMsg->msg[0], 3) == 0)
+				//-----------------------------------------------------------------------------------------
+				// Escape sequence response
+				//-----------------------------------------------------------------------------------------
+				else if (strncmp(CELL_ESCAPE_CMD_STRING, (char*)&cmdMsg->msg[0], 6) == 0)
 				{
 					g_modemStatus.remoteResponse = TCP_CLIENT_DISCONNECT;
 					debug("RCMH: Cell TCP Client Disconnect found\r\n");
@@ -272,21 +305,36 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 						HandleESC(NULL);
 					}
 				}
+				//-----------------------------------------------------------------------------------------
+				// TCP Client response
+				//-----------------------------------------------------------------------------------------
 				else if (strncmp(TCP_CLIENT_STRING, (char*)&cmdMsg->msg[0], 9) == 0)
 				{
+					//-----------------------------------------------------------------------------------------
+					// TCP Client not connected response
+					//-----------------------------------------------------------------------------------------
 					if(strstr((char*)&cmdMsg->msg[0], "not connected"))
 					{
 						g_modemStatus.remoteResponse = TCP_CLIENT_NOT_CONNECTED;
 					}
+					//-----------------------------------------------------------------------------------------
+					// TCP Client unknown response
+					//-----------------------------------------------------------------------------------------
 					else
 					{
 						debug("RCMH: TCP Client unknown response\r\n");
 					}
 				}
+				//-----------------------------------------------------------------------------------------
+				// TCP Server response
+				//-----------------------------------------------------------------------------------------
 				else if (strncmp(TCP_SERVER_STRING, (char*)&cmdMsg->msg[0], 9) == 0)
 				{
 					g_modemStatus.remoteConnectionActive = NO;
 
+					//-----------------------------------------------------------------------------------------
+					// TCP Server not started response
+					//-----------------------------------------------------------------------------------------
 					if(strstr((char*)&cmdMsg->msg[0], "not started"))
 					{
 						debug("RCMH: TCP Server not started\r\n");
@@ -299,16 +347,22 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 
 						if (g_cellModemSetupRecord.tcpServer == YES)
 						{
-							g_tcpServerStartStage = 1;
+							g_tcpServerStartStage = TCP_SERVER_INIT;
 							AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_SEC), TcpServerStartCallback);
 						}
-						else { g_tcpServerStartStage = 0; }
+						else { g_tcpServerStartStage = TCP_SERVER_IDLE; }
 					}
+					//-----------------------------------------------------------------------------------------
+					// TCP Server started response
+					//-----------------------------------------------------------------------------------------
 					else if(strstr((char*)&cmdMsg->msg[0], "started"))
 					{
 						debug("RCMH: TCP Server started\r\n");
 						g_modemStatus.remoteResponse = TCP_SERVER_STARTED;
 					}
+					//-----------------------------------------------------------------------------------------
+					// TCP Server stopped response
+					//-----------------------------------------------------------------------------------------
 					else if(strstr((char*)&cmdMsg->msg[0], "stopped"))
 					{
 						debug("RCMH: TCP Server stopped\r\n");
@@ -321,31 +375,50 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 							PowerControl(CELL_ENABLE, OFF);
 
 							// Some sort of TCP Server error, need to restart
-							g_tcpServerStartStage = 1;
+							g_tcpServerStartStage = TCP_SERVER_INIT;
 							AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_SEC), TcpServerStartCallback);
 						}
 					}
+					//-----------------------------------------------------------------------------------------
+					// TCP Server disconnected response
+					//-----------------------------------------------------------------------------------------
 					else if(strstr((char*)&cmdMsg->msg[0], "disconnected"))
 					{
 						debug("RCMH: TCP Server disconnected\r\n");
 					}
+					//-----------------------------------------------------------------------------------------
+					// TCP Server connected response
+					//-----------------------------------------------------------------------------------------
 					else if(strstr((char*)&cmdMsg->msg[0], "connected"))
 					{
 						char* loc = strstr((char*)&cmdMsg->msg[0], "connected");
 						if (loc) { *loc = '\0'; }
 						debug("RCMH: TCP Server Incoming connection from IP: %s\r\n", (char*)&cmdMsg->msg[11]);
+#if 1 /* Test */
+						g_cellConnectStats.lastRemoteConnTime = GetCurrentTime();
+						debug("TCP Server: Client connect @ %02d:%02d:%02d on %d/%d/%d\r\n", g_cellConnectStats.lastRemoteConnTime.hour, g_cellConnectStats.lastRemoteConnTime.min, g_cellConnectStats.lastRemoteConnTime.sec, g_cellConnectStats.lastRemoteConnTime.month, g_cellConnectStats.lastRemoteConnTime.day, g_cellConnectStats.lastRemoteConnTime.year);
+#endif
 						g_modemStatus.remoteConnectionActive = YES;
 					}
+					//-----------------------------------------------------------------------------------------
+					// TCP Server unknown response
+					//-----------------------------------------------------------------------------------------
 					else
 					{
 						debug("RCMH: TCP Server unknown response\r\n");
 					}
 				}
+				//-----------------------------------------------------------------------------------------
+				// Error response
+				//-----------------------------------------------------------------------------------------
 				else if (strcmp(AT_CMD_ERROR, (char*)&cmdMsg->msg[0]) == 0)
 				{
 					g_modemStatus.remoteResponse = ERROR_RESPONSE;
 					debug("RCMH: Command response error\r\n");
 				}
+				//-----------------------------------------------------------------------------------------
+				// Xmodem response
+				//-----------------------------------------------------------------------------------------
 				else if (strcmp(AT_CMD_XMODEM, (char*)&cmdMsg->msg[0]) == 0)
 				{
 					// XMODEM shouldn't be seen unless there's a modem error, best to restart
@@ -368,11 +441,61 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 
 					if (g_cellModemSetupRecord.tcpServer == YES)
 					{
-						g_tcpServerStartStage = 1;
+						g_tcpServerStartStage = TCP_SERVER_INIT;
 						AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_SEC), TcpServerStartCallback);
 					}
-					else { g_tcpServerStartStage = 0; }
+					else { g_tcpServerStartStage = TCP_SERVER_IDLE; }
 				}
+				//-----------------------------------------------------------------------------------------
+				// PDP context response
+				//-----------------------------------------------------------------------------------------
+				else if (strncmp(MODEM_PDP_CONTEXT, (char*)&cmdMsg->msg[0], 12) == 0)
+				{
+					strcpy((char*)g_cellConnectStats.cellNetworkIP, (char*)&cmdMsg->msg[12]);
+				}
+				//-----------------------------------------------------------------------------------------
+				// SLM Version response
+				//-----------------------------------------------------------------------------------------
+				else if (strncmp(SLM_VERSION_STRING, (char*)&cmdMsg->msg[0], 9) == 0)
+				{
+					debug("RCMH: SLM Version: (%s)\r\n", (char*)&cmdMsg->msg[10]);
+					strncpy((char*)g_cellConnectStats.slmVersion, (char*)&cmdMsg->msg[11], 3);
+				}
+				//-----------------------------------------------------------------------------------------
+				// Cell modem firmware response
+				//-----------------------------------------------------------------------------------------
+				else if (strncmp(CELL_MODEM_FW_VERSION, (char*)&cmdMsg->msg[0], 12) == 0)
+				{
+					debug("RCMH: Cell Modem Firmware Version: (%s)\r\n", (char*)&cmdMsg->msg[13]);
+					strncpy((char*)g_cellConnectStats.cellModemFwVersion, (char*)&cmdMsg->msg[13], 15);
+				}
+				//-----------------------------------------------------------------------------------------
+				// IMEI response
+				//-----------------------------------------------------------------------------------------
+				else if (strncmp(CELL_MODEM_IMEI, (char*)&cmdMsg->msg[0], 6) == 0)
+				{
+					debug("RCMH: Cell Modem IMEI: (%s)\r\n", (char*)&cmdMsg->msg[7]);
+					strncpy((char*)g_cellConnectStats.cellModemImei, (char*)&cmdMsg->msg[8], 15);
+				}
+				//-----------------------------------------------------------------------------------------
+				// Cell network time response
+				//-----------------------------------------------------------------------------------------
+				else if (strncmp(CELL_NETWORK_TIME, (char*)&cmdMsg->msg[0], 6) == 0)
+				{
+					debug("RCMH: Cell Network Time: (%s)\r\n", (char*)&cmdMsg->msg[7]);
+					strncpy((char*)g_cellConnectStats.cellModemImei, (char*)&cmdMsg->msg[8], 20);
+				}
+				//-----------------------------------------------------------------------------------------
+				// UICC error response
+				//-----------------------------------------------------------------------------------------
+				else if (strncmp(MODEM_UICC_ERROR, (char*)&cmdMsg->msg[0], 12) == 0)
+				{
+					g_cellConnectStats.cellUiccError = 1;
+					debugErr("RCMH: UICC problem\r\n");
+				}
+				//-----------------------------------------------------------------------------------------
+				// Unknown response
+				//-----------------------------------------------------------------------------------------
 				else
 				{
 					g_modemStatus.remoteResponse = UNKNOWN_RESPONSE;
@@ -576,12 +699,12 @@ void ProcessCraftData()
 #if 0 /* Normal */
 		debugRaw("<%c>", *g_isrMessageBufferPtr->readPtr);
 #elif 1 /* Adjust to show non-printable chars */
-		if (i < 50)
+		if (i < 64)
 		{
 			if((*g_isrMessageBufferPtr->readPtr > 0x1F) && (*g_isrMessageBufferPtr->readPtr < 0x7F)) { debugRaw("<%c>", *g_isrMessageBufferPtr->readPtr); }
 			else { debugRaw("<%02x>", *g_isrMessageBufferPtr->readPtr); }
 		}
-		else if (i == 50) { debugRaw("<...>"); }
+		else if (i == 64) { debugRaw("<...>"); }
 		i++;
 #endif
 
@@ -675,6 +798,24 @@ void ProcessCraftData()
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void FlushCraftData(void)
+{
+	*g_isrMessageBufferPtr->writePtr = '\n';
+
+	// Advance the buffer pointer
+	g_isrMessageBufferPtr->writePtr++;
+
+	// Check if buffer pointer goes beyond the end
+	if (g_isrMessageBufferPtr->writePtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE))
+	{
+		// Reset the buffer pointer to the beginning of the buffer
+		g_isrMessageBufferPtr->writePtr = g_isrMessageBufferPtr->msg;
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void RemoteCmdMessageHandlerInit()
 {
 	// Clear and set up the addresses for the ptrs from the buffer array.
@@ -734,7 +875,19 @@ void CraftInitStatusFlags(void)
 
 	g_modemStatus.spare = 0;
 
+#if 0 /* Test */
+	debugWarn("Test: Cell APN: %s\r\n", (char*)g_cellModemSetupRecord.pdnApn);
+#endif
+
 	memset(&g_cellConnectStats, 0, sizeof(g_cellConnectStats));
+
+#if 0 /* Test */
+	debugWarn("Test: Cell APN: %s\r\n", (char*)g_cellModemSetupRecord.pdnApn);
+#endif
+#if 0 /* Test */
+	//debugWarn("Test: size of Cell connect stats: %d, size of Cell connect struct: %d\r\n", sizeof(g_cellConnectStats), sizeof(CELL_CONNECT_STATS_STRUCT));
+	debugWarn("Test: SYSTEM_CFG size is %d\r\n", sizeof(SYSTEM_CFG));
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -842,7 +995,85 @@ uint8_t CheckforModemReady(uint16_t timeoutHalfSeconds)
 	CheckAndProcessCellModemData(timeoutHalfSeconds);
 
 	if (g_modemStatus.remoteResponse == READY_RESPONSE) { modemFound = YES; g_modemStatus.modemAvailable = YES; debug("Cell Modem: Ready\r\n"); }
-	else { g_modemStatus.modemAvailable = NO; debugWarn("Cell Modem: Not ready\r\n"); }
+	else // Ready response not found form the cell module
+	{
+#if 0 /* Original */
+		g_modemStatus.modemAvailable = NO;
+		debugWarn("Cell Modem: Not ready\r\n");
+#else /* Test New ability to check for Uart comms to cell module */
+		int strLen, status;
+
+		g_cellConnectStats.CellNotReadyCount++;
+		debugWarn("Cell Modem: Ready not found from cell module (Total count: %d), trying another command\r\n", g_cellConnectStats.CellNotReadyCount);
+
+		g_modemStatus.spare = 0;
+		debug("AT...\r\n"); sprintf((char*)g_spareBuffer, "AT\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }		
+		{ SoftUsecWait(1 * SOFT_SECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+
+		if (g_modemStatus.spare == OK_RESPONSE)
+		{
+			debug("Cell Modem: Comms check OK\r\n");
+
+			g_modemStatus.modemAvailable = YES;
+			debug("Cell Modem: Ready\r\n");
+		}
+		else // OK response not found from AT command
+		{
+			g_cellConnectStats.CellUartResetCount++;
+			debugWarn("Cell Modem: Comms check failed (Total count: %d), resetting Cell module Uarts\r\n", g_cellConnectStats.CellUartResetCount);
+
+			SetupCellModuleRxUART();
+			SetupCellModuleTxUART();
+
+			g_modemStatus.spare = 0;
+			debug("AT...\r\n"); sprintf((char*)g_spareBuffer, "AT\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }		
+			{ SoftUsecWait(1 * SOFT_SECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+
+			if (g_modemStatus.spare == OK_RESPONSE)
+			{
+				debug("Cell Modem: Comms check OK after Uart reset\r\n");
+
+				g_modemStatus.modemAvailable = YES;
+				debug("Cell Modem: Ready\r\n");
+			}
+			else
+			{
+				g_cellConnectStats.CellFailedCommsCheck++;
+				debugWarn("Cell Modem: Comms check failed after Uart reset (Total count: %d\r\n", g_cellConnectStats.CellFailedCommsCheck);
+
+				g_modemStatus.modemAvailable = NO;
+				debugWarn("Cell Modem: Not ready\r\n");
+			}
+		}
+#endif
+	}
+
+	// Check if the modem is up and ready
+	if (g_modemStatus.modemAvailable == YES)
+	{
+		int strLen;
+
+		// Check if the SLM version string is empty
+		if (strlen(g_cellConnectStats.slmVersion) == 0)
+		{
+			debug("AT#XSLMVER...\r\n"); sprintf((char*)g_spareBuffer, "AT#XSLMVER\r\n"); strLen = (int)strlen((char*)g_spareBuffer); MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen);
+			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		}
+
+		// Check if the SLM version string is empty
+		if (strlen(g_cellConnectStats.cellModemFwVersion) == 0)
+		{
+			debug("AT%%SHORTSWVER...\r\n"); sprintf((char*)g_spareBuffer, "AT%%SHORTSWVER\r\n"); strLen = (int)strlen((char*)g_spareBuffer); MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen);
+			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		}
+
+		// Check if the SLM version string is empty
+		if (strlen(g_cellConnectStats.cellModemImei) == 0)
+		{
+			debug("AT+CGSN=1...\r\n"); sprintf((char*)g_spareBuffer, "AT+CGSN=1\r\n"); strLen = (int)strlen((char*)g_spareBuffer); MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen);
+			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		}
+	}
 
 	g_modemStatus.remoteResponse = NO_RESPONSE;
 
