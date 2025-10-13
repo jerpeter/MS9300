@@ -451,7 +451,35 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 				//-----------------------------------------------------------------------------------------
 				else if (strncmp(MODEM_PDP_CONTEXT, (char*)&cmdMsg->msg[0], 12) == 0)
 				{
+#if 0 /* Original */
 					strcpy((char*)g_cellConnectStats.cellNetworkIP, (char*)&cmdMsg->msg[12]);
+#else
+					char* ipString;
+					char* ipStringEnd;
+
+					memset((char*)g_cellConnectStats.cellNetworkIP, 0, sizeof(g_cellConnectStats.cellNetworkIP));
+
+					ipString = (char*)&cmdMsg->msg[12];
+					ipString = strstr(ipString, "\",\"");
+					if (ipString != NULL)
+					{
+						ipString += 3;
+						ipString = strstr(ipString, "\",\"");
+						if (ipString != NULL)
+						{
+							ipString += 3;
+							ipStringEnd = strstr(ipString, "\",");
+
+							if (ipStringEnd != NULL)
+							{
+								ipStringEnd[0] = '\0';
+								strcpy((char*)g_cellConnectStats.cellNetworkIP, ipString);
+							}
+						}
+					}
+
+					debug("Cell IP: %s\r\n", ((strlen((char*)g_cellConnectStats.cellNetworkIP) == 0) ? "N/A" : (char*)g_cellConnectStats.cellNetworkIP));
+#endif
 				}
 				//-----------------------------------------------------------------------------------------
 				// SLM Version response
