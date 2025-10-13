@@ -2156,6 +2156,13 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 
 					HandleSystemEvents();
 					debug("<DEM HSE>\r\n");
+
+#if 1 /* Test small delay in between packets for cell transfers */
+					if ((GetPowerControlState(CELL_ENABLE) == ON) && (g_cellModemSetupRecord.packetDelay > CELL_PACKET_DELAY_MIN_VALUE) && (g_cellModemSetupRecord.packetDelay < CELL_PACKET_DELAY_MAX_VALUE))
+					{
+						SoftUsecWait(g_cellModemSetupRecord.packetDelay * SOFT_MSECS);
+					}
+#endif
 				}
 #endif
 				dataOffset += CMD_BUFFER_SIZE;
@@ -2259,6 +2266,13 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 
 					HandleSystemEvents();
 					debug("<DEM HSE>\r\n");
+
+#if 1 /* Test small delay in between packets for cell transfers */
+					if ((GetPowerControlState(CELL_ENABLE) == ON) && (g_cellModemSetupRecord.packetDelay > CELL_PACKET_DELAY_MIN_VALUE) && (g_cellModemSetupRecord.packetDelay < CELL_PACKET_DELAY_MAX_VALUE))
+					{
+						SoftUsecWait(g_cellModemSetupRecord.packetDelay * SOFT_MSECS);
+					}
+#endif
 				}
 #endif
 				dataOffset += CMD_BUFFER_SIZE;
