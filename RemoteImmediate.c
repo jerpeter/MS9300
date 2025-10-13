@@ -55,7 +55,12 @@ void HandleUNL(CMD_BUFFER_STRUCT* inCmd)
 	char unlStr[UNLOCK_STR_SIZE];
 	char sendStr[UNLOCK_STR_SIZE*2];
 
+#if 0 /* Original */
 	debug("HandleUNL-user unlock code=<%s>\r\n", dataStart);
+#else
+	DATE_TIME_STRUCT dateTime = GetCurrentTime();
+	debug("HandleUNL-user unlock code=<%s> @ %02d:%02d:%02d on %d/%d/%d\r\n", dataStart, dateTime.hour, dateTime.min, dateTime.sec, dateTime.month, dateTime.day, dateTime.year);
+#endif
 
 	memset(&tempStr[0], 0, sizeof(tempStr));
 
@@ -1371,10 +1376,13 @@ void HandleESC(CMD_BUFFER_STRUCT* inCmd)
 		// Need to relock the system
 		RemoteSystemLock(SET);
 
+		// Reset remote conneciton active status
+		g_modemStatus.remoteConnectionActive = NO;
+
 		// Need to re-enter datamode for the TCP server
 		int strLen, status;
 		SoftUsecWait(1 * SOFT_SECS);
-		debug("+++...\r\n"); sprintf((char*)g_spareBuffer, "+++\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+		debug("<Escape sequence>...\r\n"); sprintf((char*)g_spareBuffer, "+++---\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 		SoftUsecWait(1 * SOFT_SECS);
 		debug("AT#XTCPSEND\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 	}
@@ -1925,7 +1933,7 @@ void HandleDEM(CMD_BUFFER_STRUCT* inCmd)
 		g_demXferStructPtr->errorStatus = MODEM_SEND_SUCCESS;
 
 		// Reset flag to always attempt compression
-#if 0 /* Normal operation */
+#if 1 /* Normal operation */
 		g_demXferStructPtr->downloadMethod = COMPRESS_MINILZO;
 #else /* Temp disable compression */
 		// Todo: Update MiniLZO compression to work directly from stored event before reversing logic
@@ -1948,6 +1956,9 @@ void HandleDEM(CMD_BUFFER_STRUCT* inCmd)
 				return;
 			}
 #else /* Plain uncompressed file send is caching to packets in transfer so only event record needed to be cached */
+			// Signal to send the event raw/uncompressed
+			g_demXferStructPtr->downloadMethod = COMPRESS_NONE;
+
 			GetEventFileRecord(eventNumToSend, &g_demXferStructPtr->dloadEventRec.eventRecord);
 #endif
 			// Todo: Fix event data buffer reference or change compressed data send caching
@@ -2065,10 +2076,15 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 #if ENDIAN_CONVERSION
 	g_demXferStructPtr->dloadEventRec.structureFlag = __builtin_bswap32(g_demXferStructPtr->dloadEventRec.structureFlag);
 	g_demXferStructPtr->dloadEventRec.endFlag = __builtin_bswap32(g_demXferStructPtr->dloadEventRec.endFlag);
-	// Event record read from file Big Endian and converted to Little Endian for processing, need swap back to Big Endian for sending
+	// Event record swapped to Big Endian for sending (was read from file Big Endian and converted to Little Endian for processing)
 	EndianSwapEventRecord(&(g_demXferStructPtr->dloadEventRec.eventRecord));
 #endif
+
+#if 0 /* Original */
 	if (g_demXferStructPtr->downloadMethod == COMPRESS_MINILZO)
+#else /* Make sure to send compressed only if the compressed event file exists (can't guarantee space to cache large events) */
+	if ((g_demXferStructPtr->downloadMethod == COMPRESS_MINILZO) && (g_demXferStructPtr->compressedEventDataFilePresent == YES))
+#endif
 	{
 		eventRecordXferLength = lzo1x_1_compress((void*)g_demXferStructPtr->startDloadPtr, sizeof(EVENT_RECORD_DOWNLOAD_STRUCT), OUT_SERIAL);
 
@@ -2097,6 +2113,11 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 		g_transferCount += sizeof(EVENT_RECORD_DOWNLOAD_STRUCT);
 	}
 
+#if ENDIAN_CONVERSION
+	// Event record swapped to Little Endian for processing (was Big Endian for sending)
+	EndianSwapEventRecord(&(g_demXferStructPtr->dloadEventRec.eventRecord));
+#endif
+
 	//----------------------------------------------------
 	// Send event data either compressed or not
 	//----------------------------------------------------
@@ -2116,16 +2137,33 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 				CacheERDataToBuffer(g_demXferStructPtr->dloadEventRec.eventRecord.summary.eventNumber, (uint8*)g_demXferStructPtr->xmitBuffer, dataOffset, CMD_BUFFER_SIZE);
 				g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, g_transmitCRC);
 
+#if 0 /* Original */
 				if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, NO_CONVERSION) == MODEM_SEND_FAILED)
 				{
 					g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 				}
+#else /* Break into smaller UART sending chuncks */
+				HandleSystemEvents();
+				debug("<DEM HSE>\r\n");
 
+				for (uint8 i = 0; i < 4; i++)
+				{
+					if (ModemPuts((uint8*)&g_demXferStructPtr->xmitBuffer[i * (CMD_BUFFER_SIZE / 4)], (CMD_BUFFER_SIZE / 4), NO_CONVERSION) == MODEM_SEND_FAILED)
+					{
+						g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
+						break;
+					}
+
+					HandleSystemEvents();
+					debug("<DEM HSE>\r\n");
+				}
+#endif
 				dataOffset += CMD_BUFFER_SIZE;
 				dataSizeRemaining -= CMD_BUFFER_SIZE;
 
 				// Now breaking periodically to handle system events, mostly for Bargraph processing to get it's processing time so that Summary Intervals aren't delayed
 				HandleSystemEvents();
+				debug("<DEM HSE>\r\n");
 			}
 		}
 
@@ -2140,9 +2178,11 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 			}
 		}
 	}
+#if 0 /* Can't guarantee there is enough RAM to cache the event when no compressed event file is present */
 	// Check if method is compressed but no compressed event data file is present
 	else if (g_demXferStructPtr->downloadMethod == COMPRESS_MINILZO)
 	{
+		// Expect Event Record is in little endian format for processing
 #if ENDIAN_CONVERSION
 		// Event data cached from event in Big Endian, no conversion needed
 		/* (Skip) EndianSwapEventData(&g_demXferStructPtr->dloadEventRec.eventRecord, g_demXferStructPtr->startDataPtr); */
@@ -2164,14 +2204,11 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 			g_demXferStructPtr->xmitSize = 0;
 		}
 	}
+#endif
 #if 0 /* Missing data on send, assuming transmission might be too fast for remote side */
 	else if ((g_demXferStructPtr->downloadMethod == COMPRESS_NONE) && (g_sampleProcessing == IDLE_STATE) && (g_activeMenu != SUMMARY_MENU))
 	{
-#if ENDIAN_CONVERSION
-		// Event Record in Big Endian, need to process in Little Endian
-		EndianSwapEventRecord(&(g_demXferStructPtr->dloadEventRec.eventRecord));
-		// If coming from CacheEventToRam (Idle and Not Summary menu), data is already Big Endian
-#endif
+		// Expect Event Record is in little endian format for processing
 		g_transferCount += g_demXferStructPtr->dloadEventRec.eventRecord.header.dataLength;
 
 		g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->startDataPtr, g_demXferStructPtr->dloadEventRec.eventRecord.header.dataLength, g_transmitCRC);
@@ -2184,12 +2221,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 #endif
 	else // (g_demXferStructPtr->downloadMethod == COMPRESS_NONE)
 	{
-#if ENDIAN_CONVERSION
-		// Event Record in Big Endian, would need conversion back to Little Endian
-		// If coming from CacheEventToRam (Idle and Not Summary menu), data is already Big Endian
-		EndianSwapEventRecord(&(g_demXferStructPtr->dloadEventRec.eventRecord));
-		//EndianSwapEventData(&g_demXferStructPtr->dloadEventRec.eventRecord, g_demXferStructPtr->startDataPtr);
-#endif
+		// Expect Event Record is in little endian format for processing
 		// Actively monitoring, can't use event data buffer to cache the event
 		dataSizeRemaining = g_demXferStructPtr->dloadEventRec.eventRecord.header.dataLength;
 		dataOffset = sizeof(EVT_RECORD);
@@ -2208,20 +2240,39 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 #endif
 				g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, g_transmitCRC);
 
+#if 0 /* Original */
 				if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, NO_CONVERSION) == MODEM_SEND_FAILED)
 				{
 					g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 				}
+#else /* Break into smaller UART sending chuncks */
+				HandleSystemEvents();
+				debug("<DEM HSE>\r\n");
 
+				for (uint8 i = 0; i < 4; i++)
+				{
+					if (ModemPuts((uint8*)&g_demXferStructPtr->xmitBuffer[i * (CMD_BUFFER_SIZE / 4)], (CMD_BUFFER_SIZE / 4), NO_CONVERSION) == MODEM_SEND_FAILED)
+					{
+						g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
+						break;
+					}
+
+					HandleSystemEvents();
+					debug("<DEM HSE>\r\n");
+				}
+#endif
 				dataOffset += CMD_BUFFER_SIZE;
 				dataSizeRemaining -= CMD_BUFFER_SIZE;
 
-#if 1 /* Test small delay in between packets for cell transfers */
+#if 0 /* Test small delay in between packets for cell transfers */
 				if (GetPowerControlState(CELL_ENABLE) == ON)
 				{
 					SoftUsecWait(150 * SOFT_MSECS);
 					debug("DEM small delay between packets\r\n");
 				}
+#else /* Test just handling system events */
+				HandleSystemEvents();
+				debug("<DEM HSE>\r\n");
 #endif
 			}
 		}
