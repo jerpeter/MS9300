@@ -200,7 +200,7 @@ void InitExternalADC(void)
 #else /* Skip until hardware fix for current problems */
 	g_adChannelConfig = FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP;
 	AD4695_SetTemperatureSensorEnable(((g_adChannelConfig != FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP) ? YES : NO));
-	AD4695_EnterConversionMode(((g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP) ? YES : NO));
+	AD4695_EnterConversionMode(((g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP) ? ENABLE_ADC_CHANNEL_VERIFICATION : NO_ADC_CHANNEL_VERIFICATION));
 #endif
 
 #if 0 /* Test loop */
