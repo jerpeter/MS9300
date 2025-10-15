@@ -544,6 +544,9 @@ void PowerUnitOff(uint8 powerOffMode)
 #else /* Updated method */
 		// Can't use the External RTC and MCU latch since there is no source to wake the unit back up
 
+		// Setup signal for startup detection to bypass special limited charging startup with the following MCU reset
+		ForceExternalRtcIntEnabledForResetDetection();
+
 		// Toggle MCU system reset
 		MXC_GCR->rst0 |= MXC_F_GCR_RST0_SYS;
 #endif

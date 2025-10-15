@@ -1572,6 +1572,9 @@ void BootLoadManager(void)
 			// Close filesystem
 			f_mount(NULL, "", 0);
 
+			// Setup signal for startup detection to bypass special limited charging startup when the Bootlaoder issues an MCU reset
+			ForceExternalRtcIntEnabledForResetDetection();
+
 			debug("Trying jump to Bootloader (0x%x)...\r\n", func);
 			func(); // Control passed to Bootloader
 		}
