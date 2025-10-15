@@ -177,6 +177,23 @@ BOOLEAN ExternalRtcInit(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void ForceExternalRtcIntEnabledForResetDetection(void)
+{
+	// Disable Ext RTC IntA interrupt to prevent accidental clearing of the IntA line used for status
+	MXC_GPIO_DisableInt(GPIO_EXT_RTC_INTA_PORT, GPIO_EXT_RTC_INTA_PIN);
+
+	uint8_t intConfig = 0xFF; // Enable all
+
+	// Set IntA as level output and enable all interrupt sources
+	SetRtcRegisters(PCF85263_CTL_INTA_ENABLE, (uint8_t*)&intConfig, sizeof(intConfig));
+
+	// Set the Timestamp pin to active an Ext RTC IntA interrupt
+	MXC_GPIO_OutSet(GPIO_EXT_RTC_TIMESTAMP_PORT, GPIO_EXT_RTC_TIMESTAMP_PIN);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void StartExternalRtcClock(uint16 sampleRate)
 {
 	uint8_t clockOutControl;

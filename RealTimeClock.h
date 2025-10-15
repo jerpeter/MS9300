@@ -1190,6 +1190,7 @@ void StartExternalRtcClock(uint16 sampleRate);
 void StopExternalRtcClock(void);
 void PulseRtcTimestamp(void);
 void ClearRtcTimestamp(void);
+void ForceExternalRtcIntEnabledForResetDetection(void);
 
 void GetRtcRegisters(uint8_t registerAddress, uint8_t* registerData, uint16_t dataLength);
 void SetRtcRegisters(uint8_t registerAddress, uint8_t* registerData, uint16_t dataLength);
