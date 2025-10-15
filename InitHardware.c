@@ -540,6 +540,18 @@ void SetupPowerOnDetectGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as off
+
+#if 1 /* Addition of Ext RTC IntA as a flag to determine if power up was caused due to MCU reset from either unit restart or Bootloader */
+	//----------------------------------------------------------------------------------------------------------------------
+	// RTC Int A: Port 1, Pin 28, Input, External pullup, Active low, 1.8V (minimum 0.66V)
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_EXT_RTC_INTA_PORT;
+	setupGPIO.mask = GPIO_EXT_RTC_INTA_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -4423,8 +4435,16 @@ void ValidatePowerOn(void)
 	if (powerOnButtonDetect) { debugRaw("\r\n-----------------------\r\nPower On button pressed\r\n"); }
 	if (vbusChargingDetect) { debugRaw("\r\n-----------------------\r\nUSB Charging detected\r\n"); }
 
+	// Check if the Ext RTC IntA is active which is a signal left for ourselves to detect MCU reset issued for unit restart or Bootloader finish
+	if (MXC_GPIO_InGet(GPIO_EXT_RTC_INTA_PORT, GPIO_EXT_RTC_INTA_PIN) == 0)
+	{
+		debugRaw("\r\n-----------------------\r\nIntentional MCU Reset detected\r\n");
+
+		// Unit startup condition verified, latch power and continue
+		PowerControl(MCU_POWER_LATCH, ON);
+	}
 	// Check if Power on button is the startup source
-	if (powerOnButtonDetect)
+	else if (powerOnButtonDetect)
 	{
 		debugRaw("(2 second press validation) Waiting");
 
