@@ -62,7 +62,7 @@ void InitEventNumberCache(void)
 ///----------------------------------------------------------------------------
 void AddEventNumberToCache(uint16 eventNumber)
 {
-	if (g_eventNumberCache[eventNumber] == NO_EVENT_FILE)
+	if ((g_eventNumberCache[eventNumber] == NO_EVENT_FILE) || (g_eventNumberCache[eventNumber] == EVENT_FILE_FOUND))
 	{
 		g_eventNumberCache[eventNumber] = EVENT_REFERENCE_VALID;
 		g_eventNumberCacheValidEntries++;
@@ -1339,14 +1339,13 @@ FRESULT RecursiveDeleteDirectoryContents(char* path)
 {
 	FRESULT res;
 	DIR dir;
-	UINT i;
 	static FILINFO fno;
 	char newPathWithSub[80];
 
 	// Open directory
 	res = f_opendir(&dir, path);
 
-	//debug("eMMC Flash: Recursive Delete path: %s\r\n", path);
+	debug("eMMC Flash: Recursive Delete path: %s\r\n", path);
 
 	if (res == FR_OK)
 	{
@@ -1361,24 +1360,19 @@ FRESULT RecursiveDeleteDirectoryContents(char* path)
 			// Check if a directory
 			if (fno.fattrib & AM_DIR)
 			{
-				// Mark current path
-				i = strlen(path);
-
 				// Add sub-directory to path
-				//sprintf(&path[i], "/%s", fno.fname);
 				sprintf(newPathWithSub, "%s%s%s", path, ((path[(strlen(path) - 1)] == '/') ? "" : "/"), fno.fname);
 
-				//debug("eMMC Flash: Sub dir: %s, new path: %s\r\n", fno.fname, newPathWithSub);
+				debug("eMMC Flash: Sub dir: %s, New path: %s\r\n", fno.fname, newPathWithSub);
 
 				// Enter sub-directory to repeat process
 				res = RecursiveDeleteDirectoryContents(newPathWithSub);
 				if (res != FR_OK) { break; }
 
+				debug("eMMC Flash: Sub dir delete: %s\r\n", newPathWithSub);
+
 				// Delete sub-directory
-				if (f_unlink(path) != FR_OK) { break; }
-				
-				// Cut off added sub-directory to path
-				path[i] = 0;
+				if (f_unlink(newPathWithSub) != FR_OK) { break; }
 			}
 			else // File
 			{
@@ -1388,7 +1382,7 @@ FRESULT RecursiveDeleteDirectoryContents(char* path)
 #endif
 				sprintf(newPathWithSub, "%s%s%s", path, ((path[(strlen(path) - 1)] == '/') ? "" : "/"), fno.fname);
 
-				//debug("eMMC Flash: Delete file: %s\r\n", newPathWithSub);
+				debug("eMMC Flash: Delete file: %s\r\n", newPathWithSub);
 
 				// Delete, needs full path
 				if (f_unlink(newPathWithSub) != FR_OK) { break; }
