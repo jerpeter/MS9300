@@ -87,10 +87,10 @@ void BootloaderEntryCheck(void)
 void DisplayVersionToDebug(void)
 {
 	int majorVer, minorVer;
-	char buildVer;
-	sscanf(&g_buildVersion[0], "%d.%d.%c", &majorVer, &minorVer, &buildVer);
+	char buildVer[20];
+	sscanf(&g_buildVersion[0], "%d.%d.%19s", &majorVer, &minorVer, &buildVer);
 
-	debug("--- System Init complete (Version %d.%d.%c) ---\r\n", majorVer, minorVer, buildVer);
+	debug("--- System Init complete (Version %d.%d.%s) ---\r\n", majorVer, minorVer, buildVer);
 }
 
 ///----------------------------------------------------------------------------
