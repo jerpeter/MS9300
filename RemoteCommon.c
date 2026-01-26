@@ -509,6 +509,12 @@ uint32 GetCellConnectStatsAverage(void)
 ///----------------------------------------------------------------------------
 void InitTcpListenServer(void)
 {
+#if 0 /* Test - USB CDC/ACM serial tunneling to Cell/LTE module */
+	g_cellModemSetupRecord.tcpServer = NO;
+	debugWarn("TCP Listen Server: Disabled for testing\r\n");
+	return;
+#endif
+
 	if ((!g_cellModemSetupRecord.invalid) && (g_cellModemSetupRecord.tcpServer == YES))
 	{
 		//OverlayMessage(getLangText(STATUS_TEXT), "CELL MODEM STARTNG LISTEN SERVER. PLEASE WAIT A MOMENT", (0 * SOFT_SECS));
@@ -540,6 +546,12 @@ void InitAutoDialout(void)
 	// Update the last stored event
 	__autoDialoutTbl.lastStoredEvent = GetLastStoredEventNumber();
 
+#if 0 /* Test - USB CDC/ACM serial tunneling to Cell/LTE module */
+	g_modemSetupRecord.modemStatus = NO;
+	debugWarn("Auto Dialout: Disabled for testing\r\n");
+	return;
+#endif
+
 	if ((g_modemSetupRecord.modemStatus == YES) && (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS))
 	{
 		debug("Auto Dialout: Events/Config/Status selected, starting timer (set for %d minutes)\r\n", g_modemSetupRecord.dialOutCycleTime);
@@ -552,6 +564,11 @@ void InitAutoDialout(void)
 ///----------------------------------------------------------------------------
 uint8 CheckAutoDialoutStatusAndFlagIfAvailable(void)
 {
+#if 0 /* Test */
+	debugWarn("Auto Dialout: Disabled for testing\r\n");
+	return (NO);
+#endif
+
 	// Check that Dial Out state is currently idle, there is no active modem connection, a modem reset is not in progress, Modem Setup is enabled and the Modem Setup Dial string is not empty
 #if 0 /* Original */
 	if ((g_autoDialoutState == AUTO_DIAL_IDLE) && (READ_DCD == NO_CONNECTION) && (g_modemResetStage == 0) &&
