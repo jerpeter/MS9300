@@ -28,8 +28,8 @@
 ///----------------------------------------------------------------------------
 ///	Defines
 ///----------------------------------------------------------------------------
-//#define LCR_DEFAULT		0x13 // 8N1
-#define LCR_DEFAULT		0x17 // 8N2
+#define LCR_DEFAULT		0x13 // 8N1
+//#define LCR_DEFAULT		0x17 // 8N2
 
 ///----------------------------------------------------------------------------
 ///	Externs
@@ -630,7 +630,7 @@ void DebugPrintChar(uint8 charData)
 #define PI7C9X760_REG_IOINTEN	0x0C // GPIO Interrupt Enable Register,	Notes: Default=00
 #define PI7C9X760_REG_IOCONTROL	0x0E // GPIO Control Register,			Notes: Default=00
 #define PI7C9X760_REG_EFCR		0x0F // Extra Features Control Reg,		Notes: Accessable when SFR[2]=0, Default=00
-#define PI7C9X760_REG_SFREN		0x0D // Special Features Enable Ctrl,	Notes: Accessible when LCR==8'hBF. Default=00 (Spec typo?)
+//#define PI7C9X760_REG_SFREN		0x0D // Special Features Enable Ctrl,	Notes: Accessible when LCR==8'hBF. Default=00 (Spec typo?)
 #define PI7C9X760_REG_ASR		0x02 // Advance Status Register,		Notes: Accessible when LCR=0xBF and SFR[2]=1. Default=00
 #define PI7C9X760_REG_CPR		0x04 // Clock Prescale Register,		Notes: Accessible when LCR=0xBF and SFR[2]=1. Default=10
 #define PI7C9X760_REG_RFD		0x05 // Rcv FIFO Data Count Register,	Notes: Accessible when LCR=0xBF and SFR[2]=1, SFR[6]=0. Default=00
@@ -751,9 +751,15 @@ void TestUartBridgeScratchpad(void)
 	}
 	else { debug("Expansion: MCR bit disabled\r\n"); }
 
+#if 0 /* Default unknown with SC16IS750 */
 	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_SPR);
 	if (reg != 0xFF) { debugErr("Expansion I2C Uart Bridge: Scratchpad default error (0x%x)\r\n", reg); }
 	else { debug("Expansion I2C Uart Bridge: Scratchpad default correct\r\n"); }
+#else /* Read default value */
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_SPR);
+	debug("Expansion I2C Uart Bridge: Scratchpad default is 0x%x\r\n", reg);
+#endif
+
 	WriteUartBridgeControlRegister(PI7C9X760_REG_SPR, 0xAA);
 	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_SPR);
 #if 0 /* Shorter */
@@ -1031,7 +1037,7 @@ void ExpansionBridgeChangeBaud(uint32_t baudSelect)
 	// CPRN - N number in calculating the prescaler,which is used to generate Baud Rate, needs change from default
 	// Clock Prescale Register (CPR). Accessible when LCR=0xBF and SFR[2]=1
 	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0xBF);
-	WriteUartBridgeControlRegister(PI7C9X760_REG_SFREN, 0x5A);
+	//WriteUartBridgeControlRegister(PI7C9X760_REG_SFREN, 0x5A);
 	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x04);
 	WriteUartBridgeControlRegister(PI7C9X760_REG_CPR, (0x10 | cprn)); // Set CPR N (botton 4 bits)
 
@@ -1067,10 +1073,11 @@ void ExpansionBridgeSetupRS232(void)
 
 	// SCR - Sample Clock value used in the Baud Rate Generator, default = 0 which is desired
 
+#if 0 /* Not used with new Expansion part */
 	// CPRN - N number in calculating the prescaler,which is used to generate Baud Rate, needs change from default
 	// Clock Prescale Register (CPR). Accessible when LCR=0xBF and SFR[2]=1
 	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0xBF);
-	WriteUartBridgeControlRegister(PI7C9X760_REG_SFREN, 0x5A);
+	//WriteUartBridgeControlRegister(PI7C9X760_REG_SFREN, 0x5A);
 	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x04);
 	WriteUartBridgeControlRegister(PI7C9X760_REG_CPR, 0x1A); // Set CPR N to 10
 
@@ -1081,6 +1088,7 @@ void ExpansionBridgeSetupRS232(void)
 #else /* Leave SFR and SFREN enabled */
 #endif
 	// LCR set just below
+#endif
 
 	// Set 8N1
 	// Make sure LCR[7]=0
@@ -1438,5 +1446,10 @@ void ExpansionBridgeInit(void)
 
 extern uint8_t g_expansionIrqActive;
 	g_expansionIrqActive = 0;
+#endif
+
+#if 0 /* Turn off Expansion */
+	PowerControl(EXPANSION_RESET, ON);
+	PowerControl(EXPANSION_ENABLE, OFF);
 #endif
 }
