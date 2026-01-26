@@ -788,12 +788,15 @@ void CopiesMenuHandler(uint8 keyPressed, void* data)
 	if (keyPressed == ENTER_KEY)
 	{
 		g_unitConfig.copies = *((uint8*)data);
-		debug("Battery Log Timer: %d\r\n", g_unitConfig.copies);
 
 		SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
 
+#if 0 /* Test */
+		debug("Battery Log Timer: %d\r\n", g_unitConfig.copies);
 		AssignSoftTimer(BATTERY_LOG_TIMER_NUM, (g_unitConfig.copies * TICKS_PER_MIN), BatteryLogTimerCallback);
-
+#else
+		debug("Battery Log Timer: Disabled for testing\r\n");
+#endif
 		SETUP_USER_MENU_MSG(&configMenu, DEFAULT_ITEM_1);
 	}
 	else if (keyPressed == ESC_KEY)
