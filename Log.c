@@ -785,7 +785,11 @@ void StartBatteryLog(void)
 
 	AppendBatteryLogEntryFile(BATTERY_VOLTAGE);
 
+#if 0 /* Test */
 	AssignSoftTimer(BATTERY_LOG_TIMER_NUM, (g_unitConfig.copies * TICKS_PER_MIN), BatteryLogTimerCallback);
+#else
+	debug("Battery Log Timer: Disabled for testing\r\n");
+#endif
 }
 
 ///----------------------------------------------------------------------------
