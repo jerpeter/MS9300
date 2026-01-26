@@ -79,12 +79,13 @@ enum {
 #else
 #define HARDWARE_ID_REV_PROTOTYPE_1		1
 #define HARDWARE_ID_REV_BETA_RESPIN		2
+#define HARDWARE_ID_REV_PRODUCTION		3
 #define HARDWARE_ID_REV_8_NORMAL		0x08 // Old hardware
 #define HARDWARE_ID_REV_8_WITH_USART	0x18 // Old hardware
 #define HARDWARE_ID_REV_8_WITH_GPS_MOD	0x28 // Old hardware
 #endif
 
-#define HARDWARE_BOARD_REVISION		HARDWARE_ID_REV_BETA_RESPIN
+#define HARDWARE_BOARD_REVISION		HARDWARE_ID_REV_PRODUCTION
 
 enum {
 	ACTIVE_MODE = 0,
@@ -112,6 +113,7 @@ enum {
 #define ENDIAN_CONVERSION	1
 
 enum {
+	SENSOR_GROUP_NONE = 0,
 	SENSOR_GROUP_A_1 = 1,
 	SENSOR_GROUP_B_2,
 	SENSOR_GROUP_BOTH
@@ -125,8 +127,9 @@ typedef struct
 } ACC_DATA_STRUCT;
 
 #define SPI2_OPERAITONAL 	0x80
-#define SPI2_ACC_ON			0x02
 #define SPI2_LCD_ON			0x01
+#define SPI2_ACC_ON			0x02
+#define SPI2_USBHC_ON		0x04
 
 #define SPI2_LCD_STREAM		0x80
 #define SPI2_ACTIVE			0x01
@@ -134,7 +137,8 @@ typedef struct
 enum {
 	SPI_ADC = 1,
 	SPI_LCD,
-	SPI_ACC
+	SPI_ACC,
+	SPI_USBHC
 };
 
 typedef struct
@@ -346,6 +350,7 @@ enum {
 
 #define LOW_VOLTAGE_THRESHOLD		5.4 // Showing range 4V-7.3V schematic, 5.4V probably min for good operation
 #define EXTERNAL_VOLTAGE_PRESENT	4.4 // USB minimum 3.0 is 4.5V, legacy is 4.4V
+#define MINIMUM_SYSTEM_VOLTAGE		4.2 // USB minimum 3.0 is 4.5V, legacy is 4.4V
 
 #define CYCLIC_EVENT_TIME_THRESHOLD		(4 * 2)
 #define UPDATE_TIME_EVENT_THRESHOLD		(60 * 2)
@@ -612,7 +617,7 @@ typedef struct
 // GPIO 0 Port defines
 //--------------------------------------------------------------------------------
 #define GPIO_MCU_POWER_LATCH_PORT				MXC_GPIO0
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 #define GPIO_EXT_BATTERY_PRESENCE_1_PORT		MXC_GPIO0
 #define GPIO_EXT_BATTERY_PRESENCE_2_PORT		MXC_GPIO0
 #else /* HARDWARE_ID_REV_PROTOTYPE_1 */
@@ -622,15 +627,23 @@ typedef struct
 #define GPIO_GAUGE_ALERT_PORT					MXC_GPIO0
 #define GPIO_BATTERY_CHARGER_IRQ_PORT			MXC_GPIO0
 #define GPIO_ENABLE_12V_PORT					MXC_GPIO0
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 #define GPIO_SENSOR_DETECT_1_PORT				MXC_GPIO0
 #else /* HARDWARE_ID_REV_PROTOTYPE_1 */
 #define GPIO_ENABLE_5V_PORT						MXC_GPIO0
 #endif
 #define GPIO_EXPANSION_IRQ_PORT					MXC_GPIO0
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#define GPIO_USB_RESET_PORT						MXC_GPIO0
+#else /* Old boards */
 #define GPIO_USB_SOURCE_ENABLE_PORT				MXC_GPIO0
+#endif
 #define GPIO_USB_AUX_POWER_ENABLE_PORT			MXC_GPIO0
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#define GPIO_LCD_POWER_ENABLE_PORT				MXC_GPIO0
+#else /* Old boards */
 #define GPIO_POWER_GOOD_5V_PORT					MXC_GPIO0
+#endif
 #define GPIO_POWER_GOOD_BATTERY_CHARGE_PORT		MXC_GPIO0
 #define GPIO_SMART_SENSOR_SLEEP_PORT			MXC_GPIO0
 #define GPIO_SMART_SENSOR_MUX_ENABLE_PORT		MXC_GPIO0
@@ -656,7 +669,7 @@ typedef struct
 // GPIO1 Port defines
 //--------------------------------------------------------------------------------
 #define GPIO_SDHC_PORT							MXC_GPIO1
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 #define GPIO_SENSOR_DETECT_2_PORT				MXC_GPIO1
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 #define GPIO_EMMC_DATA_STROBE_PORT				MXC_GPIO1
@@ -667,7 +680,7 @@ typedef struct
 #define GPIO_MCU_UART2_TX_PORT					MXC_GPIO1
 #define GPIO_USBC_PORT_CONTROLLER_I2C_IRQ_PORT	MXC_GPIO1
 #define GPIO_ACCEL_INT_1_PORT					MXC_GPIO1
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 #define GPIO_SENSOR_DETECT_3_PORT				MXC_GPIO1
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 #define GPIO_ACCEL_INT_2_PORT					MXC_GPIO1
@@ -683,7 +696,11 @@ typedef struct
 #define GPIO_BUTTON_7_PORT						MXC_GPIO1
 #define GPIO_BUTTON_8_PORT						MXC_GPIO1
 #define GPIO_BUTTON_9_PORT						MXC_GPIO1
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#define GPIO_GAIN_SELECT_GEO2_PORT				MXC_GPIO1
+#define GPIO_PATH_SELECT_AOP2_PORT				MXC_GPIO1
+#define GPIO_SENSOR_DETECT_4_PORT				MXC_GPIO1
+#elif /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 #define GPIO_LED_1_PORT							MXC_GPIO1
 #define GPIO_LED_2_PORT							MXC_GPIO1
 #define GPIO_SENSOR_DETECT_4_PORT				MXC_GPIO1
@@ -693,7 +710,9 @@ typedef struct
 #define GPIO_LED_4_PORT							MXC_GPIO1
 #endif
 #define GPIO_EXT_RTC_INTA_PORT					MXC_GPIO1
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#define GPIO_USB_INT_PORT						MXC_GPIO1
+#elif /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 #define GPIO_EXT_RTC_TIMESTAMP_PORT				MXC_GPIO1
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 #define GPIO_BLE_OTA_PORT						MXC_GPIO1
@@ -704,8 +723,12 @@ typedef struct
 //--------------------------------------------------------------------------------
 // GPIO2 Port defines
 //--------------------------------------------------------------------------------
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#define GPIO_SPI2_SS2_USB_PORT					MXC_GPIO2
+#else /* Old boards */
 #define GPIO_LCD_POWER_ENABLE_PORT				MXC_GPIO2
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#endif
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 #define GPIO_SPI2_SS1_ACC_PORT					MXC_GPIO2
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 #define GPIO_LCD_POWER_DOWN_PORT				MXC_GPIO2
@@ -713,7 +736,7 @@ typedef struct
 #define GPIO_SPI2_SCK_PORT						MXC_GPIO2
 #define GPIO_SPI2_MISO_PORT						MXC_GPIO2
 #define GPIO_SPI2_MOSI_PORT						MXC_GPIO2
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 #define GPIO_SPI2_SS0_LCD_PORT					MXC_GPIO2
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 #define GPIO_SPI2_SS0_LCD_PORT					MXC_GPIO2
@@ -724,17 +747,23 @@ typedef struct
 #define GPIO_SENSOR_CHECK_ENABLE_PORT			MXC_GPIO2
 #define GPIO_SENSOR_CHECK_PORT					MXC_GPIO2
 #define GPIO_LTE_UART0_TXD_PORT					MXC_GPIO2
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 #define GPIO_LCD_POWER_DOWN_PORT				MXC_GPIO2
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 #define GPIO_LTE_UART0_RXD_PORT					MXC_GPIO2
 #endif
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#define GPIO_LTE_UART1_RTS_PORT					MXC_GPIO2
 #define GPIO_LTE_RESET_PORT						MXC_GPIO2
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#define GPIO_LTE_UART1_CTS_PORT					MXC_GPIO2
+#define GPIO_BLE_UART1_RXD_PORT					MXC_GPIO2
+#elif /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#define GPIO_LTE_RESET_PORT						MXC_GPIO2
 #define GPIO_LTE_UART1_RXD_PORT					MXC_GPIO2
 #define GPIO_UNUSED_1_PORT						MXC_GPIO2
 #define GPIO_UNUSED_2_PORT						MXC_GPIO2
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
+#define GPIO_LTE_RESET_PORT						MXC_GPIO2
 #define GPIO_BLE_UART1_TXD_PORT					MXC_GPIO2
 #define GPIO_BLE_RESET_PORT						MXC_GPIO2
 #define GPIO_BLE_UART1_RXD_PORT					MXC_GPIO2
@@ -757,15 +786,20 @@ typedef struct
 #define GPIO_SENSOR_ENABLE_AOP2_PORT			MXC_GPIO3
 #define GPIO_GAIN_SELECT_GEO1_PORT				MXC_GPIO3
 #define GPIO_PATH_SELECT_AOP1_PORT				MXC_GPIO3
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#define GPIO_LED_1_PORT							MXC_GPIO3
+#define GPIO_LED_2_PORT							MXC_GPIO3
+#else /* Old boards */
 #define GPIO_GAIN_SELECT_GEO2_PORT				MXC_GPIO3
 #define GPIO_PATH_SELECT_AOP2_PORT				MXC_GPIO3
+#endif
 #define GPIO_RTC_CLOCK_PORT						MXC_GPIO3
 
 //--------------------------------------------------------------------------------
 // GPIO0 Port, Pin defines
 //--------------------------------------------------------------------------------
 #define GPIO_MCU_POWER_LATCH_PIN				MXC_GPIO_PIN_1			// Power domain: Main
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 #define GPIO_EXT_BATTERY_PRESENCE_1_PIN			MXC_GPIO_PIN_2			// Power domain: Main
 #define GPIO_EXT_BATTERY_PRESENCE_2_PIN			MXC_GPIO_PIN_3			// Power domain: Main
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
@@ -775,15 +809,23 @@ typedef struct
 #define GPIO_GAUGE_ALERT_PIN					MXC_GPIO_PIN_4			// Power domain: Main
 #define GPIO_BATTERY_CHARGER_IRQ_PIN			MXC_GPIO_PIN_5			// Power domain: Main
 #define GPIO_ENABLE_12V_PIN						MXC_GPIO_PIN_6			// Power domain: Main
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 #define GPIO_SENSOR_DETECT_1_PIN				MXC_GPIO_PIN_7			// Power domain: Main
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 #define GPIO_ENABLE_5V_PIN						MXC_GPIO_PIN_7			// Power domain: Main
 #endif
 #define GPIO_EXPANSION_IRQ_PIN					MXC_GPIO_PIN_8			// Power domain: Expansion
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#define GPIO_USB_RESET_PIN						MXC_GPIO_PIN_9			// Power domain: Main
+#else /* Old boards */
 #define GPIO_USB_SOURCE_ENABLE_PIN				MXC_GPIO_PIN_9			// Power domain: Main
+#endif
 #define GPIO_USB_AUX_POWER_ENABLE_PIN			MXC_GPIO_PIN_10			// Power domain: Main
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#define GPIO_LCD_POWER_ENABLE_PIN				MXC_GPIO_PIN_11
+#else /* Old boards */
 #define GPIO_POWER_GOOD_5V_PIN					MXC_GPIO_PIN_11			// Power domain: Main
+#endif
 #define GPIO_POWER_GOOD_BATTERY_CHARGE_PIN		MXC_GPIO_PIN_12			// Power domain: Main
 #define GPIO_SMART_SENSOR_SLEEP_PIN				MXC_GPIO_PIN_13			// Power domain: Analog 5V
 #define GPIO_SMART_SENSOR_MUX_ENABLE_PIN		MXC_GPIO_PIN_14			// Power domain: Analog 5V
@@ -810,7 +852,7 @@ typedef struct
 //--------------------------------------------------------------------------------
 #define GPIO_SDHC_CMD_PIN						MXC_GPIO_PIN_0			// Power domain: Main
 #define GPIO_SDHC_DAT2_PIN						MXC_GPIO_PIN_1			// Power domain: Main
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 #define GPIO_SENSOR_DETECT_2_PIN				MXC_GPIO_PIN_2			// Power domain: Main
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 #define GPIO_EMMC_DATA_STROBE_PIN				MXC_GPIO_PIN_2			// Power domain: Main
@@ -825,7 +867,7 @@ typedef struct
 #define GPIO_MCU_UART2_TX_PIN					MXC_GPIO_PIN_10			// Power domain: Main
 #define GPIO_USBC_PORT_CONTROLLER_I2C_IRQ_PIN	MXC_GPIO_PIN_11			// Power domain: Main
 #define GPIO_ACCEL_INT_1_PIN					MXC_GPIO_PIN_12			// Power domain: Main
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 #define GPIO_SENSOR_DETECT_3_PIN				MXC_GPIO_PIN_13			// Power domain: Main
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 #define GPIO_ACCEL_INT_2_PIN					MXC_GPIO_PIN_13			// Power domain: Main
@@ -841,7 +883,11 @@ typedef struct
 #define GPIO_BUTTON_7_PIN						MXC_GPIO_PIN_22			// Power domain: Main
 #define GPIO_BUTTON_8_PIN						MXC_GPIO_PIN_23			// Power domain: Main
 #define GPIO_BUTTON_9_PIN						MXC_GPIO_PIN_24			// Power domain: Main
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#define GPIO_GAIN_SELECT_GEO2_PIN				MXC_GPIO_PIN_25			// Power domain: Analog 5V
+#define GPIO_PATH_SELECT_AOP2_PIN				MXC_GPIO_PIN_26			// Power domain: Analog 5V
+#define GPIO_SENSOR_DETECT_4_PIN				MXC_GPIO_PIN_27			// Power domain: Main
+#elif /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 #define GPIO_LED_1_PIN							MXC_GPIO_PIN_25			// Power domain: Main
 #define GPIO_LED_2_PIN							MXC_GPIO_PIN_26			// Power domain: Main
 #define GPIO_SENSOR_DETECT_4_PIN				MXC_GPIO_PIN_27			// Power domain: Main
@@ -851,7 +897,9 @@ typedef struct
 #define GPIO_LED_4_PIN							MXC_GPIO_PIN_27			// Power domain: Main
 #endif
 #define GPIO_EXT_RTC_INTA_PIN					MXC_GPIO_PIN_28			// Power domain: Main
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#define GPIO_USB_INT_PIN						MXC_GPIO_PIN_29			// Power domain: Main
+#elif /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 #define GPIO_EXT_RTC_TIMESTAMP_PIN				MXC_GPIO_PIN_29			// Power domain: Main
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 #define GPIO_BLE_OTA_PIN						MXC_GPIO_PIN_29			// Power domain: Cell/LTE
@@ -862,8 +910,12 @@ typedef struct
 //--------------------------------------------------------------------------------
 // GPIO2 Port, Pin defines
 //--------------------------------------------------------------------------------
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#define GPIO_SPI2_SS2_USB_PIN					MXC_GPIO_PIN_0
+#else /* Old boards */
 #define GPIO_LCD_POWER_ENABLE_PIN				MXC_GPIO_PIN_0			// Power domain: Main
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#endif
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 #define GPIO_SPI2_SS1_ACC_PIN					MXC_GPIO_PIN_1			// Power domain: Main
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 #define GPIO_LCD_POWER_DOWN_PIN					MXC_GPIO_PIN_1			// Power domain: LCD
@@ -878,17 +930,23 @@ typedef struct
 #define GPIO_SENSOR_CHECK_ENABLE_PIN			MXC_GPIO_PIN_9			// Power domain: Analog 5V
 #define GPIO_SENSOR_CHECK_PIN					MXC_GPIO_PIN_10			// Power domain: Analog 5V
 #define GPIO_LTE_UART0_TXD_PIN					MXC_GPIO_PIN_11			// Power domain: Cell/LTE
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 #define GPIO_LCD_POWER_DOWN_PIN					MXC_GPIO_PIN_12			// Power domain: LCD
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 #define GPIO_LTE_UART0_RXD_PIN					MXC_GPIO_PIN_12			// Power domain: Cell/LTE
 #endif
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#define GPIO_LTE_UART1_RTS_PIN					MXC_GPIO_PIN_13
+#define GPIO_LTE_RESET_PIN						MXC_GPIO_PIN_14
+#define GPIO_LTE_UART1_CTS_PIN					MXC_GPIO_PIN_15
+#define GPIO_LTE_UART1_RXD_PIN					MXC_GPIO_PIN_16			// Power domain: Cell/LTE
+#elif /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 #define GPIO_LTE_RESET_PIN						MXC_GPIO_PIN_13			// Power domain: Cell/LTE
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 #define GPIO_UNUSED_1_PIN						MXC_GPIO_PIN_14
 #define GPIO_UNUSED_2_PIN						MXC_GPIO_PIN_15
 #define GPIO_LTE_UART1_RXD_PIN					MXC_GPIO_PIN_16			// Power domain: Cell/LTE
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
+#define GPIO_LTE_RESET_PIN						MXC_GPIO_PIN_13			// Power domain: Cell/LTE
 #define GPIO_BLE_UART1_TXD_PIN					MXC_GPIO_PIN_14			// Power domain: Cell/LTE
 #define GPIO_BLE_RESET_PIN						MXC_GPIO_PIN_15			// Power domain: Cell/LTE
 #define GPIO_BLE_UART1_RXD_PIN					MXC_GPIO_PIN_16			// Power domain: Cell/LTE
@@ -918,8 +976,13 @@ typedef struct
 #define GPIO_SENSOR_ENABLE_AOP2_PIN				MXC_GPIO_PIN_4			// Power domain: Analog 5V
 #define GPIO_GAIN_SELECT_GEO1_PIN				MXC_GPIO_PIN_5			// Power domain: Analog 5V
 #define GPIO_PATH_SELECT_AOP1_PIN				MXC_GPIO_PIN_6			// Power domain: Analog 5V
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#define GPIO_LED_1_PIN							MXC_GPIO_PIN_7			// Power domain: Main
+#define GPIO_LED_2_PIN							MXC_GPIO_PIN_8			// Power domain: Main
+#else /* Old boards */
 #define GPIO_GAIN_SELECT_GEO2_PIN				MXC_GPIO_PIN_7			// Power domain: Analog 5V
 #define GPIO_PATH_SELECT_AOP2_PIN				MXC_GPIO_PIN_8			// Power domain: Analog 5V
+#endif
 #define GPIO_RTC_CLOCK_PIN						MXC_GPIO_PIN_9			// Power domain: Main
 
 //--------------------------------------------------------------------------------
