@@ -149,18 +149,29 @@ void SystemEventManager(void)
 		clearSystemEventFlag(LOW_BATTERY_WARNING_EVENT);
 		debugWarn("Low Battery Event\r\n");
 
-		// Check if actively monitoring
-		if (g_sampleProcessing == ACTIVE_STATE)
+		if ((GetBattChargerSystemVoltage() > (LOW_VOLTAGE_THRESHOLD * 1000)) || (GetBattChargerInputVoltage() > (LOW_VOLTAGE_THRESHOLD * 1000)))
 		{
-			// Stop monitoring
-			StopMonitoringForLowPowerState();
+			debugWarn("System/Input voltage sufficient\r\n");
 		}
+		else if ((GetBattChargerSystemVoltage() > (MINIMUM_SYSTEM_VOLTAGE * 1000)) || (GetBattChargerInputVoltage() > (MINIMUM_SYSTEM_VOLTAGE * 1000)))
+		{
+			debugWarn("System/Input voltage low, but enough to run unit\r\n");
+		}
+		else
+		{
+			// Check if actively monitoring
+			if (g_sampleProcessing == ACTIVE_STATE)
+			{
+				// Stop monitoring
+				StopMonitoringForLowPowerState();
+			}
 
-		sprintf((char*)g_spareBuffer, "%s %s (%3.2f) %s", getLangText(BATTERY_VOLTAGE_TEXT), getLangText(LOW_TEXT),
-				(double)(GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE)), getLangText(PLEASE_CHARGE_BATTERY_TEXT));
-		OverlayMessage(getLangText(WARNING_TEXT), (char*)g_spareBuffer, (1 * SOFT_SECS));
+			sprintf((char*)g_spareBuffer, "%s %s (%3.2f) %s", getLangText(BATTERY_VOLTAGE_TEXT), getLangText(LOW_TEXT),
+					(double)(GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE)), getLangText(PLEASE_CHARGE_BATTERY_TEXT));
+			OverlayMessage(getLangText(WARNING_TEXT), (char*)g_spareBuffer, (1 * SOFT_SECS));
 
-		g_lowBatteryState = YES;
+			g_lowBatteryState = YES;
+		}
 	}
 
 uint32_t USBCPortControllerReadAndClearInt(void);
@@ -224,8 +235,12 @@ extern uint32_t testLifetimeCurrentAvgCount;
 		{
 			debug("(Cyclic Event) (%s) (%.0fmA avg) SPT: %lu, SPS: %d, Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), CycleCountToMicroseconds(sampleProcessTiming, SYS_CLK), (g_sampleCountHold / 4), (char*)g_spareBuffer);
 		}
+#if 0 /* Orignial */
 		else { debug("(Cyclic Event) (%s) (%.0fmA avg) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer); }
 		//else { debug("(Cyclic Event) (%d) (%s) (%.0fmA avg) Exe/s: %s\r\n", g_lifetimePeriodicSecondCount, FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer); }
+#else /* Test */
+		else { debug("(Cyclic Event) (%s) (%.2fV) (%.2fV) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)((float)GetBattChargerInputVoltage() / (float)1000), (double)((float)GetBattChargerSystemVoltage() / (float)1000), (char*)g_spareBuffer); }
+#endif
 
 #if 0 /* Test Exp serial */
 		// Test write out U8 every cycle (4 secs)
@@ -1567,13 +1582,13 @@ void BootLoadManager(void)
 		}
 		else
 		{
+			// Setup signal for startup detection to bypass special limited charging startup when the Bootlaoder issues an MCU reset
+			ForceExternalRtcIntEnabledForResetDetection();
+
 			AddOnOffLogTimestamp(JUMP_TO_BOOT);
 
 			// Close filesystem
 			f_mount(NULL, "", 0);
-
-			// Setup signal for startup detection to bypass special limited charging startup when the Bootlaoder issues an MCU reset
-			ForceExternalRtcIntEnabledForResetDetection();
 
 			debug("Trying jump to Bootloader (0x%x)...\r\n", func);
 			func(); // Control passed to Bootloader
@@ -2312,6 +2327,9 @@ void TestExternalDeviceAccessAndComms(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#include "Minilzo.h"
+#include "cdc_acm.h"
+FIL g_testFile;
 int main(void)
 {
 	// Initialize the system
@@ -2319,6 +2337,92 @@ int main(void)
 	InitInterrupts_MS9300();
 	InitSoftwareSettings_MS9300();
 	EnableGlobalException();
+
+#if 0 /* Test */
+extern void InitCellLTE(void);
+	InitCellLTE();
+#endif
+
+#if 0 /* Test miniLZO */
+	uint32_t dataSize = 8617;
+	uint32_t bytesWritten;
+
+	f_open(&g_testFile, (const TCHAR*)"0:Logs/TestEnglishLanguageFile.txt", FA_CREATE_ALWAYS | FA_WRITE);
+	f_write(&g_testFile, &englishLanguageTable[0], dataSize, (UINT*)&bytesWritten);
+	f_close(&g_testFile);
+
+	f_open(&g_testFile, (const TCHAR*)"0:Logs/TestEnglishLanguageFile.txt", FA_READ);
+
+	{
+		uint16_t mismatches = 0;
+		uint8_t decompressData;
+		for (uint32_t i = 0; i < 8617; i++)
+		{
+			f_read(&g_testFile, &decompressData, 1, (UINT*)&bytesWritten);
+			if (englishLanguageTable[i] != decompressData)
+			{
+				mismatches++;
+				debug("File data mismatch, 0x%x != 0x%x, address %d\r\n", englishLanguageTable[i], decompressData, i);
+				if (mismatches > 10)
+				{
+					break;
+				}
+			}
+		}
+	}
+	debug("File data compare complete\r\n");
+
+	f_lseek(&g_testFile, 0);
+
+	debug("MiniLZO Test: English Language Table, size: %d, location: 0x%x\r\n", dataSize, &englishLanguageTable[0]);
+	char* dataSet = &englishLanguageTable[0];
+	g_compressedDataOutletPtr = (uint8_t*)&g_eventDataBuffer[0];
+	uint32_t compressLength = lzo1x_1_compress((void*)dataSet, dataSize, OUT_BUFFER);
+
+	// Check if any remaining compressed data is queued
+	if (g_spareBufferIndex)
+	{
+		debug("MiniLZO some remaining data queued (%d)\r\n", g_spareBufferIndex);
+		// Finish writing the remaining compressed data
+		//f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesWritten);
+		memcpy(g_compressedDataOutletPtr, g_spareBuffer, g_spareBufferIndex);
+		compressLength += g_spareBufferIndex;
+
+		g_spareBufferIndex = 0;
+	}
+
+	f_close(&g_testFile);
+	debug("MiniLZO compress length is %d\r\n", compressLength);
+
+#if 0
+	for (uint32_t i = 0; i < compressLength; i++)
+	{
+		debugRaw("%c", g_eventDataBuffer[i]);
+	}
+	debug("\r\n");
+#endif
+
+	uint32_t decompressLength = 0;
+	lzo1x_decompress((uint8_t*)&g_eventDataBuffer[0], compressLength, (uint8_t*)&g_eventDataBuffer[10000], &decompressLength, (void*)&g_eventDataBuffer[20000]);
+	if (decompressLength != 8617) { debugErr("MiniLZO decompress length did not match original source\r\n"); }
+	else { debug("MiniLZO decompress length correct (%d)\r\n", decompressLength); }
+
+	uint16_t mismatches = 0;
+	uint8_t* decompressData = (uint8_t*)&g_eventDataBuffer[10000];
+	for (uint32_t i = 0; i < 8617; i++)
+	{
+		if (englishLanguageTable[i] != decompressData[i])
+		{
+			mismatches++;
+			debug("MiniLZO decompress data mismatch, 0x%x != 0x%x, address %d\r\n", englishLanguageTable[i], decompressData[i], i);
+			if (mismatches > 10)
+			{
+				break;
+			}
+		}
+	}
+	debug("MiniLZO decompress data compare complete\r\n");
+#endif
 
  	// ==============
 	// Executive loop
@@ -2363,6 +2467,43 @@ extern void UsbReportEvents(void);
 #if 0 /* Todo: Re-enable in init, disabled for testing */
 		//Reset watchdog
 		MXC_WDT_ResetTimer(MXC_WDT0);
+#endif
+
+#if 0 /* Test */
+static uint8_t s_cellModemPowerState = OFF;
+	if (acm_present())
+	{
+		if (s_cellModemPowerState == OFF)
+		{
+			s_cellModemPowerState = ON;
+
+			debug("Cell/LTE: Powering up for serial tunneling...\r\n");
+			PowerControl(CELL_ENABLE, ON);
+			SoftUsecWait(1 * SOFT_SECS); // Small charge up delay
+			PowerControl(LTE_RESET, OFF);
+		}
+	}
+	else
+	{
+		if (s_cellModemPowerState == ON)
+		{
+			s_cellModemPowerState = OFF;
+
+			debug("Cell/LTE: Powering down...\r\n");
+			PowerControl(LTE_RESET, ON);
+			PowerControl(CELL_ENABLE, OFF);
+		}
+	}
+#endif
+#if 0 /* Test */
+		static BOOLEAN externalChargePresentState;
+		uint8 ecp = CheckExternalChargeVoltagePresent();
+		if (ecp != externalChargePresentState)
+		{
+			externalChargePresentState = ecp;
+			debugWarn("External Charge Voltage: %s\r\n", ((ecp == YES) ? "Present" : "Removed"));
+		}
+
 #endif
 	}
 	// End of NS9300 Main
