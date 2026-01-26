@@ -949,8 +949,8 @@ void AutoMonitorMenuHandler(uint8 keyPressed, void* data)
 USER_MENU_STRUCT auxChargingBypassMenu[AUX_CHARGING_BYPASS_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, AUX_CHARGING_BYPASS_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, AUX_CHARGING_BYPASS_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
-{ITEM_1, 0, DISABLED_TEXT,	NO_TAG,	{ENABLED}},
-{ITEM_2, 0, ENABLED_TEXT,	NO_TAG,	{DISABLED}},
+{ITEM_1, 0, DISABLED_TEXT,	NO_TAG,	{DISABLED}},
+{ITEM_2, 0, ENABLED_TEXT,	NO_TAG,	{ENABLED}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&AuxChargingBypassMenuHandler}}
 };
 
@@ -2950,6 +2950,12 @@ void ModemSetupMenuHandler(uint8 keyPressed, void* data)
 	if (keyPressed == ENTER_KEY)
 	{
 		g_modemSetupRecord.modemStatus = (uint16)(modemSetupMenu[newItemIndex].data);
+
+#if 0 /* Test - USB CDC/ACM serial tunneling to Cell/LTE module */
+		OverlayMessage(getLangText(WARNING_TEXT), "MODEM SETUP DISABLED FOR SERIAL TUNNEL TESTING", (2 * SOFT_SECS));
+		debugWarn("Modem setup: Disabled for testing\r\n");
+		g_modemSetupRecord.modemStatus = NO;
+#endif
 
 		if (g_modemSetupRecord.modemStatus == YES)
 		{
