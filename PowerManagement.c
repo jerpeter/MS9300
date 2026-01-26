@@ -29,6 +29,7 @@
 
 #include "usb.h"
 #include "uart.h"
+#include "math.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -104,6 +105,16 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_ENABLE_12V_PORT, GPIO_ENABLE_12V_PIN); }
 			break;
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+		//----------------------------------------------------------------------------
+		case USB_RESET: // Active low
+		//----------------------------------------------------------------------------
+			debug("USB Reset: %s\r\n", mode == ON ? "On" : "Off");
+			if (mode == ON) { MXC_GPIO_OutClr(GPIO_USB_RESET_PORT, GPIO_USB_RESET_PIN); }
+			else /* (mode == OFF) */ { MXC_GPIO_OutSet(GPIO_USB_RESET_PORT, GPIO_USB_RESET_PIN); }
+			SetupSPI2_UsbHostController(!mode);
+			break;
+#else /* Old boards */
 		//----------------------------------------------------------------------------
 		case USB_SOURCE_ENABLE: // Active high
 		//----------------------------------------------------------------------------
@@ -111,7 +122,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_USB_SOURCE_ENABLE_PORT, GPIO_USB_SOURCE_ENABLE_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_USB_SOURCE_ENABLE_PORT, GPIO_USB_SOURCE_ENABLE_PIN); }
 			break;
-
+#endif
 		//----------------------------------------------------------------------------
 		case USB_AUX_POWER_ENABLE: // Active high
 		//----------------------------------------------------------------------------
@@ -237,7 +248,11 @@ BOOLEAN GetPowerControlState(POWER_MGMT_OPTIONS option)
 		case TRIGGER_OUT: gpioReg = MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_OUT_PORT, GPIO_EXTERNAL_TRIGGER_OUT_PIN); break;
 		case MCU_POWER_LATCH: gpioReg = MXC_GPIO_OutGet(GPIO_MCU_POWER_LATCH_PORT, GPIO_MCU_POWER_LATCH_PIN); break;
 		case ENABLE_12V: gpioReg = MXC_GPIO_OutGet(GPIO_ENABLE_12V_PORT, GPIO_ENABLE_12V_PIN); break;
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+		case USB_RESET: gpioReg = !MXC_GPIO_OutGet(GPIO_USB_RESET_PORT, GPIO_USB_RESET_PIN); break; // Active low, invert state
+#else /* Old boards */
 		case USB_SOURCE_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_USB_SOURCE_ENABLE_PORT, GPIO_USB_SOURCE_ENABLE_PIN); break;
+#endif
 		case USB_AUX_POWER_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_USB_AUX_POWER_ENABLE_PORT, GPIO_USB_AUX_POWER_ENABLE_PIN); break;
 		case ADC_RESET: gpioReg = !MXC_GPIO_OutGet(GPIO_ADC_RESET_PORT, GPIO_ADC_RESET_PIN); break; // Active low, invert state
 		case EXPANSION_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_EXPANSION_ENABLE_PORT, GPIO_EXPANSION_ENABLE_PIN); break;
@@ -336,8 +351,8 @@ void LcdPowerGpioSetup(uint8_t mode)
 		// Clear SPI2 state for LCD active
 		g_spi2State &= ~SPI2_LCD_ON;
 
-		// Check if SPI2 is not active for the Accelerometer
-		if ((g_spi2State & SPI2_ACC_ON) == NO)
+		// Check if SPI2 is not still active for the Acc or USB HC
+		if ((g_spi2State & ~SPI2_OPERAITONAL) == NO)
 		{
 			MXC_SPI_Shutdown(MXC_SPI2);
 			g_spi2State &= ~SPI2_OPERAITONAL; // Mark SPI2 state is shutdown
@@ -446,8 +461,41 @@ void SetupSPI2_Accelerometer(uint8_t mode)
 	{
 		g_spi2State &= ~SPI2_ACC_ON;
 
-		// Check if SPI2 is not still active for the LCD
-		if ((g_spi2State & SPI2_LCD_ON) == NO)
+		// Check if SPI2 is not still active for the LCD or USB HC
+		if ((g_spi2State & ~SPI2_OPERAITONAL) == NO)
+		{
+			MXC_SPI_Shutdown(MXC_SPI2);
+			g_spi2State &= ~SPI2_OPERAITONAL; // Mark SPI2 state is shutdown
+
+			// Change the SPI2 GPIO config to inputs to disable (for back powering concerns)
+			mxc_gpio_cfg_t gpio_cfg_spi2 = { MXC_GPIO2, (GPIO_SPI2_SCK_PIN | GPIO_SPI2_MISO_PIN | GPIO_SPI2_MOSI_PIN), MXC_GPIO_FUNC_IN, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIO };
+			MXC_GPIO_Config(&gpio_cfg_spi2);
+		}
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetupSPI2_UsbHostController(uint8_t mode)
+{
+	if (mode == ON)
+	{
+		g_spi2State |= SPI2_USBHC_ON;
+
+		// Check if SPI2 is not already active
+		if ((g_spi2State & SPI2_OPERAITONAL) == NO)
+		{
+			SetupSPI2_LCDAndAcc();
+			g_spi2State |= SPI2_OPERAITONAL; // Mark SPI2 state is active
+		}
+	}
+	else // (mode == OFF)
+	{
+		g_spi2State &= ~SPI2_USBHC_ON;
+
+		// Check if SPI2 is not still active for the LCD or USB HC
+		if ((g_spi2State & ~SPI2_OPERAITONAL) == NO)
 		{
 			MXC_SPI_Shutdown(MXC_SPI2);
 			g_spi2State &= ~SPI2_OPERAITONAL; // Mark SPI2 state is shutdown
@@ -639,6 +687,184 @@ void SetBattChargerRegister(uint8_t registerAddress, uint16_t registerContents)
 ///----------------------------------------------------------------------------
 void InitBattChargerRegisters(void)
 {
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+	// Note: Some registers have OTP fields but assuming since no reference on how to accomplish this, assuming factory option only
+
+	// Device Address setting
+	//	Default watchdog set is enabled, highest 4-bit addr is 0xD
+	//	Change watchdog to disable (to prevent defaults from loading back in when triggered)
+	SetBattChargerRegister(BATT_CHARGER_DEVICE_ADDRESS_SETTING, 0x00E9);
+
+	// Input Min V limit
+	// 	Default Vin minimum limit is 4.56V
+	// 	Usb spec is 4.4V-5.25V, for 3.0, 4.55V-5.25V
+	//	Change to 4.4V to accomodate older specs
+	SetBattChargerRegister(BATT_CHARGER_INPUT_MINIMUM_VOLTAGE_LIMIT_SETTING, 0x0037);
+
+	// System Minimum Voltage
+	// 	Default Vsys_min is 6.4V (for 2 cells)
+	//	Change Vsys_min to 5.0V
+	SetBattChargerRegister(BATT_CHARGER_SYSTEM_MINIMUM_VOLTAGE_SETTING, 0x0019);
+
+	// Input Current limit
+	// 	Default Iin current limit is 500mA, 5000mA (spec limit)
+	//	Change Iin current closer to spec max, 4A (input current, not charge current so single/dual pack logic not needed)
+	SetBattChargerRegister(BATT_CHARGER_INPUT_CURRENT_LIMIT_SETTING, 0x0050);
+
+	// Output V setting in Source mode
+	// 	Default Vin_src additional V is 0V, config Vin_src by register select, Vin_src is 4.98V
+	//	No change from default
+	SetBattChargerRegister(BATT_CHARGER_OUTPUT_VOLTAGE_SETTING_IN_SOURCE_MODE, 0x00F9);
+
+	// Batt Impedance Comp and Output Current Limit in Source mode
+	// 	Default battery impedance is 0 mOhm, max compensaton voltage is 0mV/cell, Iout limit in source mode is 2A
+	//	Change Iout limit in source mode to 3000mA
+	SetBattChargerRegister(BATT_CHARGER_BATTERY_IMPEDANCE_COMPENSATION_AND_OUTPUT_CURRENT_LIMIT_SETTING_IN_SOURCE_MODE, 0x003C);
+
+	// Batt low V setting and Batt Discharge Current Reg in Source mode
+	// 	Default battery LV procetion is on, pre-charge to CC is 3V/cell, battery low action is INT only, Vbatt low is 3V/cell
+	// 	Default batt discharge current regulation in source disabled, batt discharge current in source is 6.4A
+	//	Change batt discharge current in source mode to 3000mA for single pack and 6000mA for double pack
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		debug("Battery Charger: Batt discharge in source set for Single pack\r\n");
+		SetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, 0x303C); // Single pack
+	}
+	else { debug("Battery Charger: Batt discharge in source set for Dual pack\r\n"); SetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, 0x3078); } // Double pack
+
+	// JEITA Action
+	//	Default warm protect is only reduce Vbatt_reg, cool protect is only reduce Icc, decrement value for batt full voltage if NTC cool/warm protect occurs is 320mV/cell
+	// 	Default scaling value of CC charge current is 1/4 times
+	//	Change Warm Act to reduce both Vbatt_reg and Icc, Cool Act to reduce both Vbatt_reg and Icc
+	SetBattChargerRegister(BATT_CHARGER_JEITA_ACTION_SETTING, 0x7C10);
+
+	// Temperature Protection
+	//	Default Ext Temp is enabled, Temp sense is BatFET, OPT action is deliver INT and take TS action, TS OT threshold is 80C, NTC protect is on
+	//	Default NTC protect action is deliver INT and take JEITA action, NTC hot thr is 60C, NTC warm thr is 45C, NTC cool thr is 10C, NTC cold thr is 0C
+	//  Change Vts_hot to 65C
+	SetBattChargerRegister(BATT_CHARGER_TEMPERATURE_PROTECTION_SETTING, 0xFF99);
+
+	// Config Reg 0
+	//	Default ADC start is disabled, ADC conv is one shot, switcing freq is 600kHz
+	//	No change from default
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0010);
+
+	// Config Reg 1
+	//	Default junction temp OT regulation is enabled, juntion temp regulation point is 120C, tricle charge current is 100mA, pre-charge current is 400mA
+	//	Default terminaiton current is 200mA
+	//	References to setting pre-charge @ C/10 (6600/10=660 or 13200/10=1320), termination around C/10 to C/20 (going with C/20 yields 6600/20=330 or 13200/20=660)
+	//	Change Ipre to 600mA single/1200mA double, Iterm to 200mA single/400mA double
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		if (BATTERY_PACK_SINGLE_CAPACITY == 8000) { SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF285); } // Single pack (larger), pre-charge @ 800mA, termination @ 250mA
+		else { SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF264); } // Single pack, pre-charge @ 600mA, termination @ 200mA
+	}
+	else // Dual battery packs
+	{
+		if (BATTERY_PACK_DOUBLE_CAPACITY == 16000) { SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF2F9); } // Double pack (larger), pre-charge @ 1500mA, termination @ 450mA
+		else { SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, 0xF2C8); } // Double pack, pre-charge @ 1200mA, termination @ 400mA
+	}
+
+	// Config Reg 2
+	//	Default ACgate not forced, TS/IMON (Pin 7) config is TS, auto recharge thr is -200mV/cell, batt cells in series is 2, Iin sense gain is 10mOhm
+	//	Default batt current sense gain is 10mOhm, ACgate driver is enabled, Bgate_ctrl is not forced, Vtrack is 100mV/cell
+	//	Note: Batt cells in series is 2 cells (2Sx2P config)
+	//	Change ACgate to disabled
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_2, 0x0A34);
+
+	// Config Reg 3
+	//	Default OV thr for source Vout is 110%, UV thr for source Vout is 75%, deglitch time for OVP in charge mode is 1us, input UVP thr is 3.2V
+	//	Default input OVP thr is 22.4V, batt OVP is enabled
+	//	No change from default
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_3, 0x60E8);
+
+	// Config Reg 4
+	//	Default charge saftey timer is enabled, CC/CV timer is 20hr, saftey timer is doubled, reset WDT is normal, WDT timer is disabled, DC/DC converter is enabled
+	//	Default charge termination is enabled, source mode is disabled, register reset is keep current settings, Iin limit loop is enabled, charge mode enabled
+	//  Default Bgate_en is enabled
+	//	No change from default
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, 0x3C73);
+
+	// Charge Current
+	//	Default charge current is 2A
+	//	Change to 1300mA for single pack (standard charge current per datasheet) and 2650mA for double pack
+	//	Note: Can chage to max charge current for fast charge
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		if (BATTERY_PACK_SINGLE_CAPACITY == 8000) { SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x0800); } // Single pack (larger), 1600mA
+		else { SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x0680); } // Single pack, 1300mA
+	}
+	else // Dual battery packs
+	{
+		if (BATTERY_PACK_DOUBLE_CAPACITY == 16000) { SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x1000); } // Double pack (larger), 3200mA
+		else { SetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, 0x0D40); } // Double pack, 2650mA
+	}
+
+	// Batt Reg V
+	//	Default charge full voltage is 8.4V
+	// 	Change to 7.2V (just under max charge voltage to help prolong battery life)
+	SetBattChargerRegister(BATT_CHARGER_BATTERY_REGULATION_VOLTAGE_SETTING, 0x2D00); // 7.2V
+
+	// Int Mask setting
+	//	Default all INT masked
+	//	Change all to unmasked
+	SetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_0, 0x7FFF);
+
+	// Int Mask setting
+	//	Default all INT masked
+	//	Change all to unmasked
+	SetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_1, 0x0003);
+
+#if 1 /* Test */
+	uint16_t regResults, errStatus = NO;
+	// Device address doesn't read as expected
+	//GetBattChargerRegister(BATT_CHARGER_DEVICE_ADDRESS_SETTING, &regResults); if (regResults != 0x00E9) { debugErr("Battery Charger Read failed: Device address, 0x%x/0x%x\r\n", 0x00E9, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_INPUT_MINIMUM_VOLTAGE_LIMIT_SETTING, &regResults); if (regResults != 0x0037) { errStatus = YES; debugErr("Battery Charger Read failed: Input min V, 0x%x/0x%x\r\n", 0x0037, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_INPUT_CURRENT_LIMIT_SETTING, &regResults); if (regResults != 0x0050) {errStatus = YES; debugErr("Battery Charger Read failed: Input current limit, 0x%x/0x%x\r\n", 0x0050, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_OUTPUT_VOLTAGE_SETTING_IN_SOURCE_MODE, &regResults); if (regResults != 0x00F9) { errStatus = YES; debugErr("Battery Charger Read failed: Output voltage, 0x%x/0x%x\r\n", 0x00F9, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_BATTERY_IMPEDANCE_COMPENSATION_AND_OUTPUT_CURRENT_LIMIT_SETTING_IN_SOURCE_MODE, &regResults); if (regResults != 0x003C) { errStatus = YES; debugErr("Battery Charger Read failed: Output current, 0x%x/0x%x\r\n", 0x003C, regResults); }
+#if 1 /* Test delay to see if that changes expanded Batt presenece to read different */
+	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
+#endif
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		debug("Battery Charger: Batt discharge in source validate for Single pack\r\n");
+		GetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, &regResults); if (regResults != 0x303C) { errStatus = YES; debugErr("Battery Charger Read failed: Batt discharge source, 0x%x/0x%x\r\n", 0x303C, regResults); }
+	}
+	else { debug("Battery Charger: Batt discharge in source validate for Dual pack\r\n"); GetBattChargerRegister(BATT_CHARGER_BATTERY_LOW_VOLTAGE_THRESHOLD_AND_BATTERY_DISCHARGE_CURRENT_REGULATION_IN_SOURCE_MODE, &regResults); if (regResults != 0x3078) { errStatus = YES; debugErr("Battery Charger Read failed: Batt discharge source, 0x%x/0x%x\r\n", 0x3078, regResults); } }
+	GetBattChargerRegister(BATT_CHARGER_JEITA_ACTION_SETTING, &regResults); if (regResults != 0x7C10) { errStatus = YES; debugErr("Battery Charger Read failed: JEITA, 0x%x/0x%x\r\n", 0x7C10, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_TEMPERATURE_PROTECTION_SETTING, &regResults); if (regResults != 0xFF99) { errStatus = YES; debugErr("Battery Charger Read failed: Temp protect, 0x%x/0x%x\r\n", 0xFF99, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, &regResults); if ((regResults & 0x00FF) != 0x0010) { errStatus = YES; debugErr("Battery Charger Read failed: config reg 0, 0x%x/0x%x\r\n", 0x0010, (regResults & 0x00FF)); } // Filter for ADC conversion flag in case Continuous conversion mode enabled from prior run
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		if (BATTERY_PACK_SINGLE_CAPACITY == 8000) { GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF285) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 1, 0x%x/0x%x\r\n", 0xF285, regResults); } }
+		else { GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF264) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 1, 0x%x/0x%x\r\n", 0xF264, regResults); } }
+	}
+	else // Dual battery packs
+	{
+		if (BATTERY_PACK_DOUBLE_CAPACITY == 16000) { GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF2F9) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 1, 0x%x/0x%x\r\n", 0xF2F9, regResults); } }
+		else { GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_1, &regResults); if (regResults != 0xF2C8) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 1, 0x%x/0x%x\r\n", 0xF2C8, regResults); } }
+	}
+	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_2, &regResults); if (regResults != 0x0A34) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 2, 0x%x/0x%x\r\n", 0x0A34, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_3, &regResults); if (regResults != 0x60E8) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 3, 0x%x/0x%x\r\n", 0x60E8, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, &regResults); if (regResults != 0x3C73) { errStatus = YES; debugErr("Battery Charger Read failed: Config reg 4, 0x%x/0x%x\r\n", 0x3C73, regResults); }
+	if (GetExpandedBatteryPresenceState() == NO)
+	{
+		if (BATTERY_PACK_SINGLE_CAPACITY == 8000) { GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x0800) { errStatus = YES; debugErr("Battery Charger Read failed: Charge current, 0x%x/0x%x\r\n", 0x0800, regResults); } }
+		else { GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x0680) { errStatus = YES; debugErr("Battery Charger Read failed: Charge current, 0x%x/0x%x\r\n", 0x0680, regResults); } }
+	}
+	else // Dual battery packs
+	{
+		if (BATTERY_PACK_DOUBLE_CAPACITY == 16000) { GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x1000) { errStatus = YES; debugErr("Battery Charger Read failed: Charge current, 0x%x/0x%x\r\n", 0x1000, regResults); } }
+		else { GetBattChargerRegister(BATT_CHARGER_CHARGE_CURRENT_SETTING, &regResults); if (regResults != 0x0D40) { errStatus = YES; debugErr("Battery Charger Read failed: Charge current, 0x%x/0x%x\r\n", 0x0D40, regResults); } }
+	}
+	GetBattChargerRegister(BATT_CHARGER_BATTERY_REGULATION_VOLTAGE_SETTING, &regResults); if (regResults != 0x2D00) { errStatus = YES; debugErr("Battery Charger Read failed: Batt regulation, 0x%x/0x%x\r\n", 0x2D00, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_0, &regResults); if (regResults != 0x7FFF) { errStatus = YES; debugErr("Battery Charger Read failed: Int mask reg 0, 0x%x/0x%x\r\n", 0x7FFF, regResults); }
+	GetBattChargerRegister(BATT_CHARGER_INT_MASK_SETTING_REGISTER_1, &regResults); if (regResults != 0x0003) { errStatus = YES; debugErr("Battery Charger Read failed: Int mask reg 1, 0x%x/0x%x\r\n", 0x0003, regResults); }
+
+	if (errStatus == NO) { debug("Battery Charger: Configure registers written and verified\r\n"); }
+#endif
+#else /* Older boards ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PROTOTYPE_1)) */
 	// Note: Some registers have OTP fields but assuming since no reference on how to accomplish this, assuming factory option only
 
 	// Device Address setting
@@ -810,6 +1036,7 @@ void InitBattChargerRegisters(void)
 
 	if (errStatus == NO) { debug("Battery Charger: Configure registers written and verified\r\n"); }
 #endif
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -847,12 +1074,13 @@ uint16_t GetBattChargerInputVoltage(void)
 
 	GetBattChargerRegister(BATT_CHARGER_ADC_RESULT_OF_THE_INPUT_VOLTAGE, &registerValue);
 
+	//debug("BC Input Voltage: 0x%x\r\n", registerValue);
+
 	for (i = 0; i < 10; i++)
 	{
-		if (registerValue & 0x0001)
+		if (registerValue & (1 << i))
 		{
-			result += (20 * (2^i));
-			registerValue >>= 1;
+			result += (20 * (uint16_t)pow(2,i));
 		}
 	}
 
@@ -873,10 +1101,9 @@ uint16_t GetBattChargerInputCurrent(void)
 
 	for (i = 0; i < 10; i++)
 	{
-		if (registerValue & 0x0001)
+		if (registerValue & (1 << i))
 		{
-			result += (6.25 * (2^i));
-			registerValue >>= 1;
+			result += (6.25 * (float)pow(2,i));
 		}
 	}
 
@@ -897,14 +1124,41 @@ uint16_t GetBattChargerBatteryVoltagePerCell(void)
 
 	for (i = 0; i < 10; i++)
 	{
-		if (registerValue & 0x0001)
+		if (registerValue & (1 << i))
 		{
-			result += (5 * (2^i));
-			registerValue >>= 1;
+			result += (5 * (uint16_t)pow(2,i));
 		}
 	}
 
 	// Result units: mV/cell
+	return (result);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t GetBattChargerSystemVoltage(void)
+{
+	uint16_t registerValue;
+	uint16_t result = 0;
+	uint8_t i;
+
+	GetBattChargerRegister(BATT_CHARGER_ADC_RESULT_OF_THE_SYSTEM_VOLTAGE, &registerValue);
+
+	//debug("BC System Voltage: 0x%x\r\n", registerValue);
+
+	for (i = 0; i < 10; i++)
+	{
+		if (registerValue & (1 << i))
+		{
+			//debug("BC System Voltage: Adding %d\r\n", (int)(20 * pow(2,i)));
+			result += (20 * (uint16_t)pow(2,i));
+		}
+	}
+
+	//debug("BC System Voltage: %dmV (%0.2fV) \r\n", result, (double)((float)result / 1000));
+
+	// Result units: mV
 	return (result);
 }
 
@@ -921,10 +1175,9 @@ uint16_t GetBattChargerBatteryChargeCurrent(void)
 
 	for (i = 0; i < 10; i++)
 	{
-		if (registerValue & 0x0001)
+		if (registerValue & (1 << i))
 		{
-			result += (12.5 * (2^i));
-			registerValue >>= 1;
+			result += (12.5 * (float)pow(2,i));
 		}
 	}
 
@@ -945,10 +1198,9 @@ uint16_t GetBattChargerNTCSenseRatio(void)
 
 	for (i = 0; i < 10; i++)
 	{
-		if (registerValue & 0x0001)
+		if (registerValue & (1 << i))
 		{
-			result += (1 * (2^i));
-			registerValue >>= 1;
+			result += (1 * (float)pow(2,i));
 		}
 	}
 
@@ -972,10 +1224,9 @@ uint16_t GetBattChargerTSSenseRatio(void)
 
 	for (i = 0; i < 10; i++)
 	{
-		if (registerValue & 0x0001)
+		if (registerValue & (1 << i))
 		{
-			result += (1 * (2^i));
-			registerValue >>= 1;
+			result += (1 * (float)pow(2,i));
 		}
 	}
 
@@ -1018,10 +1269,9 @@ uint16_t GetBattChargerBatteryDischargeCurrent(void)
 
 	for (i = 0; i < 10; i++)
 	{
-		if (registerValue & 0x0001)
+		if (registerValue & (1 << i))
 		{
-			result += (12.5 * (2^i));
-			registerValue >>= 1;
+			result += (12.5 * (float)pow(2,i));
 		}
 	}
 
@@ -1042,10 +1292,9 @@ uint16_t GetBattChargerInputVoltageInDischargeMode(void)
 
 	for (i = 0; i < 10; i++)
 	{
-		if (registerValue & 0x0001)
+		if (registerValue & (1 << i))
 		{
-			result += (20 * (2^i));
-			registerValue >>= 1;
+			result += (20 * (uint16_t)pow(2,i));
 		}
 	}
 
@@ -1066,10 +1315,9 @@ uint16_t GetBattChargerOutputCurrentInDischargeMode(void)
 
 	for (i = 0; i < 10; i++)
 	{
-		if (registerValue & 0x0001)
+		if (registerValue & (1 << i))
 		{
-			result += (6.25 * (2^i));
-			registerValue >>= 1;
+			result += (6.25 * (float)pow(2,i));
 		}
 	}
 
