@@ -2137,7 +2137,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 				CacheERDataToBuffer(g_demXferStructPtr->dloadEventRec.eventRecord.summary.eventNumber, (uint8*)g_demXferStructPtr->xmitBuffer, dataOffset, CMD_BUFFER_SIZE);
 				g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, g_transmitCRC);
 
-#if 0 /* Original */
+#if 1 /* Original */
 				if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, NO_CONVERSION) == MODEM_SEND_FAILED)
 				{
 					g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
@@ -2168,9 +2168,11 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 				dataOffset += CMD_BUFFER_SIZE;
 				dataSizeRemaining -= CMD_BUFFER_SIZE;
 
+#if 1 /* Test handling system events in between packets */
 				// Now breaking periodically to handle system events, mostly for Bargraph processing to get it's processing time so that Summary Intervals aren't delayed
 				HandleSystemEvents();
 				debug("<DEM HSE>\r\n");
+#endif
 			}
 		}
 
@@ -2247,7 +2249,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 #endif
 				g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, g_transmitCRC);
 
-#if 0 /* Original */
+#if 1 /* Original */
 				if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, NO_CONVERSION) == MODEM_SEND_FAILED)
 				{
 					g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
@@ -2284,7 +2286,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 					SoftUsecWait(150 * SOFT_MSECS);
 					debug("DEM small delay between packets\r\n");
 				}
-#else /* Test just handling system events */
+#elif 1 /* Test handling system events in between packets */
 				HandleSystemEvents();
 				debug("<DEM HSE>\r\n");
 #endif
