@@ -930,13 +930,29 @@ void ClearAndFillInCommonRecordInfo(EVT_RECORD* eventRec)
 	eventRec->summary.parameters.weightPerDelay = (uint32)(g_triggerRecord.trec.weight_per_delay * 100.0);
 	//-----------------------
 	eventRec->summary.parameters.channel[0].type = ACOUSTIC_CHANNEL_TYPE;
+#if 0 /* Original */
 	eventRec->summary.parameters.channel[0].input = 4;
+#else /* New method to record sensor group */
+	eventRec->summary.parameters.channel[0].input = ((g_currentSensorGroup & SENSOR_GROUP_A_1) ? 8 : 4);
+#endif
 	eventRec->summary.parameters.channel[1].type = RADIAL_CHANNEL_TYPE;
+#if 0 /* Original */
 	eventRec->summary.parameters.channel[1].input = 1;
+#else /* New method to record sensor group */
+	eventRec->summary.parameters.channel[0].input = ((g_currentSensorGroup & SENSOR_GROUP_A_1) ? 1 : 5);
+#endif
 	eventRec->summary.parameters.channel[2].type = VERTICAL_CHANNEL_TYPE;
+#if 0 /* Original */
 	eventRec->summary.parameters.channel[2].input = 3;
+#else /* New method to record sensor group */
+	eventRec->summary.parameters.channel[0].input = ((g_currentSensorGroup & SENSOR_GROUP_A_1) ? 3 : 7);
+#endif
 	eventRec->summary.parameters.channel[3].type = TRANSVERSE_CHANNEL_TYPE;
+#if 0 /* Original */
 	eventRec->summary.parameters.channel[3].input = 2;
+#else /* New method to record sensor group */
+	eventRec->summary.parameters.channel[0].input = ((g_currentSensorGroup & SENSOR_GROUP_A_1) ? 2 : 6);
+#endif
 	//-----------------------
 	eventRec->summary.calculated.gpsPosition = g_gpsPosition;
 	eventRec->summary.parameters.utcZoneOffset = g_unitConfig.utcZoneOffset;
@@ -944,13 +960,21 @@ void ClearAndFillInCommonRecordInfo(EVT_RECORD* eventRec)
 
 	for (i = 0; i < 4; i++) // First seismic group
 	{
+#if 0 /* Original */
 		eventRec->summary.parameters.channel[i].group = SEISMIC_GROUP_1;
+#else /* New method to record sensor group */
+		eventRec->summary.parameters.channel[i].group = g_currentSensorGroup;
+#endif
 		eventRec->summary.parameters.channel[i].options = (g_triggerRecord.srec.sensitivity == LOW) ? GAIN_SELECT_x2 : GAIN_SELECT_x4;
 	}
 
 	for (i = 4; i < 8; i++) // Second seismic group
 	{
+#if 0 /* Original */
 		eventRec->summary.parameters.channel[i].group = SEISMIC_GROUP_2;
+#else /* New method to record sensor group */
+		eventRec->summary.parameters.channel[i].group = SENSOR_GROUP_NONE;
+#endif
 		eventRec->summary.parameters.channel[i].type = 0;
 		eventRec->summary.parameters.channel[i].input = DISABLED;
 		eventRec->summary.parameters.channel[i].options = 0;
