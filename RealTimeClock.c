@@ -97,7 +97,7 @@ BOOLEAN ExternalRtcInit(void)
 	modeConfig = (PCF85263_RTC_TSR_TSR3M_LV | PCF85263_RTC_TSR_TSR2M_FE | PCF85263_RTC_TSR_TSR1M_LE);
 	SetRtcRegisters(PCF85263_STW_TSR_MODE, (uint8_t*)&modeConfig, sizeof(modeConfig));
 
-	// Enable interrupts for the periodic and alarm 1
+	// Enable interrupts for pulse, periodic and alarm 1
 	interruptReg = (PCF85263_CTL_INTA_PIEA | PCF85263_CTL_INTA_A1IEA);
 	SetRtcRegisters(PCF85263_CTL_INTA_ENABLE, (uint8_t*)&interruptReg, sizeof(interruptReg));
 
@@ -187,8 +187,13 @@ void ForceExternalRtcIntEnabledForResetDetection(void)
 	// Set IntA as level output and enable all interrupt sources
 	SetRtcRegisters(PCF85263_CTL_INTA_ENABLE, (uint8_t*)&intConfig, sizeof(intConfig));
 
+#if /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	// Set the Timestamp pin to active an Ext RTC IntA interrupt
 	MXC_GPIO_OutSet(GPIO_EXT_RTC_TIMESTAMP_PORT, GPIO_EXT_RTC_TIMESTAMP_PIN);
+#endif
+
+	// Delay 1 second to allow RTC interrupt flag to raise
+	SoftUsecWait(1 * SOFT_SECS);
 }
 
 ///----------------------------------------------------------------------------
