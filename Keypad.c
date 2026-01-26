@@ -26,6 +26,7 @@
 #include "string.h"
 
 #include "lcd.h"
+#include "mxc_errors.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -390,6 +391,65 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 						g_tcpServerStartStage = TCP_SERVER_INIT;
 						AssignSoftTimer(TCP_SERVER_START_NUM, (1 * TICKS_PER_SEC), TcpServerStartCallback);
 #endif
+#if 0 /* Test */
+						if (GetPowerControlState(CELL_ENABLE) == ON)
+						{
+							debug("Cell/LTE Modem: Powering down...\r\n");
+							PowerControl(LTE_RESET, ON);
+							PowerControl(CELL_ENABLE, OFF);
+							SoftUsecWait(1 * SOFT_SECS); // Small charge up delay
+						}
+						else
+						{
+							debug("Cell/LTE Modem: Powering on...\r\n");
+							PowerControl(CELL_ENABLE, ON);
+							SoftUsecWait(1 * SOFT_SECS); // Small charge up delay
+							PowerControl(LTE_RESET, OFF);
+						}
+#endif
+#if 0 /* Test */
+						static uint8 ledState = 0;
+						ledState++; if (ledState > 3) { ledState = 0; }
+						if (ledState == 0) { PowerControl(LED_1, ON); PowerControl(LED_2, ON); debug("LED 1: On, LED 2: On\r\n"); }
+						if (ledState == 1) { PowerControl(LED_1, ON); PowerControl(LED_2, OFF); debug("LED 1: On, LED 2: Off\r\n"); }
+						if (ledState == 2) { PowerControl(LED_1, OFF); PowerControl(LED_2, ON); debug("LED 1: Off, LED 2: On\r\n"); }
+						if (ledState == 3) { PowerControl(LED_1, OFF); PowerControl(LED_2, OFF); debug("LED 1: Off, LED 2: Off\r\n"); }
+#endif
+#if 0 /* Test */
+//extern void ForceExternalRtcIntEnabledForResetDetection(void);
+						debug("MCU/Boot: Testing reboot detection\r\n");
+						ForceExternalRtcIntEnabledForResetDetection();
+
+						AddOnOffLogTimestamp(JUMP_TO_BOOT);
+						// Close filesystem
+						f_mount(NULL, "", 0);
+
+						SoftUsecWait(1 * SOFT_SECS);
+						// Toggle MCU system reset
+						MXC_GCR->rst0 |= MXC_F_GCR_RST0_SYS;
+#endif
+#if 0 /* Test */
+extern void USBHostControllerMuxControl(uint8_t muxState);
+static uint8_t s_usbHostControllerMuxState = OFF;
+						s_usbHostControllerMuxState ^= ON;
+						USBHostControllerMuxControl(s_usbHostControllerMuxState);
+						debug("USB Host Controller: Mux State changed to %s\r\n", ((s_usbHostControllerMuxState == ON) ? "Alternate/Host" : "Default/Device"));
+#endif
+#if 0 /* Test */
+extern void USBHostControllerSourceEnable(uint8_t sourceEnable);
+static uint8_t s_usbHostControllerSourceEnable = OFF;
+						s_usbHostControllerSourceEnable ^= ON;
+						USBHostControllerSourceEnable(s_usbHostControllerSourceEnable);
+						debug("USB Host Controller: Source Enable changed to %s\r\n", ((s_usbHostControllerSourceEnable == ON) ? "On" : "Off"));
+#endif
+#if 0 /* Test */
+extern void USBCPortControllerSwapToHost(void);
+extern void USBCPortControllerSwapToDevice(void);
+static uint8_t s_usbHostControllerMode = OFF;
+						s_usbHostControllerMode ^= ON;
+						if (s_usbHostControllerMode == ON) { USBCPortControllerSwapToHost(); }
+						else { USBCPortControllerSwapToDevice(); }
+#endif
 					}
 					//===================================================
 					// On-Help Combo key
@@ -409,11 +469,19 @@ static uint8_t s_bcChargeState = ON;
 						// Clear out the message parameters
 						mn_msg.cmd = 0; mn_msg.length = 0; mn_msg.data[0] = 0;
 #endif
-#if 1 /* Test */
+#if 0 /* Test */
 						if (g_sampleProcessing == ACTIVE_STATE)
 						{
 							// Establish trigger signal
 							g_externalTrigger = EXTERNAL_TRIGGER_EVENT;
+						}
+#endif
+#if 0 /* Test */
+						if (GetPowerControlState(CELL_ENABLE) == ON)
+						{
+							debug("Sending AT...\r\n");
+							sprintf((char*)g_spareBuffer, "AT\r\n");
+							int strLen = (int)strlen((char*)g_spareBuffer); int status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 						}
 #endif
 					}
