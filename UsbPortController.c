@@ -994,9 +994,15 @@ int tps25750_pr_set(struct tps25750* tps, enum typec_role role)
 	uint32_t status;
 	const char *cmd = (role == TYPEC_SINK) ? TPS_4CC_SWSK : TPS_4CC_SWSR;
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+extern void USBHostControllerSetMuxAndSource(uint8_t state);
+	if (role == TYPEC_SINK) { USBHostControllerSetMuxAndSource(OFF); }
+	else /* (role == TYPEC_SOURCE) */ { USBHostControllerSetMuxAndSource(ON); }
+#elif /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	// Determine role for sourcing VBUS from the 5V Buck and set before swapping mode
 	if (role == TYPEC_SOURCE) { PowerControl(USB_SOURCE_ENABLE, ON); } // Delay needed to let power settle?
 	else { PowerControl(USB_SOURCE_ENABLE, OFF); }
+#endif
 
 	//mutex_lock(&tps->lock);
 
@@ -1443,8 +1449,21 @@ void USBCPortControllerSwapToHost(void)
 {
 	struct tps25750 tps;
 
+	debug("USB Port Controller: Swap to Host/Source\r\n");
 	tps25750_pr_set(&tps, TYPEC_SOURCE);
 	tps25750_dr_set(&tps, TYPEC_HOST);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void USBCPortControllerSwapToDevice(void)
+{
+	struct tps25750 tps;
+
+	debug("USB Port Controller: Swap to Device/Sink\r\n");
+	tps25750_pr_set(&tps, TYPEC_SINK);
+	tps25750_dr_set(&tps, TYPEC_DEVICE);
 }
 
 ///----------------------------------------------------------------------------
@@ -1476,7 +1495,7 @@ void USBCPortControllerInit(void)
 
 	// Check mode
 	if (tps2750_is_mode(&tps, TPS_MODE_BOOT) == 1) { fullAccess = NO; debugWarn("USB Port Controller: In Boot mode, likely Device booting in dead battery\r\n"); }
-	if (tps2750_is_mode(&tps, TPS_MODE_PTCH) == 1) { fullAccess = NO; debugWarn("USB Port Controller: In Patch mode, applying patch...\r\n"); tps25750_apply_patch(&tps); }
+	if (tps2750_is_mode(&tps, TPS_MODE_PTCH) == 1) { fullAccess = NO; debug("USB Port Controller: In Patch mode, applying patch...\r\n"); tps25750_apply_patch(&tps); }
 	if (tps2750_is_mode(&tps, TPS_MODE_APP) == 1) { fullAccess = YES; debug("USB Port Controller: In App mode\r\n"); }
 
 #if 0 /* Test going back into Patch mode */
@@ -1616,4 +1635,222 @@ void USBCPortControllerInit(void)
 #endif
 
 	USBCPortControllerClearIntFlags();
+}
+
+///--------------------------------------------------------------------------------------------------------------------------------------------------------
+///--------------------------------------------------------------------------------------------------------------------------------------------------------
+/// USB Host Controller
+///--------------------------------------------------------------------------------------------------------------------------------------------------------
+///--------------------------------------------------------------------------------------------------------------------------------------------------------
+
+#include "lcd.h"
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int GetUsbHCRegister(uint8_t registerAddress, uint8_t* registerData, uint8_t dataSize)
+{
+	int status = E_SUCCESS;
+
+	if (dataSize > 7) { return (E_BAD_PARAM); }
+	uint8_t readData[8];
+	uint8_t writeData[8];
+	writeData[0] = (registerAddress << 3); // Set the address for the upper 5 bits, and read bit (bit 1) is a 0
+	memset(&writeData[1], 0, dataSize);
+
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutClr(GPIO_SPI2_SS2_USB_PORT, GPIO_SPI2_SS2_USB_PIN); }
+	//SoftUsecWait(5 * SOFT_MSECS);
+	//SpiTransaction(SPI_USBHC, SPI_8_BIT_DATA_SIZE, YES, &writeData[0], sizeof(writeData), readData, sizeof(readData), BLOCKING);
+	SpiTransaction(SPI_USBHC, SPI_8_BIT_DATA_SIZE, YES, &writeData[0], (dataSize + 1), readData, (dataSize + 1), BLOCKING);
+	//SoftUsecWait(5 * SOFT_MSECS);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutSet(GPIO_SPI2_SS2_USB_PORT, GPIO_SPI2_SS2_USB_PIN); }
+
+	memcpy(registerData, &readData[1], dataSize);
+
+	return (status);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int SetUsbHCRegister(uint8_t registerAddress, uint8_t registerData)
+{
+	int status = E_SUCCESS;
+
+	uint8_t writeData[2];
+	writeData[0] = (registerAddress << 3) | 0x02; // Set the address for the upper 5 bits, and write bit (bit 1) is a 1
+	writeData[1] = registerData;
+
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutClr(GPIO_SPI2_SS2_USB_PORT, GPIO_SPI2_SS2_USB_PIN); }
+	//SoftUsecWait(5 * SOFT_MSECS);
+	SpiTransaction(SPI_USBHC, SPI_8_BIT_DATA_SIZE, YES, &writeData[0], sizeof(writeData), NULL, 0, BLOCKING);
+	//SoftUsecWait(5 * SOFT_MSECS);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutSet(GPIO_SPI2_SS2_USB_PORT, GPIO_SPI2_SS2_USB_PIN); }
+
+	return (status);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+#if 0 /* Unlikely to work with Rd/Wr bit location changed from bit 7 to bit 2 for this part */
+int SetAndReadUsbHCRegister(uint8_t registerAddress, uint8_t registerData, uint8_t* readData, uint8_t dataSize)
+{
+	uint8_t writeData[2];
+	int status = E_SUCCESS;
+
+	writeData[0] = registerAddress;
+	writeData[1] = registerData;
+
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutClr(GPIO_SPI2_SS2_USB_PORT, GPIO_SPI2_SS2_USB_PIN); }
+	SpiTransaction(SPI_USBHC, SPI_8_BIT_DATA_SIZE, YES, &writeData[0], sizeof(writeData), readData, dataSize, BLOCKING);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutSet(GPIO_SPI2_SS2_USB_PORT, GPIO_SPI2_SS2_USB_PIN); }
+
+	return (status);
+}
+#endif
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void USBHostControllerPowerOn(void)
+{
+	debug("USB Host Controller: Reset off\r\n");
+	PowerControl(USB_RESET, OFF);
+	SoftUsecWait(25 * SOFT_MSECS);
+
+	uint8_t reg;
+	debug("USB Host Controller: Setting SPI Full Duplex Mode\r\n");
+	reg = 0x10;
+	SetUsbHCRegister(17, reg);
+
+	debug("USB Host Controller: Setting Mode register to Host\r\n");
+	reg = 0x01;
+	SetUsbHCRegister(27, reg);
+
+	GetUsbHCRegister(18, &reg, 1);
+	debug("USB Host Controller: Revision register is 0x%x\r\n", reg);
+
+	if (reg == 0x13) { debug("USB Host Controller: Device verified\r\n"); }
+	else { debugWarn("USB Host Controller: Device not verified\r\n"); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void USBHostControllerPowerOff(void)
+{
+	debug("USB Host Controller: Reset on\r\n");
+	PowerControl(USB_RESET, ON);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void USBHostControllerSetMuxAndSource(uint8_t state)
+{
+	uint8_t reg = 0xF0;
+	debug("USB Host Controller: Setting SPI GP Out 0 & 1 (%d)\r\n", state);
+	if (state) { reg |= 0x03; }
+	SetUsbHCRegister(20, reg);
+
+	reg = 0;
+	GetUsbHCRegister(20, &reg, 1);
+	if (state)
+	{
+		if (reg == 0xF3) { debug("USB Host Controller: Mux and Source enabled\r\n"); }
+		else { debug("USB Host Controller: Mux and Source enable failed (0x%x)\r\n", state); }
+	}
+	else
+	{
+		if (reg == 0xF0) { debug("USB Host Controller: Mux and Source disabled\r\n"); }
+		else { debug("USB Host Controller: Mux and Source disable failed (0x%x)\r\n", state); }
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void USBHostControllerMuxControl(uint8_t muxState)
+{
+	uint8_t reg = 0xF0;
+	debug("USB Host Controller: Setting SPI GP Out 0 (%d)\r\n", muxState);
+	if (muxState) { reg |= 0x01; }
+	SetUsbHCRegister(20, reg);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void USBHostControllerSourceEnable(uint8_t sourceEnable)
+{
+	uint8_t reg = 0xF0;
+	debug("USB Host Controller: Setting SPI GP Out 1 (%d)\r\n", sourceEnable);
+	if (sourceEnable) { reg |= 0x02; }
+	SetUsbHCRegister(20, reg);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void USBHostControllerInit(void)
+{
+	debug("USB Host Controller: Init\r\n");
+
+	debug("USB Host Controller: Reset off\r\n");
+	PowerControl(USB_RESET, OFF);
+
+	SoftUsecWait(25 * SOFT_MSECS);
+
+	uint8_t reg;
+	debug("USB Host Controller: Setting SPI Full Duplex Mode\r\n");
+	reg = 0x10;
+	SetUsbHCRegister(17, reg);
+
+	debug("USB Host Controller: Setting Mode register to Host\r\n");
+	reg = 0x01;
+	SetUsbHCRegister(27, reg);
+
+	GetUsbHCRegister(18, &reg, 1);
+	debug("USB Host Controller: Revision register is 0x%x\r\n", reg);
+
+	if (reg == 0x13) { debug("USB Host Controller: Device verified\r\n"); }
+	else { debugWarn("USB Host Controller: Device not verified\r\n"); }
+
+#if 0 /* Test */
+	while (1)
+	{
+		GetUsbHCRegister(18, &reg, 1);
+		debug("USB Host Controller: Revision register is 0x%x\r\n", reg);
+		if (ScanKeypad() != KEY_NONE) { break; }
+		SoftUsecWait(1 * SOFT_SECS);
+	}
+#endif
+
+#if 0 /* Test control register map */
+	GetUsbHCRegister(13, &reg, 1); debug("USB Host Controller: IRQ register  is 0x%x\r\n", reg);
+	GetUsbHCRegister(14, &reg, 1); debug("USB Host Controller: IEN register  is 0x%x\r\n", reg);
+	GetUsbHCRegister(15, &reg, 1); debug("USB Host Controller: CTL register  is 0x%x\r\n", reg);
+	GetUsbHCRegister(16, &reg, 1); debug("USB Host Controller: CPU CTL reg   is 0x%x\r\n", reg);
+	GetUsbHCRegister(17, &reg, 1); debug("USB Host Controller: PIN CTL reg   is 0x%x\r\n", reg);
+	GetUsbHCRegister(18, &reg, 1); debug("USB Host Controller: Rev register  is 0x%x\r\n", reg);
+
+	GetUsbHCRegister(20, &reg, 1); debug("USB Host Controller: IO PINS 1 reg is 0x%x\r\n", reg);
+	GetUsbHCRegister(21, &reg, 1); debug("USB Host Controller: IO PINS 2 reg is 0x%x\r\n", reg);
+	GetUsbHCRegister(22, &reg, 1); debug("USB Host Controller: GP IN IRQ reg is 0x%x\r\n", reg);
+	GetUsbHCRegister(23, &reg, 1); debug("USB Host Controller: GP IN IEN reg is 0x%x\r\n", reg);
+	GetUsbHCRegister(24, &reg, 1); debug("USB Host Controller: GP IN POL reg is 0x%x\r\n", reg);
+	GetUsbHCRegister(25, &reg, 1); debug("USB Host Controller: H IRQ reg     is 0x%x\r\n", reg);
+	GetUsbHCRegister(26, &reg, 1); debug("USB Host Controller: H IEN reg     is 0x%x\r\n", reg);
+	GetUsbHCRegister(27, &reg, 1); debug("USB Host Controller: MODE register is 0x%x\r\n", reg);
+	GetUsbHCRegister(28, &reg, 1); debug("USB Host Controller: PER ADDR reg  is 0x%x\r\n", reg);
+	GetUsbHCRegister(29, &reg, 1); debug("USB Host Controller: H CTL reg     is 0x%x\r\n", reg);
+	GetUsbHCRegister(30, &reg, 1); debug("USB Host Controller: H XFR reg     is 0x%x\r\n", reg);
+	GetUsbHCRegister(31, &reg, 1); debug("USB Host Controller: H RSL reg     is 0x%x\r\n", reg);
+#endif
+
+#if 0 /* Test skipping disable */
+	debug("USB Host Controller: Reset on\r\n");
+	PowerControl(USB_RESET, ON);
+#endif
 }
