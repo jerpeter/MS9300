@@ -1091,7 +1091,7 @@ uint8_t IsSeismicSensorAnAccelerometer(uint16_t seismicSensorType)
 ///----------------------------------------------------------------------------
 uint8_t GetExpandedBatteryPresenceState(void)
 {
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	if ((GPIO_EXT_BATTERY_PRESENCE_1_PORT->in & GPIO_EXT_BATTERY_PRESENCE_1_PIN) && (GPIO_EXT_BATTERY_PRESENCE_2_PORT->in & GPIO_EXT_BATTERY_PRESENCE_2_PIN)){ return (YES); }
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	// Check if External Battery Presense is found, Active high (Port 0, Pin 2)
@@ -1105,9 +1105,13 @@ uint8_t GetExpandedBatteryPresenceState(void)
 ///----------------------------------------------------------------------------
 uint8_t GetPowerGood5vState(void)
 {
+#if /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	// Check Power good 5v state, Active high (Port 0, Pin 11)
 	if (GPIO_POWER_GOOD_5V_PORT->in & GPIO_POWER_GOOD_5V_PIN) { return (YES); }
 	else return (NO);
+#else
+	return (YES);
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -1145,7 +1149,7 @@ uint8_t GetLteOtaState(void)
 ///----------------------------------------------------------------------------
 uint8_t GetSmartSensorMuxEnableState(void)
 {
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	// Get Smart Sensor Mux Enable state, Active high (Port 0, Pin 14)
 	if (MXC_GPIO_OutGet(GPIO_SMART_SENSOR_MUX_ENABLE_PORT, GPIO_SMART_SENSOR_MUX_ENABLE_PIN)) { return (ON); }
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
@@ -1181,7 +1185,7 @@ void SetSmartSensorSleepState(uint8_t state)
 ///----------------------------------------------------------------------------
 void SetSmartSensorMuxEnableState(uint8_t state)
 {
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	// Set Smart Sensor Mux Enable state, Active high (Port 0, Pin 14)
 	if (state == ON) { GPIO_SMART_SENSOR_MUX_ENABLE_PORT->out_set = GPIO_SMART_SENSOR_MUX_ENABLE_PIN; }
 	else /* (state == OFF) */ { GPIO_SMART_SENSOR_MUX_ENABLE_PORT->out_clr = GPIO_SMART_SENSOR_MUX_ENABLE_PIN; }
@@ -1258,7 +1262,7 @@ void SetSmartSensorMuxA0State(uint8_t state)
 ///----------------------------------------------------------------------------
 void SetSmartSensorMuxA1State(uint8_t state)
 {
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	// Set Smart Sensor Mux A1 state, Select (Port 2, Pin 25)
 	if (state == ON) { GPIO_SMART_SENSOR_MUX_A1_PORT->out_set = GPIO_SMART_SENSOR_MUX_A1_PIN; }
 	else /* (state == OFF) */ { GPIO_SMART_SENSOR_MUX_A1_PORT->out_clr = GPIO_SMART_SENSOR_MUX_A1_PIN; }
