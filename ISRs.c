@@ -232,7 +232,7 @@ __attribute__((__interrupt__))
 void External_battery_presence_irq(void)
 {
 	//debugRaw("=");
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	debugWarn("-(ISR) Battery pack status alert (Slot 1:%s, Slot 2:%s)-\r\n", ((GPIO_EXT_BATTERY_PRESENCE_1_PORT->in & GPIO_EXT_BATTERY_PRESENCE_1_PIN) ? "Added" : "Removed"), ((GPIO_EXT_BATTERY_PRESENCE_2_PORT->in & GPIO_EXT_BATTERY_PRESENCE_2_PIN) ? "Added" : "Removed"));
 #endif
 }
@@ -272,7 +272,7 @@ void Battery_charger_irq(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 __attribute__((__interrupt__))
 void Sensor_detect_1_irq(void)
 {
@@ -280,7 +280,7 @@ void Sensor_detect_1_irq(void)
 	debugWarn("-(ISR) Sensor Detect 1: %s-\r\n", ((MXC_GPIO_OutGet(GPIO_SENSOR_DETECT_1_PORT, GPIO_SENSOR_DETECT_1_PIN) == 0) ? "Removed" : "Added"));
 
 	// Clear Sensor Detect 1 flag (Port 0, Pin 7)
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	GPIO_SENSOR_DETECT_1_PORT->int_clr = GPIO_SENSOR_DETECT_1_PIN;
 #endif
 }
@@ -289,7 +289,7 @@ void Sensor_detect_1_irq(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 __attribute__((__interrupt__))
 void Sensor_detect_2_irq(void)
 {
@@ -297,7 +297,7 @@ void Sensor_detect_2_irq(void)
 	debugWarn("-(ISR) Sensor Detect 2: %s -\r\n", ((MXC_GPIO_OutGet(GPIO_SENSOR_DETECT_2_PORT, GPIO_SENSOR_DETECT_2_PIN) == 0) ? "Removed" : "Added"));
 
 	// Clear Sensor Detect 2 flag (Port 1, Pin 2)
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	GPIO_SENSOR_DETECT_2_PORT->int_clr = GPIO_SENSOR_DETECT_2_PIN;
 #endif
 }
@@ -306,7 +306,7 @@ void Sensor_detect_2_irq(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 __attribute__((__interrupt__))
 void Sensor_detect_3_irq(void)
 {
@@ -314,7 +314,7 @@ void Sensor_detect_3_irq(void)
 	debugWarn("-(ISR) Sensor Detect 3: %s -\r\n", ((MXC_GPIO_OutGet(GPIO_SENSOR_DETECT_3_PORT, GPIO_SENSOR_DETECT_3_PIN) == 0) ? "Removed" : "Added"));
 
 	// Clear Sensor Detect 3 flag (Port 1, Pin 13)
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	GPIO_SENSOR_DETECT_3_PORT->int_clr = GPIO_SENSOR_DETECT_3_PIN;
 #endif
 }
@@ -323,7 +323,7 @@ void Sensor_detect_3_irq(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 __attribute__((__interrupt__))
 void Sensor_detect_4_irq(void)
 {
@@ -331,7 +331,7 @@ void Sensor_detect_4_irq(void)
 	debugWarn("-(ISR) Sensor Detect 4: %s -\r\n", ((MXC_GPIO_OutGet(GPIO_SENSOR_DETECT_1_PORT, GPIO_SENSOR_DETECT_1_PIN) == 0) ? "Removed" : "Added"));
 
 	// Clear Sensor Detect 4 flag (Port 1, Pin 27)
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	GPIO_SENSOR_DETECT_4_PORT->int_clr = GPIO_SENSOR_DETECT_4_PIN;
 #endif
 }
@@ -344,12 +344,13 @@ void Sensor_detect_4_irq(void)
 uint8_t uart0BufferFull = NO;
 uint32_t uart0BufferCount = 0;
 #endif
+#include "cdc_acm.h"
 void UART0_Read_Callback(mxc_uart_req_t *req, int error)
 {
 	// UART0 receive processing
-#if 1 /* Test */
-	{
+	//======================================================================================================================
 #if 0 /* Initial testing */
+	//======================================================================================================================
 	if(req->rxLen)
 	{
 #if 1 /* Copy to spare buffer */
@@ -378,7 +379,29 @@ void UART0_Read_Callback(mxc_uart_req_t *req, int error)
 		debug("Cell/LTE data receive: <%s> (%d chars)\r\n", (char*)g_Uart0_RxBuffer, req->rxLen);
 #endif
 
-#else /* Redirect to craft buffer */
+	//======================================================================================================================
+#elif 0 /* Redirect to USB ACM serial */
+	//======================================================================================================================
+	// Test - USB CDC/ACM serial tunneling to Cell/LTE module
+	if (acm_present())
+	{
+		if (acm_write(req->rxData, req->rxLen) != req->rxLen)
+		{
+			debugErr("USB CDC/ACM serial transfer failed trying to send <%.*s>\r\n", req->rxLen, req->rxData);
+		}
+		else
+		{
+			//debug("Redirecting to USB CDC/ACM serial <%.*s>\r\n", req->rxLen, req->rxData);
+		}
+	}
+	else
+	{
+		//debugWarn("USB CDC/ACM serial is not available for redirection\r\n");
+	}
+
+	//======================================================================================================================
+#else /* Normal, redirect to craft buffer */
+	//======================================================================================================================
 	uint16_t rxIndex = 0;
 	while (rxIndex != req->rxLen)
 	{
@@ -401,14 +424,12 @@ void UART0_Read_Callback(mxc_uart_req_t *req, int error)
 #endif
 
 #if 0 /* Clearing of flags should be handled by the driver */
-		// Clear flags
-		MXC_UART0->int_fl = 0x0000003F;
+	// Clear flags
+	MXC_UART0->int_fl = 0x0000003F;
 #else /* Async handler only seems to run once and shuts down, so need to re-register */
 extern mxc_uart_req_t uart0ReadRequest;
-		uint8_t status = MXC_UART_TransactionAsync(&uart0ReadRequest);
-		if (status != E_SUCCESS) { debugErr("Uart0 Read setup (async) failed with code: %d\r\n", status); }
-#endif
-	}
+	uint8_t status = MXC_UART_TransactionAsync(&uart0ReadRequest);
+	if (status != E_SUCCESS) { debugErr("Uart0 Read setup (async) failed with code: %d\r\n", status); }
 #endif
 }
 
@@ -493,8 +514,26 @@ void UART0_Handler(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint32_t uart1CtsCount = 0;
 void UART1_Handler(void)
 {
+#if 0 /* Test */
+    unsigned int flags;
+    flags = MXC_UART_GetFlags(MXC_UART1);
+	if (flags & MXC_S_UART_INT_FL_CTS_CHANGE_ACTIVE)
+	{
+		//debugWarn("\r\nCell/LTE flow control engaged\r\n\r\n");
+		MXC_UART_ClearFlags(MXC_UART1, MXC_F_UART_INT_FL_CTS_CHANGE);
+		uart1CtsCount++;
+
+		// Async handler only seems to run once and shuts down, so need to re-register
+extern mxc_uart_req_t uart1ReadRequest;
+		uint8_t status = MXC_UART_TransactionAsync(&uart1ReadRequest);
+		if (status != E_SUCCESS) { debugErr("Uart1 Read setup (async) failed with code: %d\r\n", status); }
+	}
+	else
+#endif
+
 	MXC_UART_AsyncHandler(MXC_UART1);
 }
 
@@ -2487,83 +2526,37 @@ static inline void applyOffsetAndCacheSampleData_ISR_Inline(void)
 ///----------------------------------------------------------------------------
 static inline void getChannelDataWithReadbackWithTemp_ISR_Inline(void)
 {
-	uint8_t chanDataRaw[3];
-#if 1 /* Test */
+	uint8_t chanDataRaw[AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS];
 	uint8_t overVoltageAlert = NO;
 	uint8_t ovAlertChannels = 0;
-#endif
 
-	// Todo: need variable channel config for selectable dynamic channels
 	// Todo: verify channel inputs on which channel data lines
 
 	// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
-
-#if 0 /* Original */
-	// Chan 0 - R
-	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-	s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-	if ((chanDataRaw[2] & 0x0F) != 0) { s_channelSyncError = YES; }
-
-	// Chan 1 - T
-	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-	s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-	if ((chanDataRaw[2] & 0x0F) != 1) { s_channelSyncError = YES; }
-
-	// Chan 2 - V
-	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-	if ((chanDataRaw[2] & 0x0F) != 2) { s_channelSyncError = YES; }
-
-	// Chan 3 - A
-	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-	s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-	if ((chanDataRaw[2] & 0x0F) != 3) { s_channelSyncError = YES; }
-#elif 0 /* Try active channels */
+	// Dynamic channels with Over voltage Alert
 extern uint8_t chanActive[8];
-	if (chanActive[0]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 0) { s_channelSyncError = YES; } }
-	if (chanActive[1]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 1) { s_channelSyncError = YES; } }
-	if (chanActive[2]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 2) { s_channelSyncError = YES; } }
-	if (chanActive[3]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 3) { s_channelSyncError = YES; } }
-
-	if (chanActive[4]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 4) { s_channelSyncError = YES; } }
-	if (chanActive[5]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 5) { s_channelSyncError = YES; } }
-	if (chanActive[6]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 6) { s_channelSyncError = YES; } }
-	if (chanActive[7]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
-		s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 7) { s_channelSyncError = YES; } }
-#else /* Try active channels and monitor Over voltage Alert */
-extern uint8_t chanActive[8];
-	if (chanActive[0]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[0]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
 		s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 0) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
-	if (chanActive[1]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[1]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
 		s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 1) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
-	if (chanActive[2]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[2]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
 		s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 2) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
-	if (chanActive[3]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[3]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
 		s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 3) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
 
-	if (chanActive[4]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[4]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
 		s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 4) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
-	if (chanActive[5]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[5]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
 		s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 5) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
-	if (chanActive[6]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[6]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
 		s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 6) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
-	if (chanActive[7]) { SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING); SetAdcConversionState(OFF);
+	if (chanActive[7]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
 		s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 7) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
 
 	if (overVoltageAlert) { debugErr("AD Over Voltage Alert: Channel bit mask 0x%x\r\n", ovAlertChannels); }
-#endif
 
 	// Temperature
-	SetAdcConversionState(ON);
-	SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS, BLOCKING);
-	SetAdcConversionState(OFF);
+	AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
 	g_currentTempReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 	if ((chanDataRaw[2] & 0x0F) != 15) { s_channelSyncError = YES; } // An INx value of 15 corresponds to either IN15 or the temperature sensor
 }
@@ -2573,30 +2566,23 @@ extern uint8_t chanActive[8];
 ///----------------------------------------------------------------------------
 static inline void getChannelDataNoReadbackWithTemp_ISR_Inline(void)
 {
-	uint8_t chanDataRaw[2];
-
-	// Todo: need variable channel config for selectable dynamic channels
+	uint8_t chanDataRaw[AD4695_CHANNEL_DATA_READ_SIZE];
 
 	// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
+	// Dynamic channels
+extern uint8_t chanActive[8];
+	if (chanActive[0]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[1]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[2]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[3]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
 
-	// Chan 0 - R?
-	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
-	s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-
-	// Chan 1 - T?
-	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
-	s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-
-	// Chan 2 - V?
-	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
-	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-
-	// Chan 3 - A
-	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
-	s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+	if (chanActive[4]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[5]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[6]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[7]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
 
 	// Temp
-	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
+	AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE);
 	g_currentTempReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 }
 
@@ -2605,27 +2591,20 @@ static inline void getChannelDataNoReadbackWithTemp_ISR_Inline(void)
 ///----------------------------------------------------------------------------
 static inline void getChannelDataNoReadbackNoTemp_ISR_Inline(void)
 {
-	uint8_t chanDataRaw[2];
-
-	// Todo: need variable channel config for selectable dynamic channels
+	uint8_t chanDataRaw[AD4695_CHANNEL_DATA_READ_SIZE];
 
 	// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
+	// Dynamic channels
+extern uint8_t chanActive[8];
+	if (chanActive[0]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[1]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[2]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[3]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
 
-	// Chan 0 - R?
-	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
-	s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-
-	// Chan 1 - T?
-	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
-	s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-
-	// Chan 2 - V?
-	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
-	s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
-
-	// Chan 3 - A
-	SetAdcConversionState(ON); SpiTransaction(SPI_ADC, SPI_8_BIT_DATA_SIZE, YES, NULL, 0, chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE, BLOCKING); SetAdcConversionState(OFF);
-	s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+	if (chanActive[4]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[5]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[6]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[7]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
 }
 
 ///----------------------------------------------------------------------------
