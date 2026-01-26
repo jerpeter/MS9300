@@ -41,6 +41,8 @@
 #define CAL_SETUP_WND_END_ROW (DEFAULT_MENU_ROW_SEVEN)
 #define CAL_SETUP_MN_TBL_START_LINE 0
 
+#define ACC_SCALE_IN_G	16.000
+
 enum {
 	CAL_MENU_DEFAULT_NON_CALIBRATED_DISPLAY,
 	CAL_MENU_CALIBRATED_DISPLAY,
@@ -145,9 +147,9 @@ extern uint32_t testLifetimeCurrentAvgCount;
 						tCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3]);
 						vCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2]);
 						aCalc = (float)5.120 / (float)32768 * (float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]);
-						xCalc = (float)8.000 / (float)32768 * (float)(abs(g_sensorCalChanMin[4]) > g_sensorCalChanMax[4] ? abs(g_sensorCalChanMin[4]) : g_sensorCalChanMax[4]);
-						yCalc = (float)8.000 / (float)32768 * (float)(abs(g_sensorCalChanMin[5]) > g_sensorCalChanMax[5] ? abs(g_sensorCalChanMin[5]) : g_sensorCalChanMax[5]);
-						zCalc = (float)8.000 / (float)32768 * (float)(abs(g_sensorCalChanMin[6]) > g_sensorCalChanMax[6] ? abs(g_sensorCalChanMin[6]) : g_sensorCalChanMax[6]);
+						xCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[4]) > g_sensorCalChanMax[4] ? abs(g_sensorCalChanMin[4]) : g_sensorCalChanMax[4]);
+						yCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[5]) > g_sensorCalChanMax[5] ? abs(g_sensorCalChanMin[5]) : g_sensorCalChanMax[5]);
+						zCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[6]) > g_sensorCalChanMax[6] ? abs(g_sensorCalChanMin[6]) : g_sensorCalChanMax[6]);
 						debug("CS A/D: R %2.3f T %2.3f V %2.3f (IPS), A %1.3f (mB), X %1.4f Y %1.4f Z %1.4f (G)\r\n", (double)(rCalc), (double)(tCalc), (double)(vCalc), (double)(aCalc), (double)(xCalc), (double)(yCalc), (double)(zCalc));
 					}
 #endif
@@ -907,8 +909,13 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 		if (aCutoffState == ANALOG_CUTOFF_FREQ_4K) { strcpy(filterText, "4K"); }
 		if (aCutoffState == ANALOG_CUTOFF_FREQ_8K) { strcpy(filterText, "8K"); }
 
+#if 0 /* Original, Geo + AOP on one sensor group */
 		if (g_currentSensorGroup == SENSOR_GROUP_A_1) { if (pathState == ACOUSTIC_PATH_AOP) { strcpy(weightText, "AOP"); } else { strcpy(weightText, "C-W"); } }
 		if (g_currentSensorGroup == SENSOR_GROUP_B_2) { if (pathState == ACOUSTIC_PATH_AOP) { strcpy(weightText, "AOP"); } else { strcpy(weightText, "A-W"); } }
+#else /* Standard config, Geo + Aop on separate sensors */
+		if (g_currentSensorGroup == SENSOR_GROUP_A_1) { if (pathState == ACOUSTIC_PATH_AOP) { strcpy(weightText, "AOP"); } else { strcpy(weightText, "A-W"); } }
+		if (g_currentSensorGroup == SENSOR_GROUP_B_2) { if (pathState == ACOUSTIC_PATH_AOP) { strcpy(weightText, "AOP"); } else { strcpy(weightText, "C-W"); } }
+#endif
 #endif
 
 		if (s_calDisplayScreen == CAL_MENU_DEFAULT_NON_CALIBRATED_DISPLAY)
@@ -1126,9 +1133,9 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			tCalc = (float)((float)((abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3])) / (float)div);
 			vCalc = (float)((float)((abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2])) / (float)div);
 			aCalc = (float)HexToMB((float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType);
-			xCalc = (float)8.000 / (float)32768 * (float)(abs(g_sensorCalChanMin[4]) > g_sensorCalChanMax[4] ? abs(g_sensorCalChanMin[4]) : g_sensorCalChanMax[4]);
-			yCalc = (float)8.000 / (float)32768 * (float)(abs(g_sensorCalChanMin[5]) > g_sensorCalChanMax[5] ? abs(g_sensorCalChanMin[5]) : g_sensorCalChanMax[5]);
-			zCalc = (float)8.000 / (float)32768 * (float)(abs(g_sensorCalChanMin[6]) > g_sensorCalChanMax[6] ? abs(g_sensorCalChanMin[6]) : g_sensorCalChanMax[6]);
+			xCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[4]) > g_sensorCalChanMax[4] ? abs(g_sensorCalChanMin[4]) : g_sensorCalChanMax[4]);
+			yCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[5]) > g_sensorCalChanMax[5] ? abs(g_sensorCalChanMin[5]) : g_sensorCalChanMax[5]);
+			zCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[6]) > g_sensorCalChanMax[6] ? abs(g_sensorCalChanMin[6]) : g_sensorCalChanMax[6]);
 			sprintf((char*)buff, "(R) %+5ld  %+5ld   (R) %2.3f IPS   (X) %1.4f G", g_sensorCalChanMin[1], g_sensorCalChanMax[1], (double)rCalc, (double)xCalc);
 /* 			sprintf((char*)buff, "R|%+1.4f|%+1.4f|%+5ld| X|%+1.4f|%+1.4f|%+5ld|",
 					(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMin[1]),
