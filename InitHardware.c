@@ -530,6 +530,18 @@ void SetupPowerOnDetectGPIO(void)
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start disabled
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+	//----------------------------------------------------------------------------------------------------------------------
+	// LED 2: Port 3, Pin 8, Output, No external pull, Active low, 3.3V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_LED_2_PORT;
+	setupGPIO.mask = GPIO_LED_2_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_WEAK_PULL_UP;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as off
+#else /* Old boards */
 	//----------------------------------------------------------------------------------------------------------------------
 	// LED 2: Port 1, Pin 26, Output, No external pull, Active low, 3.3V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -540,6 +552,7 @@ void SetupPowerOnDetectGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as off
+#endif
 
 #if 1 /* Addition of Ext RTC IntA as a flag to determine if power up was caused due to MCU reset from either unit restart or Bootloader */
 	//----------------------------------------------------------------------------------------------------------------------
@@ -572,7 +585,7 @@ void SetupAllGPIO(void)
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start enabled
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	//----------------------------------------------------------------------------------------------------------------------
 	// External Battery Presence Slot 1: Port 0, Pin 2, Input, No external pullup, Active high, 1.8V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -600,7 +613,7 @@ void SetupAllGPIO(void)
 	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 #endif
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	//----------------------------------------------------------------------------------------------------------------------
 	// External Battery Presence Slot 2: Port 0, Pin 3, Input, No external pullup, Active high, 1.8V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -663,7 +676,7 @@ void SetupAllGPIO(void)
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start disabled (only needed for alarms)
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	//----------------------------------------------------------------------------------------------------------------------
 	// Sensor Detect 1: Port 0, Pin 7, Input, No external pullup, Active high, 1.8, Interrupt
 	//----------------------------------------------------------------------------------------------------------------------
@@ -705,6 +718,18 @@ void SetupAllGPIO(void)
 #else /* Wait until Expansion I2C Bridge is powered to enable */
 #endif
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+	//----------------------------------------------------------------------------------------------------------------------
+	// USB Reset: Port 0, Pin 9, Output, External pulldown, Active low, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_USB_RESET_PORT;
+	setupGPIO.mask = GPIO_USB_RESET_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start in reset
+#else /* Old boards */
 	//----------------------------------------------------------------------------------------------------------------------
 	// USB Source Enable: Port 0, Pin 9, Output, External pulldown, Active high, 1.8V (minimum 1.2V)
 	//----------------------------------------------------------------------------------------------------------------------
@@ -715,6 +740,7 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start disabled
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// USB Aux Power Enable: Port 0, Pin 10, Output, External pulldown, Active high, 1.8V (minimum 0.6V)
@@ -727,6 +753,18 @@ void SetupAllGPIO(void)
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start disabled
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+	//----------------------------------------------------------------------------------------------------------------------
+	// LCD Power Enable: Port 0, Pin 11, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_LCD_POWER_ENABLE_PORT;
+	setupGPIO.mask = GPIO_LCD_POWER_ENABLE_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#else /* Old boards */
 	//----------------------------------------------------------------------------------------------------------------------
 	// Power Good 5v: Port 0, Pin 11, Input, External pullup, 1.8V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -736,6 +774,7 @@ void SetupAllGPIO(void)
 	setupGPIO.pad = MXC_GPIO_PAD_NONE;
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// Power Good Battery Charge: Port 0, Pin 12, Input, External pullup, 1.8V
@@ -916,7 +955,7 @@ void SetupAllGPIO(void)
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start by removing from reset
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	//----------------------------------------------------------------------------------------------------------------------
 	// Sensor Detect 2: Port 1, Pin 2, Input, No external pullup, Active high, 1.8, Interrupt
 	//----------------------------------------------------------------------------------------------------------------------
@@ -990,7 +1029,7 @@ void SetupAllGPIO(void)
 	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_RISING);
 	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	//----------------------------------------------------------------------------------------------------------------------
 	// Sensor Detect 3: Port 1, Pin 13, Input, No external pullup, Active high, 1.8, Interrupt
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1159,7 +1198,22 @@ void SetupAllGPIO(void)
 	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH); //MXC_GPIO_INT_FALLING);
 	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+	//----------------------------------------------------------------------------------------------------------------------
+	// Gain Select Geo2: Port 1, Pin 25, Output, External pulldown, Select, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_GAIN_SELECT_GEO2_PORT;
+	setupGPIO.mask = GPIO_GAIN_SELECT_GEO2_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
+	MXC_GPIO_Config(&setupGPIO);
+#if 1 /* Original */
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as high (Normal gain)
+#else /* Start as low to prevent possibly back powering the 5V analog section */
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low (High gain) to prevent back powering
+#endif
+#elif /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	//----------------------------------------------------------------------------------------------------------------------
 	// LED 1: Port 1, Pin 25, Output, No external pull, Active high, 3.3V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1184,7 +1238,22 @@ void SetupAllGPIO(void)
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
 #endif
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+	//----------------------------------------------------------------------------------------------------------------------
+	// Path Select Aop2: Port 1, Pin 26, Output, External pulldown, Select, 1.8V (minimum 0.5V)
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_PATH_SELECT_AOP2_PORT;
+	setupGPIO.mask = GPIO_PATH_SELECT_AOP2_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH; // Schematic suggests 3.3V
+	MXC_GPIO_Config(&setupGPIO);
+#if 1 /* Original */
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as high (AOP path)
+#else /* Start as low to prevent possibly back powering the 5V analog section */
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low (A-weighting path) to prevent back powering
+#endif
+#elif /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	//----------------------------------------------------------------------------------------------------------------------
 	// LED 2: Port 1, Pin 26, Output, No external pull, Active high, 3.3V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1209,7 +1278,7 @@ void SetupAllGPIO(void)
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as off
 #endif
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	//----------------------------------------------------------------------------------------------------------------------
 	// Sensor Detect 4: Port 1, Pin 27, Input, No external pullup, Active high, 1.8, Interrupt
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1256,7 +1325,22 @@ extern void External_rtc_periodic_timer(void);
 	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 #endif
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+	//----------------------------------------------------------------------------------------------------------------------
+	// USB Int: Port 1, Pin 29, Input, No external pull, Active low, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_USB_INT_PORT;
+	setupGPIO.mask = GPIO_USB_INT_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+#if 0 /* Fill in at some point */
+	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Expansion_irq, NULL);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#endif
+#elif /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	//----------------------------------------------------------------------------------------------------------------------
 	// RTC Timestamp: Port 1, Pin 29, Output, No external pull, Active high, 1.8V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1304,6 +1388,19 @@ extern void External_rtc_periodic_timer(void);
 	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_RISING);
 	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+	//----------------------------------------------------------------------------------------------------------------------
+	// SPI2 Slave Select 2 USB: Port 2, Pin 0, Output, External pullup, Active low, 1.8V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_SPI2_SS2_USB_PORT;
+	setupGPIO.mask = GPIO_SPI2_SS2_USB_PIN;
+	//setupGPIO.func = MXC_GPIO_FUNC_ALT1; // SPI2 Master would control, does setup for USB need manual control?
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as inactive
+#else /* Old boards */
 	//----------------------------------------------------------------------------------------------------------------------
 	// LCD Power Enable: Port 2, Pin 0, Output, External pulldown, Active high, 1.8V (minimum 0.5V)
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1314,8 +1411,9 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#endif
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	//----------------------------------------------------------------------------------------------------------------------
 	// SPI2 Slave Select 1 Accelerometer: Port 2, Pin 1, Output, External pullup, Active low, 1.8V (minimum 1.7V)
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1428,7 +1526,7 @@ extern void External_rtc_periodic_timer(void);
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	//----------------------------------------------------------------------------------------------------------------------
 	// LCD Power Down: Port 2, Pin 12, Output, External pulldown, Active low, 1.8V (minimum 1.7V)
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1441,6 +1539,21 @@ extern void External_rtc_periodic_timer(void);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 #endif
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+	//----------------------------------------------------------------------------------------------------------------------
+	// LTE Uart1 RTS: Port 2, Pin 13, Output, No external pull, Active high, 3.3V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_LTE_UART1_RTS_PORT;
+	setupGPIO.mask = GPIO_LTE_UART1_RTS_PIN;
+#if 0 /* Using hardware flow control */
+	setupGPIO.func = MXC_GPIO_FUNC_ALT1; // Can't assign to alt function until Cell LTE SLM firmware changed to use flow control
+#else /* No flow control */
+	setupGPIO.func = MXC_GPIO_FUNC_OUT; // Temp set as an output
+#endif
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
+	MXC_GPIO_Config(&setupGPIO);
+#else /* Old boards */
 	//----------------------------------------------------------------------------------------------------------------------
 	// LTE Reset: Port 2, Pin 13, Output, External pull up, Active low, 3.3V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1455,8 +1568,24 @@ extern void External_rtc_periodic_timer(void);
 #else /* Test starting as enabled so not back powering the Cell section */
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 #endif
+#endif
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+	//----------------------------------------------------------------------------------------------------------------------
+	// LTE Reset: Port 2, Pin 14, Output, External pull up, Active low, 3.3V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_LTE_RESET_PORT;
+	setupGPIO.mask = GPIO_LTE_RESET_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
+	MXC_GPIO_Config(&setupGPIO);
+#if 0 /* Orignal */
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#else /* Test starting as enabled so not back powering the Cell section */
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#endif
+#elif /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	//----------------------------------------------------------------------------------------------------------------------
 	// Unused GPIO 1: Port 2, 14, Output, No external pull up, 1.8V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1469,7 +1598,21 @@ extern void External_rtc_periodic_timer(void);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 #endif
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+	//----------------------------------------------------------------------------------------------------------------------
+	// LTE Uart1 CTS: Port 2, Pin 15, Output, No external pull, Active high, 3.3V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_LTE_UART1_CTS_PORT;
+	setupGPIO.mask = GPIO_LTE_UART1_CTS_PIN;
+#if 0 /* Using hardware flow control */
+	setupGPIO.func = MXC_GPIO_FUNC_ALT1; // Can't assign to alt function until Cell LTE SLM firmware changed to use flow control
+#else /* No flow control */
+	setupGPIO.func = MXC_GPIO_FUNC_OUT; // Temp set as an output
+#endif
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
+	MXC_GPIO_Config(&setupGPIO);
+#elif /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 	//----------------------------------------------------------------------------------------------------------------------
 	// Unused GPIO 2: Port 2, 15, Output, No external pull up, 1.8V
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1645,8 +1788,20 @@ extern void External_rtc_periodic_timer(void);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low (A-weighting path) to prevent back powering
 #endif
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
 	//----------------------------------------------------------------------------------------------------------------------
-	// Gain Select Geo2: Port 3, Pin 7,Output, External pulldown, Select, 1.8V (minimum 0.5V)
+	// LED 1: Port 3, Pin 7, Output, No external pull, Active high, 3.3V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_LED_1_PORT;
+	setupGPIO.mask = GPIO_LED_1_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	//setupGPIO.pad = MXC_GPIO_PAD_WEAK_PULL_UP;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as off (Beta/re-spin reversed)
+#else /* Old boards */
+	//----------------------------------------------------------------------------------------------------------------------
+	// Gain Select Geo2: Port 3, Pin 7, Output, External pulldown, Select, 1.8V (minimum 0.5V)
 	//----------------------------------------------------------------------------------------------------------------------
 	setupGPIO.port = GPIO_GAIN_SELECT_GEO2_PORT;
 	setupGPIO.mask = GPIO_GAIN_SELECT_GEO2_PIN;
@@ -1659,7 +1814,20 @@ extern void External_rtc_periodic_timer(void);
 #else /* Start as low to prevent possibly back powering the 5V analog section */
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low (High gain) to prevent back powering
 #endif
+#endif
 
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+	//----------------------------------------------------------------------------------------------------------------------
+	// LED 2: Port 3, Pin 8, Output, No external pull, Active high, 3.3V
+	//----------------------------------------------------------------------------------------------------------------------
+	setupGPIO.port = GPIO_LED_2_PORT;
+	setupGPIO.mask = GPIO_LED_2_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	//setupGPIO.pad = MXC_GPIO_PAD_WEAK_PULL_UP;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as on (Beta/re-spin reversed)
+#else /* Old boards */
 	//----------------------------------------------------------------------------------------------------------------------
 	// Path Select Aop2: Port 3, Pin 8, Output, External pulldown, Select, 1.8V (minimum 0.5V)
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1673,6 +1841,7 @@ extern void External_rtc_periodic_timer(void);
 	MXC_GPIO_OutSet(setupGPIO.port, setupGPIO.mask); // Start as high (AOP path)
 #else /* Start as low to prevent possibly back powering the 5V analog section */
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as low (A-weighting path) to prevent back powering
+#endif
 #endif
 
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1774,6 +1943,10 @@ void SetupCellModuleTxUART(void)
 	if (status != E_SUCCESS) { debugErr("UART1 Set Stop Bits failed with code: %d\r\n", status); }
 #endif
 
+#if 1 /* Hardware flow control enable */
+	MXC_UART_SetFlowCtrl(MXC_UART1, MXC_UART_FLOW_EN_LOW, 16);
+#endif
+
 	// Move to Interrupt init
 	NVIC_ClearPendingIRQ(UART1_IRQn);
 	NVIC_DisableIRQ(UART1_IRQn);
@@ -1789,6 +1962,11 @@ void SetupCellModuleTxUART(void)
 
 	status = MXC_UART_TransactionAsync(&uart1ReadRequest);
 	if (status != E_SUCCESS) { debugErr("Uart1 Read setup (async) failed with code: %d\r\n", status); }
+
+#if 0 /* Test */
+	// Enable CTS interrupt to see if it is triggering
+	MXC_UART_EnableInt(MXC_UART1, MXC_S_UART_INT_EN_CTS_EN);
+#endif
 
 #if 0 /* Test to check interrupt flags set */
 	debug("Uart1: Interrupt enables are 0x%0x, Int flags are 0x%0x, Status is 0x%0x\r\n", MXC_UART1->int_en, MXC_UART1->int_fl, MXC_UART1->stat);
@@ -2064,9 +2242,14 @@ void SetupWatchdog(void)
 #endif
 //#define SPI_SPEED_LCD 12000000 // Bit Rate, LCD can go up but Accelerometer won't work at 16 MHz and above
 // Works at 10 MHz
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+//#define SPI_SPEED_LCD 30000000 // Bit Rate, Testing ability to run max rate with new Acc
+#define SPI_SPEED_LCD 10000000 // Bit Rate, Testing out USB Host Controller with a max SPI speed of 26MHz
+#else /* Older boards */
 #define SPI_SPEED_LCD 10000000 // Bit Rate, Trying LCD at less than 11 MHz per odd note in programmers guide, LCD can go up but Accelerometer won't work at 16 MHz and above
 // Mostly works at 14 MHz but Acc sometimes doesn't init right away and a couple LCD glitches (needs SPI2 mods to really verify)
 //#define SPI_SPEED_LCD 14000000 // Trying alternatives, at 15MHz the ACC occsaionally hangs
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -2125,12 +2308,12 @@ void SpiTransaction(uint8_t spiDevice, uint8_t dataBits, uint8_t ssDeassert, uin
 	void (*irqHandler)(void);
 
 	if (spiDevice == SPI_ADC) { spiRequest.spi = MXC_SPI3; }
-	else /* LCD or Acc */ { spiRequest.spi = MXC_SPI2; }
+	else /* LCD, Acc or UsbHC */ { spiRequest.spi = MXC_SPI2; }
 	spiRequest.txData = writeData;
 	spiRequest.txLen = writeSize;
 	spiRequest.rxData = readData;
 	spiRequest.rxLen = readSize;
-	if (spiDevice == SPI_ACC) { spiRequest.ssIdx = 1; } else { spiRequest.ssIdx = 0; } // Both ADC and LCD Slave Selects are 0
+	if (spiDevice == SPI_USBHC) { spiRequest.ssIdx = 2; } else if (spiDevice == SPI_ACC) { spiRequest.ssIdx = 1; } else { spiRequest.ssIdx = 0; } // Both ADC and LCD Slave Selects are 0
 	spiRequest.ssDeassert = ssDeassert;
 	spiRequest.txCnt = 0;
 	spiRequest.rxCnt = 0;
@@ -2942,15 +3125,54 @@ void USB_IRQHandler(void)
 		}
 	}
 #else /* Redirect to the Cell/LTE module */
+	// Test - USB CDC/ACM serial tunneling to Cell/LTE module
 	// Grab data from the USB CDC/ACM port and check if status is any error
 	UNUSED(recieveData);
 	memset(g_debugBuffer, 0, sizeof(g_debugBuffer));
 	if (acm_read(g_debugBuffer, numChars) != numChars) { debugErr("USB CDC/ACM: Read failure\r\n"); }
 	else // Successful read
 	{
-		debug("Passing along serial data: <%s>\r\n", (char*)g_debugBuffer);
-		int len = numChars;
-		uint8_t status = MXC_UART_Write(MXC_UART1, g_debugBuffer, &len); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+		if (GetPowerControlState(CELL_ENABLE) == ON)
+		{
+			if (numChars == 0)
+			{
+				debugWarn("USB CDC/ACM: No serial data found\r\n");
+				return 0;
+			}
+
+			//if ((numChars == 1) && (g_debugBuffer[0] < '0')) { debug("USB CDC/ACM: Redirecting serial data: <0x%x>\r\n", g_debugBuffer[0]); }
+			//else { debug("USB CDC/ACM: Redirecting serial data: <%s> (%d chars)\r\n", (char*)g_debugBuffer, numChars); }
+
+			int i = 0, tempLen = 1, len = numChars;
+			uint8_t status;
+
+			while (i < len)
+			{
+				if ((g_debugBuffer[i] == '\r') || (g_debugBuffer[i] == '\n'))
+				{
+					uint8_t crlf[3];
+					sprintf((char*)&crlf[0], "\r\n");
+
+					//debugRaw("<Injecting CRLF>");
+
+					tempLen = 2;
+					status = MXC_UART_Write(MXC_UART1, &crlf[0], &tempLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+					//debugRaw("<%x,%x>", crlf[0], crlf[1]);
+				}
+				else
+				{
+					tempLen = 1;
+					status = MXC_UART_Write(MXC_UART1, &g_debugBuffer[i], &tempLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+					//debugRaw("<%c>", g_debugBuffer[i]);
+				}
+
+				i++;
+			}
+		}
+		else
+		{
+			debugWarn("USB CDC/ACM: Cell modem powered off, can't redirect serial data\r\n");
+		}
 	}
 #endif
 
@@ -4044,11 +4266,14 @@ uint8_t IdentiifyI2C(uint8_t i2cNum, uint8_t readBytes, uint8_t regAddr)
 {
 	char deviceName[50];
 	uint8_t identified = NO;
+#if /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 extern uint8_t accelerometerI2CAddr;
+#endif
 
 	switch (regAddr)
 	{
 		case I2C_ADDR_ACCELEROMETER: sprintf(deviceName, "Accelerometer"); identified = YES; break;
+#if /* Old board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN)
 		case I2C_ADDR_ACCELEROMETER_ALT_1: sprintf(deviceName, "Accelerometer Alt 1"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_1; break;
 		case I2C_ADDR_ACCELEROMETER_ALT_2: sprintf(deviceName, "Accelerometer Alt 2"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_2; break;
 		case I2C_ADDR_ACCELEROMETER_ALT_3: sprintf(deviceName, "Accelerometer Alt 3"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_3; break;
@@ -4056,6 +4281,7 @@ extern uint8_t accelerometerI2CAddr;
 		case I2C_ADDR_ACCELEROMETER_ALT_5: sprintf(deviceName, "Accelerometer Alt 5"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_5; break;
 		case I2C_ADDR_ACCELEROMETER_ALT_6: sprintf(deviceName, "Accelerometer Alt 6"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_6; break;
 		case I2C_ADDR_ACCELEROMETER_ALT_7: sprintf(deviceName, "Accelerometer Alt 7"); identified = YES; accelerometerI2CAddr = I2C_ADDR_ACCELEROMETER_ALT_7; break;
+#endif
 		case I2C_ADDR_1_WIRE: sprintf(deviceName, "1-Wire"); identified = YES; break;
 		case I2C_ADDR_EEPROM: sprintf(deviceName, "EEPROM"); identified = YES; break;
 		case I2C_ADDR_EEPROM_ID: sprintf(deviceName, "EEPROM ID"); identified = YES; break;
@@ -4438,10 +4664,17 @@ void ValidatePowerOn(void)
 	// Check if the Ext RTC IntA is active which is a signal left for ourselves to detect MCU reset issued for unit restart or Bootloader finish
 	if (MXC_GPIO_InGet(GPIO_EXT_RTC_INTA_PORT, GPIO_EXT_RTC_INTA_PIN) == 0)
 	{
-		debugRaw("\r\n-----------------------\r\nIntentional MCU Reset detected\r\n");
+		// Small delay in case normal mode periodic pulse interrupt randomly hits at the same time
+		SoftUsecWait(50 * SOFT_MSECS);
 
-		// Unit startup condition verified, latch power and continue
-		PowerControl(MCU_POWER_LATCH, ON);
+		// Re-check if the Ext RTC IntA is active
+		if (MXC_GPIO_InGet(GPIO_EXT_RTC_INTA_PORT, GPIO_EXT_RTC_INTA_PIN) == 0)
+		{
+			debugRaw("\r\n-----------------------\r\nIntentional MCU Reset detected\r\n");
+
+			// Unit startup condition verified, latch power and continue
+			PowerControl(MCU_POWER_LATCH, ON);
+		}
 	}
 	// Check if Power on button is the startup source
 	else if (powerOnButtonDetect)
@@ -5565,7 +5798,7 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initalize the Expansion I2C UART Bridge
 	//-------------------------------------------------------------------------
-#if 0 /* Normal */
+#if 1 /* Normal */
 	ExpansionBridgeInit(); debug("Expansion I2C Uart Bridge: Init complete\r\n");
 #else /* New modded Alpha board I2C doesn't work if epxansion powered */
 #endif
@@ -5575,6 +5808,14 @@ void InitSystemHardware_MS9300(void)
 	// Test EERPOM (No specific init needed, only I2C comms)
 	//-------------------------------------------------------------------------
 	TestEEPROM();
+#endif
+
+	//-------------------------------------------------------------------------
+	// Initialize the USB Host Controller
+	//-------------------------------------------------------------------------
+#if 1 /* Test */
+extern void USBHostControllerInit(void);
+	USBHostControllerInit();
 #endif
 
 	//-------------------------------------------------------------------------
@@ -5622,7 +5863,14 @@ void InitSystemHardware_MS9300(void)
 	//MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_SEC(1));
 	//PowerControl(CELL_ENABLE, OFF);
 #endif
-#else /* Skip for now */
+#elif 0 /* Test - USB CDC/ACM serial tunneling to Cell/LTE module */
+		debug("Cell/LTE: Powering section...\r\n");
+		PowerControl(CELL_ENABLE, ON);
+		SoftUsecWait(1 * SOFT_SECS); // Small charge up delay
+		debug("Cell/LTE: Disabling LTE reset...\r\n");
+		PowerControl(LTE_RESET, OFF);
+
+		debugWarn("Cell/LTE: turning on for serial tunneling to USB CDC/ACM serial\r\n");
 #endif
 
 	//-------------------------------------------------------------------------
