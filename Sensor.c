@@ -840,8 +840,8 @@ void SmartSensorDisableMuxAndDriver(void)
 ///----------------------------------------------------------------------------
 void SmartSensorReadRomAndMemory(SMART_SENSOR_TYPE sensor)
 {
-	SMART_SENSOR_ROM* smartSensorRom = ((sensor == SEISMIC_SENSOR) ? &g_seismicSmartSensorRom : &g_acousticSmartSensorRom);
-	SMART_SENSOR_STRUCT* smartSensorData = ((sensor == SEISMIC_SENSOR) ? &g_seismicSmartSensorMemory : &g_acousticSmartSensorMemory);
+	SMART_SENSOR_ROM* smartSensorRom;
+	SMART_SENSOR_STRUCT* smartSensorData;
 	uint8 status = FAILED;
 	uint8_t powerDownAnalogWhenFinished = NO;
 	char sensorName[20];
@@ -1101,6 +1101,30 @@ void DisplaySmartSensorSerialNumber(SMART_SENSOR_TYPE sensor)
 		sprintf(serialNumber, "%d%d%d%d%d%d", serialNumBuffer[0], serialNumBuffer[1], serialNumBuffer[2], serialNumBuffer[3], serialNumBuffer[4], serialNumBuffer[5]);
 		sprintf((char*)g_spareBuffer, "%s SN#: %s, %s: %s", getLangText(ACOUSTIC_TEXT), serialNumber, getLangText(TYPE_TEXT), airSensorTypeName);
 		MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK);
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8 CheckIfSmartSensorPresent(SMART_SENSOR_TYPE sensor)
+{
+	SMART_SENSOR_STRUCT* sensorMemory = NULL;
+
+	if (sensor == SEISMIC_SENSOR) { sensorMemory = &g_seismicSmartSensorMemory; }
+	else if (sensor == SEISMIC_SENSOR_2) { sensorMemory = &g_seismic2SmartSensorMemory; }
+	else if (sensor == ACOUSTIC_SENSOR) { sensorMemory = &g_acousticSmartSensorMemory; }
+	else /* (sensor == ACOUSTIC_SENSOR_2) */ { sensorMemory = &g_acoustic2SmartSensorMemory; }
+
+	if (sensorMemory == NULL) { return NO; }
+
+	if (sensorMemory->version & SMART_SENSOR_OVERLAY_KEY)
+	{
+		return YES; // Sensor found
+	}
+	else
+	{
+		return NO; // Sensor not found
 	}
 }
 
