@@ -721,6 +721,7 @@ void TestUartBridgeScratchpad(void)
 
 	// Offset 07H: Scratch Pad Register (SPR). Accessible when LCR[7]=0 and MCR[2]=0. Default=FF
 
+#if 0 /* Only needed for the PI7C9X760 */
 	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_LCR);
 	debug("Expansion: LCR Register is 0x%x\r\n", reg);
 	// Check if LCR bit 7 is enabled
@@ -750,6 +751,7 @@ void TestUartBridgeScratchpad(void)
 		if (reg & 0x04) { debugErr("Expansion: MCR bit disable failed\r\n"); }
 	}
 	else { debug("Expansion: MCR bit disabled\r\n"); }
+#endif
 
 #if 0 /* Default unknown with SC16IS750 */
 	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_SPR);
@@ -985,10 +987,8 @@ uint8_t ExpansionBridgeReadLCR(void)
 void ExpansionBridgeChangeBaud(uint32_t baudSelect)
 {
 	uint8_t dll = 0;
-	uint8_t cprn = 0;
-	uint8_t scr = 0;
+	uint8_t dlh = 0;
 	uint32_t baud = 0;
-	uint8_t alt = 0;
 
 	PowerControl(EXPANSION_ENABLE, ON);
 	MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(500));
@@ -1003,25 +1003,11 @@ void ExpansionBridgeChangeBaud(uint32_t baudSelect)
 
 	switch (baudSelect)
 	{
-#if 1 /* Normal */
-		case BAUD_RATE_115200: dll = 13; cprn = 0; baud = 115200; break;
-		case BAUD_RATE_115200_A: dll = 11; cprn = 3; baud = 115200; alt = 1; break;
-		case BAUD_RATE_57600: dll = 26; cprn = 0; baud = 57600; break;
-		case BAUD_RATE_57600_A: dll = 22; cprn = 3; baud = 57600; alt = 1; break;
-		case BAUD_RATE_38400: dll = 39; cprn = 0; baud = 38400; break;
-		case BAUD_RATE_38400_A: dll = 25; cprn = 9; baud = 38400; alt = 1; break;
-		case BAUD_RATE_19200: dll = 50; cprn = 9; baud = 19200; break;
-		case BAUD_RATE_9600: dll = 100; cprn = 9; baud = 9600; break;
-#else
-		case BAUD_RATE_115200: dll = 13; cprn = 0; baud = 115200; break;
-		case BAUD_RATE_115200_A: dll = 12; cprn = 1; baud = 115200; alt = 1; break;
-		case BAUD_RATE_57600: dll = 12; cprn = 2; baud = 57600; break;
-		case BAUD_RATE_57600_A: dll = 10; cprn = 4; baud = 57600; alt = 1; break;
-		case BAUD_RATE_38400: dll = 9; cprn = 6; baud = 38400; break;
-		case BAUD_RATE_38400_A: dll = 7; cprn = 12; baud = 38400; alt = 1; break;
-		case BAUD_RATE_19200: dll = 7; cprn = 13; baud = 19200; break;
-		case BAUD_RATE_9600: dll = 7; cprn = 15; baud = 9600; break;
-#endif
+		case BAUD_RATE_115200: dll = 8; baud = 115200; break;
+		case BAUD_RATE_57600: dll = 16; baud = 57600; break;
+		case BAUD_RATE_38400: dll = 24; baud = 38400; break;
+		case BAUD_RATE_19200: dll = 48; baud = 19200; break;
+		case BAUD_RATE_9600: dll = 96; baud = 9600; break;
 	}
 
 	// Set Baud
@@ -1030,32 +1016,14 @@ void ExpansionBridgeChangeBaud(uint32_t baudSelect)
 
 	// MSB bits of divisor for baud rate generator, default = 0x00 which is desired
 	// LSB bits of divisor for baud rate generator, needs change from default
-	WriteUartBridgeControlRegister(PI7C9X760_REG_DLL, dll);
-
-	// SCR - Sample Clock value used in the Baud Rate Generator, default = 0 which is desired
-
-	// CPRN - N number in calculating the prescaler,which is used to generate Baud Rate, needs change from default
-	// Clock Prescale Register (CPR). Accessible when LCR=0xBF and SFR[2]=1
-	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, 0xBF);
-	//WriteUartBridgeControlRegister(PI7C9X760_REG_SFREN, 0x5A);
-	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x04);
-	WriteUartBridgeControlRegister(PI7C9X760_REG_CPR, (0x10 | cprn)); // Set CPR N (botton 4 bits)
-
-	WriteUartBridgeControlRegister(PI7C9X760_REG_TRCTL, ((scr << 4) | 0x06)); // Set SCR (top 4 bits)
-
-#if 1 /* Revert SFR and SFREN */
-	// Unwind special access
-	WriteUartBridgeControlRegister(PI7C9X760_REG_SFR, 0x00);
-	//WriteUartBridgeControlRegister(PI7C9X760_REG_SFREN, 0x00);
-#else /* Leave SFR and SFREN enabled */
-#endif
-	// LCR set just below
+	WriteUartBridgeControlRegister(PI7C9X760_REG_DLH, dlh); // MSB
+	WriteUartBridgeControlRegister(PI7C9X760_REG_DLL, dll); // LSB
 
 	// Set 8N1
 	// Make sure LCR[7]=0
 	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, LCR_DEFAULT);
 
-	debug("Expansion RS232: Set baud to %d %s\r\n", baud, ((alt == 1) ? "Alt" : ""));
+	debug("Expansion RS232: Set baud to %d\r\n", baud);
 }
 
 ///----------------------------------------------------------------------------
@@ -1063,13 +1031,28 @@ void ExpansionBridgeChangeBaud(uint32_t baudSelect)
 ///----------------------------------------------------------------------------
 void ExpansionBridgeSetupRS232(void)
 {
+	uint8_t reg;
+
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_LCR); debug("Expansion RS232: Line Control is 0x%x\r\n", reg);
 	// Set Baud 115200 (Divisor = 8, Sample rate = 26, % error in clock = 0.16)
 	// Set LCR[7]=1 to access the divisor latches/registers
+	debug("Expansion RS232: Writing Line Control as 0x%x\r\n", (0x80 | LCR_DEFAULT));
 	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, (0x80 | LCR_DEFAULT)); // Divisor latch enabled with Line Control default
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_LCR); debug("Expansion RS232: Line Control is 0x%x\r\n", reg);
 
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_DLL); debug("Expansion RS232: Divisor Latch Low is 0x%x\r\n", reg);
 	// MSB bits of divisor for baud rate generator, default = 0x00 which is desired
 	// LSB bits of divisor for baud rate generator, needs change from default
+	debug("Expansion RS232: Writing Divisor Latch Low as 0x%x\r\n", (0x08));
 	WriteUartBridgeControlRegister(PI7C9X760_REG_DLL, 0x08);
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_DLL); debug("Expansion RS232: Divisor Latch High is 0x%x\r\n", reg);
+
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_DLH); debug("Expansion RS232: Divisor Latch High is 0x%x\r\n", reg);
+	// MSB bits of divisor for baud rate generator, default = 0x00 which is desired
+	// LSB bits of divisor for baud rate generator, needs change from default
+	debug("Expansion RS232: Writing Divisor Latch High as 0x%x\r\n", (0x00));
+	WriteUartBridgeControlRegister(PI7C9X760_REG_DLH, 0x00);
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_DLH); debug("Expansion RS232: Divisor Latch High is 0x%x\r\n", reg);
 
 	// SCR - Sample Clock value used in the Baud Rate Generator, default = 0 which is desired
 
@@ -1090,12 +1073,22 @@ void ExpansionBridgeSetupRS232(void)
 	// LCR set just below
 #endif
 
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_LCR); debug("Expansion RS232: Line Control is 0x%x\r\n", reg);
+
 	// Set 8N1
 	// Make sure LCR[7]=0
+	debug("Expansion RS232: Writing Line Control as 0x%x\r\n", (LCR_DEFAULT));
 	WriteUartBridgeControlRegister(PI7C9X760_REG_LCR, LCR_DEFAULT);
 
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_LCR); debug("Expansion RS232: Line Control is 0x%x\r\n", reg);
+
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_FCR); debug("Expansion RS232: FIFO Control is 0x%x\r\n", reg);
+
 	// Enable Rx/Tx FIFO
+	debug("Expansion RS232: Writing Line Control as 0x%x\r\n", (0x01));
 	WriteUartBridgeControlRegister(PI7C9X760_REG_FCR, 0x01);
+
+	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_FCR); debug("Expansion RS232: FIFO Control is 0x%x\r\n", reg);
 
 #if 1 /* Test */
 	ExpansionBridgeStatus();
@@ -1197,9 +1190,9 @@ extern uint8_t g_expansionIrqActive;
 #if 0
 			switch (g_unitConfig.baudRate)
 			{
-				//case BAUD_RATE_115200: case BAUD_RATE_115200_A: baudDelayUs = 100; break;
-				case BAUD_RATE_57600: case BAUD_RATE_57600_A: baudDelayUs = 200; break;
-				case BAUD_RATE_38400: case BAUD_RATE_38400_A: baudDelayUs = 300; break;
+				//case BAUD_RATE_115200: baudDelayUs = 100; break;
+				case BAUD_RATE_57600: baudDelayUs = 200; break;
+				case BAUD_RATE_38400: baudDelayUs = 300; break;
 				case BAUD_RATE_19200: baudDelayUs = 600; break;
 				case BAUD_RATE_9600: baudDelayUs = 1200; break;
 			}
@@ -1328,6 +1321,11 @@ void ExpansionBridgeInit(void)
 
 	reg = ReadUartBridgeControlRegister(PI7C9X760_REG_LSR);
 	debug("Expansion: Register %d is 0x%x\r\n", PI7C9X760_REG_LSR, reg);
+#endif
+
+#if 0 /* Test software reset of part */
+	WriteUartBridgeControlRegister(PI7C9X760_REG_IOCONTROL, 0x08);
+	SoftUsecWait(10 * SOFT_MSECS);
 #endif
 
 	debug("Expansion I2C Uart Bridge: Powered on, Scratchpad test...\r\n");
