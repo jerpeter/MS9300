@@ -277,7 +277,7 @@ __attribute__((__interrupt__))
 void Sensor_detect_1_irq(void)
 {
 	//debugRaw("+");
-	debugWarn("-(ISR) Sensor Detect 1: %s-\r\n", ((MXC_GPIO_OutGet(GPIO_SENSOR_DETECT_1_PORT, GPIO_SENSOR_DETECT_1_PIN) == 0) ? "Removed" : "Added"));
+	debugWarn("-(ISR) Sensor Detect 1: %s-\r\n", ((MXC_GPIO_InGet(GPIO_SENSOR_DETECT_1_PORT, GPIO_SENSOR_DETECT_1_PIN) == 0) ? "Removed" : "Added"));
 
 	// Clear Sensor Detect 1 flag (Port 0, Pin 7)
 #if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
@@ -294,7 +294,7 @@ __attribute__((__interrupt__))
 void Sensor_detect_2_irq(void)
 {
 	//debugRaw("+");
-	debugWarn("-(ISR) Sensor Detect 2: %s -\r\n", ((MXC_GPIO_OutGet(GPIO_SENSOR_DETECT_2_PORT, GPIO_SENSOR_DETECT_2_PIN) == 0) ? "Removed" : "Added"));
+	debugWarn("-(ISR) Sensor Detect 2: %s -\r\n", ((MXC_GPIO_InGet(GPIO_SENSOR_DETECT_2_PORT, GPIO_SENSOR_DETECT_2_PIN) == 0) ? "Removed" : "Added"));
 
 	// Clear Sensor Detect 2 flag (Port 1, Pin 2)
 #if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
@@ -311,7 +311,7 @@ __attribute__((__interrupt__))
 void Sensor_detect_3_irq(void)
 {
 	//debugRaw("+");
-	debugWarn("-(ISR) Sensor Detect 3: %s -\r\n", ((MXC_GPIO_OutGet(GPIO_SENSOR_DETECT_3_PORT, GPIO_SENSOR_DETECT_3_PIN) == 0) ? "Removed" : "Added"));
+	debugWarn("-(ISR) Sensor Detect 3: %s -\r\n", ((MXC_GPIO_InGet(GPIO_SENSOR_DETECT_3_PORT, GPIO_SENSOR_DETECT_3_PIN) == 0) ? "Removed" : "Added"));
 
 	// Clear Sensor Detect 3 flag (Port 1, Pin 13)
 #if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
@@ -328,7 +328,7 @@ __attribute__((__interrupt__))
 void Sensor_detect_4_irq(void)
 {
 	//debugRaw("+");
-	debugWarn("-(ISR) Sensor Detect 4: %s -\r\n", ((MXC_GPIO_OutGet(GPIO_SENSOR_DETECT_1_PORT, GPIO_SENSOR_DETECT_1_PIN) == 0) ? "Removed" : "Added"));
+	debugWarn("-(ISR) Sensor Detect 4: %s -\r\n", ((MXC_GPIO_InGet(GPIO_SENSOR_DETECT_4_PORT, GPIO_SENSOR_DETECT_4_PIN) == 0) ? "Removed" : "Added"));
 
 	// Clear Sensor Detect 4 flag (Port 1, Pin 27)
 #if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
