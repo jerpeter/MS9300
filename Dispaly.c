@@ -397,7 +397,7 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 #if 1 /* Test display of Battery information */
 	if (g_promtForLeavingMonitorMode != TRUE)
 	{
-		char debugInfo[32];
+		char debugInfo[128];
 		sprintf(debugInfo, "Battery: %0.3fV", (double)((float)FuelGaugeGetVoltage() / 1000));
 		ft81x_stream_start(); ft81x_cmd_text(550, 40, 28, 0, debugInfo); ft81x_stream_stop();
 
