@@ -296,8 +296,11 @@ void MenuUpdateTimerCallBack(void)
 ///----------------------------------------------------------------------------
 void KeypadLedUpdateTimerCallBack(void)
 {
+#if 0 /* Test */
+	return;
+#endif
 	static uint8 s_ledState = KEYPAD_LED_STATE_UNKNOWN;
-	static uint8 s_repeatCount = 0;
+	//static uint8 s_repeatCount = 0;
 	uint8 lastLedState;
 	BOOLEAN externalChargePresent = CheckExternalChargeVoltagePresent();
 
@@ -326,61 +329,87 @@ void KeypadLedUpdateTimerCallBack(void)
 	// Hold the last state
 	lastLedState = s_ledState;
 
+#if 0 /* Original */
 	if ((g_sampleProcessing == IDLE_STATE) && (externalChargePresent == FALSE))
 	{
-		//debug("Keypad LED: State 1\r\n");
+		debug("Keypad LED: State 1\r\n");
 		if (lastLedState == KEYPAD_LED_STATE_PULSE_GREEN_SLOW_ON) { s_ledState = KEYPAD_LED_STATE_PULSE_GREEN_SLOW_OFF; s_repeatCount = 0; }
 		else if (lastLedState == KEYPAD_LED_STATE_PULSE_GREEN_SLOW_OFF) { if (++s_repeatCount == 7) { s_ledState = KEYPAD_LED_STATE_PULSE_GREEN_SLOW_ON; } }
 		else { s_ledState = KEYPAD_LED_STATE_PULSE_GREEN_SLOW_ON; }
 	}
 	else if ((g_sampleProcessing == IDLE_STATE) && (externalChargePresent == TRUE))
 	{
-		//debug("Keypad LED: State 2\r\n");
+		debug("Keypad LED: State 2\r\n");
 		if (lastLedState == KEYPAD_LED_STATE_PULSE_BLUE_SLOW_ON) { s_ledState = KEYPAD_LED_STATE_PULSE_BLUE_SLOW_OFF; s_repeatCount = 0; }
 		else if (lastLedState == KEYPAD_LED_STATE_PULSE_BLUE_SLOW_OFF) { if (++s_repeatCount == 7) { s_ledState = KEYPAD_LED_STATE_PULSE_BLUE_SLOW_ON; } }
 		else { s_ledState = KEYPAD_LED_STATE_PULSE_BLUE_SLOW_ON; }
 	}
 	else if ((g_sampleProcessing == ACTIVE_STATE) && (externalChargePresent == FALSE))
 	{
-		//debug("Keypad LED: State 3\r\n");
+		debug("Keypad LED: State 3\r\n");
 		if (lastLedState == KEYPAD_LED_STATE_PULSE_GREEN_FAST_ON) { s_ledState = KEYPAD_LED_STATE_PULSE_GREEN_FAST_OFF; s_repeatCount = 0; }
 		else if (lastLedState == KEYPAD_LED_STATE_PULSE_GREEN_FAST_OFF) { if (++s_repeatCount == 3) { s_ledState = KEYPAD_LED_STATE_PULSE_GREEN_FAST_ON; } }
 		else { s_ledState = KEYPAD_LED_STATE_PULSE_GREEN_FAST_ON; }
 	}		
 	else // ((g_sampleProcessing == ACTIVE_STATE) && (externalChargePresent == TRUE))
 	{
-		//debug("Keypad LED: State 4\r\n");
+		debug("Keypad LED: State 4\r\n");
 		if (lastLedState == KEYPAD_LED_STATE_PULSE_BLUE_FAST_ON) { s_ledState = KEYPAD_LED_STATE_PULSE_BLUE_FAST_OFF; s_repeatCount = 0; }
 		else if (lastLedState == KEYPAD_LED_STATE_PULSE_BLUE_FAST_OFF) { if (++s_repeatCount == 3) { s_ledState = KEYPAD_LED_STATE_PULSE_BLUE_FAST_ON; } }
 		else { s_ledState = KEYPAD_LED_STATE_PULSE_BLUE_FAST_ON; }
 	}
-	
+#else
+	if ((g_sampleProcessing == IDLE_STATE) && (externalChargePresent == FALSE))
+	{
+		//debug("Keypad LED: State 1\r\n");
+		s_ledState = KEYPAD_LED_STATE_IDLE_GREEN_ON;
+	}
+	else if ((g_sampleProcessing == IDLE_STATE) && (externalChargePresent == TRUE))
+	{
+		//debug("Keypad LED: State 2\r\n");
+		s_ledState = KEYPAD_LED_STATE_CHARGE_BLUE_ON;
+	}
+	else if ((g_sampleProcessing == ACTIVE_STATE) && (externalChargePresent == FALSE))
+	{
+		//debug("Keypad LED: State 3\r\n");
+		if (lastLedState == KEYPAD_LED_STATE_ACTIVE_GREEN_ON) { s_ledState = KEYPAD_LED_STATE_ACTIVE_GREEN_OFF; }
+		else { s_ledState = KEYPAD_LED_STATE_ACTIVE_GREEN_ON; }
+	}
+	else // ((g_sampleProcessing == ACTIVE_STATE) && (externalChargePresent == TRUE))
+	{
+		//debug("Keypad LED: State 4\r\n");
+		if (lastLedState == KEYPAD_LED_STATE_ACTIVE_CHARGE_BLUE_ON) { s_ledState = KEYPAD_LED_STATE_ACTIVE_CHARGE_BLUE_OFF; }
+		else { s_ledState = KEYPAD_LED_STATE_ACTIVE_CHARGE_BLUE_ON; }
+	}
+#endif
+
+	// LED 1 = Blue, LED 2 = Green
 	switch (s_ledState)
 	{
 		case KEYPAD_LED_STATE_BOTH_OFF:
 		case KEYPAD_LED_STATE_ACTIVE_GREEN_OFF:
-			// Todo: Set the correct state or LED's
+		case KEYPAD_LED_STATE_ACTIVE_CHARGE_BLUE_OFF:
+			PowerControl(LED_1, OFF); PowerControl(LED_2, OFF);
 			break;
 
 		case KEYPAD_LED_STATE_IDLE_GREEN_ON:
 		case KEYPAD_LED_STATE_ACTIVE_GREEN_ON:
-		case KEYPAD_LED_STATE_ACTIVE_CHARGE_GREEN_ON:
-			// Todo: Set the correct state or LED's
+			PowerControl(LED_1, ON); PowerControl(LED_2, OFF);
 			break;
 
-		case KEYPAD_LED_STATE_CHARGE_RED_ON:
-		case KEYPAD_LED_STATE_ACTIVE_CHARGE_RED_ON:
-			// Todo: Set the correct state or LED's
+		case KEYPAD_LED_STATE_CHARGE_BLUE_ON:
+		case KEYPAD_LED_STATE_ACTIVE_CHARGE_BLUE_ON:
+			PowerControl(LED_1, OFF); PowerControl(LED_2, ON);
 			break;
 
 		case KEYPAD_LED_STATE_PULSE_GREEN_SLOW_ON:
 		case KEYPAD_LED_STATE_PULSE_GREEN_FAST_ON:
-			PowerControl(LED_2, ON); PowerControl(LED_1, OFF);
+			PowerControl(LED_1, OFF); PowerControl(LED_2, ON);
 			break;
 
 		case KEYPAD_LED_STATE_PULSE_GREEN_SLOW_OFF:
 		case KEYPAD_LED_STATE_PULSE_GREEN_FAST_OFF:
-			PowerControl(LED_2, OFF); PowerControl(LED_1, OFF);
+			PowerControl(LED_1, OFF); PowerControl(LED_2, OFF);
 			break;
 
 		case KEYPAD_LED_STATE_PULSE_BLUE_SLOW_ON:
@@ -572,21 +601,34 @@ void ModemResetTimerCallback(void)
 	}
 	else if (g_modemResetStage == 2)
 	{
+#if 1 /* Original */
 		if (g_modemStatus.xferState == NOP_CMD) { UartPuts((char*)(CMDMODE_CMD_STRING), CRAFT_COM_PORT); }
+#else
+		if (g_modemStatus.xferState == NOP_CMD) { UartPuts((char*)(CMDMODE_CMD_STRING), SERIAL_PIPE_CELL); }
+#endif
 		AssignSoftTimer(MODEM_RESET_TIMER_NUM, (uint32)(3 * TICKS_PER_SEC), ModemResetTimerCallback);
 		g_modemResetStage = 3;
 	}
 	else if (g_modemResetStage == 3)
 	{
+#if 1 /* Original */
 		if (g_modemStatus.xferState == NOP_CMD) { UartPuts((char*)(CMDMODE_CMD_STRING), CRAFT_COM_PORT); }
+#else
+		if (g_modemStatus.xferState == NOP_CMD) { UartPuts((char*)(CMDMODE_CMD_STRING), SERIAL_PIPE_CELL); }
+#endif
 		AssignSoftTimer(MODEM_RESET_TIMER_NUM, (uint32)(3 * TICKS_PER_SEC), ModemResetTimerCallback);
 		g_modemResetStage = 4;
 	}
 	else if (g_modemResetStage == 4)
 	{
 		g_modemStatus.remoteResponse = NO_RESPONSE;
+#if 1 /* Original */
 		if (g_modemStatus.xferState == NOP_CMD) { UartPuts((char*)(ATH_CMD_STRING), CRAFT_COM_PORT); }
 		UartPuts((char*)&g_CRLF, CRAFT_COM_PORT);
+#else
+		if (g_modemStatus.xferState == NOP_CMD) { UartPuts((char*)(ATH_CMD_STRING), SERIAL_PIPE_CELL); }
+		UartPuts((char*)&g_CRLF, SERIAL_PIPE_CELL);
+#endif
 		AssignSoftTimer(MODEM_RESET_TIMER_NUM, (uint32)(3 * TICKS_PER_SEC), ModemResetTimerCallback);
 		g_modemResetStage = 5;
 	}
@@ -598,8 +640,13 @@ void ModemResetTimerCallback(void)
 			g_modemStatus.modemAvailable = NO;
 
 			g_modemStatus.remoteResponse = NO_RESPONSE;
+#if 1 /* Original */
 			UartPuts((char*)(INIT_CMD_STRING), CRAFT_COM_PORT);
 			UartPuts((char*)&g_CRLF, CRAFT_COM_PORT);
+#else
+			UartPuts((char*)(INIT_CMD_STRING), SERIAL_PIPE_CELL);
+			UartPuts((char*)&g_CRLF, SERIAL_PIPE_CELL);
+#endif
 
 			AssignSoftTimer(MODEM_DELAY_TIMER_NUM, MODEM_ATZ_DELAY, ModemDelayTimerCallback);
 		}
@@ -741,6 +788,7 @@ void AutoEventGenerationCallback(void)
 	AssignSoftTimer(AUTO_EVENT_GENERATION_NUM, (20 * TICKS_PER_MIN), AutoEventGenerationCallback);
 #else /* Test */
 static uint8_t s_bcChargeState = ON;
+	s_bcChargeState = GetBattChargerChargeState();
 	s_bcChargeState ^= ON;
 	debug("BC Toggle: %s\r\n", ((s_bcChargeState == ON) ? "On" : "Off"));
 	SetBattChargerChargeState(s_bcChargeState);
@@ -775,6 +823,8 @@ void TcpServerStartCallback(void)
 				// Flag for yes if prior state was not available
 				g_modemStatus.modemAvailable = YES;
 				ClearSoftTimer(MODEM_DELAY_TIMER_NUM);
+
+				CellModemSimSelector(g_cellModemSetupRecord.eSimSelect);
 
 				g_tcpServerStartStage = TCP_SERVER_SET_APN;
 				AssignSoftTimer(TCP_SERVER_START_NUM, (1 * TICKS_PER_SEC), TcpServerStartCallback);
@@ -833,6 +883,17 @@ void TcpServerStartCallback(void)
 	else if (g_tcpServerStartStage == TCP_SERVER_CELL_MODEM_START)
 	{
 		debug("AT+CFUN=1...\r\n"); sprintf((char*)g_spareBuffer, "AT+CFUN=1\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+
+#if 1 /* Test check for eSIM details */
+		if (g_cellModemSetupRecord.eSimSelect == YES)
+		{
+			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+			debug("AT%%XICCID...\r\n"); sprintf((char*)g_spareBuffer, "AT%%XICCID\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+			debug("AT+CIMI...\r\n"); sprintf((char*)g_spareBuffer, "AT+CIMI\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		}
+#endif
 
 #if 1 /* Test */
 		SetStartCellConnectTime();
@@ -929,11 +990,17 @@ void TcpServerStartCallback(void)
 	//----------------------------------------------------------------
 	else if (g_tcpServerStartStage == TCP_SERVER_UP)
 	{
+#if 0 /* Original */
 		debug("AT#XTCPSEND"); sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 
 		g_tcpServerStartStage = TCP_SERVER_ACTIVE_DATA_MODE;
+#else /* Test */
+		// Delay entering Data mode until the remote conneciton is active due to the rare occasion where the cell modem seems to drop data mode without notificaiton
+		g_tcpServerStartStage = TCP_SERVER_ACTIVE;
+#endif
 		ClearSoftTimer(TCP_SERVER_START_NUM);
 
+		debug("TCP Server: Active and listening...\r\n");
 		//OverlayMessage(getLangText(STATUS_TEXT), "CELL MODEM TCP LISTEN SERVER STARTED", (0 * SOFT_SECS));
 	}
 }
