@@ -1089,10 +1089,24 @@ uint8_t IsSeismicSensorAnAccelerometer(uint16_t seismicSensorType)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint8_t GetBatteryPresenceState(void)
+{
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
+	if ((GPIO_EXT_BATTERY_PRESENCE_1_PORT->in & GPIO_EXT_BATTERY_PRESENCE_1_PIN) || (GPIO_EXT_BATTERY_PRESENCE_2_PORT->in & GPIO_EXT_BATTERY_PRESENCE_2_PIN)) { return (YES); }
+#else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
+	// Check if External Battery Presense is found, Active high (Port 0, Pin 2)
+	if ((GPIO_EXT_BATTERY_PRESENCE_1_PORT->in & GPIO_EXT_BATTERY_PRESENCE_1_PIN) || (GPIO_EXPANDED_BATTERY_PORT->in & GPIO_EXPANDED_BATTERY_PIN)) { return (YES); }
+#endif
+	else return (NO);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 uint8_t GetExpandedBatteryPresenceState(void)
 {
 #if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
-	if ((GPIO_EXT_BATTERY_PRESENCE_1_PORT->in & GPIO_EXT_BATTERY_PRESENCE_1_PIN) && (GPIO_EXT_BATTERY_PRESENCE_2_PORT->in & GPIO_EXT_BATTERY_PRESENCE_2_PIN)){ return (YES); }
+	if ((GPIO_EXT_BATTERY_PRESENCE_1_PORT->in & GPIO_EXT_BATTERY_PRESENCE_1_PIN) && (GPIO_EXT_BATTERY_PRESENCE_2_PORT->in & GPIO_EXT_BATTERY_PRESENCE_2_PIN)) { return (YES); }
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
 	// Check if External Battery Presense is found, Active high (Port 0, Pin 2)
 	if (GPIO_EXPANDED_BATTERY_PORT->in & GPIO_EXPANDED_BATTERY_PIN) { return (YES); }
@@ -1142,6 +1156,26 @@ uint8_t GetLteOtaState(void)
 	// Check LTE OTA state, Active high (Port 0, Pin 30)
 	if (GPIO_LTE_OTA_PORT->in & GPIO_LTE_OTA_PIN) { return (ON); }
 	else return (OFF);
+}
+
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void CellModemSimSelector(uint8_t eSimSelect)
+{
+#if 1 /* Test using LTE_OTA as an output to control the SIM Switcher IC */
+	if (eSimSelect == YES)
+	{
+		MXC_GPIO_OutSet(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN);
+		debug("CELL/LTE: eSIM selected (LTE_OTA pin state: %d)\r\n", ((MXC_GPIO_OutGet(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN) == 0) ? 0 : 1));
+	}
+	else // Physical SIM selected
+	{
+		MXC_GPIO_OutClr(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN);
+		debug("CELL/LTE: Physical SIM selected (LTE_OTA pin state: %d)\r\n", ((MXC_GPIO_OutGet(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN) == 0) ? 0 : 1));
+	}
+#endif
 }
 
 ///----------------------------------------------------------------------------
