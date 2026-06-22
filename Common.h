@@ -393,11 +393,11 @@ enum {
 	KEYPAD_LED_STATE_UNKNOWN = 0,
 	KEYPAD_LED_STATE_BOTH_OFF,
 	KEYPAD_LED_STATE_IDLE_GREEN_ON,
-	KEYPAD_LED_STATE_CHARGE_RED_ON,
+	KEYPAD_LED_STATE_CHARGE_BLUE_ON,
 	KEYPAD_LED_STATE_ACTIVE_GREEN_ON,
 	KEYPAD_LED_STATE_ACTIVE_GREEN_OFF,
-	KEYPAD_LED_STATE_ACTIVE_CHARGE_GREEN_ON,
-	KEYPAD_LED_STATE_ACTIVE_CHARGE_RED_ON,
+	KEYPAD_LED_STATE_ACTIVE_CHARGE_BLUE_ON,
+	KEYPAD_LED_STATE_ACTIVE_CHARGE_BLUE_OFF,
 	KEYPAD_LED_STATE_PULSE_GREEN_SLOW_ON,
 	KEYPAD_LED_STATE_PULSE_GREEN_SLOW_OFF,
 	KEYPAD_LED_STATE_PULSE_GREEN_FAST_ON,
@@ -1078,12 +1078,13 @@ void UsbDisableIfActive(void);
 void CheckExceptionReportLogExists(void);
 
 // GPIO Status extensions
+uint8_t GetBatteryPresenceState(void);
 uint8_t GetExpandedBatteryPresenceState(void);
 uint8_t GetPowerGood5vState(void);
 uint8_t GetPowerGoodBatteryChargerState(void);
 uint8_t GetPowerOnButtonState(void);
 uint8_t GetLteOtaState(void);
-uint8_t GetBleOtaState(void);
+void CellModemSimSelector(uint8_t eSimSelect);
 uint8_t GetSmartSensorMuxEnableState(void);
 uint8_t GetCalMuxPreADSelectState(void);
 
@@ -1161,6 +1162,9 @@ void Battery_charger_irq(void);
 void Expansion_irq(void);
 void Usbc_port_controller_i2c_irq(void);
 void Power_good_battery_charger_irq(void);
+#if 1 /* Test */
+void Sensor_detect_using_lte_ota_mod_irq(void);
+#endif
 void Sensor_detect_1_irq(void);
 void Sensor_detect_2_irq(void);
 void Sensor_detect_3_irq(void);
