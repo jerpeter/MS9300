@@ -120,6 +120,10 @@ void CalSetupMn(INPUT_MSG_STRUCT msg)
 					// Update the current time since we never leave the loop
 					UpdateCurrentTime();
 
+#if 1 /* Test */
+extern void WriteDebugCacheToFile(uint8_t flush);
+					WriteDebugCacheToFile(0);
+#endif
 					// Create the Cal Setup menu
 					if (s_pausedDisplay == NO)
 					{
