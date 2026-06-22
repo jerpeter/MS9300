@@ -854,10 +854,10 @@ extern uint8_t usbIsrActive;
 	ret = tps25750_exec_patch_cmd_pbms(tps, (uint8_t *)&pbms_in_data, sizeof(pbms_in_data));
 	if (ret)
 	{
-		debugErr("USB Port Controller: Failed Patch Start process with code %d\n", ret);
+		debugErr("USB Port Controller: Failed Patch Start process with code %d\r\n", ret);
 		return (ret);
 	}
-	else { debug("USB Port Controller: Patch Start process success\n"); }
+	else { debug("USB Port Controller: Patch Start process success\r\n"); }
 
 #if 0 /* Test to read status */
 extern uint8_t usbIsrActive;
@@ -873,7 +873,7 @@ extern uint8_t usbIsrActive;
 
 	ret = tps25750_write_firmware(tps, (uint8_t*)tps25750x_lowRegion_i2c_array, gSizeLowRegionArray);
 	if (ret) {
-		debugErr("USB Port Controller: Failed to write low region patch of %lu bytes\n", gSizeLowRegionArray);
+		debugErr("USB Port Controller: Failed to write low region patch of %lu bytes\r\n", gSizeLowRegionArray);
 	} else {
 		/*
 		 * A delay of 500us is required after the firmware is written
@@ -882,7 +882,7 @@ extern uint8_t usbIsrActive;
 		 */
 		MXC_TMR_Delay(MXC_TMR0, 500);
 		ret = 0;
-		debug("USB Port Controller: Low region patch write success (%d bytes)\n", gSizeLowRegionArray);
+		debug("USB Port Controller: Low region patch write success (%d bytes)\r\n", gSizeLowRegionArray);
 	}
 #endif
 
@@ -1228,13 +1228,13 @@ int tps25750_probe(void)
 
 	ret = fwnode_property_read_string(fwnode, "data-role", &data_role);
 	if (ret) {
-		dev_err(tps->dev, "data-role not found: %d\n", ret);
+		dev_err(tps->dev, "data-role not found: %d\r\n", ret);
 		goto err_role_put;
 	}
 
 	ret = typec_find_port_data_role(data_role);
 	if (ret < 0) {
-		dev_err(tps->dev, "unknown data-role: %s\n", data_role);
+		dev_err(tps->dev, "unknown data-role: %s\r\n", data_role);
 		goto err_role_put;
 	}
 
@@ -1652,9 +1652,9 @@ int GetUsbHCRegister(uint8_t registerAddress, uint8_t* registerData, uint8_t dat
 {
 	int status = E_SUCCESS;
 
-	if (dataSize > 7) { return (E_BAD_PARAM); }
-	uint8_t readData[8];
-	uint8_t writeData[8];
+	if (dataSize > 64) { return (E_BAD_PARAM); }
+	uint8_t readData[65];
+	uint8_t writeData[65];
 	writeData[0] = (registerAddress << 3); // Set the address for the upper 5 bits, and read bit (bit 1) is a 0
 	memset(&writeData[1], 0, dataSize);
 
@@ -1684,6 +1684,28 @@ int SetUsbHCRegister(uint8_t registerAddress, uint8_t registerData)
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutClr(GPIO_SPI2_SS2_USB_PORT, GPIO_SPI2_SS2_USB_PIN); }
 	//SoftUsecWait(5 * SOFT_MSECS);
 	SpiTransaction(SPI_USBHC, SPI_8_BIT_DATA_SIZE, YES, &writeData[0], sizeof(writeData), NULL, 0, BLOCKING);
+	//SoftUsecWait(5 * SOFT_MSECS);
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutSet(GPIO_SPI2_SS2_USB_PORT, GPIO_SPI2_SS2_USB_PIN); }
+
+	return (status);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int SetUsbHCRegisterMulti(uint8_t registerAddress, uint8_t* registerData, uint8 dataSize)
+{
+	int status = E_SUCCESS;
+
+	if (dataSize > 64) { debugErr("USB Host Controller: Register Multi write size too large\r\n"); return (E_BAD_PARAM); }
+
+	uint8_t writeData[65];
+	writeData[0] = (registerAddress << 3) | 0x02; // Set the address for the upper 5 bits, and write bit (bit 1) is a 1
+	memcpy(&writeData[1], registerData, dataSize);
+
+	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutClr(GPIO_SPI2_SS2_USB_PORT, GPIO_SPI2_SS2_USB_PIN); }
+	//SoftUsecWait(5 * SOFT_MSECS);
+	SpiTransaction(SPI_USBHC, SPI_8_BIT_DATA_SIZE, YES, &writeData[0], (dataSize + 1), NULL, 0, BLOCKING);
 	//SoftUsecWait(5 * SOFT_MSECS);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutSet(GPIO_SPI2_SS2_USB_PORT, GPIO_SPI2_SS2_USB_PIN); }
 
@@ -1854,3 +1876,1639 @@ void USBHostControllerInit(void)
 	PowerControl(USB_RESET, ON);
 #endif
 }
+
+
+///----------------------------------------------------------------------------
+///	USB Host Controller Defines
+///----------------------------------------------------------------------------
+#define DIR_WRITE 1
+#define DIR_READ  0
+
+#define BUFFER_SIZE 64
+
+#define MAX_IRQ_BUSEVENT    BIT0
+#define MAX_IRQ_RWU         BIT1
+#define MAX_IRQ_RCVDAV      BIT2
+#define MAX_IRQ_SNDBAV      BIT3
+#define MAX_IRQ_SUSDN       BIT4
+#define MAX_IRQ_CONDET      BIT5
+#define MAX_IRQ_FRAME       BIT6
+#define MAX_IRQ_HXFRDN      BIT7
+
+#define MAX_IRQ_OSCOK       BIT0
+/* MAX_IRQ_RWU */
+#define MAX_IRQ_BUSACT      BIT2
+#define MAX_IRQ_URES        BIT3
+#define MAX_IRQ_SUSP        BIT4
+#define MAX_IRQ_NOVBUS      BIT5
+#define MAX_IRQ_VBUS        BIT6
+#define MAX_IRQ_URESDN      BIT7
+
+/* the End Point interrupts (EPIRQ) */
+#define MAX_IRQ_IN0BAV      BIT0
+#define MAX_IRQ_OUT0DAV     BIT1
+#define MAX_IRQ_OUT1DAV     BIT2
+#define MAX_IRQ_IN2BAV      BIT3
+#define MAX_IRQ_IN3BAV      BIT4
+#define MAX_IRQ_SUDAV       BIT5
+
+
+#define MODE_PERIPH         0
+#define MODE_HOST           1
+
+#define rEP0FIFO        0
+#define rEP1OUTFIFO     1
+#define rEP2INFIFO      2
+#define rEP3INFIFO      3
+#define rSUDFIFO        4
+#define rEP0BC          5
+#define rEP1OUTBC       6
+#define rEP2INBC        7
+#define rEP3INBC        8
+#define rEPSTALLS       9
+#define rCLRTOGS        10
+#define rEPIRQ          11
+#define rEPIEN          12
+#define rUSBIRQ         13
+#define rUSBIEN         14
+#define rUSBCTL         15
+#define rCPUCTL         16
+#define rPINCTL         17
+#define rREVISION       18
+#define rFNADDR         19
+#define rIOPINS         20
+
+#define rRCVFIFO        1
+#define rSNDFIFO        2
+#define rSUDFIFO        4
+#define rRCVBC          6
+#define rSNDBC          7
+#define rIOPINS1        20
+#define rIOPINS2        21
+#define rGPINIRQ        22
+#define rGPINIEN        23
+#define rGPINPOL        24
+#define rHIRQ           25
+#define rHIEN           26
+#define rMODE           27
+#define rPERADDR        28
+#define rHCTL           29
+#define rHXFR           30
+#define rHRSL           31
+
+#define BIT0	0x01
+#define BIT1	0x02
+#define BIT2	0x04
+#define BIT3	0x08
+#define BIT4	0x10
+#define BIT5	0x20
+#define BIT6	0x40
+#define BIT7	0x80
+
+//-----
+
+#define PERIPHERAL_ADDRESS 8
+
+#define DIR_OUT      0
+#define DIR_IN      1
+
+/* Transfer Tokens */
+#define xfrSETUP    0x10
+#define xfrIN       0x00
+#define xfrOUT      0x20
+#define xfrINHS     0x80
+#define xfrOUTHS    0xA0
+#define xfrISOIN    0x40
+#define xfrISOOUT   0x60
+
+/* Result Codes */
+#define rslSUCCES   0x00
+#define rslBUSY     0x01
+#define rslBADREQ   0x02
+#define rslUNDEF    0x03
+#define rslNAK      0x04
+#define rslSTALL    0x05
+#define rslTOGERR   0x06
+#define rslWRONGPID 0x07
+#define rslBADBC    0x08
+#define rslPIDERR   0x09
+#define rslPKTERR   0x0A
+#define rslCRCERR   0x0B
+#define rslKERR     0x0C
+#define rslJERR     0x0D
+#define rslTIMEOUT  0x0E
+#define rslBABBLE   0x0F
+
+#define rslSUCCES_name   "Success"
+#define rslBUSY_name     "Busy"
+#define rslBADREQ_name   "Bad request"
+#define rslUNDEF_name    "Undefined"
+#define rslNAK_name      "Device returned NAK"
+#define rslSTALL_name    "Device returned Stall"
+#define rslTOGERR_name   "Toggle error"
+#define rslWRONGPID_name "Rx wrong PID"
+#define rslBADBC_name    "Bad byte count"
+#define rslPIDERR_name   "Rx PID error"
+#define rslPKTERR_name   "Packet error"
+#define rslCRCERR_name   "CRC error"
+#define rslKERR_name     "K-state instead of response"
+#define rslJERR_name     "J-state instead of response"
+#define rslTIMEOUT_name  "Device timeout"
+#define rslBABBLE_name   "Device babbling"
+
+#define USB_DEVICE_DESCRIPTOR		0x01
+#define USB_CONFIG_DESCRIPTOR		0x02
+#define USB_STRING_DESCRIPTOR		0x03
+#define USB_INTERFACE_DESCRIPTOR	0x04
+#define USB_ENDPOINT_DESCRIPTOR		0x05
+
+#define USB_ADC_CLASS		0x01 // Audio Device Class (ADC)
+#define USB_CDC_CLASS		0x02 // Communication Device Class (CDC)
+#define USB_HID_CLASS		0x03 // Human Interface Device (HID)
+#define USB_PRT_CLASS		0x07 // Printer Class
+#define USB_MSC_CLASS		0x08 // Mass Storage Class (MSC)
+
+#define USB_UNKNOWN_NAME	"Unknown"
+
+#define USB_ADC_CLASS_NAME	"Audio"
+#define USB_CDC_CLASS_NAME	"Communiation"
+#define USB_HID_CLASS_NAME	"Human Interface"
+#define USB_PRT_CLASS_NAME	"Printer"
+#define USB_MSC_CLASS_NAME	"Mass Storage"
+
+#define USB_TRANSFER_CONTROL		0x00
+#define USB_TRANSFER_ISOCHRONOUS	0x01
+#define USB_TRANSFER_BULK			0x02
+#define USB_TRANSFER_INTERRUPT		0x03
+
+#define USB_TRANSFER_CONTROL_NAME		"Control"
+#define USB_TRANSFER_ISOCHRONOUS_NAME	"Isochronous"
+#define USB_TRANSFER_BULK_NAME			"Bulk"
+#define USB_TRANSFER_INTERRUPT_NAME		"Interrupt"
+
+/* Standard Requests */
+#define reqGET_STATUS           0x00
+#define reqCLEAR_FEATURE        0x01
+#define reqSET_FEATURE          0x03
+#define reqSET_ADDRESS          0x05
+#define reqGET_DESCRIPTOR       0x06
+#define reqSET_DESCRIPTOR       0x07
+#define reqGET_CONFIGURATION    0x08
+#define reqSET_CONFIGURATION    0x09
+
+#define MAX_TIMER_CONVERSION	20 //40
+
+typedef struct {
+    uint8_t perAddress;
+    uint8_t type;
+    uint8_t endPoint;
+    uint8_t bmRequestType;
+    uint8_t bRequest;
+    uint16_t wValue;
+    uint16_t wIndex;
+    uint16_t wLength;
+    uint8_t direction;
+} ControlPacket;
+
+#if 1 /* New code not ready for compile yet */
+
+///----------------------------------------------------------------------------
+///	USB Host Controller Globals
+///----------------------------------------------------------------------------
+volatile bool peripheralAvailable;
+volatile bool ACKSTAT;
+volatile uint8_t enabledIRQ;
+volatile uint8_t enabledEPIRQ;
+volatile uint8_t peripheralConnected;
+volatile uint8_t lastTransferResult;
+volatile uint8_t lastReadSize;
+volatile uint8_t RXData[BUFFER_SIZE];
+volatile uint8_t TXData[BUFFER_SIZE];
+volatile uint8_t ControlBuffer[64];
+uint8_t usbMscConfigID = 0;
+uint8_t usbMscBulkInEP = 0;
+uint8_t usbMscBulkOutEP = 0;
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t MAX_writeRegister(uint8_t addr, uint8_t data)
+{
+	return (SetUsbHCRegister(addr, data));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t MAX_readRegister(uint8_t addr)
+{
+	uint8_t data;
+	GetUsbHCRegister(addr, &data, 1);
+	return (data);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MAX_multiReadRegister(uint8_t address, uint8_t* buffer, uint8_t length)
+{
+#if 0
+    /* Start the transaction by pulling the CS low */
+    SET_CS_LOW
+
+    /* Transmit the command byte */
+    SIMSPI_transmitByte(_getCommandByte(address, DIR_READ));
+
+    /* Transmit 0s, as we don't actually care about what's written but we do about the response */
+    SIMSPI_readBytes(buffer, length);
+
+    /* End the transaction by pulling the CS back to high */
+    SET_CS_HIGH
+#endif
+
+	GetUsbHCRegister(address, buffer, length);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t MAX_multiWriteRegister(uint8_t address, uint8_t* values, uint8_t length)
+{
+#if 0
+    /* Start the transaction by pulling the CS low */
+    SET_CS_LOW
+
+    /* Build and transmit the command byte */
+    SIMSPI_transmitByte(_getCommandByte(address, DIR_WRITE));
+    /* Transmit the data */
+    result = SIMSPI_transmitBytes(values, length);
+
+    /* End the transaction by pulling the CS back to high */
+    SET_CS_HIGH
+#endif
+
+	return (SetUsbHCRegisterMulti(address, values, length));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MAX_enableOptions(uint8_t address, uint8_t flags)
+{
+    /* Read the current state of the register */
+    uint8_t regVal = MAX_readRegister(address);
+
+    /* Enable the given bits */
+    regVal |= flags;
+
+    /* Write the new register value back to the module */
+    MAX_writeRegister(address, regVal);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MAX_disableOptions(uint8_t address, uint8_t flags)
+{
+    /* Read the current state of the register */
+    uint8_t regVal = MAX_readRegister(address);
+
+    /* Disable the given bits */
+    regVal &= ~flags;
+
+    /* Write the new register value back to the module */
+    MAX_writeRegister(address, regVal);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MAX_enableInterrupts(uint8_t flags)
+{
+    /* Enable the interrupts */
+	MAX_enableOptions(26, flags);
+
+    enabledIRQ |= flags;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MAX_enableInterruptsMaster(void)
+{
+    /* Set IE to 1 */
+    MAX_writeRegister(16, BIT0);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MAX_disableInterruptsMaster(void)
+{
+    /* Set IE to 0 */
+    MAX_disableOptions(16, BIT0);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MAX_clearInterruptStatus(uint8_t flags)
+{
+    /* Clear the specified interrupts */
+	MAX_enableOptions(25, flags);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t MAX_scanBus(void)
+{
+    /* Enable SAMPLEBUS */
+    MAX_enableOptions(rHCTL, BIT2);
+
+    while (!(MAX_readRegister(rHCTL) & BIT2))
+	{
+        //SysCtlDelay(200);
+		SoftUsecWait((200 / MAX_TIMER_CONVERSION));
+	}
+
+    /* Return the J/K state bits */
+    return (MAX_readRegister(rHRSL) & 0xC0) >> 6;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MAX_checkBusState(void)
+{
+    uint8_t result = MAX_scanBus();
+
+    if (result == 0x01 || result == 0x02) { peripheralAvailable = true; debug("USB Host Controller: *** Peripheral found ***\r\n"); OverlayMessage(getLangText(STATUS_TEXT), "FOUND USB DEVICE", (2 * SOFT_SECS)); }
+    else { peripheralAvailable = false; debugWarn("USB Host Controller: --- No peripheral available ---\r\n"); OverlayMessage(getLangText(WARNING_TEXT), "NO USB DEVICE DETECTED", (2 * SOFT_SECS)); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MAX_reset(void)
+{
+    /* Enable the reset */
+    MAX_writeRegister(15, BIT5);
+
+    /* Immediately clear the reset */
+    MAX_writeRegister(15, 0);
+
+    /* Wait a short while until the oscillator is stable */
+    //DELAY_WITH_TIMEOUT(!(MAX_readRegister(13) & BIT0));
+	while (1)
+	{
+		uint32_t oscDelayForStable = 10000;
+		if (MAX_readRegister(13) & BIT0) { break; }
+		if (oscDelayForStable == 0) { debugErr("USB Host Controller: Oscillator failed to stabilize after reset\r\n"); }
+	}
+
+    /* Reset the interrupt state */
+    MAX_disableInterruptsMaster();
+
+	/* Host */
+	MAX_writeRegister(rHIEN, 0);
+	MAX_writeRegister(rHIRQ, 0xFF);
+
+    enabledIRQ = 0;
+    enabledEPIRQ = 0;
+    ACKSTAT = false;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void USB_busReset(void)
+{
+	debug("USB Host Controller: Perform bus reset\r\n");
+
+    /* First disable the SOF generator */
+    MAX_disableOptions(rMODE, BIT3);
+
+    /* Perform the reset */
+    MAX_enableOptions(rHCTL, BIT0);
+
+    while (!MAX_readRegister(rHCTL) & BIT0)
+	{
+        //SysCtlDelay(10000);
+		SoftUsecWait((10000 / MAX_TIMER_CONVERSION));
+    }
+
+    /* Restart the SOF generator */
+    MAX_enableOptions(rMODE, BIT3);
+
+    /* Wait until the first SOF is transmitted */
+    while (!(MAX_readRegister(rHIRQ) & BIT6))
+	{
+        //SysCtlDelay(100);
+		SoftUsecWait((100 / MAX_TIMER_CONVERSION));
+    }
+
+	debug("USB Host Controller: Bus reset done\r\n");
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MAX_start(void)
+{
+    /* Start SPI */
+    //SIMSPI_startSPI( );
+	// Done in Init Hardware
+
+    /* Set the SPI configuration to 4-wire and IRQ mode to pulldown */
+    MAX_writeRegister(17, 0x18);
+
+    /* Make sure everything is reset (note: this does NOT reset the SPI config) */
+    MAX_reset();
+
+    /* Enable the dedicated INT pin (active low) */
+    //MAP_GPIO_setAsInputPin(USBINT_PORT, USBINT_PIN);
+    //MAP_GPIO_interruptEdgeSelect(USBINT_PORT, USBINT_PIN, GPIO_HIGH_TO_LOW_TRANSITION);
+    //MAP_GPIO_clearInterruptFlag(USBINT_PORT, USBINT_PIN);
+    //MAP_GPIO_enableInterrupt(USBINT_PORT, USBINT_PIN);
+    //MAP_Interrupt_enableInterrupt(INT_PORT2);
+	// Done in Init Hardware
+
+    /* Enabling MASTER interrupts */
+    //MAP_Interrupt_enableMaster( );
+	// Done in Init Hardware
+
+	/* We're starting as a USB host/master */
+#if 1 /* Need to resetup Host mode after Max reset? */
+	USBCPortControllerSwapToHost();
+	SoftUsecWait(500 * SOFT_MSECS);
+#endif
+
+	/* Enable HOST, DMPULLDN and DPPULLDN */
+	MAX_enableOptions(rMODE, BIT0 | BIT6 | BIT7);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+char* ResultCodeName(uint8_t resultCode)
+{
+	char* resultName = NULL;
+
+	switch (resultCode)
+	{
+		case rslSUCCES: resultName = rslSUCCES_name; break;
+		case rslBUSY: resultName = rslBUSY_name; break;
+		case rslBADREQ: resultName = rslBADREQ_name; break;
+		case rslUNDEF: resultName = rslUNDEF_name; break;
+		case rslNAK: resultName = rslNAK_name; break;
+		case rslSTALL: resultName = rslSTALL_name; break;
+		case rslTOGERR: resultName = rslTOGERR_name; break;
+		case rslWRONGPID: resultName = rslWRONGPID_name; break;
+		case rslBADBC: resultName = rslBADBC_name; break;
+		case rslPIDERR: resultName = rslPIDERR_name; break;
+		case rslPKTERR: resultName = rslPKTERR_name; break;
+		case rslCRCERR: resultName = rslCRCERR_name; break;
+		case rslKERR: resultName = rslKERR_name; break;
+		case rslJERR: resultName = rslJERR_name; break;
+		case rslTIMEOUT: resultName = rslTIMEOUT_name; break;
+		case rslBABBLE: resultName = rslBABBLE_name; break;
+	}
+
+	return (resultName);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t transmitPacket(uint8_t token, uint8_t ep)
+{
+    uint8_t regval;
+    uint16_t timeout;
+
+    /* Instruct the module to send the data as the specified type */
+    MAX_writeRegister(rHXFR, token | ep);
+
+    //SysCtlDelay(1000);
+	SoftUsecWait((1000 / MAX_TIMER_CONVERSION));
+
+    timeout = 0xFFFF;
+    while (timeout)
+	{
+        regval = MAX_readRegister(rHRSL) & 0x0F;
+
+        if (regval == rslBUSY)
+		{
+            //SysCtlDelay(100);
+			SoftUsecWait((100 / MAX_TIMER_CONVERSION));
+        }
+		else if (regval == rslNAK)
+		{
+            timeout--;
+            MAX_writeRegister(rHXFR, token | ep);
+
+            //SysCtlDelay(200);
+			SoftUsecWait((200 / MAX_TIMER_CONVERSION));
+        }
+		else { break; }
+    }
+
+    //regval = MAX_readRegister(rHRSL) & 0x0F;
+    if (regval)
+	{
+        debugErr("USB Host Controller: Error or timeout: %s (0x%x)\r\n", ResultCodeName(regval), regval);
+	}
+
+    return regval;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t requestData(uint8_t* rxbuffer, uint16_t nbytes)
+{
+    uint8_t it, timeout, readlength, result;
+
+#if 1 /* Original */
+    /* Send a BULK-IN request packet */
+    transmitPacket(xfrIN, usbMscBulkInEP);
+#else /* Test the opposite */
+    /* Send a BULK-OUT request packet */
+    transmitPacket(xfrOUT, usbMscBulkOutEP);
+#endif
+
+    /* Wait until we have a reply, or timeout */
+    timeout = 0xFF;
+    while ((!(MAX_readRegister(rHIRQ) & MAX_IRQ_RCVDAV)) && timeout)
+	{
+        //SysCtlDelay(300);
+		SoftUsecWait((300 / MAX_TIMER_CONVERSION));
+
+        timeout--;
+    }
+
+    /* Quit if we got a timeout */
+    if (!timeout) { return 0xFF; }
+
+    /* This delay is apparently necessary, as the RX FIFO isn't directly ready (first byte will randomly corrupt) */
+    //SysCtlDelay(500);
+	SoftUsecWait((500 / MAX_TIMER_CONVERSION));
+
+    /* Get the length of the received data (should be the same as nbytes) */
+    readlength = MAX_readRegister(rRCVBC);
+
+    if (readlength != nbytes)
+	{
+        debugErr("USB Host Controller: Error: expected %d bytes, but got %d!\r\n", nbytes, readlength);
+        return 0xF0;
+    }
+    //totalRcvd += readlength;
+
+    /* Check the transfer result code: if it's an error, then quit */
+    result = MAX_readRegister(rHRSL) & 0x0F;
+
+    if (result && result != rslBUSY)
+	{
+        return result;
+    }
+
+    /* No error, so read the actual data */
+    MAX_multiReadRegister(rRCVFIFO, rxbuffer, readlength);
+
+    /* A simple test for now */
+    /* TODO remove! */
+    for (it = 0; it < 64; it++)
+	{
+        if ( rxbuffer[it] > 9 )
+		{
+            debugErr("USB Host Controller: Byte error: %d (%d)...\r\n", rxbuffer[it], it);
+		}
+    }
+
+    /* Clear the interrupt */
+    MAX_writeRegister(rHIRQ, MAX_IRQ_RCVDAV);
+
+    return 0;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t MAX_getInterruptStatus(void)
+{
+	return MAX_readRegister(rHIRQ);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t MAX_getEnabledInterruptStatus(void)
+{
+    uint8_t result = MAX_getInterruptStatus();
+    return result & enabledIRQ;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t MAX_getEPInterruptStatus(void)
+{
+    return MAX_readRegister(rEPIRQ);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t MAX_getEnabledEPInterruptStatus(void)
+{
+    uint8_t result = MAX_getEPInterruptStatus();
+    return result & enabledEPIRQ;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MAX_disableEPInterrupts(uint8_t flags)
+{
+    /* Disable the interrupts */
+	return;
+
+    enabledEPIRQ &= ~flags;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t sendControl(ControlPacket* packet)
+{
+    uint8_t rescode;
+    uint32_t timeout;
+
+#if 1 /* Original */
+	/* Make sure the peripheral address is correct */
+	MAX_writeRegister(rPERADDR, packet->perAddress);
+	debug("USB Host Controller: Peripheral Addr set\r\n");
+#else /* Test without setting addr for Device Descriptor but that shouldn't be valid */
+	if (packet->bRequest != 6)
+	{
+		/* Make sure the peripheral address is correct */
+		MAX_writeRegister(rPERADDR, packet->perAddress);
+		debug("USB Host Controller: Peripheral Addr set\r\n");
+	}
+	else
+	{
+		debug("USB Host Controller: Skipping peripheral addr set for Get Descriptor\r\n");
+	}
+#endif
+
+    /* Load the contents from the given packet and send this as a Control packet, should be setup little endian */
+    TXData[0] = packet->bmRequestType;
+    TXData[1] = packet->bRequest;
+    TXData[2] = (uint8_t) ((packet->wValue & 0xFF));
+    TXData[3] = (uint8_t) (packet->wValue >> 8);
+    TXData[4] = (uint8_t) ((packet->wIndex & 0xFF));
+    TXData[5] = (uint8_t) (packet->wIndex >> 8);
+    TXData[6] = (uint8_t) ((packet->wLength & 0xFF));
+    TXData[7] = (uint8_t) (packet->wLength >> 8);
+
+	debug("USB Host Controller: TX packet %02x %02x %02x %02x %02x %02x %02x %02x\r\n", TXData[0], TXData[1], TXData[2], TXData[3], TXData[4], TXData[5], TXData[6], TXData[7]);
+
+    /* Write the data into the SUPFIFO */
+    MAX_multiWriteRegister(rSUDFIFO, (uint8_t*)TXData, 8);
+
+    debug("USB Host Controller: Sending bRequest: 0x%x. (addr %d)\r\n", packet->bRequest, packet->perAddress);
+
+    /* Start the transaction */
+    rescode = transmitPacket(0x10, 0);
+    if (rescode) { debugErr("USB Host Controller: Transmit packet retrn code (%d)\r\n", rescode); return rescode; }
+	else { debug("USB Host Controller: Transmit packed (Setup) success\r\n"); }
+
+    /* Check whether we need a data stage (request only at the moment) and perform */
+    if ((packet->wLength > 0) && (packet->direction == DIR_IN))
+	{
+        rescode = transmitPacket(xfrIN, 0);
+        if (rescode) { debugErr("USB Host Controller: Transmit packet retrn code (%d)\r\n", rescode); return rescode; }
+		else { debug("USB Host Controller: Transmit packed (In) success\r\n"); }
+
+        timeout = 0x1FFFF;
+        while (!(MAX_readRegister(rHIRQ) & MAX_IRQ_RCVDAV) && timeout)
+		{
+            timeout--;
+            //SysCtlDelay(100);
+			SoftUsecWait((100 / MAX_TIMER_CONVERSION));
+			if ((timeout % 6000) == 0) { debugRaw("."); }
+        }
+
+        if (timeout == 0)
+		{
+            debugErr("USB Host Controller: Timeout hit, HIRQ: 0x%x\r\n", MAX_readRegister(rHIRQ));
+        }
+
+        /* Check if we got data and read if available */
+        if (MAX_readRegister(rHIRQ) & MAX_IRQ_RCVDAV)
+		{
+			memset((uint8_t*)ControlBuffer, 0, sizeof(ControlBuffer));
+
+            lastReadSize = MAX_readRegister(rRCVBC);
+			debug("USB Host Controller: Read length %d bytes\r\n", lastReadSize);
+
+            MAX_multiReadRegister(rRCVFIFO, (uint8_t*)ControlBuffer, lastReadSize);
+
+			if (lastReadSize)
+			{
+	            debugRaw("\r\nUSB Host Controller: Got control data: ");
+				uint8_t i = 0;
+				while (i < lastReadSize)
+				{
+					debugRaw("%02x ", ControlBuffer[i++]);
+				}
+				debugRaw("\r\n");
+			}
+
+            MAX_writeRegister(rHIRQ, MAX_IRQ_RCVDAV);
+        }
+    }
+
+    /* Send an HS-IN or HS-OUT. */
+    if (packet->direction == DIR_OUT)
+	{
+        rescode = transmitPacket(0x80, 0);
+		debug("USB Host Controller: Transmit packet HS-IN (response code %0x)\r\n");
+    }
+	else
+	{
+        rescode = transmitPacket(0xA0, 0);
+		debug("USB Host Controller: Transmit packet HS-OUT (response code %0x)\r\n");
+    }
+
+    return rescode;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t USB_getDeviceDescriptorShortRequest(uint8_t peraddress)
+{
+    ControlPacket addrPacket =
+	{
+		peraddress, /* perAddress */
+		0x10, /* type */
+		0, /* endPoint */
+		0x80, /*bmRequestType*/
+		0x06, /* bRequest */
+		0x0100, /* wValue */
+		0x0000, /* wIndex */
+		0x0008, /* wLength */
+		DIR_IN /* direction */
+    };
+
+    return sendControl(&addrPacket);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t USB_getDeviceDescriptorRequest(uint8_t peraddress)
+{
+    ControlPacket addrPacket =
+	{
+		peraddress, /* perAddress */
+		0x10, /* type */
+		0, /* endPoint */
+		0x80, /*bmRequestType*/
+		0x06, /* bRequest */
+		0x0100, /* wValue */
+		0x0000, /* wIndex */
+		0x0040, /* wLength */
+		DIR_IN /* direction */
+    };
+
+    return sendControl(&addrPacket);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t USB_getConfigurationDescriptorRequest(uint8_t peraddress)
+{
+    ControlPacket addrPacket =
+	{
+		peraddress, /* perAddress */
+		0x10, /* type */
+		0, /* endPoint */
+		0x80, /*bmRequestType*/
+		0x06, /* bRequest */
+		0x0200, /* wValue */
+		0x0000, /* wIndex */
+		0x0009, /* wLength */
+		DIR_IN /* direction */
+    };
+
+    return sendControl(&addrPacket);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t USB_getConfigurationDescriptorFullRequest(uint8_t peraddress, uint8_t length)
+{
+    ControlPacket addrPacket =
+	{
+		peraddress, /* perAddress */
+		0x10, /* type */
+		0, /* endPoint */
+		0x80, /*bmRequestType*/
+		0x06, /* bRequest */
+		0x0200, /* wValue */
+		0x0000, /* wIndex */
+		length, /* wLength */
+		DIR_IN /* direction */
+    };
+
+    return sendControl(&addrPacket);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t USB_getStringDescriptorRequest(uint8_t peraddress)
+{
+    ControlPacket addrPacket =
+	{
+		peraddress, /* perAddress */
+		0x10, /* type */
+		0, /* endPoint */
+		0x80, /*bmRequestType*/
+		0x06, /* bRequest */
+		0x0300, /* wValue */
+		0x0000, /* wIndex */
+		0x0010, /* wLength */
+		DIR_IN /* direction */
+    };
+
+    return sendControl(&addrPacket);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t USB_setNewPeripheralAddress(uint8_t peraddress)
+{
+    ControlPacket addrPacket =
+	{
+		0, /* perAddress */
+		0x10, /* type */
+		0, /* endPoint */
+		0, /*bmRequestType*/
+		reqSET_ADDRESS, /* bRequest */
+		peraddress, /* wValue */
+		0, /* wIndex */
+		0, /* wLength */
+		DIR_OUT /* direction */
+    };
+
+    return sendControl(&addrPacket);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t USB_setConfiguration(uint8_t peraddress, uint8_t config)
+{
+    ControlPacket addrPacket =
+	{
+		peraddress, /* perAddress */
+		0x10, /* type */
+		0, /* endPoint */
+		0, /*bmRequestType*/
+		reqSET_CONFIGURATION, /* bRequest */
+		config, /* wValue */
+		0, /* wIndex */
+		0, /* wLength */
+		DIR_OUT /* direction */
+    };
+
+    return sendControl(&addrPacket);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t USB_requestStatus(uint8_t* resultBuffer)
+{
+    ControlPacket packet =
+	{
+		PERIPHERAL_ADDRESS, /* perAddress */
+		0x10, /* type */
+		0, /* endPoint */
+		0x80, /*bmRequestType*/
+		reqGET_STATUS, /* bRequest */
+		0, /* wValue */
+		0, /* wIndex */
+		2, /* wLength */
+		DIR_IN
+	};
+
+    return sendControl(&packet);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t USB_doEnumeration(void)
+{
+    uint16_t tries = 0;
+
+    MAX_enableOptions(rHCTL, BIT7);
+    MAX_disableOptions(rHCTL, BIT6);
+    MAX_enableOptions(rHCTL, BIT5);
+    MAX_disableOptions(rHCTL, BIT4);
+
+    while (tries < 20)
+	{
+        if (tries)
+		{
+            debugErr("USB Host Controller: Enumeration failed. Retrying...\r\n");
+            USB_busReset();
+
+            //SysCtlDelay(4000000);
+			SoftUsecWait((4000000 / MAX_TIMER_CONVERSION));
+        }
+
+        tries++;
+        MAX_writeRegister(rPERADDR, 0);
+
+        if (!USB_setNewPeripheralAddress(PERIPHERAL_ADDRESS))
+		{
+            MAX_writeRegister(rPERADDR, PERIPHERAL_ADDRESS);
+
+            //SysCtlDelay(500000);
+			SoftUsecWait((500000 / MAX_TIMER_CONVERSION));
+        }
+		else
+		{
+            continue;
+        }
+
+        if (!USB_requestStatus(0))
+		{
+            break;
+		}
+    }
+
+    if (tries < 20)
+	{
+        MAX_enableOptions(rHCTL, BIT6);
+        MAX_disableOptions(rHCTL, BIT7);
+        MAX_enableOptions(rHCTL, BIT4);
+        MAX_disableOptions(rHCTL, BIT5);
+
+		return 0;
+    }
+	else
+	{
+        return 1;
+    }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MAX_ISR(void)
+{
+	debugRaw("-USBHC-");
+
+    uint8_t regval, USBStatus;
+
+    /* Get the IQR status */
+    USBStatus = MAX_getEnabledInterruptStatus();
+
+#if 0 /* Device mode */
+	uint8_t USBEPStatus;
+    USBEPStatus = MAX_getEnabledEPInterruptStatus();
+
+    /* Peripheral: we got a setup package */
+    if (USBEPStatus & MAX_IRQ_SUDAV)
+	{
+        MAX_writeRegister(rEPIRQ, BIT5);
+        MAX_multiReadRegister(4, (uint_fast8_t *) RXData, 8);
+
+        switch (RXData[1])
+		{
+			case reqSET_ADDRESS:
+				ACKSTAT = true;
+				MAX_readRegister(19);
+				break;
+			case reqGET_STATUS:
+				USB_respondStatus((uint_fast8_t *) RXData);
+				break;
+        }
+    }
+
+    /* Peripheral: the buffer is available again */
+    if (USBEPStatus & MAX_IRQ_IN2BAV)
+	{
+        MAX_disableEPInterrupts(MAX_IRQ_IN2BAV);
+    }
+
+    /* Peripheral: a bus reset was commanded */
+    if ( !mode && USBStatus & MAX_IRQ_URESDN ) {
+        MAX_writeRegister(rUSBIRQ, MAX_IRQ_URESDN);
+
+        /* Reconfigure the interrupts after a reset */
+        MAX_enableEPInterrupts(MAX_IRQ_SUDAV);
+        MAX_clearEPInterruptStatus(MAX_IRQ_SUDAV);
+        MAX_enableInterrupts(MAX_IRQ_URESDN);
+        MAX_clearInterruptStatus(MAX_IRQ_URESDN);
+
+        /* Re-enable EP2 */
+        MAX_writeRegister(rEP2INBC, 64);
+    }
+#endif
+
+    /* Host: a peripheral connected or disconnected */
+    if (USBStatus & MAX_IRQ_CONDET)
+	{
+        regval = MAX_readRegister(rHRSL);
+
+        if (regval & 0xC0)
+		{
+            peripheralConnected = 1;
+
+            /* Enable the SOF generator */
+            MAX_enableOptions(rMODE, BIT3);
+            while (!(MAX_readRegister(rHIRQ) & MAX_IRQ_FRAME)) { ; }
+
+            USB_busReset();
+
+            //SysCtlDelay(4000000);
+			SoftUsecWait((4000000 / MAX_TIMER_CONVERSION));
+
+            if (USB_doEnumeration())
+                debugErr("USB Host Controller ISR: Enumeration Failed...\r\n");
+            else
+                debug("USB Host Controller ISR: Done with enumeration!\r\n");
+
+            /* Add a delay to stabilise the bus */
+            //SysCtlDelay(8000000);
+			SoftUsecWait((8000000 / MAX_TIMER_CONVERSION));
+        }
+		else
+		{
+            peripheralConnected = 0;
+            /* Disable the SOF generator */
+            MAX_disableOptions(rMODE, BIT3);
+        }
+
+        //if (handlePtr != 0) { handlePtr((uint_fast8_t) peripheralConnected); }
+		MAX_checkBusState();
+
+        MAX_writeRegister(rHIRQ, BIT5);
+    }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void MAX_processNewDevice(void)
+{
+    uint8_t regval;
+
+	regval = MAX_readRegister(rHRSL);
+
+	if (regval & 0xC0)
+	{
+		debug("USB Host Controller: Peripheral connected\r\n");
+		peripheralConnected = 1;
+
+		/* Enable the SOF generator */
+		MAX_enableOptions(rMODE, BIT3);
+		while (!(MAX_readRegister(rHIRQ) & MAX_IRQ_FRAME)) { ; }
+
+		USB_busReset();
+
+		//SysCtlDelay(4000000);
+		SoftUsecWait((4000000 / MAX_TIMER_CONVERSION));
+
+		if (USB_doEnumeration())
+			debugErr("USB Host Controller: Enumeration Failed...\r\n");
+		else
+			debug("USB Host Controller: Done with enumeration\r\n");
+
+		/* Add a delay to stabilise the bus */
+		//SysCtlDelay(8000000);
+		SoftUsecWait((8000000 / MAX_TIMER_CONVERSION));
+	}
+	else
+	{
+		debugWarn("USB Host Controller: Peripheral not found\r\n");
+		peripheralConnected = 0;
+		/* Disable the SOF generator */
+		MAX_disableOptions(rMODE, BIT3);
+	}
+
+	//if (handlePtr != 0) { handlePtr((uint_fast8_t) peripheralConnected); }
+	MAX_checkBusState();
+
+	MAX_writeRegister(rHIRQ, BIT5);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetDataToggles(uint8_t snd, uint8_t rcv)
+{
+	uint8_t setToggles = MAX_readRegister(rHCTL);
+
+	setToggles &= 0x0F;
+#if 0 /* Straight */
+	if (snd) { setToggles |= BIT7; } else { setToggles |= BIT6; }
+	if (rcv) { setToggles |= BIT5; } else { setToggles |= BIT4; }
+#else /* Flip */
+	if (snd) { setToggles |= BIT6; } else { setToggles |= BIT7; }
+	if (rcv) { setToggles |= BIT5; } else { setToggles |= BIT5; }
+#endif
+	MAX_writeRegister(rHCTL, setToggles);
+	debug("USB Host Controller: setting HCTL to 0x%x\r\n", setToggles);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void CheckDataToggleAndSet(void)
+{
+	uint8_t readToggles = MAX_readRegister(rHRSL);
+
+	if ((readToggles & BIT5) && (readToggles & BIT4)) { debug("USB Host Controller: SND and RCV toggles both 1 (0x%0x), setting as such\r\n", readToggles); SetDataToggles(1, 1); }
+	else if (readToggles & BIT5) { debug("USB Host Controller: SND is 1, RCV is 0 (0x%0x), setting toggles as such\r\n", readToggles); SetDataToggles(1, 0); }
+	else if (readToggles & BIT4) { debug("USB Host Controller: SND is 0, RCV is 1 (0x%0x), setting toggles as such\r\n", readToggles); SetDataToggles(0, 1);}
+	else /* readToggles are zero */ { debug("USB Host Controller: SND and RCV toggles both 0 (0x%0x), setting as such\r\n", readToggles); SetDataToggles(0, 0); }
+
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+char* GetUsbClassName(uint8_t class)
+{
+	char* className = NULL;
+
+	switch (class)
+	{
+		case USB_ADC_CLASS: className = USB_ADC_CLASS_NAME; break;
+		case USB_CDC_CLASS: className = USB_CDC_CLASS_NAME; break;
+		case USB_HID_CLASS: className = USB_HID_CLASS_NAME; break;
+		case USB_PRT_CLASS: className = USB_PRT_CLASS_NAME; break;
+		case USB_MSC_CLASS: className = USB_MSC_CLASS_NAME; break;
+		default: className = USB_UNKNOWN_NAME; break;
+	}
+
+	return (className);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+char* GetUsbTransferTypeName(uint8_t transferType)
+{
+	char* transferTypeName = NULL;
+
+	switch (transferType)
+	{
+		case USB_TRANSFER_CONTROL: transferTypeName = USB_TRANSFER_CONTROL_NAME; break;
+		case USB_TRANSFER_ISOCHRONOUS: transferTypeName = USB_TRANSFER_ISOCHRONOUS_NAME; break;
+		case USB_TRANSFER_BULK: transferTypeName = USB_TRANSFER_BULK_NAME; break;
+		case USB_TRANSFER_INTERRUPT: transferTypeName = USB_TRANSFER_INTERRUPT_NAME; break;
+		default: transferTypeName = USB_UNKNOWN_NAME; break;
+	}
+
+	return (transferTypeName);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void DecodeFullConfigDescriptor(uint8_t fullConfigLength)
+{
+	/*
+		Example: USB Host Controller: Got control data: 09 02 20 00 01 01 00 80 32 09 04 00 00 02 08 06 50 00 07 05 01 02 40 00 00 07 05 82 02 40 00 00 00
+
+		---------------- Configuration Descriptor -----------------
+		0 bLength                  : 0x09 (9 bytes)
+		1 bDescriptorType          : 0x02 (Configuration Descriptor)
+		2 wTotalLength             : 0x0020 (32 bytes)
+		4 bNumInterfaces           : 0x01 (1 Interface)
+		5 bConfigurationValue      : 0x01 (Configuration 1)
+		6 iConfiguration           : 0x00 (No String Descriptor)
+		7 bmAttributes             : 0x80
+		8 MaxPower                 : 0x32 (100 mA)
+
+		---------------- Interface Descriptor -----------------
+		0 bLength                  : 0x09 (9 bytes)
+		1 bDescriptorType          : 0x04 (Interface Descriptor)
+		2 bInterfaceNumber         : 0x00 (Interface 0)
+		3 bAlternateSetting        : 0x00
+		4 bNumEndpoints            : 0x02 (2 Endpoints)
+		5 bInterfaceClass          : 0x08 (Mass Storage)
+		6 bInterfaceSubClass       : 0x06 (SCSI transparent command set)
+		7 bInterfaceProtocol       : 0x50 (Bulk-Only Transport)
+		8 iInterface               : 0x00 (No String Descriptor)
+
+		----------------- Endpoint Descriptor -----------------
+		0 bLength                  : 0x07 (7 bytes)
+		1 bDescriptorType          : 0x05 (Endpoint Descriptor)
+		2 bEndpointAddress         : 0x01 (Direction=OUT EndpointID=1)
+		3 bmAttributes             : 0x02 (TransferType=Bulk)
+		4 wMaxPacketSize           : 0x0200 (max 512 bytes)
+		5 bInterval                : 0x00 (never NAKs)
+	*/
+
+	uint8_t* configPayload = (uint8_t*)&ControlBuffer[0];
+
+	debug("USB Host Controller: -------- Configuration --------\r\n");
+	while (fullConfigLength)
+	{
+		if (configPayload[1] == 0x02) // Configuration descriptor
+		{
+			sprintf((char*)g_debugBuffer, "Configuration %d, Num of Interfaces: %d, Max power: %d mA", configPayload[5], configPayload[4], (configPayload[8] * 2));
+			debug("USB Host Controller: %s\r\n", (char*)g_debugBuffer);
+			OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (3 * SOFT_SECS));
+
+			usbMscConfigID = configPayload[5];
+		}
+		else if (configPayload[1] == 0x04) // Interface descriptor
+		{
+			sprintf((char*)g_debugBuffer, "Interface %d, Num of Endpoints: %d, Class: %s", configPayload[2], configPayload[4], GetUsbClassName(configPayload[5]));
+			debug("USB Host Controller: %s\r\n", (char*)g_debugBuffer);
+			OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (3 * SOFT_SECS));
+		}
+		else if (configPayload[1] == 0x05) // Endpoint descriptor
+		{
+			sprintf((char*)g_debugBuffer, "Endpoint %d, %s, %s, Max size %d", (configPayload[2] & 0x0F), ((configPayload[2] & 0x80) ? "In" : "Out"), GetUsbTransferTypeName(configPayload[3]), configPayload[4]);
+			debug("USB Host Controller: %s\r\n", (char*)g_debugBuffer);
+			OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+
+			if (configPayload[3] == USB_TRANSFER_BULK)
+			{
+				if (configPayload[2] & 0x80) { usbMscBulkInEP = (configPayload[2] & 0x0F); }
+				else { usbMscBulkOutEP = configPayload[2]; }
+			}
+		}
+
+		fullConfigLength -= configPayload[0];
+		configPayload += configPayload[0];
+	}
+}
+
+#define CBWFLAGS_DIR_IN         0x80 // For data-in operation, Indicates that data is being sent from the device to the host
+#define CBWFLAGS_DIR_OUT        0x00 // For data-out operation, Indicates that data is being sent from the host to the device
+
+// Command Descriptor Block for 6-byte command
+typedef struct {
+    uint8_t opCode;			// Operation code
+    uint8_t lun;			// Logical unit number
+    uint8_t lbaMsb;			// Logical block address, MSB (Big Endian)
+    uint8_t lbaLsb;			// Logical block address, LSB (Big Endian)
+    uint8_t xferLength;		// Transfer length
+    uint8_t control;		// Control
+	uint8_t pad[10];		// Padding for 16-byte command block
+} USB_CBW_SCSI_6;
+
+// Command Descriptor Block for 10-byte command
+typedef struct {
+    uint8_t opCode;			// Operation code
+    uint8_t lun;			// Logical unit number
+    uint8_t lba1;			// Logical block address, MSB (Big Endian)
+    uint8_t lba2;			// Logical block address, 2nd MSB (Big Endian)
+    uint8_t lba3;			// Logical block address, 2nd LSB (Big Endian)
+    uint8_t lba4;			// Logical block address, LSB (Big Endian)
+    uint8_t reserved;		// Reserved
+    uint8_t xferLen1;		// Transfer length, MSB (Big Endian)
+    uint8_t xferLen2;		// Transfer length, LSB (Big Endian)
+    uint8_t control;		// Control
+	uint8_t pad[6];			// Padding for 16-byte command block
+} USB_CBW_SCSI_10;
+
+// Command Descriptor Block for 12-byte command
+typedef struct {
+    uint8_t opCode;			// Operation code
+    uint8_t lun;			// Logical unit number
+    uint8_t lba1;			// Logical block address, MSB (Big Endian)
+    uint8_t lba2;			// Logical block address, 2nd MSB (Big Endian)
+    uint8_t lba3;			// Logical block address, 2nd LSB (Big Endian)
+    uint8_t lba4;			// Logical block address, LSB (Big Endian)
+    uint8_t xferLen1;		// Transfer length, MSB (Big Endian)
+    uint8_t xferLen2;		// Transfer length, 2nd MSB (Big Endian)
+    uint8_t xferLen3;		// Transfer length, 2nd LSB (Big Endian)
+    uint8_t xferLen4;		// Transfer length, LSB (Big Endian)
+    uint8_t control;		// Control
+	uint8_t pad[4];			// Padding for 16-byte command block
+} USB_CBW_SCSI_12;
+
+typedef struct __attribute__((packed)) {
+    uint32_t dCBWSignature;  // Signature identifying the CBW
+    uint32_t dCBWTag;        // Unique tag for the command
+    uint32_t dCBWDataTransferLength; // Length of data to transfer
+    uint8_t bmCBWFlags;      // Flags indicating data direction
+    uint8_t bCBWLUN;         // Logical Unit Number
+    uint8_t cbCBWLength;     // Length of the command
+	union {
+		USB_CBW_SCSI_6 six;
+		USB_CBW_SCSI_10 ten;
+		USB_CBW_SCSI_12 twelve;
+	} scsiCmd;
+} USB_CBW;
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void USB_setupBulkCbw(void)
+{
+	/*
+		The CPU programs this similarly to a BULK transfer. The CPU loads bytes into the SNDFIFO,
+		and writes the byte count into SNDBC. Then it writes the HXFR register with 0110eeee (Table
+		4) to launch the transfer.
+	*/
+
+	// Setup CBW (done)
+	// Set sector address in command block (done, BE)
+	// Select read or write (done)
+	// Write CBW into SNDFIFO (done)
+	// Write byte count into SNDBC (done)
+	// Write HXFR to initiate transfer
+	// Immediately read or write data
+	// After data complete, read CSW
+
+	/*
+		Example of a CBW : An example of a CBW might look like this:
+		Signature: 				0x43425355 (ASCII for "USBC")
+		Tag: 					0x00000001 (Unique command identifier)
+		Data Transfer Length: 	0x00000010 (16 bytes to be transferred)
+		Flags: 					0x00 (Data transfer from host to device)
+		LUN: 					0x00 (First logical unit)
+		Command Length: 		0x0A (10 bytes for the command)
+		Command Block: 			0x28 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 (Example command for a read operation)
+	*/
+
+	USB_CBW cbwRequest;
+
+	debug("USB Host Controller: CBW setup (Size is %d)\r\n", sizeof(cbwRequest));
+	memset(&cbwRequest, 0, sizeof(cbwRequest));
+
+	cbwRequest.dCBWSignature = __builtin_bswap32(0x43425355);
+	cbwRequest.dCBWTag = __builtin_bswap32(0x00000001);
+	cbwRequest.dCBWDataTransferLength = __builtin_bswap32(0x00000010);
+	cbwRequest.bmCBWFlags = CBWFLAGS_DIR_IN;
+	cbwRequest.bCBWLUN = 0x00;
+
+	cbwRequest.cbCBWLength = 12;
+	cbwRequest.scsiCmd.twelve.opCode = 0x28;
+	cbwRequest.scsiCmd.twelve.lun = 0;
+	cbwRequest.scsiCmd.twelve.lba4 = 0;
+	cbwRequest.scsiCmd.twelve.xferLen4 = 1;
+	cbwRequest.scsiCmd.twelve.control = 0;
+
+	uint8_t i;
+	for (i = 0; i < sizeof(cbwRequest); i++)
+	{
+		debug("USB Host Controller: CBW Request[%d]	= 0x%x\r\n", i, ((uint8_t*)&cbwRequest)[i]);
+	}
+
+	debug("USB Host Controller: CBW write to SNDFIFO (cbwRequest size is %d)\r\n", sizeof(cbwRequest));
+	MAX_multiWriteRegister(rSNDFIFO, (uint8_t*)&cbwRequest, sizeof(cbwRequest));
+
+	debug("USB Host Controller: Byte count write to SNDBC (Count is %d)\r\n", sizeof(cbwRequest));
+	MAX_writeRegister(rSNDBC, sizeof(cbwRequest));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void USBHostControllerTest(void)
+{
+	USBCPortControllerSwapToHost();
+    debug("USB Host Controller: Delay for USB Device power to stabilize\r\n");
+	SoftUsecWait(2 * SOFT_SECS);
+
+    MAX_start();
+
+    MAX_checkBusState();
+
+    /* Enable interrupts */
+    MAX_enableInterrupts(MAX_IRQ_CONDET);
+    MAX_clearInterruptStatus(MAX_IRQ_CONDET);
+    MAX_enableInterruptsMaster();
+
+    uint8_t regval = MAX_readRegister(rREVISION);
+    debug("USB Host Controller: Revision: 0x%x\r\n", regval);
+
+    /* Perform a bus reset to reconnect after a power down */
+    if (!peripheralAvailable)
+	{
+        debugWarn("USB Host Controller: Perform a bus reset to reconnect after a power down\r\n");
+		USB_busReset();
+	}
+
+	MAX_processNewDevice();
+
+	uint8_t responseCode;
+	uint8_t fullConfigLength = 0;
+	debug("USB Host Controller: ----------------\r\n"); debug("USB Host Controller: Requesting Device Descriptor to addr %d...\r\n", PERIPHERAL_ADDRESS); CheckDataToggleAndSet(); responseCode = USB_getDeviceDescriptorRequest(PERIPHERAL_ADDRESS);
+	debug("USB Host Controller: Response code %02x\r\n", responseCode);
+
+	debug("USB Host Controller: ----------------\r\n"); debug("USB Host Controller: Requesting Configuration (Base) Descriptor to addr %d...\r\n", PERIPHERAL_ADDRESS); CheckDataToggleAndSet(); responseCode = USB_getConfigurationDescriptorRequest(PERIPHERAL_ADDRESS);
+	debug("USB Host Controller: Response code %02x\r\n", responseCode);
+	if (responseCode == rslSUCCES)
+	{
+#if 0 /* Test */
+        debugRaw("\r\nUSB Host Controller: Check Control data: ");
+		uint8_t i = 0;
+		while (i < 9)
+		{
+			debugRaw("%02x ", ControlBuffer[i++]);
+		}
+		debugRaw("\r\n");
+
+		debug("USB Host Controller: Config check (%d) (%d)\r\n", ControlBuffer[0], USB_CONFIG_DESCRIPTOR);
+#endif
+		if (ControlBuffer[1] == USB_CONFIG_DESCRIPTOR)
+		{
+			fullConfigLength = ControlBuffer[2];
+			debug("USB Host Controller: Config full length is %d\r\n", fullConfigLength);
+		}
+		else
+		{
+			debugErr("USB Host Controller: Wrong descriptor (%d)\r\n", ControlBuffer[1]);
+		}
+	}
+	else
+	{
+		debugErr("USB Host Controller: Bad response code, Configuraiton descriptor full length not available\r\n");
+	}
+
+	debug("USB Host Controller: ----------------\r\n"); debug("USB Host Controller: Requesting String Descriptor to addr %d...\r\n", PERIPHERAL_ADDRESS); CheckDataToggleAndSet(); responseCode = USB_getStringDescriptorRequest(PERIPHERAL_ADDRESS);
+	debug("USB Host Controller: Response code %02x\r\n", responseCode);
+
+	if (fullConfigLength)
+	{
+		debug("USB Host Controller: ----------------\r\n"); debug("USB Host Controller: Requesting Configuration (Full) Descriptor to addr %d...\r\n", PERIPHERAL_ADDRESS);
+		CheckDataToggleAndSet(); responseCode = USB_getConfigurationDescriptorFullRequest(PERIPHERAL_ADDRESS, fullConfigLength);
+		debug("USB Host Controller: Response code %02x\r\n", responseCode);
+
+		if (responseCode == rslSUCCES)
+		{
+			if (lastReadSize == fullConfigLength)
+			{
+				DecodeFullConfigDescriptor(fullConfigLength);
+			}
+			else
+			{
+				debugWarn("USB Host Controller: Read size did not match full Configuration Descriptor\r\n");
+				OverlayMessage(getLangText(WARNING_TEXT), "Read size did not match full Configuration Descriptor", (3 * SOFT_SECS));
+			}
+		}
+		else { debugErr("USB Host Controller: Error getting full Configuration Descriptor\r\n"); }
+	}
+	else
+	{
+		debugErr("USB Host Controller: Full configuraiton descriptor not requested due to no valid length\r\n");
+	}
+
+	debug("USB Host Controller: ----------------\r\n"); debug("USB Host Controller: USB MSC Bulk Out EP is %d, USB MSC Bulk In EP is %d\r\n", usbMscBulkOutEP, usbMscBulkInEP);
+
+#if 0 /* Test? */
+	debug("USB Host Controller: ----------------\r\n"); debug("USB Host Controller: Sending Set Configuraiton to addr %d...\r\n", PERIPHERAL_ADDRESS); CheckDataToggleAndSet(); responseCode = USB_setConfiguration(PERIPHERAL_ADDRESS, 0);
+	debug("USB Host Controller: Response code %02x\r\n", responseCode);
+
+	debug("USB Host Controller: ----------------\r\n"); debug("USB Host Controller: Sending Set Configuraiton to addr %d...\r\n", PERIPHERAL_ADDRESS); CheckDataToggleAndSet(); responseCode = USB_setConfiguration(PERIPHERAL_ADDRESS, 1);
+	debug("USB Host Controller: Response code %02x\r\n", responseCode);
+#endif
+
+#if 1 /* Working */
+	debug("USB Host Controller: ----------------\r\n"); debug("USB Host Controller: Sending Set Configuraiton to addr %d...\r\n", PERIPHERAL_ADDRESS); CheckDataToggleAndSet(); responseCode = USB_setConfiguration(PERIPHERAL_ADDRESS, usbMscConfigID);
+	debug("USB Host Controller: Response code %02x\r\n", responseCode);
+#else /* Test incorrect config number, showed success */
+	debug("USB Host Controller: ----------------\r\n"); debug("USB Host Controller: Sending Set Configuraiton to addr %d...\r\n", PERIPHERAL_ADDRESS); CheckDataToggleAndSet(); responseCode = USB_setConfiguration(PERIPHERAL_ADDRESS, 7);
+	debug("USB Host Controller: Response code %02x\r\n", responseCode);
+#endif
+
+	responseCode = USB_requestStatus(0);
+	debug("USB Host Controller: Response code %02x\r\n", responseCode);
+
+#if 0 /* Incorrect method to initiate bulk transfer */
+	debug("USB Host Controller: ----------------\r\n"); debug("USB Host Controller: Requesting data...\r\n"); MAX_writeRegister(rHIRQ, BIT2); CheckDataToggleAndSet(); responseCode = requestData((uint8_t*) RXData, 64);
+	if (responseCode != 0) { debugErr("USB Host Controller: Request result error: %s (0x%x)\r\n", ResultCodeName(responseCode), responseCode); } else { debug("USB Host Controller: Read 64 bytes\r\n"); }
+#endif
+
+	/*
+		Steps to Perform a Bulk Only Transfer
+		1. Sending the Command Block Wrapper (CBW)
+			The host initiates the transfer by sending a Command Block Wrapper (CBW) to the device.
+			This CBW is sent via a Bulk-Out endpoint and contains the command that the device needs to execute.
+
+		2. Device Processing
+			Upon receiving the CBW, the device processes the command.
+			It checks the validity of the CBW and prepares to execute the requested operation.
+
+		3. Receiving the Command Status Wrapper (CSW)
+			After processing the command, the device sends back a Command Status Wrapper (CSW) to the host.
+			This CSW is transmitted via a Bulk-In endpoint and indicates the status of the command execution (success or failure).
+
+	*/
+
+	USB_setupBulkCbw();
+	requestData(g_spareBuffer, 512);
+
+	/*
+		Notes: A Command Block Wrapper (CBW) in USB Bulk-Only Transport (BOT) is a 31-byte structure sent from the host to the device to initiate a command.
+		Structure of CBW
+
+		The CBW consists of several fields that define the command and its parameters. Here’s a breakdown of its components:
+		Field Name	Size (Bytes)	Description
+		Signature				4	A unique identifier for the CBW, typically set to "USBC"
+		Tag						4	A unique identifier for the command, used for matching with the Command Status Wrapper (CSW)
+		Data Transfer Length	4	The total number of bytes to be transferred
+		Flags					1	Indicates the direction of data transfer (IN or OUT)
+		LUN						1	Logical Unit Number, identifying the specific device
+		Command Length			1	The length of the command block that follows
+		Command Block			16	The actual command to be executed on the mass storage device
+
+		Example of a CBW : An example of a CBW might look like this:
+		Signature: 				0x43425355 (ASCII for "USBC")
+		Tag: 					0x00000001 (Unique command identifier)
+		Data Transfer Length: 	0x00000010 (16 bytes to be transferred)
+		Flags: 					0x00 (Data transfer from host to device)
+		LUN: 					0x00 (First logical unit)
+		Command Length: 		0x0A (10 bytes for the command)
+		Command Block: 			0x28 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 (Example command for a read operation)
+	*/
+
+	/*
+		Notes: A Command Status Wrapper (CSW) in USB Bulk-Only Transfer (BOT) is a 13-byte packet sent by the device to the host to indicate the status of a command.
+		Structure of the CSW
+
+		The CSW consists of several fields that provide essential information about the command execution. Below is a breakdown of its structure:
+		Field Name	Size (Bytes)	Description
+		Signature		4	A unique identifier for the CSW, typically set to "CSW"
+		Tag				4	A unique identifier that matches the Command Block Wrapper (CBW)
+		Data Residue	4	The number of bytes not transferred in the data phase
+		Status			1	Indicates the success or failure of the command execution
+
+		Example of a CSW Packet : Here is an example of a CSW packet with hypothetical values:
+		Field Name	Value	Description
+		Signature		0x53425355	"CSW" in ASCII (Little Endian)
+		Tag				0x00000001	Matches the corresponding CBW tag
+		Data Residue	0x00000004	4 bytes not transferred
+		Status			0x00	Command executed successfully
+	*/
+
+	//while (1)
+	// Skip while loop for now
+	if (0)
+	{
+        if (peripheralAvailable)
+		{
+            /* Make sure the RX buffer is free */
+            MAX_writeRegister(rHIRQ, BIT2);
+
+            uint8_t i, result;
+            uint32_t totalRcvd = 0;
+
+            debug("USB Host Controller: ----------------\r\n");
+			debug("USB Host Controller: Requesting data...\r\n");
+            debug("USB Host Controller: (Address: %d)\r\n", MAX_readRegister(rPERADDR));
+
+            MAX_writeRegister(rHIRQ, BIT2);
+
+            // Use Power button as escape mechanism, reset here since combo key used for actication
+			g_powerOffAttempted = NO;
+
+			//for (i = 0; i < 1000; i++)
+			for (i = 0; i < 10; i++)
+			{
+				CheckDataToggleAndSet();
+				result = requestData((uint8_t*) RXData, 64);
+                if (result != 0)
+				{
+                    debugErr("USB Host Controller: Request result error: %s (0x%x) (%d)\r\n", ResultCodeName(result), result, i);
+                }
+				else
+				{
+                    debug("USB Host Controller: Read 64 bytes\r\n");
+					totalRcvd += 64;
+                }
+
+				if (g_powerOffAttempted == YES) { break; }
+            }
+
+            debug("USB Host Controller: Received %d bytes\r\n", totalRcvd);
+        }
+    }
+
+	// Use Power button to start or as escape mechanism, reset here since combo key used for actication
+	ClearSoftTimer(POWER_OFF_TIMER_NUM);
+	g_powerOffAttempted = NO;
+
+	USBCPortControllerSwapToDevice();
+}
+#endif
