@@ -228,12 +228,23 @@ void WDT0_IRQHandler(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+static uint8_t s_lastBattState = 0xFF;
+uint8_t fuelGaugeReinit = 0;
 __attribute__((__interrupt__))
 void External_battery_presence_irq(void)
 {
 	//debugRaw("=");
 #if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	debugWarn("-(ISR) Battery pack status alert (Slot 1:%s, Slot 2:%s)-\r\n", ((GPIO_EXT_BATTERY_PRESENCE_1_PORT->in & GPIO_EXT_BATTERY_PRESENCE_1_PIN) ? "Added" : "Removed"), ((GPIO_EXT_BATTERY_PRESENCE_2_PORT->in & GPIO_EXT_BATTERY_PRESENCE_2_PIN) ? "Added" : "Removed"));
+
+	uint8_t currBatteryState = 0x00;
+	if (GPIO_EXT_BATTERY_PRESENCE_1_PORT->in & GPIO_EXT_BATTERY_PRESENCE_1_PIN) { currBatteryState |= 0x01; }
+	if (GPIO_EXT_BATTERY_PRESENCE_2_PORT->in & GPIO_EXT_BATTERY_PRESENCE_2_PIN) { currBatteryState |= 0x02; }
+	if (s_lastBattState != currBatteryState)
+	{
+		if (s_lastBattState == 0x00) { fuelGaugeReinit = 1; }
+		s_lastBattState = currBatteryState;
+	}
 #endif
 }
 
@@ -261,13 +272,31 @@ __attribute__((__interrupt__))
 void Battery_charger_irq(void)
 {
 	//debugRaw("+");
-	debugWarn("-(ISR) Batt Charger-\r\n");
 
+	//debugWarn("-(ISR) Batt Charger-\r\n");
 	batteryChargerInterruptActive = YES;
 
 	// Clear Battery Charger interrupt flag (Port 0, Pin 5)
 	GPIO_BATTERY_CHARGER_IRQ_PORT->int_clr = GPIO_BATTERY_CHARGER_IRQ_PIN;
 }
+
+#if 1 /* Test */
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t seismicSensorDetectChange = NO;
+__attribute__((__interrupt__))
+void Sensor_detect_using_lte_ota_mod_irq(void)
+{
+	//debugRaw("+");
+
+	//debugWarn("-(ISR) Seismic Sensor Detect (using LTE_OTA pin mod): %s-\r\n", ((MXC_GPIO_InGet(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN) == 0) ? "Removed" : "Added"));
+	seismicSensorDetectChange = YES;
+
+	// Clear Sensor Detect 1 flag (Port 0, Pin 7)
+	GPIO_LTE_OTA_PORT->int_clr = GPIO_LTE_OTA_PIN;
+}
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -408,6 +437,9 @@ void UART0_Read_Callback(mxc_uart_req_t *req, int error)
 		// Raise the Craft Data flag (only once needed)
 		if (!rxIndex) { g_modemStatus.craftPortRcvFlag = YES; }
 
+		// Mark the incoming pipe
+		g_isrMessageBufferPtr->pipe = SERIAL_PIPE_CELL;
+
 		// Write the received data into the buffer
 		*g_isrMessageBufferPtr->writePtr = req->rxData[rxIndex++];
 
@@ -479,6 +511,9 @@ void UART2_Read_Callback(mxc_uart_req_t *req, int error)
 	{
 		// Raise the Craft Data flag (only once needed)
 		if (!rxIndex) { g_modemStatus.craftPortRcvFlag = YES; }
+
+		// Mark the incoming pipe
+		g_isrMessageBufferPtr->pipe = SERIAL_PIPE_DEBUG;
 
 		// Write the received data into the buffer
 		*g_isrMessageBufferPtr->writePtr = req->rxData[rxIndex++];
@@ -598,7 +633,7 @@ __attribute__((__interrupt__))
 void Usbc_port_controller_i2c_irq(void)
 {
 	//debugRaw("/");
-	debugWarn("-(ISR) USB I2C-\r\n");
+	//debugWarn("-(ISR) USB I2C-\r\n");
 
 	usbIsrActive = YES;
 
@@ -610,10 +645,22 @@ void Usbc_port_controller_i2c_irq(void)
 ///	Function Break
 ///----------------------------------------------------------------------------
 __attribute__((__interrupt__))
+void Usb_host_controller_irq(void)
+{
+extern void MAX_ISR(void);
+	MAX_ISR();
+
+	GPIO_USB_INT_PORT->int_clr = GPIO_USB_INT_PIN;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+__attribute__((__interrupt__))
 void Power_good_battery_charger_irq(void)
 {
 	//debugRaw("_");
-	debugWarn("-(ISR) PG BC-\r\n");
+	//debugWarn("-(ISR) PG BC-\r\n");
 
 	g_batteryChargingStatusChange = YES;
 
@@ -2867,10 +2914,14 @@ static uint32_t trash = 0;
 		//___Check for channel sync error
 		if (s_channelSyncError == YES)
 		{
+			s_channelSyncError = NO;
+
 			if (s_channelSyncErrorCount)
 			{
 				g_breakpointCause = BP_AD_CHAN_SYNC_ERR;
 				// Todo: Issue a breakpoint
+				debugErr("AD Channel Sync Error: Second occurance, soft locking the unit\r\n");
+				while (1) {;}
 			}
 			else
 			{
