@@ -468,7 +468,11 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 			// Current state: <state>
 			if ((g_cellModemSetupRecord.tcpServer == YES) && (g_autoDialoutState == AUTO_DIAL_IDLE))
 			{
+#if 0 /* Original */
 				if (g_tcpServerStartStage == TCP_SERVER_ACTIVE_DATA_MODE)
+#else /* Test delay of Data mode until active conneciton */
+				if (g_tcpServerStartStage == TCP_SERVER_ACTIVE)
+#endif
 				{
 					if (g_modemStatus.remoteConnectionActive == YES)
 					{
