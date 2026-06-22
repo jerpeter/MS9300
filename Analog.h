@@ -301,7 +301,7 @@ void AD4695_SpiReadRegister(uint16_t reg_addr,uint8_t *reg_data);
 void AD4695_SpiReadRegisterWithMask(uint16_t reg_addr, uint8_t mask, uint8_t *data);
 uint8_t AD4695_SpiWriteRegisterWithMask(uint16_t reg_addr, uint8_t mask, uint8_t data);
 void AD4695_SetRegisterAccessMode( enum ad4695_reg_access access);
-void AD4695_Init();
+void AD4695_Init(void);
 void AD4695_SetBusyState(void);
 void AD4695_SetStandardSequenceModeChannelOSR(enum ad4695_osr_ratios ratio);
 void AD4695_SetStandardSequenceModeChannelInputConfig(uint8_t regData);
