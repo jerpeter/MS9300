@@ -851,10 +851,20 @@ void InitSummaryListFile(void)
 void ClearAndFillInCommonRecordInfo(EVT_RECORD* eventRec)
 {
 	uint8 i;
+	SMART_SENSOR_STRUCT* seismicSmartSensorMemory;
+	SMART_SENSOR_STRUCT* acousticSmartSensorMemory;
 
 	memset(eventRec, 0x00, sizeof(EVT_RECORD));
 	memset(eventRec->summary.captured.unused, 0xBF, sizeof(eventRec->summary.captured.unused));
 	memset(eventRec->summary.calculated.unused, 0xCF, sizeof(eventRec->summary.calculated.unused));
+
+	//-----------------------------------------------
+	// Smart Sensor selection based on active sensors
+	if (CheckIfSmartSensorPresent(SEISMIC_SENSOR_2)) { seismicSmartSensorMemory = &g_seismic2SmartSensorMemory; }
+	else { seismicSmartSensorMemory = &g_seismicSmartSensorMemory; } // Default to Seismic SS #1
+
+	if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR)) { acousticSmartSensorMemory = &g_acousticSmartSensorMemory; }
+	else { acousticSmartSensorMemory = &g_acoustic2SmartSensorMemory; } // Default to Acoustic SS #2
 
 	//--------------------------------
 	eventRec->header.startFlag = (uint16)EVENT_RECORD_START_FLAG;
@@ -878,20 +888,20 @@ void ClearAndFillInCommonRecordInfo(EVT_RECORD* eventRec)
 	eventRec->summary.parameters.calibrationDateSource = g_currentCalibration.source;
 	memset(&(eventRec->summary.captured.calDateTime), 0, sizeof(eventRec->summary.captured.calDateTime));
 	ConvertCalDatetoDateTime(&eventRec->summary.captured.calDateTime, &g_currentCalibration.date);
-	eventRec->summary.parameters.seismicSensorCurrentCalDate = g_seismicSmartSensorMemory.currentCal.calDate;
-	eventRec->summary.parameters.acousticSensorCurrentCalDate = g_acousticSmartSensorMemory.currentCal.calDate;
+	eventRec->summary.parameters.seismicSensorCurrentCalDate = seismicSmartSensorMemory->currentCal.calDate;
+	eventRec->summary.parameters.acousticSensorCurrentCalDate = acousticSmartSensorMemory->currentCal.calDate;
 	// Store Unit cal date in smart sensor field if the selected source is a smart sensor cal date (to prevent duplication of data and losing the Unit cal date)
 	if (g_currentCalibration.source == SEISMIC_SMART_SENSOR_CAL_DATE) { eventRec->summary.parameters.seismicSensorCurrentCalDate = g_factorySetupRecord.calDate; }
 	else if (g_currentCalibration.source == ACOUSTIC_SMART_SENSOR_CAL_DATE) { eventRec->summary.parameters.acousticSensorCurrentCalDate = g_factorySetupRecord.calDate; }
 	//-----------------------
 	memset(&(eventRec->summary.parameters.seismicSensorSerialNumber[0]), 0, SENSOR_SERIAL_NUMBER_SIZE);
-	memcpy(&(eventRec->summary.parameters.seismicSensorSerialNumber[0]), &(g_seismicSmartSensorMemory.serialNumber[0]), SENSOR_SERIAL_NUMBER_SIZE);
-	eventRec->summary.parameters.seismicSensorFacility = g_seismicSmartSensorMemory.currentCal.calFacility;
-	eventRec->summary.parameters.seismicSensorInstrument = g_seismicSmartSensorMemory.currentCal.calInstrument;
+	memcpy(&(eventRec->summary.parameters.seismicSensorSerialNumber[0]), &(seismicSmartSensorMemory->serialNumber[0]), SENSOR_SERIAL_NUMBER_SIZE);
+	eventRec->summary.parameters.seismicSensorFacility = seismicSmartSensorMemory->currentCal.calFacility;
+	eventRec->summary.parameters.seismicSensorInstrument = seismicSmartSensorMemory->currentCal.calInstrument;
 	memset(&(eventRec->summary.parameters.acousticSensorSerialNumber[0]), 0, SENSOR_SERIAL_NUMBER_SIZE);
-	memcpy(&(eventRec->summary.parameters.acousticSensorSerialNumber[0]), &(g_acousticSmartSensorMemory.serialNumber[0]), SENSOR_SERIAL_NUMBER_SIZE);
-	eventRec->summary.parameters.acousticSensorFacility = g_acousticSmartSensorMemory.currentCal.calFacility;
-	eventRec->summary.parameters.acousticSensorInstrument = g_acousticSmartSensorMemory.currentCal.calInstrument;
+	memcpy(&(eventRec->summary.parameters.acousticSensorSerialNumber[0]), &(acousticSmartSensorMemory->serialNumber[0]), SENSOR_SERIAL_NUMBER_SIZE);
+	eventRec->summary.parameters.acousticSensorFacility = acousticSmartSensorMemory->currentCal.calFacility;
+	eventRec->summary.parameters.acousticSensorInstrument = acousticSmartSensorMemory->currentCal.calInstrument;
 	//-----------------------
 	memset(&(eventRec->summary.parameters.companyName[0]), 0, COMPANY_NAME_STRING_SIZE);
 	memcpy(&(eventRec->summary.parameters.companyName[0]), &(g_triggerRecord.trec.client[0]), COMPANY_NAME_STRING_SIZE - 1);
@@ -3005,6 +3015,57 @@ void EndianSwapEventData(EVT_RECORD* eRec, void* eData)
 
 	if ((mode == WAVEFORM_MODE) || (mode == MANUAL_CAL_MODE)) { EndianSwapWaveformEventData((uint16_t*)eData, eRec->header.dataLength); }
 	else { EndianSwapBargraphEventData((uint8_t*)eData, eRec->header.dataLength, eRec->summary.parameters.barIntervalDataType, eRec->summary.parameters.barInterval, eRec->summary.parameters.summaryInterval); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void WriteDebugCacheToFile(uint8_t flush)
+{
+	FIL file;
+	uint32_t writeSize;
+	DATE_TIME_STRUCT currDateTime;
+	char monthString[5];
+
+	if ((g_debugCacheCount > 25000) || ((flush && g_debugCacheCount)))
+	{
+		currDateTime = GetExternalRtcTime();
+		GetDateString(monthString, currDateTime.month, sizeof(monthString));
+
+		sprintf((char*)g_spareFileName, "%s/%s-%s-%02d.%s", LOGS_PATH, "DebugLog", monthString, currDateTime.day, "txt");
+
+		// Open file
+		if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
+		{
+			debugErr("File access problem: Add Event to Summary list with: %s\r\n", s_summaryListFileName);
+			//debugErr("File access problem: Add Event to Summary list\r\n");
+		}
+		else // File successfully created or opened
+		{
+			// Check if a contiguous write
+			if (g_debugCacheReadIndex < g_debugCacheWriteIndex)
+			{
+				// FA_OPEN_APPEND should set write pointer to the end
+				f_write(&file, &g_debugCache[g_debugCacheReadIndex], g_debugCacheCount, (UINT*)&writeSize);
+			}
+			else // Split write
+			{
+				// FA_OPEN_APPEND should set write pointer to the end
+				f_write(&file, &g_debugCache[g_debugCacheReadIndex], (33800 - g_debugCacheCount), (UINT*)&writeSize);
+
+				g_debugCacheCount -= (33800 - g_debugCacheCount);
+
+				// FA_OPEN_APPEND should set write pointer to the end
+				f_write(&file, &g_debugCache[0], g_debugCacheCount, (UINT*)&writeSize);
+			}
+
+			g_debugCacheReadIndex = g_debugCacheWriteIndex;
+			g_debugCacheCount = 0;
+
+			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+			f_close(&file);
+		}
+	}
 }
 
 ///----------------------------------------------------------------------------
