@@ -198,7 +198,7 @@ void BuildOutgoingSimpleHeaderBuffer(uint8* msgHdrBuf,
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SendErrorMsg(uint8* msgCmd, uint8* msgType)
+void SendErrorMsg(uint8* msgCmd, uint8* msgType, uint8 pipe)
 {
 	uint8 errHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
 
@@ -209,15 +209,15 @@ void SendErrorMsg(uint8* msgCmd, uint8* msgType)
 	g_transmitCRC = CalcCCITT32((uint8*)&errHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send Starting CRLF
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, pipe);
 	// Send Simple header
-	ModemPuts((uint8*)errHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
+	ModemPuts((uint8*)errHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII, pipe);
 	// Send Ending Footer
 #if ENDIAN_CONVERSION
 	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, pipe);
 }
 
 ///----------------------------------------------------------------------------
@@ -349,7 +349,7 @@ void WriteCompressedData(uint8 compressedData, uint8 outMode)
 		{
 			g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->xmitBuffer, g_demXferStructPtr->xmitSize, g_transmitCRC);
 
-			if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, g_demXferStructPtr->xmitSize, NO_CONVERSION) == MODEM_SEND_FAILED)
+			if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, g_demXferStructPtr->xmitSize, NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 			{
 				g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 			}
@@ -441,7 +441,11 @@ char* TcpServerDebugString(void)
 		case TCP_SERVER_CELL_NETWORK_CONNECTED: debugString = TCPSVR_CELL_CONNECTED; break;
 		case TCP_SERVER_START: debugString = TCPSVR_START; break;
 		case TCP_SERVER_UP: debugString = TCPSVR_UP; break;
+#if 0 /* Original */
 		case TCP_SERVER_ACTIVE_DATA_MODE: debugString = TCPSVR_ACTIVE_DATA_MODE; break;
+#else
+		case TCP_SERVER_ACTIVE: debugString = TCPSVR_ACTIVE; break;
+#endif
 	}
 
 	return (debugString);
@@ -609,7 +613,11 @@ void StartAutoDialoutProcess(void)
 		if (g_cellModemSetupRecord.tcpServer == YES)
 		{
 			// Check if the TCP Server is running
+#if 0 /* Original */
 			if (g_tcpServerStartStage == TCP_SERVER_ACTIVE_DATA_MODE)
+#else /* New method to delay Data mode until conneciton made */
+			if (g_tcpServerStartStage == TCP_SERVER_ACTIVE)
+#endif
 			{
 				// Escape out of data mode and stop the TCP Server
 				debug("<Escape sequence>...\r\n"); sprintf((char*)g_spareBuffer, "+++---\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
@@ -652,6 +660,8 @@ void StartAutoDialoutProcess(void)
 			debug("AT%%XSYSTEMMODE?...\r\n"); sprintf((char*)g_spareBuffer, "AT%%XSYSTEMMODE?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 			{ ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
 #endif
+			CellModemSimSelector(g_cellModemSetupRecord.eSimSelect);
+
 			if (strlen(g_cellModemSetupRecord.pdnApn))
 			{
 				// PDN/APN setting, AT+CGDCONT=0,"IP","psmtneofin"
@@ -669,6 +679,17 @@ void StartAutoDialoutProcess(void)
 
 			debug("AT+CFUN=1...\r\n"); sprintf((char*)g_spareBuffer, "AT+CFUN=1\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+
+#if 1 /* Test check for eSIM details */
+			if (g_cellModemSetupRecord.eSimSelect == YES)
+			{
+				debug("AT%%XICCID...\r\n"); sprintf((char*)g_spareBuffer, "AT%%XICCID\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+				{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+
+				debug("AT+CIMI...\r\n"); sprintf((char*)g_spareBuffer, "AT+CIMI\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+				{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+			}
+#endif
 		}
 
 		debug("AT+CEREG?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CEREG?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
@@ -1035,6 +1056,9 @@ void AutoDialoutStateMachine(void)
 					CheckforModemReady(6);
 
 					int strLen, status;
+
+					CellModemSimSelector(g_cellModemSetupRecord.eSimSelect);
+
 					if (strlen(g_cellModemSetupRecord.pdnApn))
 					{
 						// PDN/APN setting, AT+CGDCONT=0,"IP","psmtneofin"
@@ -1052,6 +1076,17 @@ void AutoDialoutStateMachine(void)
 
 					debug("AT+CFUN=1...\r\n"); sprintf((char*)g_spareBuffer, "AT+CFUN=1\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 					{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+
+#if 1 /* Test check for eSIM details */
+					if (g_cellModemSetupRecord.eSimSelect == YES)
+					{
+						debug("AT%%XICCID...\r\n"); sprintf((char*)g_spareBuffer, "AT%%XICCID\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+						{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+
+						debug("AT+CIMI...\r\n"); sprintf((char*)g_spareBuffer, "AT+CIMI\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+						{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+					}
+#endif
 				}
 				debug("AT+CEREG?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CEREG?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 #if 1 /* Test */
