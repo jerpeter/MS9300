@@ -405,6 +405,17 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 							PowerControl(CELL_ENABLE, ON);
 							SoftUsecWait(1 * SOFT_SECS); // Small charge up delay
 							PowerControl(LTE_RESET, OFF);
+
+							if (g_cellModemSetupRecord.eSimSelect == YES)
+							{
+								MXC_GPIO_OutSet(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN);
+								debug("CELL/LTE: eSIM selected (LTE_OTA pin state: %d)\r\n", ((MXC_GPIO_OutGet(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN) == 0) ? 0 : 1));
+							}
+							else // Physical SIM selected
+							{
+								MXC_GPIO_OutClr(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN);
+								debug("CELL/LTE: Physical SIM selected (LTE_OTA pin state: %d)\r\n", ((MXC_GPIO_OutGet(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN) == 0) ? 0 : 1));
+							}
 						}
 #endif
 #if 0 /* Test */
@@ -450,6 +461,28 @@ static uint8_t s_usbHostControllerMode = OFF;
 						if (s_usbHostControllerMode == ON) { USBCPortControllerSwapToHost(); }
 						else { USBCPortControllerSwapToDevice(); }
 #endif
+#if 0 /* Test */
+						if (IsSoftTimerActive(AUTO_EVENT_GENERATION_NUM)) { ClearSoftTimer(AUTO_EVENT_GENERATION_NUM); debug("Battery charging toggle timer: Disabled\r\n"); }
+						else { AssignSoftTimer(AUTO_EVENT_GENERATION_NUM, (20 * TICKS_PER_SEC), AutoEventGenerationCallback); debug("Battery charging toggle timer: Enabled (20 second cycle)\r\n"); }
+						// Clear out the message parameters
+						mn_msg.cmd = 0; mn_msg.length = 0; mn_msg.data[0] = 0;
+#endif
+#if 0 /* Test */
+void SetBattChargerBgateEnable(uint8_t state);
+static uint8_t s_bgateEnable = ON;
+						s_bgateEnable ^= ON;
+						SetBattChargerBgateEnable(s_bgateEnable);
+						debug("Charger: Toggle BGate Enable to %s\r\n", ((s_bgateEnable == ON) ? "On" : "Off"));
+#endif
+#if 1 /* Test */
+extern void BatteryChargerInit(void);
+extern void SetBattChargerForceBgateCtrlOff(uint8_t state);
+						OverlayMessage(getLangText(STATUS_TEXT), (char*)"BATTERY CHARGER DISABLE AND RE-INIT", 0);
+						debug("Battery Charger: Disable and Re-Init\r\n");
+						SetBattChargerForceBgateCtrlOff(1);
+						SoftUsecWait(3 * SOFT_SECS);
+						BatteryChargerInit();
+#endif
 					}
 					//===================================================
 					// On-Help Combo key
@@ -463,6 +496,7 @@ static uint8_t s_usbHostControllerMode = OFF;
 #endif
 #if 0 /* Test */
 static uint8_t s_bcChargeState = ON;
++						s_bcChargeState = GetBattChargerChargeState();
 						s_bcChargeState ^= ON;
 						SetBattChargerChargeState(s_bcChargeState);
 						debug("Battery charging toggle: %s\r\n", ((s_bcChargeState == ON) ? "Enabled" : "Disabled"));
@@ -483,6 +517,48 @@ static uint8_t s_bcChargeState = ON;
 							sprintf((char*)g_spareBuffer, "AT\r\n");
 							int strLen = (int)strlen((char*)g_spareBuffer); int status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 						}
+#endif
+#if 0 /* Test */
+static uint8_t s_lteOTA = OFF;
+						s_lteOTA ^= ON;
+						if (s_lteOTA == OFF) { MXC_GPIO_OutClr(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN); }
+						else { MXC_GPIO_OutSet(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN); }
+						debug("LTE OTA pin toggle: %s\r\n", ((s_lteOTA == ON) ? "High" : "Low"));
+#endif
+#if 0 /* Test */
+extern void USBHostControllerTest(void);
+						debug("Calling USBHostControllerTest...\r\n");
+						USBHostControllerTest();
+#endif
+#if 0 /* Test */
+						if (g_testCounter == OFF)
+						{
+							g_testCounter = CAL_MUX_SELECT_SENSOR_GROUP_A; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); SetCalMuxPreADEnableState(ON);
+							sprintf((char*)g_debugBuffer, "Cal Mux: Enabling Sensor Group A/1 output on DB9");
+							debug("%s\r\n", (char*)g_debugBuffer);
+							OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+						}
+						else if (g_testCounter == CAL_MUX_SELECT_SENSOR_GROUP_A)
+						{
+							g_testCounter = CAL_MUX_SELECT_SENSOR_GROUP_B; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_B); SetCalMuxPreADEnableState(ON);
+							sprintf((char*)g_debugBuffer, "Cal Mux: Enabling Sensor Group B/2 on DB9");
+							debug("%s\r\n", (char*)g_debugBuffer);
+							OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+						}
+						else // (g_testCounter == CAL_MUX_SELECT_SENSOR_GROUP_B)
+						{
+							g_testCounter = OFF; SetCalMuxPreADEnableState(OFF);
+							sprintf((char*)g_debugBuffer, "Cal Mux: Turning off");
+							debug("%s\r\n", (char*)g_debugBuffer);
+							OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
+						}
+#endif
+#if 1 /* Test */
+extern void SetBattChargerForceBgateCtrlOff(uint8_t state);
+static uint8_t s_forceBgateCtrlOff = OFF;
+						s_forceBgateCtrlOff ^= ON;
+						SetBattChargerForceBgateCtrlOff(s_forceBgateCtrlOff);
+						debug("Charger: Toggle Force BGate Ctrl Off to %s\r\n", ((s_forceBgateCtrlOff == ON) ? "Enabled" : "Disabled"));
 #endif
 					}
 					//===================================================
