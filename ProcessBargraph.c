@@ -349,7 +349,7 @@ void ChecksumAndSetupBargraphLiveMonitorDataForISRTransfer(void)
 		// Check that the Expansion is powered and the IC isn't in reset
 		if ((GetPowerControlState(EXPANSION_ENABLE) == ON) && (GetPowerControlState(EXPANSION_RESET) == OFF))
 		{
-			ModemPuts(g_blmBuffer, strlen((char*)g_blmBuffer), NO_CONVERSION);
+			ModemPuts(g_blmBuffer, strlen((char*)g_blmBuffer), NO_CONVERSION, SERIAL_PIPE_EXPANSION);
 		}
 	}
 
@@ -501,6 +501,19 @@ void HandleBargraphLiveMonitoringISRSendData(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+static inline uint16 NormalizeAtADCResolutionAndShiftForAccuracy(uint16 data_)
+{
+	if (data_ > ADC_RESOLUTION) { data_ = (uint16)(data_ - ADC_RESOLUTION); }
+	else { data_ = (uint16)(ADC_RESOLUTION - data_); }
+
+	data_ >>= g_bitShiftForAccuracy;
+
+	return (data_);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 uint8 CalculateBargraphData(void)
 {
 	// Temp variables, assigned as static to prevent storing on stack
@@ -560,6 +573,7 @@ uint8 CalculateBargraphData(void)
 			// Count each sample processed
 			g_barSampleCount++;
 
+#if 0 /* Original */
 			// Adjust for the correct bit accuracy
 			currentDataSample.a >>= g_bitShiftForAccuracy;
 			currentDataSample.r >>= g_bitShiftForAccuracy;
@@ -571,11 +585,17 @@ uint8 CalculateBargraphData(void)
 			rTempNorm = FixDataToZero(currentDataSample.r);
 			vTempNorm = FixDataToZero(currentDataSample.v);
 			tTempNorm = FixDataToZero(currentDataSample.t);
-
+#else /* Test new processing method which should be faster */
+			// Normalize the raw data and adjust for accuracy
+			aTempNorm = NormalizeAtADCResolutionAndShiftForAccuracy(currentDataSample.a);
+			rTempNorm = NormalizeAtADCResolutionAndShiftForAccuracy(currentDataSample.r);
+			vTempNorm = NormalizeAtADCResolutionAndShiftForAccuracy(currentDataSample.v);
+			tTempNorm = NormalizeAtADCResolutionAndShiftForAccuracy(currentDataSample.t);
+#endif
 			// Find the vector sum of the current sample
-			vsTemp =((uint32)rTempNorm * (uint32)rTempNorm) +
-					((uint32)vTempNorm * (uint32)vTempNorm) +
-					((uint32)tTempNorm * (uint32)tTempNorm);
+			vsTemp = ((uint32)rTempNorm * (uint32)rTempNorm) +
+					 ((uint32)vTempNorm * (uint32)vTempNorm) +
+					 ((uint32)tTempNorm * (uint32)tTempNorm);
 
 			//=================================================
 			// Impulse Interval
