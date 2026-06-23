@@ -1036,7 +1036,13 @@ unsigned char compressedDataCacheBuffer[2];
 unsigned long compressedDataLen;
 
 // Handles incrementing the data length, sending data and managing the temp compressed data buffer
+#include "ff.h"
 #define SEND_COMPRESSED_DATA()	compressedDataLen++; if (compressedDataLen > 2) WriteCompressedData(compressedDataCacheBuffer[0], outMode); compressedDataCacheBuffer[0] = compressedDataCacheBuffer[1];
+#define SHOW_DATA_REFERENCE 0
+#define TEST_FILE_ACCESS 0
+extern FIL g_testFile;
+uint8_t buffer[6];
+uint32_t readSize;
 
 // Compression subroutine (main algorithm)
 static __lzo_noinline lzo_uint
@@ -1074,7 +1080,16 @@ do_compress (const lzo_bytep in, lzo_uint in_len, lzo_uint outMode)
         if (LZO_CHECK_MPOS_NON_DET(m_pos, m_off, in, ip, M4_MAX_OFFSET))
             goto literal;
 
+#if SHOW_DATA_REFERENCE
+        debug("mlzo - A:0x%x, D:%c\r\n", (ip + 3) - in, ip[3]);
+#endif
+#if TEST_FILE_ACCESS
+        f_lseek(&g_testFile, ((ip + 3) - in));
+        f_read(&g_testFile, buffer, 1, (UINT*)&readSize);
+        if (m_off <= M2_MAX_OFFSET || m_pos[3] == buffer[0])
+#else /* Normal */
         if (m_off <= M2_MAX_OFFSET || m_pos[3] == ip[3])
+#endif
             goto try_match;
             
         DINDEX2(dindex, ip);
@@ -1083,19 +1098,47 @@ do_compress (const lzo_bytep in, lzo_uint in_len, lzo_uint outMode)
         if (LZO_CHECK_MPOS_NON_DET(m_pos, m_off, in, ip, M4_MAX_OFFSET))
             goto literal;
             
+#if SHOW_DATA_REFERENCE
+        debug("mlzo - A:0x%x, D:%c\r\n", (ip + 3) - in, ip[3]);
+#endif
+#if TEST_FILE_ACCESS
+        f_lseek(&g_testFile, ((ip + 3) - in));
+        f_read(&g_testFile, buffer, 1, (UINT*)&readSize);
+        if (m_off <= M2_MAX_OFFSET || m_pos[3] == buffer[0])
+#else /* Normal */
         if (m_off <= M2_MAX_OFFSET || m_pos[3] == ip[3])
+#endif
             goto try_match;
             
         goto literal;
 
 try_match:
+#if SHOW_DATA_REFERENCE
+        debug("mlzo - A:0x%x, D:%c\r\n", (ip + 0) - in, ip[0]);
+        debug("mlzo - A:0x%x, D:%c\r\n", (ip + 1) - in, ip[1]);
+#endif
+#if TEST_FILE_ACCESS
+        f_lseek(&g_testFile, ((ip + 0) - in));
+        f_read(&g_testFile, buffer, 2, (UINT*)&readSize);
+        if (m_pos[0] != buffer[0] || m_pos[1] != buffer[1])
+#else /* Normal */
         if (m_pos[0] != ip[0] || m_pos[1] != ip[1])
+#endif
         {
 			// Do nothing
         }
         else
         {
+#if SHOW_DATA_REFERENCE
+            debug("mlzo - A:0x%x, D:%c\r\n", (ip + 2) - in, ip[2]);
+#endif
+#if TEST_FILE_ACCESS
+            f_lseek(&g_testFile, ((ip + 2) - in));
+            f_read(&g_testFile, buffer, 1, (UINT*)&readSize);
+            if __lzo_likely(m_pos[2] == buffer[0])
+#else /* Normal */
             if __lzo_likely(m_pos[2] == ip[2])
+#endif
             {
 				goto match;
             }
@@ -1148,7 +1191,17 @@ match:
             do
             {
 				SEND_COMPRESSED_DATA();
-				compressedDataCacheBuffer[1] = *ii++;
+#if SHOW_DATA_REFERENCE
+				debug("mlzo - A:0x%x, D:%c\r\n", (ii + 0) - in, ii[0]);
+#endif
+#if TEST_FILE_ACCESS
+                f_lseek(&g_testFile, ((ii + 0) - in));
+                f_read(&g_testFile, buffer, 1, (UINT*)&readSize);
+                compressedDataCacheBuffer[1] = buffer[0];
+                ii++;
+#else /* Normal */
+                compressedDataCacheBuffer[1] = *ii++;
+#endif
             } while (--t > 0);
         }
 
@@ -1156,8 +1209,24 @@ match:
 
         ip += 3;
 
+#if SHOW_DATA_REFERENCE
+        debug("mlzo - A:0x%x, D:%c\r\n", (ip + 0) - in, ip[0]);
+        debug("mlzo - A:0x%x, D:%c\r\n", (ip + 1) - in, ip[1]);
+        debug("mlzo - A:0x%x, D:%c\r\n", (ip + 2) - in, ip[2]);
+        debug("mlzo - A:0x%x, D:%c\r\n", (ip + 3) - in, ip[3]);
+        debug("mlzo - A:0x%x, D:%c\r\n", (ip + 4) - in, ip[4]);
+        debug("mlzo - A:0x%x, D:%c\r\n", (ip + 5) - in, ip[5]);
+#endif
+#if TEST_FILE_ACCESS
+        f_lseek(&g_testFile, ((ip + 0) - in));
+        f_read(&g_testFile, buffer, 6, (UINT*)&readSize);
+        ip+=6;
+        if (m_pos[3] != buffer[0] || m_pos[4] != buffer[1] || m_pos[5] != buffer[2] ||
+            m_pos[6] != buffer[3] || m_pos[7] != buffer[4] || m_pos[8] != buffer[5])
+#else /* Normal */
         if (m_pos[3] != *ip++ || m_pos[4] != *ip++ || m_pos[5] != *ip++ ||
             m_pos[6] != *ip++ || m_pos[7] != *ip++ || m_pos[8] != *ip++)
+#endif
         {
             --ip;
             m_len = pd(ip, ii);
@@ -1203,8 +1272,26 @@ match:
                 const lzo_bytep end = in_end;
                 const lzo_bytep m = m_pos + M2_MAX_LEN + 1;
 
+#if SHOW_DATA_REFERENCE
+                debug("mlzo - A:0x%x, D:%c\r\n", (ip + 0) - in, ip[0]);
+#endif
+#if TEST_FILE_ACCESS
+                f_lseek(&g_testFile, ((ip + 0) - in));
+                f_read(&g_testFile, buffer, 1, (UINT*)&readSize);
+                while (ip < end && *m == buffer[0])
+#else /* Normal */
                 while (ip < end && *m == *ip)
+#endif
+                {
                     m++, ip++;
+#if SHOW_DATA_REFERENCE
+                    debug("mlzo - A:0x%x, D:%c\r\n", (ip + 0) - in, ip[0]);
+#endif
+#if TEST_FILE_ACCESS
+                    f_lseek(&g_testFile, ((ip + 0) - in));
+                    f_read(&g_testFile, buffer, 1, (UINT*)&readSize);
+#endif
+                }
 
                 m_len = pd(ip, ii);
             }
@@ -1339,7 +1426,17 @@ DO_COMPRESS      (const lzo_bytep in, lzo_uint in_len, lzo_uint outMode)
         do
         { 
 			SEND_COMPRESSED_DATA();
+#if SHOW_DATA_REFERENCE
+            debug("mlzo - A:0x%x, D:%c\r\n", (ii + 0) - in, ii[0]);
+#endif
+#if TEST_FILE_ACCESS
+            f_lseek(&g_testFile, ((ii + 0) - in));
+            f_read(&g_testFile, buffer, 1, (UINT*)&readSize);
+            ii++;
+			compressedDataCacheBuffer[1] = buffer[0];
+#else /* Normal */
 			compressedDataCacheBuffer[1] = *ii++;
+#endif
         } while (--t > 0);
     }
 
