@@ -374,6 +374,8 @@ void InitCellLTE(void)
 		{ ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
 #endif
 #endif
+		CellModemSimSelector(g_cellModemSetupRecord.eSimSelect);
+
 		if (strlen(g_cellModemSetupRecord.pdnApn))
 		{
 			// PDN/APN setting, AT+CGDCONT=0,"IP","psmtneofin"
@@ -396,6 +398,16 @@ void InitCellLTE(void)
 		debug("AT+CFUN=1...\r\n"); sprintf((char*)g_spareBuffer, "AT+CFUN=1\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 		{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
 
+#if 1 /* Test check for eSIM details */
+		if (g_cellModemSetupRecord.eSimSelect == YES)
+		{
+			debug("AT%%XICCID...\r\n"); sprintf((char*)g_spareBuffer, "AT%%XICCID\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+
+			debug("AT+CIMI...\r\n"); sprintf((char*)g_spareBuffer, "AT+CIMI\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		}
+#endif
 		while (g_modemStatus.remoteResponse != MODEM_CELL_NETWORK_REGISTERED)
 		{
 			debug("AT+CEREG?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CEREG?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
@@ -412,8 +424,12 @@ void InitCellLTE(void)
 			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
 		}
 
+#if 0 /* Original */
 		debug("AT#XTCPSEND"); sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 		{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+#else /* Test */
+		// Delay entering Data mode until the remote conneciton is active due to the rare occasion where the cell modem seems to drop data mode without notificaiton
+#endif
  #endif
 
 	//debug("Cell/LTE: Powered...\r\n");
@@ -936,6 +952,7 @@ void SetupAllGPIO(void)
 	//----------------------------------------------------------------------------------------------------------------------
 	// LTE OTA: Port 0, Pin 30, Input, No external pull, Active unknown, 3.3V (device runs 3.3V)
 	//----------------------------------------------------------------------------------------------------------------------
+#if 0 /* Original */
 	setupGPIO.port = GPIO_LTE_OTA_PORT;
 	setupGPIO.mask = GPIO_LTE_OTA_PIN;
 	setupGPIO.func = MXC_GPIO_FUNC_IN;
@@ -943,6 +960,25 @@ void SetupAllGPIO(void)
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
 	MXC_GPIO_Config(&setupGPIO);
 	// Todo: Fill in handling when more information known
+#elif 1 /* Test controlling the SIM Switcher and eSIM with wired mod */
+	setupGPIO.port = GPIO_LTE_OTA_PORT;
+	setupGPIO.mask = GPIO_LTE_OTA_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
+#else /* Test using the LTE_OTA pin as temp Sensor Detect for testing a special cable with spare line connected to internal mid 2.5V */
+	setupGPIO.port = GPIO_LTE_OTA_PORT;
+	setupGPIO.mask = GPIO_LTE_OTA_PIN;
+	setupGPIO.func = MXC_GPIO_FUNC_IN;
+	setupGPIO.pad = MXC_GPIO_PAD_STRONG_PULL_DOWN; //MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIOH;
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Sensor_detect_using_lte_ota_mod_irq, NULL);
+	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_BOTH);
+	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
+#endif
 
 	//----------------------------------------------------------------------------------------------------------------------
 	// eMMC Reset: Port 0, Pin 31, Output, External pulldown, Active low, 1.8V (device runs 1.8V interface & 3.3V part)
@@ -1336,7 +1372,8 @@ extern void External_rtc_periodic_timer(void);
 	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO;
 	MXC_GPIO_Config(&setupGPIO);
 #if 0 /* Fill in at some point */
-	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Expansion_irq, NULL);
+extern void Usb_host_controller_irq(void);
+	MXC_GPIO_RegisterCallback(&setupGPIO, (mxc_gpio_callback_fn)Usb_host_controller_irq, NULL);
 	MXC_GPIO_IntConfig(&setupGPIO, MXC_GPIO_INT_FALLING);
 	MXC_GPIO_EnableInt(setupGPIO.port, setupGPIO.mask);
 #endif
@@ -2169,6 +2206,12 @@ void SetupI2C(void)
 {
 	int error;
 
+#if 1 /* Test */
+	// Shutdown I2C Masters in case powering up with external power and without batteries where the I2C init hangs
+	MXC_I2C_Shutdown(MXC_I2C0);
+	MXC_I2C_Shutdown(MXC_I2C1);
+#endif
+
 	// Setup I2C0 as Master (1.8V) 
 	error = MXC_I2C_Init(MXC_I2C0, 1, 0);
 	if (error != E_NO_ERROR) { debugErr("I2C0 init (master) failed to initialize with code: %d\r\n", error); }
@@ -2469,8 +2512,8 @@ static int clrfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata);
 static void usbAppSleep(void);
 static void usbAppWakeup(void);
 /* static removed while testing MSC only */ int usbReadCallback(void);
-int usbStartupCallback();
-int usbShutdownCallback();
+int usbStartupCallback(void);
+int usbShutdownCallback(void);
 void echoUSB(void);
 
 // This EP assignment must match the Configuration Descriptor
@@ -2680,7 +2723,7 @@ void echoUSB(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int usbStartupCallback()
+int usbStartupCallback(void)
 {
 	debugRaw("<U-sc>");
 
@@ -2701,7 +2744,7 @@ int usbStartupCallback()
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-int usbShutdownCallback()
+int usbShutdownCallback(void)
 {
 	debugRaw("<U-xc>");
 
@@ -2887,6 +2930,10 @@ static void usbAppWakeup(void)
 	// Todo: Any power up code to place here?
 }
 
+#if 1 /* Test */
+void WriteDebugCacheToFile(uint8_t flush);
+#endif
+
 #if USB_COMPOSITE_OPTION /* Composite MSC + CDC-ACM */
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -2921,6 +2968,10 @@ int usbEventCallback_Composite(maxusb_event_t evt, void *data)
 		usbAppSleep();
 		break;
 	case MAXUSB_EVENT_BRST:
+#if 1 /* Test */
+		debug("Debug Cache: Flush before USB connection\r\n");
+		WriteDebugCacheToFile(1);
+#endif
 		usbAppWakeup();
 		enum_clearconfig();
 		msc_deconfigure();
@@ -2985,6 +3036,10 @@ int usbEventCallback_CDCACM(maxusb_event_t evt, void *data)
 		usbAppSleep();
 		break;
 	case MAXUSB_EVENT_BRST:
+#if 1 /* Test */
+		debug("Debug Cache: Flush before USB connection\r\n");
+		WriteDebugCacheToFile(1);
+#endif
 		usbAppWakeup();
 		enum_clearconfig();
 		acm_deconfigure();
@@ -3048,6 +3103,10 @@ int usbEventCallback_MSC(maxusb_event_t evt, void *data)
 		break;
 
 	case MAXUSB_EVENT_BRST:
+#if 1 /* Test */
+		debug("Debug Cache: Flush before USB connection\r\n");
+		WriteDebugCacheToFile(1);
+#endif
 		usbAppWakeup();
 		enum_clearconfig();
 		msc_deconfigure();
@@ -3111,9 +3170,11 @@ void USB_IRQHandler(void)
 			g_modemStatus.craftPortRcvFlag = YES;
 		}
 
+		// Mark the incoming pipe
+		g_isrMessageBufferPtr->pipe = SERIAL_PIPE_USB;
+
 		// Write the received data into the buffer
 		*g_isrMessageBufferPtr->writePtr = recieveData;
-
 		// Advance the buffer pointer
 		g_isrMessageBufferPtr->writePtr++;
 
@@ -3194,7 +3255,18 @@ void UsbReportEvents(void)
 		if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_NOVBUS)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_NOVBUS); debug("USB: VBUS Disconnect\r\n"); }
 		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_VBUS)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_VBUS); debug("USB: VBUS Connect\r\n"); }
 		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRST)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRST); debug("USB: Bus Reset\r\n"); }
+#if 1 /* Original */
 		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRSTDN)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRSTDN); debug("USB: Bus Reset Done: %s speed\r\n", (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) ? "High" : "Full"); }
+#else /* Test */
+		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRSTDN))
+		{
+			MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRSTDN);
+			debug("USB: Bus Reset Done: %s speed\r\n", (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) ? "High" : "Full");
+
+void WriteDebugCacheToFile(uint8_t flush);
+			WriteDebugCacheToFile(1);
+		}
+#endif
 		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_SUSP)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_SUSP); debug("USB: Suspended\r\n"); }
 		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_DPACT)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_DPACT); debug("USB: Resume\r\n"); }
 		else if (MXC_GETBIT(&event_flags, EVENT_ENUM_COMP)) { MXC_CLRBIT(&event_flags, EVENT_ENUM_COMP); debug("USB: Enumeration complete...\r\n"); }
@@ -4653,15 +4725,18 @@ void ValidatePowerOn(void)
 	uint16_t i;
 	uint32_t timer;
 
+#if 0 /* No longer needed with GPIO setup being the first action on Hardware init */
 	SetupPowerOnDetectGPIO();
-
+#endif
 	powerOnButtonDetect = GetPowerOnButtonState();
 	vbusChargingDetect = GetPowerGoodBatteryChargerState();
 
 	if (powerOnButtonDetect) { debugRaw("\r\n-----------------------\r\nPower On button pressed\r\n"); }
 	if (vbusChargingDetect) { debugRaw("\r\n-----------------------\r\nUSB Charging detected\r\n"); }
 
+	//------------------------------------------------------------------------------------------------------------------------------------------
 	// Check if the Ext RTC IntA is active which is a signal left for ourselves to detect MCU reset issued for unit restart or Bootloader finish
+	//------------------------------------------------------------------------------------------------------------------------------------------
 	if (MXC_GPIO_InGet(GPIO_EXT_RTC_INTA_PORT, GPIO_EXT_RTC_INTA_PIN) == 0)
 	{
 		// Small delay in case normal mode periodic pulse interrupt randomly hits at the same time
@@ -4676,7 +4751,9 @@ void ValidatePowerOn(void)
 			PowerControl(MCU_POWER_LATCH, ON);
 		}
 	}
+	//------------------------------------------------------------------------------------------------------------------------------------------
 	// Check if Power on button is the startup source
+	//------------------------------------------------------------------------------------------------------------------------------------------
 	else if (powerOnButtonDetect)
 	{
 		debugRaw("(2 second press validation) Waiting");
@@ -4706,7 +4783,9 @@ void ValidatePowerOn(void)
 		// Todo: Turn on appropriate LED
 		//PowerControl(LED???, ON);
 	}
+	//------------------------------------------------------------------------------------------------------------------------------------------
 	// Check if USB charging is startup source
+	//------------------------------------------------------------------------------------------------------------------------------------------
 	else if (vbusChargingDetect)
 	{
 		// Make sure latch is disabled in case it was still enabled from prior run and MCU reset
@@ -4714,9 +4793,13 @@ void ValidatePowerOn(void)
 
 		SetupHalfSecondTickTimer();
 
+#if 0 /* Original */
 		// Enable Aux Charging Bypass so only the Battery Charger needs to run (otherwise USBC Port Controller needs to be initialized too)
 		MXC_GPIO_OutSet(GPIO_USB_AUX_POWER_ENABLE_PORT, GPIO_USB_AUX_POWER_ENABLE_PIN); // Enable
-
+#else /* Invert logic since hardware mod inverted state */
+		// Enable Aux Charging Bypass so only the Battery Charger needs to run (otherwise USBC Port Controller needs to be initialized too)
+		MXC_GPIO_OutClr(GPIO_USB_AUX_POWER_ENABLE_PORT, GPIO_USB_AUX_POWER_ENABLE_PIN); // Enable
+#endif
 		ft81x_init();
 		ft81x_NomisChargingScreen(NO);
 
@@ -4726,12 +4809,20 @@ void ValidatePowerOn(void)
 		// Note: USB charging is reason for power up, could be USB or another source like 12V external battery (where setting Aux power enable is needed)
 		// Setup Battery Charger and Fuel Gauge, then monitor for user power on
 		SetupI2C();
+#if 1 /* Test */
 		TestI2CDeviceAddresses();
-
+#endif
 		// Test delay before I2C startup since it starts with some failures
 		SoftUsecWait(50 * SOFT_MSECS);
 
-		FuelGaugeInit();
+		if (GetBatteryPresenceState() == YES)
+		{
+			FuelGaugeInit();
+		}
+		else
+		{
+			debugWarn("Fuel Gauge: Offline (no batteries installed)\r\n");
+		}
 		BatteryChargerInit();
 
 		ft81x_NomisChargingScreen(YES);
@@ -4742,8 +4833,9 @@ void ValidatePowerOn(void)
 
 		timer = g_lifetimeHalfSecondTickCount + 8;
 
-		// Todo: Turn on appropriate LED
-		//PowerControl(LED???, ON);
+		// Turn on appropriate LED
+		PowerControl(LED_1, OFF);
+		PowerControl(LED_2, ON);
 
 		while (1)
 		{
@@ -4791,9 +4883,18 @@ void ValidatePowerOn(void)
 			if (g_lifetimeHalfSecondTickCount >= timer)
 			{
 				timer = g_lifetimeHalfSecondTickCount + 8;
-				PowerControl(LED_2, ON);
-				debug("(Cyclic Event) %s\r\n", FuelGaugeDebugString());
-				PowerControl(LED_2, OFF);
+
+				if (GetPowerControlState(LED_2) == ON) { PowerControl(LED_2, OFF); }
+				else { PowerControl(LED_2, ON); }
+
+				if (GetBatteryPresenceState() == YES)
+				{
+					debug("(Cyclic Event) %s\r\n", FuelGaugeDebugString());
+				}
+				else
+				{
+					debug("(Cyclic Event) BC Input (%.2fV), BC System (%.2fV)\r\n", (double)((float)GetBattChargerInputVoltage() / (float)1000), (double)((float)GetBattChargerSystemVoltage() / (float)1000));
+				}
 			}
 
 			// Check if charging was removed
@@ -5765,7 +5866,14 @@ void InitSystemHardware_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Initalize the Fuel Gauge
 	//-------------------------------------------------------------------------
-	FuelGaugeInit(); debug("Fuel Gauge: Init complete\r\n");
+	if (GetBatteryPresenceState() == YES)
+	{
+		FuelGaugeInit(); debug("Fuel Gauge: Init complete\r\n");
+	}
+	else
+	{
+		debugWarn("Fuel Gauge: Offline (no batteries installed)\r\n");
+	}
 
 	//-------------------------------------------------------------------------
 	// Smart Sensor data/control init (Hardware pull up on signal)
