@@ -120,14 +120,14 @@ void HandleUNL(CMD_BUFFER_STRUCT* inCmd)
 			sprintf(sendStr,"%s1", tempStr);
 		}
 
-		ModemPuts((uint8*)(sendStr), strlen(sendStr), CONVERT_DATA_TO_ASCII);
-		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+		ModemPuts((uint8*)(sendStr), strlen(sendStr), CONVERT_DATA_TO_ASCII, inCmd->pipe);
+		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 		if (g_modemStatus.systemIsLockedFlag == NO)
 		{
 			if (g_sampleProcessing == ACTIVE_STATE)
 			{
-				SendLMA();
+				SendLMA(inCmd->pipe);
 			}
 		}
 
@@ -200,9 +200,9 @@ void HandleDAI(CMD_BUFFER_STRUCT* inCmd)
 	BootLoadManager();
 
 	// Issue something to the user to alert them that the DAI command is not functional with this unit
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
-	ModemPuts((uint8*)DAI_ERR_RESP_STRING, sizeof(DAI_ERR_RESP_STRING), CONVERT_DATA_TO_ASCII);
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
+	ModemPuts((uint8*)DAI_ERR_RESP_STRING, sizeof(DAI_ERR_RESP_STRING), CONVERT_DATA_TO_ASCII, inCmd->pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 	return;
 }
@@ -232,7 +232,7 @@ void HandleHLM(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SendLMA(void)
+void SendLMA(uint8 pipe)
 {
 	uint16 length;
 
@@ -248,8 +248,8 @@ void SendLMA(void)
 		length = sprintf((char*)g_spareBuffer, "LMA,%d,%d,%lu", g_triggerRecord.opMode, g_pendingBargraphRecord.summary.eventNumber, ConvertDateTimeToEpochTime(g_pendingBargraphRecord.summary.captured.eventTime));
 	}
 
-	ModemPuts((uint8*)&g_spareBuffer, length, NO_CONVERSION);
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_spareBuffer, length, NO_CONVERSION, pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, pipe);
 }
 
 ///----------------------------------------------------------------------------
@@ -309,7 +309,7 @@ void HandleDLM(CMD_BUFFER_STRUCT* inCmd)
 	g_transferCount = 0;
 
 	// If the beginning of sending data, send the crlf.
-	if (MODEM_SEND_FAILED == ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION))
+	if (MODEM_SEND_FAILED == ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe))
 	{
 		g_dsmXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 		g_modemStatus.xferMutex = NO;
@@ -319,7 +319,7 @@ void HandleDLM(CMD_BUFFER_STRUCT* inCmd)
 	// g_transmitCRC will be the seed value for the rest of the CRC calculations.
 	g_transmitCRC = CalcCCITT32((uint8*)g_dsmXferStructPtr->msgHdr, MESSAGE_HEADER_LENGTH, SEED_32);
 
-	if (MODEM_SEND_FAILED == ModemPuts((uint8*)g_dsmXferStructPtr->msgHdr, MESSAGE_HEADER_LENGTH, g_binaryXferFlag))
+	if (MODEM_SEND_FAILED == ModemPuts((uint8*)g_dsmXferStructPtr->msgHdr, MESSAGE_HEADER_LENGTH, g_binaryXferFlag, inCmd->pipe))
 	{
 		g_dsmXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 		g_modemStatus.xferMutex = NO;
@@ -328,7 +328,7 @@ void HandleDLM(CMD_BUFFER_STRUCT* inCmd)
 
 	g_transmitCRC = CalcCCITT32((uint8*)g_dsmXferStructPtr->numOfRecStr, FIELD_LEN_06, g_transmitCRC);
 
-	if (MODEM_SEND_FAILED == ModemPuts((uint8*)g_dsmXferStructPtr->numOfRecStr, FIELD_LEN_06, g_binaryXferFlag))
+	if (MODEM_SEND_FAILED == ModemPuts((uint8*)g_dsmXferStructPtr->numOfRecStr, FIELD_LEN_06, g_binaryXferFlag, inCmd->pipe))
 	{
 		g_dsmXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 		g_modemStatus.xferMutex = NO;
@@ -359,7 +359,7 @@ void HandleDLM(CMD_BUFFER_STRUCT* inCmd)
 		// Send the data
 		g_transmitCRC = CalcCCITT32((uint8*)g_dsmXferStructPtr->startDloadPtr, sizeof(EVENT_RECORD_DOWNLOAD_STRUCT), g_transmitCRC);
 
-		if (MODEM_SEND_FAILED == ModemPuts((uint8*)g_dsmXferStructPtr->startDloadPtr, sizeof(EVENT_RECORD_DOWNLOAD_STRUCT), g_binaryXferFlag))
+		if (MODEM_SEND_FAILED == ModemPuts((uint8*)g_dsmXferStructPtr->startDloadPtr, sizeof(EVENT_RECORD_DOWNLOAD_STRUCT), g_binaryXferFlag, inCmd->pipe))
 		{
 			g_dsmXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 			g_modemStatus.xferMutex = NO;
@@ -373,8 +373,8 @@ void HandleDLM(CMD_BUFFER_STRUCT* inCmd)
 #if ENDIAN_CONVERSION
 	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 	g_transferCount = 0;
 }
 
@@ -421,15 +421,15 @@ void handleEEM(CMD_BUFFER_STRUCT* inCmd)
 	g_transmitCRC = CalcCCITT32((uint8*)&eemHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send Starting CRLF
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 	// Send Simple header
-	ModemPuts((uint8*)eemHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
+	ModemPuts((uint8*)eemHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII, inCmd->pipe);
 	// Send Ending Footer
 #if ENDIAN_CONVERSION
 	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 	return;
 }
@@ -475,21 +475,21 @@ void HandleDBL(CMD_BUFFER_STRUCT* inCmd)
 		else // File opened successfully
 		{
 			sprintf((char*)g_spareBuffer, "\r\n-------- <Start of Battery Log file> --------\r\n");
-			ModemPuts((uint8*)&g_spareBuffer, strlen((char*)g_spareBuffer), NO_CONVERSION);
+			ModemPuts((uint8*)&g_spareBuffer, strlen((char*)g_spareBuffer), NO_CONVERSION, inCmd->pipe);
 
 			uint32_t i = 0;
 			while (i++ < f_size(&file))
 			{
 				// Read Battery log by char
 				f_read(&file, &logData, sizeof(logData), (UINT*)&writeSize);
-				ModemPutc(logData, NO_CONVERSION);
+				ModemPutc(logData, NO_CONVERSION, inCmd->pipe);
 			}
 
 			// Done reading, close the monitor log file
 			f_close(&file);
 
 			sprintf((char*)g_spareBuffer, "-------- <End of Battery Log file> --------\r\n");
-			ModemPuts((uint8*)&g_spareBuffer, strlen((char*)g_spareBuffer), NO_CONVERSION);
+			ModemPuts((uint8*)&g_spareBuffer, strlen((char*)g_spareBuffer), NO_CONVERSION, inCmd->pipe);
 		}
 	}
 	else
@@ -522,6 +522,9 @@ void HandleVML(CMD_BUFFER_STRUCT* inCmd)
 	// Set the transfer state flag to the start with the header
 	s_vmlXferStruct.xferStateFlag = HEADER_XFER_STATE;
 
+	// Set the serial pipe
+	s_vmlXferStruct.serialPipe = inCmd->pipe;
+
 	// Set the transfer mutex since the response will be handled on multiple passes
 	g_modemStatus.xferMutex = YES;
 
@@ -543,7 +546,7 @@ void sendVMLData(void)
 	if (s_vmlXferStruct.xferStateFlag == HEADER_XFER_STATE)
 	{
 		// Transmit a carriage return line feed
-		if (ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION) == MODEM_SEND_FAILED)
+		if (ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, s_vmlXferStruct.serialPipe) == MODEM_SEND_FAILED)
 		{
 			// There was an error, so reset all global transfer and status fields
 			s_vmlXferStruct.xferStateFlag = NOP_XFER_STATE;
@@ -568,7 +571,7 @@ void sendVMLData(void)
 		g_transmitCRC = CalcCCITT32((uint8*)&(s_vmlXferStruct.vmlHdr), MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 		// Send the header out the modem
-		if (ModemPuts((uint8*)&(s_vmlXferStruct.vmlHdr), MESSAGE_HEADER_SIMPLE_LENGTH, g_binaryXferFlag) == MODEM_SEND_FAILED)
+		if (ModemPuts((uint8*)&(s_vmlXferStruct.vmlHdr), MESSAGE_HEADER_SIMPLE_LENGTH, g_binaryXferFlag, s_vmlXferStruct.serialPipe) == MODEM_SEND_FAILED)
 		{
 			// There was an error, so reset all global transfer and status fields
 			s_vmlXferStruct.xferStateFlag = NOP_XFER_STATE;
@@ -616,7 +619,7 @@ void sendVMLData(void)
 		g_transmitCRC = CalcCCITT32((uint8*)&(s_vmlXferStruct.vmlData[0]), (i * sizeof(MONITOR_LOG_ENTRY_STRUCT)), g_transmitCRC);
 
 		// Send the data out the modem
-		if (ModemPuts((uint8*)&(s_vmlXferStruct.vmlData[0]), (i * sizeof(MONITOR_LOG_ENTRY_STRUCT)), g_binaryXferFlag) == MODEM_SEND_FAILED)
+		if (ModemPuts((uint8*)&(s_vmlXferStruct.vmlData[0]), (i * sizeof(MONITOR_LOG_ENTRY_STRUCT)), g_binaryXferFlag, s_vmlXferStruct.serialPipe) == MODEM_SEND_FAILED)
 		{
 			// There was an error, so reset all global transfer and status fields
 			s_vmlXferStruct.xferStateFlag = NOP_XFER_STATE;
@@ -632,8 +635,8 @@ void sendVMLData(void)
 #if ENDIAN_CONVERSION
 		g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-		ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+		ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, s_vmlXferStruct.serialPipe);
+		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, s_vmlXferStruct.serialPipe);
 
 		// Done with the command, reset all global transfer and status fields
 		s_vmlXferStruct.xferStateFlag = NOP_XFER_STATE;
@@ -681,7 +684,7 @@ void handleGAD(CMD_BUFFER_STRUCT* inCmd)
 	strcpy((char*)&serialNumber[0], g_factorySetupRecord.unitSerialNumber);
 
 	// Transmit a carrige return line feed
-	if (ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe) == MODEM_SEND_FAILED)
 	{
 		// There was an error, so reset all global transfer and status fields
 		g_modemStatus.xferMutex = NO;
@@ -705,7 +708,7 @@ void handleGAD(CMD_BUFFER_STRUCT* inCmd)
 	g_transmitCRC = CalcCCITT32((uint8*)&(gadHdr), MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send the header out the modem
-	if (ModemPuts((uint8*)&(gadHdr), MESSAGE_HEADER_SIMPLE_LENGTH, g_binaryXferFlag) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)&(gadHdr), MESSAGE_HEADER_SIMPLE_LENGTH, g_binaryXferFlag, inCmd->pipe) == MODEM_SEND_FAILED)
 	{
 		// There was an error, so reset all global transfer and status fields
 		g_modemStatus.xferMutex = NO;
@@ -719,7 +722,7 @@ void handleGAD(CMD_BUFFER_STRUCT* inCmd)
 	g_transmitCRC = CalcCCITT32((uint8*)&serialNumber[0], sizeof(serialNumber), g_transmitCRC);
 
 	// Send the data out the modem
-	if (ModemPuts((uint8*)&serialNumber[0], sizeof(serialNumber), g_binaryXferFlag) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)&serialNumber[0], sizeof(serialNumber), g_binaryXferFlag, inCmd->pipe) == MODEM_SEND_FAILED)
 	{
 		// There was an error, so reset all global transfer and status fields
 		g_modemStatus.xferMutex = NO;
@@ -736,7 +739,7 @@ void handleGAD(CMD_BUFFER_STRUCT* inCmd)
 	g_transmitCRC = CalcCCITT32((uint8*)&tempAutoDialout, sizeof(AUTODIALOUT_STRUCT), g_transmitCRC);
 
 	// Send the data out the modem
-	if (ModemPuts((uint8*)&tempAutoDialout, sizeof(AUTODIALOUT_STRUCT), g_binaryXferFlag) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)&tempAutoDialout, sizeof(AUTODIALOUT_STRUCT), g_binaryXferFlag, inCmd->pipe) == MODEM_SEND_FAILED)
 	{
 		// There was an error, so reset all global transfer and status fields
 		g_modemStatus.xferMutex = NO;
@@ -749,8 +752,8 @@ void handleGAD(CMD_BUFFER_STRUCT* inCmd)
 #if ENDIAN_CONVERSION
 	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 	// Done with the command, reset all global transfer and status fields
 	g_modemStatus.xferState = NOP_CMD;
@@ -784,7 +787,7 @@ void handleGFS(CMD_BUFFER_STRUCT* inCmd)
 #endif
 
 	// Transmit a carrige return line feed
-	if (ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe) == MODEM_SEND_FAILED)
 	{
 		// There was an error, so reset all global transfer and status fields
 		g_modemStatus.xferMutex = NO;
@@ -808,7 +811,7 @@ void handleGFS(CMD_BUFFER_STRUCT* inCmd)
 	g_transmitCRC = CalcCCITT32((uint8*)&(gfsHdr), MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send the header out the modem
-	if (ModemPuts((uint8*)&(gfsHdr), MESSAGE_HEADER_SIMPLE_LENGTH, g_binaryXferFlag) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)&(gfsHdr), MESSAGE_HEADER_SIMPLE_LENGTH, g_binaryXferFlag, inCmd->pipe) == MODEM_SEND_FAILED)
 	{
 		// There was an error, so reset all global transfer and status fields
 		g_modemStatus.xferMutex = NO;
@@ -825,7 +828,7 @@ void handleGFS(CMD_BUFFER_STRUCT* inCmd)
 	g_transmitCRC = CalcCCITT32((uint8*)&tempUsageStats, sizeof(FLASH_USAGE_STRUCT), g_transmitCRC);
 
 	// Send the data out the modem
-	if (ModemPuts((uint8*)&tempUsageStats, sizeof(FLASH_USAGE_STRUCT), g_binaryXferFlag) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)&tempUsageStats, sizeof(FLASH_USAGE_STRUCT), g_binaryXferFlag, inCmd->pipe) == MODEM_SEND_FAILED)
 	{
 		// There was an error, so reset all global transfer and status fields
 		g_modemStatus.xferMutex = NO;
@@ -838,8 +841,8 @@ void handleGFS(CMD_BUFFER_STRUCT* inCmd)
 #if ENDIAN_CONVERSION
 	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 	// Done with the command, reset all global transfer and status fields
 	g_modemStatus.xferState = NOP_CMD;
@@ -920,6 +923,7 @@ void HandleDQM(CMD_BUFFER_STRUCT* inCmd)
 
 	//-----------------------------------------------------------
 	g_dqmXferStructPtr->xferStateFlag = HEADER_XFER_STATE;		// This is the initial xfer state to start.
+	g_dqmXferStructPtr->serialPipe = inCmd->pipe;				// Record serial pipe
 	g_modemStatus.xferState = DQMx_CMD;							// This is the xfer command state.
 	g_modemStatus.xferMutex = YES;								// Mutex to prevent other commands.
 	g_modemStatus.xferPrintState = g_unitConfig.autoPrint;
@@ -947,7 +951,7 @@ uint8 sendDQMData(void)
 	// If the beginning of sending data, send the crlf.
 	if (HEADER_XFER_STATE == g_dqmXferStructPtr->xferStateFlag)
 	{
-		if (MODEM_SEND_FAILED == ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION))
+		if (MODEM_SEND_FAILED == ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, g_dqmXferStructPtr->serialPipe))
 		{
 			g_dqmXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 			g_modemStatus.xferMutex = NO;
@@ -961,7 +965,7 @@ uint8 sendDQMData(void)
 
 		// Copy the hdr length plus the 4 of the record length.
 		if (MODEM_SEND_FAILED == ModemPuts((uint8*)g_dqmXferStructPtr->dqmHdr,
-			(MESSAGE_HEADER_SIMPLE_LENGTH + 4), g_binaryXferFlag))
+			(MESSAGE_HEADER_SIMPLE_LENGTH + 4), g_binaryXferFlag, g_dqmXferStructPtr->serialPipe))
 		{
 			g_dqmXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 			g_modemStatus.xferMutex = NO;
@@ -987,7 +991,7 @@ uint8 sendDQMData(void)
 				sizeof(DQMx_DATA_STRUCT), g_transmitCRC);
 
 			if (MODEM_SEND_FAILED == ModemPuts((uint8*)g_dqmXferStructPtr->dqmData,
-				sizeof(DQMx_DATA_STRUCT), g_binaryXferFlag))
+				sizeof(DQMx_DATA_STRUCT), g_binaryXferFlag, g_dqmXferStructPtr->serialPipe))
 			{
 				g_dqmXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 				g_modemStatus.xferMutex = NO;
@@ -1026,7 +1030,7 @@ uint8 sendDQMData(void)
 				(idex * sizeof(DQMx_DATA_STRUCT)), g_transmitCRC);
 
 			if (MODEM_SEND_FAILED == ModemPuts((uint8*)g_dqmXferStructPtr->dqmData,
-				(idex * sizeof(DQMx_DATA_STRUCT)), g_binaryXferFlag))
+				(idex * sizeof(DQMx_DATA_STRUCT)), g_binaryXferFlag, g_dqmXferStructPtr->serialPipe))
 			{
 				g_dqmXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 				g_modemStatus.xferMutex = NO;
@@ -1041,8 +1045,8 @@ uint8 sendDQMData(void)
 #if ENDIAN_CONVERSION
 		g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-		ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+		ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, g_dqmXferStructPtr->serialPipe);
+		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, g_dqmXferStructPtr->serialPipe);
 		g_dqmXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 		xferState = NOP_CMD;
 		g_modemStatus.xferMutex = NO;
@@ -1125,20 +1129,20 @@ void HandleDSM(CMD_BUFFER_STRUCT* inCmd)
 			BuildOutgoingSimpleHeaderBuffer((uint8*)dsmHdr, (uint8*)"DSMx",	(uint8*)msgTypeStr, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);
 
 			// Send Starting CRLF
-			ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+			ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 			// Calculate the CRC on the header
 			g_transmitCRC = CalcCCITT32((uint8*)&dsmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 			// Send Simple header
-			ModemPuts((uint8*)dsmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
+			ModemPuts((uint8*)dsmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII, inCmd->pipe);
 
 			// Send Ending Footer
 #if ENDIAN_CONVERSION
 			g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-			ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-			ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+			ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+			ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 			return;
 		}
@@ -1179,6 +1183,7 @@ void HandleDSM(CMD_BUFFER_STRUCT* inCmd)
 
 	//-----------------------------------------------------------
 	g_dsmXferStructPtr->xferStateFlag = HEADER_XFER_STATE;	// This is the initail xfer state to start.
+	g_dsmXferStructPtr->serialPipe = inCmd->pipe;			// Record serial pipe
 	g_modemStatus.xferState = DSMx_CMD;								// This is the xfer command state.
 	g_modemStatus.xferMutex = YES;									// Mutex to prevent other commands.
 
@@ -1199,7 +1204,7 @@ uint8 sendDSMData(void)
 	// If the beginning of sending data, send the crlf.
 	if (HEADER_XFER_STATE == g_dsmXferStructPtr->xferStateFlag)
 	{
-		if (MODEM_SEND_FAILED == ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION))
+		if (MODEM_SEND_FAILED == ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, g_dsmXferStructPtr->serialPipe))
 		{
 			g_dsmXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 			g_modemStatus.xferMutex = NO;
@@ -1212,7 +1217,7 @@ uint8 sendDSMData(void)
 		g_transmitCRC = CalcCCITT32((uint8*)g_dsmXferStructPtr->msgHdr, MESSAGE_HEADER_LENGTH, SEED_32);
 
 		if (MODEM_SEND_FAILED == ModemPuts((uint8*)g_dsmXferStructPtr->msgHdr,
-			MESSAGE_HEADER_LENGTH, g_binaryXferFlag))
+			MESSAGE_HEADER_LENGTH, g_binaryXferFlag, g_dsmXferStructPtr->serialPipe))
 		{
 			g_dsmXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 			g_modemStatus.xferMutex = NO;
@@ -1224,7 +1229,7 @@ uint8 sendDSMData(void)
 		g_transmitCRC = CalcCCITT32((uint8*)g_dsmXferStructPtr->numOfRecStr, FIELD_LEN_06, g_transmitCRC);
 
 		if (MODEM_SEND_FAILED == ModemPuts((uint8*)g_dsmXferStructPtr->numOfRecStr,
-			FIELD_LEN_06, g_binaryXferFlag))
+			FIELD_LEN_06, g_binaryXferFlag, g_dsmXferStructPtr->serialPipe))
 		{
 			g_dsmXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 			g_modemStatus.xferMutex = NO;
@@ -1281,7 +1286,7 @@ uint8 sendDSMData(void)
 	else if (EVENTREC_XFER_STATE == g_dsmXferStructPtr->xferStateFlag)
 	{
 		g_dsmXferStructPtr->dloadPtr = sendDataNoFlashWrapCheck(g_dsmXferStructPtr->dloadPtr,
-			g_dsmXferStructPtr->endDloadPtr);
+			g_dsmXferStructPtr->endDloadPtr, g_dsmXferStructPtr->serialPipe);
 
 		if (NULL == g_dsmXferStructPtr->dloadPtr)
 		{
@@ -1303,8 +1308,8 @@ uint8 sendDSMData(void)
 #if ENDIAN_CONVERSION
 		g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-		ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+		ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, g_dsmXferStructPtr->serialPipe);
+		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, g_dsmXferStructPtr->serialPipe);
 		g_dsmXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 		xferState = NOP_CMD;
 		g_modemStatus.xferMutex = NO;
@@ -1379,12 +1384,18 @@ void HandleESC(CMD_BUFFER_STRUCT* inCmd)
 		// Reset remote conneciton active status
 		g_modemStatus.remoteConnectionActive = NO;
 
+#if 0 /* Original */
 		// Need to re-enter datamode for the TCP server
 		int strLen, status;
 		SoftUsecWait(1 * SOFT_SECS);
 		debug("<Escape sequence>...\r\n"); sprintf((char*)g_spareBuffer, "+++---\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 		SoftUsecWait(1 * SOFT_SECS);
 		debug("AT#XTCPSEND\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+#else /* Test */
+		// Delay entering Data mode until the remote conneciton is active due to the rare occasion where the cell modem seems to drop data mode without notificaiton
+		int strLen, status;
+		debug("<Escape sequence>...\r\n"); sprintf((char*)g_spareBuffer, "+++---\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+#endif
 	}
 
 	g_modemStatus.remoteResponse = ESCAPE_SEQUENCE;
@@ -1393,7 +1404,7 @@ void HandleESC(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
+void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption, uint8 pipe)
 {
 	/* Sample Output from Supergraphics
 	SIMPLE MATERIALS GROUP
@@ -1452,7 +1463,7 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 	if (g_eventNumberCache[eventNumberToSend] != EVENT_REFERENCE_VALID)
 	{
 		xmitLength = sprintf((char*)&g_spareBuffer[0], "DET: Event not found for CSV output\r\n");
-		ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION);
+		ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION, pipe);
 		return; // Nothing else to be done, time to bail
 	}
 
@@ -1551,7 +1562,7 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 		}
 		xmitLength += sprintf((char*)&g_spareBuffer[xmitLength], "Battery Level: %0.2f\r\n", (double)((float)eventRecord->summary.captured.batteryLevel / (float)100));
 
-		if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
+		if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION, pipe) == MODEM_SEND_FAILED) { /* Failed send */ return; }
 	}
 
 	//===================================================================================================================================
@@ -1563,7 +1574,7 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 		//===================================================================================================================================
 		{
 			xmitLength = sprintf((char*)&g_spareBuffer[0], "Sample Sample Air Air Radial Transverse Vertical Vector\r\nCount Time dBL millibars (%s) (%s) (%s) Sum\r\n", sUnits, sUnits, sUnits);
-			if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
+			if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION, pipe) == MODEM_SEND_FAILED) { /* Failed send */ return; }
 
 			if (eventRecord->summary.mode == MANUAL_CAL_MODE)
 			{
@@ -1609,7 +1620,7 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 
 					//------------------------------------------------T,Ad,Am,Ru,Tu,Vu,VS
 					xmitLength = sprintf((char*)&g_spareBuffer[0], "%ld %f %f %f %f %f %f %f\r\n", sampleCount, (double)(float)((float)sampleCount/(float)eventRecord->summary.parameters.sampleRate), (double)airdB, (double)airmb, (double)rUnits, (double)tUnits, (double)vUnits, (double)VS);
-					if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
+					if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION, pipe) == MODEM_SEND_FAILED) { /* Failed send */ return; }
 
 					sampleCount++;
 					currentSample++;
@@ -1635,7 +1646,7 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 				if (barType == BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE) { xmitLength = sprintf((char*)&g_spareBuffer[0], "Bar Bar Air Air Seismic Vector\r\nInterval Time dBL mb (%s) Sum\r\n", sUnits); }
 				else if (barType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE) { xmitLength = sprintf((char*)&g_spareBuffer[0], "Bar Bar Air Air Radial Transverse Vertical Vector\r\nInterval Time dBL mb (%s) (%s) (%s) Sum\r\n", sUnits, sUnits, sUnits); }
 				else { xmitLength = sprintf((char*)&g_spareBuffer[0], "Bar Bar Air Air Air Radial Radial Transverse Transverse Vertical Vertical Vector\r\nInterval Time dBL mb Hz (%s) Hz (%s) Hz (%s) Hz Sum\r\n", sUnits, sUnits, sUnits); }
-				if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
+				if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION, pipe) == MODEM_SEND_FAILED) { /* Failed send */ return; }
 
 				for (i = barType; i < CMD_BUFFER_SIZE; i += barType)
 				{
@@ -1705,7 +1716,7 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 							xmitLength = sprintf((char*)&g_spareBuffer[0], "%d %02d:%02d:%02d %f %f %f %f %f %f %f %f %f %f\r\n", barIntervalCount++, biHour, biMin, biSec, (double)airdB, (double)airmb, (double)aFreq, (double)rUnits, (double)rFreq, (double)tUnits, (double)tFreq, (double)vUnits, (double)vFreq, (double)VS);
 						}
 
-						if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
+						if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION, pipe) == MODEM_SEND_FAILED) { /* Failed send */ return; }
 
 						// Advance to the next BI in the buffer
 						currentBI += (barType / 2);
@@ -1735,7 +1746,7 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 			{
 				// Summary Intervals only
 				xmitLength = sprintf((char*)&g_spareBuffer[0], "Summary Start Air Air Air Air R R R T T T V V V Vector\r\nInterval Time dBL mb Hz Time (%s) Hz Time (%s) Hz Time (%s) Sum\r\n", sUnits, sUnits, sUnits);
-				if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
+				if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION, pipe) == MODEM_SEND_FAILED) { /* Failed send */ return; }
 
 				pullSize = sizeof(CALCULATED_DATA_STRUCT);
 				sampleCount = 1;
@@ -1773,7 +1784,7 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 					(double)tUnits, (double)tFreq, cSum->t_Time.hour, cSum->t_Time.min, cSum->t_Time.sec,
 					(double)vUnits, (double)vFreq, cSum->v_Time.hour, cSum->v_Time.min, cSum->v_Time.sec, (double)VS);
 
-					if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION) == MODEM_SEND_FAILED) { /* Failed send */ return; }
+					if (ModemPuts((uint8*)&g_spareBuffer[0], xmitLength, NO_CONVERSION, pipe) == MODEM_SEND_FAILED) { /* Failed send */ return; }
 
 					// Summaries
 					sampleCount++;
@@ -1788,7 +1799,7 @@ void SendEventCSVFormat(uint16 eventNumberToSend, uint8 csvOption)
 		}
 	}
 
-	ModemPuts((uint8*)&g_CRLF, sizeof(uint16), NO_CONVERSION);
+	ModemPuts((uint8*)&g_CRLF, sizeof(uint16), NO_CONVERSION, pipe);
 }
 
 ///----------------------------------------------------------------------------
@@ -1851,8 +1862,8 @@ void HandleDEM(CMD_BUFFER_STRUCT* inCmd)
 		msgCRC = CalcCCITT32((uint8*)&(inCmd->msg[0]), MESSAGE_HEADER_LENGTH, SEED_32);
 		msgCRC = CalcCCITT32((uint8*)&(rawData[0]), sizeof(rawData), msgCRC);
 #if ENDIAN_CONVERSION
-			msgCRC = __builtin_bswap32(msgCRC);
-			debug("DEM CRC compare: In %08x, Msg %08x\r\n", inCRC, msgCRC);
+		msgCRC = __builtin_bswap32(msgCRC);
+		debug("DEM CRC compare: In %08x, Msg %08x\r\n", inCRC, msgCRC);
 #endif
 		// The CRC's don't match
 		if (inCRC != msgCRC)
@@ -1862,20 +1873,20 @@ void HandleDEM(CMD_BUFFER_STRUCT* inCmd)
 			memcpy(g_inCmdHeaderPtr->type, msgTypeStr, HDR_TYPE_LEN);
 
 			// Send Starting CRLF
-			ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+			ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 			// Calculate the CRC
 			g_transmitCRC = CalcCCITT32((uint8*)&(g_inCmdHeaderPtr->cmd[0]), (uint32)(inCmd->size - 4), SEED_32);
 
 			// Send Simple header
-			ModemPuts((uint8*)&(g_inCmdHeaderPtr->cmd[0]), (uint32)(inCmd->size - 4), NO_CONVERSION);
+			ModemPuts((uint8*)&(g_inCmdHeaderPtr->cmd[0]), (uint32)(inCmd->size - 4), NO_CONVERSION, inCmd->pipe);
 
 			// Send Ending Footer
 #if ENDIAN_CONVERSION
 			g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-			ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-			ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+			ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+			ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 			return;
 		}
 
@@ -1918,7 +1929,7 @@ void HandleDEM(CMD_BUFFER_STRUCT* inCmd)
 		// Check if the download option for CSV format was selected
 		if (spareOption == 1)
 		{
-			SendEventCSVFormat(eventNumToSend, CSV_FULL);
+			SendEventCSVFormat(eventNumToSend, CSV_FULL, inCmd->pipe);
 
 			// Done processing
 			return;
@@ -1927,17 +1938,28 @@ void HandleDEM(CMD_BUFFER_STRUCT* inCmd)
 		// Clear out the xmit structures and initialize the flag and time fields.
 		memset(&(g_demXferStructPtr->dloadEventRec), 0, sizeof(EVENT_RECORD_DOWNLOAD_STRUCT));
 		g_demXferStructPtr->xferStateFlag = NOP_XFER_STATE;
+		g_demXferStructPtr->serialPipe = inCmd->pipe;
 		g_demXferStructPtr->dloadEventRec.structureFlag = START_DLOAD_FLAG;
 		g_demXferStructPtr->dloadEventRec.downloadDate = GetCurrentTime();
 		g_demXferStructPtr->dloadEventRec.endFlag = END_DLOAD_FLAG;
 		g_demXferStructPtr->errorStatus = MODEM_SEND_SUCCESS;
 
 		// Reset flag to always attempt compression
-#if 1 /* Normal operation */
+#if 0 /* Normal operation */
 		g_demXferStructPtr->downloadMethod = COMPRESS_MINILZO;
-#else /* Temp disable compression */
+#elif 0 /* Temp disable compression */
 		// Todo: Update MiniLZO compression to work directly from stored event before reversing logic
 		g_demXferStructPtr->downloadMethod = COMPRESS_NONE;
+#else
+		// Check if no compression requested
+		if ((g_inCmdHeaderPtr->compressCrcFlags[0] - 0x30) == COMPRESS_NONE)
+		{
+			g_demXferStructPtr->downloadMethod = COMPRESS_NONE;
+		}
+		else // Send compressed
+		{
+			g_demXferStructPtr->downloadMethod = COMPRESS_MINILZO;
+		}
 #endif
 		g_demXferStructPtr->compressedEventDataFilePresent = CheckCompressedEventDataFileExists(eventNumToSend);
 
@@ -1952,7 +1974,7 @@ void HandleDEM(CMD_BUFFER_STRUCT* inCmd)
 #if 0 /* Not enough room to cache events to internal RAM */
 			if (CacheEventToRam(eventNumToSend, &g_demXferStructPtr->dloadEventRec.eventRecord) == EVENT_CACHE_FAILURE)
 			{
-				SendErrorMsg((uint8*)"DEMe", (uint8*)MSGTYPE_ERROR_NO_EVENT);
+				SendErrorMsg((uint8*)"DEMe", (uint8*)MSGTYPE_ERROR_NO_EVENT, inCmd->pipe);
 				return;
 			}
 #else /* Plain uncompressed file send is caching to packets in transfer so only event record needed to be cached */
@@ -2048,7 +2070,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 	// Send CRLF start of msg.
 	//----------------------------------------------------
 	dataLength = 2;
-	if (ModemPuts((uint8*)&g_CRLF, dataLength, NO_CONVERSION) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)&g_CRLF, dataLength, NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 	{
 		g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 	}
@@ -2059,7 +2081,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 	//----------------------------------------------------
 	dataLength = MESSAGE_HEADER_LENGTH;
 	g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->msgHdr, dataLength, SEED_32);
-	if (ModemPuts((uint8*)g_demXferStructPtr->msgHdr, dataLength, NO_CONVERSION) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)g_demXferStructPtr->msgHdr, dataLength, NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 	{
 		g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 	}
@@ -2092,7 +2114,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 		{
 			g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->xmitBuffer, g_demXferStructPtr->xmitSize, g_transmitCRC);
 
-			if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, g_demXferStructPtr->xmitSize, NO_CONVERSION) == MODEM_SEND_FAILED)
+			if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, g_demXferStructPtr->xmitSize, NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 			{
 				g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 			}
@@ -2105,7 +2127,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 	{
 		g_transmitCRC = CalcCCITT32((void*)g_demXferStructPtr->startDloadPtr, sizeof(EVENT_RECORD_DOWNLOAD_STRUCT), g_transmitCRC);
 
-		if (ModemPuts((void*)g_demXferStructPtr->startDloadPtr, sizeof(EVENT_RECORD_DOWNLOAD_STRUCT), NO_CONVERSION) == MODEM_SEND_FAILED)
+		if (ModemPuts((void*)g_demXferStructPtr->startDloadPtr, sizeof(EVENT_RECORD_DOWNLOAD_STRUCT), NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 		{
 			g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 		}
@@ -2138,7 +2160,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 				g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, g_transmitCRC);
 
 #if 1 /* Original */
-				if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, NO_CONVERSION) == MODEM_SEND_FAILED)
+				if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 				{
 					g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 				}
@@ -2148,7 +2170,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 
 				for (uint8 i = 0; i < 4; i++)
 				{
-					if (ModemPuts((uint8*)&g_demXferStructPtr->xmitBuffer[i * (CMD_BUFFER_SIZE / 4)], (CMD_BUFFER_SIZE / 4), NO_CONVERSION) == MODEM_SEND_FAILED)
+					if (ModemPuts((uint8*)&g_demXferStructPtr->xmitBuffer[i * (CMD_BUFFER_SIZE / 4)], (CMD_BUFFER_SIZE / 4), NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 					{
 						g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 						break;
@@ -2181,7 +2203,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 			CacheERDataToBuffer(g_demXferStructPtr->dloadEventRec.eventRecord.summary.eventNumber, (uint8*)g_demXferStructPtr->xmitBuffer, dataOffset, dataSizeRemaining);
 			g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->xmitBuffer, dataSizeRemaining, g_transmitCRC);
 
-			if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, dataSizeRemaining, NO_CONVERSION) == MODEM_SEND_FAILED)
+			if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, dataSizeRemaining, NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 			{
 				g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 			}
@@ -2204,7 +2226,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 		{
 			g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->xmitBuffer, g_demXferStructPtr->xmitSize, g_transmitCRC);
 
-			if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, g_demXferStructPtr->xmitSize, NO_CONVERSION) == MODEM_SEND_FAILED)
+			if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, g_demXferStructPtr->xmitSize, NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 			{
 				g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 			}
@@ -2222,7 +2244,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 
 		g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->startDataPtr, g_demXferStructPtr->dloadEventRec.eventRecord.header.dataLength, g_transmitCRC);
 
-		if (ModemPuts((uint8*)g_demXferStructPtr->startDataPtr, g_demXferStructPtr->dloadEventRec.eventRecord.header.dataLength, NO_CONVERSION) == MODEM_SEND_FAILED)
+		if (ModemPuts((uint8*)g_demXferStructPtr->startDataPtr, g_demXferStructPtr->dloadEventRec.eventRecord.header.dataLength, NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 		{
 			g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 		}
@@ -2250,7 +2272,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 				g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, g_transmitCRC);
 
 #if 1 /* Original */
-				if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, NO_CONVERSION) == MODEM_SEND_FAILED)
+				if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, CMD_BUFFER_SIZE, NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 				{
 					g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 				}
@@ -2260,7 +2282,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 
 				for (uint8 i = 0; i < 4; i++)
 				{
-					if (ModemPuts((uint8*)&g_demXferStructPtr->xmitBuffer[i * (CMD_BUFFER_SIZE / 4)], (CMD_BUFFER_SIZE / 4), NO_CONVERSION) == MODEM_SEND_FAILED)
+					if (ModemPuts((uint8*)&g_demXferStructPtr->xmitBuffer[i * (CMD_BUFFER_SIZE / 4)], (CMD_BUFFER_SIZE / 4), NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 					{
 						g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 						break;
@@ -2304,7 +2326,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 #endif
 				g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->xmitBuffer, packetDataSize, g_transmitCRC);
 
-				if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, packetDataSize, NO_CONVERSION) == MODEM_SEND_FAILED)
+				if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, packetDataSize, NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 				{
 					g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 				}
@@ -2331,7 +2353,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 #endif
 			g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->xmitBuffer, dataSizeRemaining, g_transmitCRC);
 
-			if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, dataSizeRemaining, NO_CONVERSION) == MODEM_SEND_FAILED)
+			if (ModemPuts((uint8*)g_demXferStructPtr->xmitBuffer, dataSizeRemaining, NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 			{
 				g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 			}
@@ -2347,7 +2369,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 	eventRecordXferLength = __builtin_bswap32(eventRecordXferLength);
 #endif
 	g_transmitCRC = CalcCCITT32((uint8*)&(eventRecordXferLength), dataLength, g_transmitCRC);
-	if (ModemPuts((uint8*)&(eventRecordXferLength), dataLength, NO_CONVERSION) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)&(eventRecordXferLength), dataLength, NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 	{
 		g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 	}
@@ -2358,7 +2380,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 	eventDataXferLength = __builtin_bswap32(eventDataXferLength);
 #endif
 	g_transmitCRC = CalcCCITT32((uint8*)&(eventDataXferLength), dataLength, g_transmitCRC);
-	if (ModemPuts((uint8*)&(eventDataXferLength), dataLength, NO_CONVERSION) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)&(eventDataXferLength), dataLength, NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 	{
 		g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 	}
@@ -2372,7 +2394,7 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 	g_transferCount = __builtin_bswap32(g_transferCount);
 #endif
 	g_transmitCRC = CalcCCITT32((uint8*)&(g_transferCount), dataLength, g_transmitCRC);
-	if (ModemPuts((uint8*)&(g_transferCount), dataLength, NO_CONVERSION) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)&(g_transferCount), dataLength, NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 	{
 		g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 	}
@@ -2381,19 +2403,23 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 #if ENDIAN_CONVERSION
 	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-	if (ModemPuts((uint8*)&g_transmitCRC, dataLength, NO_CONVERSION) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)&g_transmitCRC, dataLength, NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 	{
 		g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 	}
 
 	// crlf xmit
-	if (ModemPuts((uint8*)&g_CRLF, sizeof(uint16), NO_CONVERSION) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)&g_CRLF, sizeof(uint16), NO_CONVERSION, g_demXferStructPtr->serialPipe) == MODEM_SEND_FAILED)
 	{
 		g_demXferStructPtr->errorStatus = MODEM_SEND_FAILED;
 	}
 
 	debug("CRC=%d g_transferCount=%d errorStatus=%s\r\n", __builtin_bswap32(g_transmitCRC), __builtin_bswap32(g_transferCount), (g_demXferStructPtr->errorStatus == MODEM_SEND_FAILED) ? "Failed" : "Passed");
 
+#if 1 /* Timestamp */
+	DATE_TIME_STRUCT dateTime = GetCurrentTime();
+	debug("DEM transfer done: Event %d @ %02d:%02d:%02d on %d/%d/%d\r\n", g_demXferStructPtr->dloadEventRec.eventRecord.summary.eventNumber, dateTime.hour, dateTime.min, dateTime.sec, dateTime.month, dateTime.day, dateTime.year);
+#endif
 	return;
 }
 
@@ -2407,7 +2433,7 @@ uint8 sendDEMData(void)
 	// If the beginning of sending data, send the crlf.
 	if (HEADER_XFER_STATE == g_demXferStructPtr->xferStateFlag)
 	{
-		if (MODEM_SEND_FAILED == ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION))
+		if (MODEM_SEND_FAILED == ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, g_demXferStructPtr->serialPipe))
 		{
 			g_demXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 			g_modemStatus.xferMutex = NO;
@@ -2419,7 +2445,7 @@ uint8 sendDEMData(void)
 		g_transmitCRC = CalcCCITT32((uint8*)g_demXferStructPtr->msgHdr, MESSAGE_HEADER_LENGTH, SEED_32);
 
 		if (MODEM_SEND_FAILED == ModemPuts((uint8*)g_demXferStructPtr->msgHdr,
-			MESSAGE_HEADER_LENGTH, g_binaryXferFlag))
+			MESSAGE_HEADER_LENGTH, g_binaryXferFlag, g_demXferStructPtr->serialPipe))
 		{
 			g_demXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 			g_modemStatus.xferMutex = NO;
@@ -2434,7 +2460,7 @@ uint8 sendDEMData(void)
 	// xfer the event record structure.
 	else if (EVENTREC_XFER_STATE == g_demXferStructPtr->xferStateFlag)
 	{
-		g_demXferStructPtr->dloadPtr = sendDataNoFlashWrapCheck(g_demXferStructPtr->dloadPtr, g_demXferStructPtr->endDloadPtr);
+		g_demXferStructPtr->dloadPtr = sendDataNoFlashWrapCheck(g_demXferStructPtr->dloadPtr, g_demXferStructPtr->endDloadPtr, g_dsmXferStructPtr->serialPipe);
 
 		if (NULL == g_demXferStructPtr->dloadPtr)
 		{
@@ -2456,7 +2482,7 @@ uint8 sendDEMData(void)
 		// Does the end ptr wrap in flash? if not then continue;
 		if (g_demXferStructPtr->dataPtr < g_demXferStructPtr->endDataPtr)
 		{
-			g_demXferStructPtr->dataPtr = sendDataNoFlashWrapCheck(g_demXferStructPtr->dataPtr, g_demXferStructPtr->endDataPtr);
+			g_demXferStructPtr->dataPtr = sendDataNoFlashWrapCheck(g_demXferStructPtr->dataPtr, g_demXferStructPtr->endDataPtr, g_dsmXferStructPtr->serialPipe);
 
 			if (NULL == g_demXferStructPtr->dataPtr)
 			{
@@ -2473,7 +2499,7 @@ uint8 sendDEMData(void)
 		}
 		else	// The ptr does wrap in flash so the limit is the end of flash.
 		{
-			g_demXferStructPtr->dataPtr = sendDataNoFlashWrapCheck(g_demXferStructPtr->dataPtr, g_demXferStructPtr->endDataPtr);
+			g_demXferStructPtr->dataPtr = sendDataNoFlashWrapCheck(g_demXferStructPtr->dataPtr, g_demXferStructPtr->endDataPtr, g_dsmXferStructPtr->serialPipe);
 
 			if (NULL == g_demXferStructPtr->dataPtr)
 			{
@@ -2491,8 +2517,8 @@ uint8 sendDEMData(void)
 #if ENDIAN_CONVERSION
 		g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-		ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+		ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, g_demXferStructPtr->serialPipe);
+		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, g_demXferStructPtr->serialPipe);
 		g_demXferStructPtr->xferStateFlag = NOP_XFER_STATE;
 		xferState = NOP_CMD;
 		g_modemStatus.xferMutex = NO;
@@ -2505,7 +2531,7 @@ uint8 sendDEMData(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8* sendDataNoFlashWrapCheck(uint8* xferPtr, uint8* endPtr)
+uint8* sendDataNoFlashWrapCheck(uint8* xferPtr, uint8* endPtr, uint8 pipe)
 {
 	uint32 xmitSize = XMIT_SIZE_MONITORING;
 
@@ -2514,7 +2540,7 @@ uint8* sendDataNoFlashWrapCheck(uint8* xferPtr, uint8* endPtr)
 		g_transmitCRC = CalcCCITT32((uint8*)xferPtr, xmitSize, g_transmitCRC);
 
 		if (MODEM_SEND_FAILED == ModemPuts(
-			(uint8*)xferPtr, xmitSize, g_binaryXferFlag))
+			(uint8*)xferPtr, xmitSize, g_binaryXferFlag, pipe))
 		{
 			return (NULL);
 		}
@@ -2526,7 +2552,7 @@ uint8* sendDataNoFlashWrapCheck(uint8* xferPtr, uint8* endPtr)
 		g_transmitCRC = CalcCCITT32((uint8*)xferPtr, xmitSize, g_transmitCRC);
 
 		if (MODEM_SEND_FAILED == ModemPuts(
-			(uint8*)xferPtr, xmitSize, g_binaryXferFlag))
+			(uint8*)xferPtr, xmitSize, g_binaryXferFlag, pipe))
 		{
 			return (NULL);
 		}
@@ -2568,7 +2594,7 @@ void HandleDET(CMD_BUFFER_STRUCT* inCmd)
 	else if ((subString[0] == 'D') || (subString[0] == 'd')) { csvOption = CSV_DATA; }
 	else if ((subString[0] == 'B') || (subString[0] == 'b')) { csvOption = CSV_BARS; }
 
-	SendEventCSVFormat((uint16)eventNumberToSend, csvOption);
+	SendEventCSVFormat((uint16)eventNumberToSend, csvOption, inCmd->pipe);
 
 	return;
 }
@@ -2643,15 +2669,15 @@ void handleGMN(CMD_BUFFER_STRUCT* inCmd)
 	g_transmitCRC = CalcCCITT32((uint8*)&gmnHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send Starting CRLF
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 	// Send Simple header
-	ModemPuts((uint8*)gmnHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
+	ModemPuts((uint8*)gmnHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII, inCmd->pipe);
 	// Send Ending Footer
 #if ENDIAN_CONVERSION
 	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 }
 
 ///----------------------------------------------------------------------------
@@ -2685,15 +2711,15 @@ void handleHLT(CMD_BUFFER_STRUCT* inCmd)
 	g_transmitCRC = CalcCCITT32((uint8*)&hltHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send Starting CRLF
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 	// Send Simple header
-	ModemPuts((uint8*)hltHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
+	ModemPuts((uint8*)hltHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII, inCmd->pipe);
 	// Send Ending Footer
 #if ENDIAN_CONVERSION
 	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 	// Stop the processing.
 }
