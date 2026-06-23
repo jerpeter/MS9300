@@ -126,8 +126,15 @@ uint16 g_keypadTable[9] = {KB_SK_4, KB_SK_3, KB_SK_2, KB_SK_1, KB_ENTER, KB_RIGH
 SENSOR_PARAMETERS_STRUCT g_sensorInfo;
 EVT_RECORD g_pendingEventRecord;
 EVT_RECORD g_pendingBargraphRecord;
+#if 0 /* Original */
 EVT_RECORD g_resultsEventCache[50]; // ~34K
 uint16 g_resultsCacheIndex = 0;
+#else /* Test */
+uint8 g_debugCache[33800];
+uint16 g_debugCacheWriteIndex = 0;
+uint16 g_debugCacheReadIndex = 0;
+uint16 g_debugCacheCount = 0;
+#endif
 FACTORY_SETUP_STRUCT g_factorySetupRecord;
 FACTORY_SETUP_STRUCT g_shadowFactorySetupRecord = {0xFFFF};
 REC_EVENT_MN_STRUCT g_triggerRecord;
@@ -190,7 +197,9 @@ USER_MENU_TAGS_STRUCT g_menuTags[TOTAL_TAGS] = {
 	{"CELL UART RESET", CELL_UART_RESET_TAG},
 	{"EXT", EXT_TAG},
 	{"INT", INT_TAG},
-	{"CELL PACKET DELAY", CELL_PACKET_DELAY_TAG}
+	{"CELL PACKET DELAY", CELL_PACKET_DELAY_TAG},
+	{"CELL/LTE eSIM SELECT", CELL_LTE_ESIM_SELECT_TAG},
+	{"USB DEVICE CONFIG", USB_DEVICE_CONFIG_TAG}
 };
 uint8 g_monitorOperationMode;
 uint8 g_waitForUser = FALSE;

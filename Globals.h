@@ -223,8 +223,15 @@ extern volatile uint8 g_i2c1AccessLock;
 extern volatile uint8 g_fileAccessLock;
 extern volatile uint8 g_externalTrigger;
 extern uint8 g_lcdContrastChanged;
+#if 0 /* Original */
 extern EVT_RECORD g_resultsEventCache[50];
 extern uint16 g_resultsCacheIndex;
+#else /* Test */
+extern uint8 g_debugCache[33800];
+extern uint16 g_debugCacheWriteIndex;
+extern uint16 g_debugCacheReadIndex;
+extern uint16 g_debugCacheCount;
+#endif
 extern uint32 g_cyclicEventDelay;
 extern uint32 g_updateOffsetCount;
 extern uint32 g_tempTriggerLevelForMenuAdjustment;
