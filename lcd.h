@@ -378,16 +378,16 @@ void ft81x_set_backlight_level(uint8_t backlightLevel);
 uint8_t ft81x_get_backlight_level(void);
 
 // Put the display to sleep low power mode
-void ft81x_sleep();
+void ft81x_sleep(void);
 
 // Wake the display from sleep low power mode
 void ft81x_wake(uint8_t pwm);
 
 // reset the fifo state vars
-void ft81x_fifo_reset();
+void ft81x_fifo_reset(void);
 
 // Get our current fifo write state location
-uint32_t ft81x_getwp();
+uint32_t ft81x_getwp(void);
 
 // Send a Host Command to the FT81X chip see 4.1.5 Host Command
 #define ft81x_hostcmd(command) ft81x_hostcmd_param((command), 0)
@@ -416,7 +416,7 @@ void ft81x_cSPOOL_MF(uint8_t *buffer, int32_t size);
 void ft81x_wrN(uint8_t *buffer, uint8_t size);
 
 // End address write operation
-void ft81x_wrE();
+void ft81x_wrE(uint32_t addr);
 
 // Send a 16 bit address and write 8 bits of data
 void ft81x_wr(uint32_t addr, uint8_t byteVal);
@@ -428,17 +428,17 @@ void ft81x_wr16(uint32_t addr, uint16_t wordVal);
 void ft81x_wr32(uint32_t addr, uint32_t longVal);
 
 // Read the FT81x command pointer
-uint16_t ft81x_fifo_rp();
+uint16_t ft81x_fifo_rp(void);
 
 // Write out padded bits to be sure we are 32 bit aligned as required by the FT81X
 void ft81x_align(uint32_t written);
 
 // Set the current address and write mode to the fifo comand buffer
 // leaving the CS line enabled
-void ft81x_stream_start();
+void ft81x_stream_start(void);
 
 // Disable the CS line finish the transaction
-void ft81x_stream_stop();
+void ft81x_stream_stop(void);
 
 // Get command buffer free block till we have 'required' space
 void ft81x_getfree(uint16_t required);
@@ -464,7 +464,7 @@ void ft81x_cSPOOL(uint8_t *buffer, int32_t size);
 void ft81x_BitmapHandle(uint8_t byte);
 
 // Series of commands to swap the display
-void ft81x_swap();
+void ft81x_swap(void);
 
 // 4.4 ALPHA_FUNCT - Specify the alpha test function
 void ft81x_alpha_funct(uint8_t func, uint8_t ref);
@@ -518,7 +518,7 @@ void ft81x_call(uint16_t dest);
 void ft81x_cell(uint8_t cell);
 
 // 4.21 CLEAR - Clears buffers to preset values
-void ft81x_clear();
+void ft81x_clear(void);
 void ft81x_clearCST(uint8_t color, uint8_t stencil, uint8_t tag);
 
 // 4.21 CLEAR_COLOR_A - Specify clear value for the alpha channel
@@ -545,10 +545,10 @@ void ft81x_color_rgb32(uint32_t rgb);
 void ft81x_color_rgb888(uint8_t red, uint8_t green, uint8_t blue);
 
 // 4.29 DISPLAY - End the display list. FT81X will ignore all commands following this command.
-void ft81x_display();
+void ft81x_display(void);
 
 // 4.30 END - End drawing a graphics primitive
-void ft81x_end();
+void ft81x_end(void);
 
 // 4.31 JUMP - Execute commands at another location in the display list
 void ft81x_jump(uint16_t dest);
@@ -560,7 +560,7 @@ void ft81x_line_width(uint16_t width);
 void ft81x_macro(uint8_t m);
 
 // 4.34 NOP - No Operation
-void ft81x_nop();
+void ft81x_nop(void);
 
 // 4.35 PALETTE_SOURCE - Specify the base address of the palette
 void ft81x_palette_source(uint32_t addr);
@@ -569,13 +569,13 @@ void ft81x_palette_source(uint32_t addr);
 void ft81x_point_size(uint16_t size);
 
 // 4.37 RESTORE_CONTEXT - Restore the current graphics context from the context stack
-void ft81x_restore_context();
+void ft81x_restore_context(void);
 
 // 4.38 RETURN - Return from a previous CALL command
-void ft81x_return();
+void ft81x_return(void);
 
 // 4.39 SAVE_CONTEXT - Push the current graphics context on the context stack
-void ft81x_save_context();
+void ft81x_save_context(void);
 
 // 4.40 SCISSOR_SIZE - Specify the size of the scissor clip rectangle
 void ft81x_scissor_size(uint16_t width, uint16_t height);
@@ -614,13 +614,13 @@ void ft81x_vertex_translate_x(uint32_t x);
 void ft81x_vertex_translate_y(uint32_t y);
 
 // 5.11 CMD_DLSTART - Start a new display list
-void ft81x_cmd_dlstart();
+void ft81x_cmd_dlstart(void);
 
 // 5.12 CMD_SWAP - Swap the current display list
-void ft81x_cmd_swap();
+void ft81x_cmd_swap(void);
 
 // 5.13 CMD_COLDSTART - This command sets the co-processor engine to default reset states
-void ft81x_cmd_coldstart();
+void ft81x_cmd_coldstart(void);
 
 // 5.14 CMD_INTERRUPT - trigger interrupt INT_CMDFLAG
 void ft81x_cmd_interrupt(uint32_t ms);
@@ -647,7 +647,7 @@ void ft81x_cmd_mediafifo(uint32_t base, uint32_t size);
 void ft81x_cmd_playvideo(uint32_t options);
 
 // 5.22 CMD_VIDEOSTART - Initialize the AVI video decoder
-void ft81x_cmd_videostart();
+void ft81x_cmd_videostart(void);
 
 // 5.23 CMD_VIDEOFRAME - Load the next frame of video
 void ft81x_cmd_videoframe(uint32_t dst, uint32_t ptr);
@@ -716,10 +716,10 @@ void ft81x_cmd_setbase(uint32_t b);
 void ft81x_cmd_number(int16_t x, int16_t y, int16_t font, uint16_t options, int32_t n);
 
 // 5.44 CMD_LOADIDENTITY - Set the current matrix to the identity matrix
-void ft81x_cmd_loadidentity();
+void ft81x_cmd_loadidentity(void);
 
 // 5.45 CMD_SETMATRIX FIXME - Write the current matrix to the display list
-void ft81x_cmd_setmatrix();
+void ft81x_cmd_setmatrix(void);
 
 // 5.46 CMD_GETMATRIX FIXME - Retrieves the current matrix within the context of the co-processor engine
 void ft81x_cmd_getmatrix(int32_t *a, int32_t *b, int32_t *c, int32_t *d, int32_t *e, int32_t *f);
@@ -741,7 +741,7 @@ void ft81x_cmd_translate(int32_t tx, int32_t ty);
 
 // 5.52 CMD_CALIBRATE - Execute the touch screen calibration routine
 void ft81x_cmd_calibrate(uint32_t *result);
-void ft81x_calibrate();
+void ft81x_calibrate(void);
 
 // 5.53 CMD_SETROTATE - Rotate the screen
 void ft81x_cmd_setrotate(uint32_t r);
@@ -750,13 +750,13 @@ void ft81x_cmd_setrotate(uint32_t r);
 void ft81x_cmd_spinner(int16_t x, int16_t y, int16_t style, int16_t scale);
 
 // 5.55 CMD_SCREENSAVER - Start an animated screensaver
-void ft81x_cmd_screensaver();
+void ft81x_cmd_screensaver(void);
 
 // 5.56 CMD_SKETCH - Start a continuous sketch update
 void ft81x_cmd_sketch(int16_t x, int16_t y, int16_t w, int16_t h, int16_t ptr, int16_t format);
 
 // 5.57 CMD_STOP - Stop any active spinner, screensaver or sketch
-void ft81x_cmd_stop();
+void ft81x_cmd_stop(void);
 
 // 5.58 CMD_SETFONT - Set up a custom font
 void ft81x_cmd_setfont(uint32_t font, uint32_t ptr);
@@ -783,13 +783,13 @@ void ft81x_cmd_snapshot2(uint32_t fmt, uint32_t ptr, uint16_t x, uint16_t y, uin
 void ft81x_cmd_setbitmap(uint32_t addr, uint16_t fmt, uint16_t width, uint16_t height);
 
 // 5.66 CMD_LOGO - play FTDI logo animation
-void ft81x_logo();
+void ft81x_logo(void);
 
 // Wait for READ and WRITE circular buffer command pointers to be equal
-void ft81x_wait_finish();
+void ft81x_wait_finish(void);
 
 // Read in touch tag and tracker memory from FT813 to our local global structure
-void ft81x_get_touch_inputs();
+void ft81x_get_touch_inputs(void);
 
 extern uint16_t ft81x_chip_id;
 
