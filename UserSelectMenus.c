@@ -1364,7 +1364,7 @@ void BarResultMenuHandler(uint8 keyPressed, void* data)
 // Baud Rate Menu
 //=============================================================================
 //*****************************************************************************
-#define BAUD_RATE_MENU_ENTRIES 10
+#define BAUD_RATE_MENU_ENTRIES 7
 USER_MENU_STRUCT baudRateMenu[BAUD_RATE_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, BAUD_RATE_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, BAUD_RATE_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
@@ -1373,9 +1373,6 @@ USER_MENU_STRUCT baudRateMenu[BAUD_RATE_MENU_ENTRIES] = {
 {ITEM_3, 38400, BAUD_RATE_TEXT,	NO_TAG, {BAUD_RATE_38400}},
 {ITEM_4, 19200, BAUD_RATE_TEXT,	NO_TAG, {BAUD_RATE_19200}},
 {ITEM_5, 9600, BAUD_RATE_TEXT,	NO_TAG, {BAUD_RATE_9600}},
-{ITEM_6, 0, BAUD_RATE_115200_TEXT,	ALTERNATE_TAG, {BAUD_RATE_115200_A}},
-{ITEM_7, 57600, BAUD_RATE_TEXT,	ALTERNATE_TAG, {BAUD_RATE_57600_A}},
-{ITEM_8, 38400, BAUD_RATE_TEXT,	ALTERNATE_TAG, {BAUD_RATE_38400_A}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&BaudRateMenuHandler}}
 };
 
@@ -1429,11 +1426,8 @@ void BaudRateMenuHandler(uint8 keyPressed, void* data)
 		switch (g_unitConfig.baudRate)
 		{
 			case BAUD_RATE_115200: strcpy(baudSelect, "115200"); break;
-			case BAUD_RATE_115200_A: strcpy(baudSelect, "115200 (A)"); break;
 			case BAUD_RATE_57600: strcpy(baudSelect, "57600"); break;
-			case BAUD_RATE_57600_A: strcpy(baudSelect, "57600 (A)"); break;
 			case BAUD_RATE_38400: strcpy(baudSelect, "38400"); break;
-			case BAUD_RATE_38400_A: strcpy(baudSelect, "38400 (A)"); break;
 			case BAUD_RATE_19200: strcpy(baudSelect, "19200"); break;
 			case BAUD_RATE_9600: strcpy(baudSelect, "9600"); break;
 		}
@@ -1443,7 +1437,7 @@ void BaudRateMenuHandler(uint8 keyPressed, void* data)
 #endif
 #endif
 
-#if 0 /* Enable only when using the Expansion RS232 */
+#if 1 /* Enable only when using the Expansion RS232 */
 		ExpansionBridgeChangeBaud(g_unitConfig.baudRate);
 #endif
 		SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
@@ -2433,7 +2427,7 @@ void HardwareIDMenuHandler(uint8 keyPressed, void* data)
 // Help Menu
 //=============================================================================
 //*****************************************************************************
-#define HELP_MENU_ENTRIES 10
+#define HELP_MENU_ENTRIES 11
 USER_MENU_STRUCT helpMenu[HELP_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, HELP_MENU_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, HELP_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
@@ -2446,9 +2440,14 @@ USER_MENU_STRUCT helpMenu[HELP_MENU_ENTRIES] = {
 {ITEM_4, 0, AUX_CHARGING_BYPASS_TEXT,	NO_TAG, {GPS_LOCATION_DISPLAY_CHOICE}},
 #endif
 {ITEM_5, 0, CHECK_SUMMARY_FILE_TEXT,	NO_TAG, {CHECK_SUMMARY_FILE_CHOICE}},
+#if 0 /* Test */
 {ITEM_6, 0, NULL_TEXT,					DUMP_BATTERY_LOG_TAG, {TESTING_CHOICE}},
-{ITEM_7, 0, NULL_TEXT,					FCC_TEST_ALL_TAG, {FCC_TESTING_CHOICE}},
-{ITEM_8, 0, NULL_TEXT,					CELL_UART_RESET_TAG, {CELL_UART_RESET_CHOICE}},
+#else /* Test 2 */
+{ITEM_6, 0, NULL_TEXT,					USB_DEVICE_CONFIG_TAG, {TESTING_CHOICE}},
+#endif
+{ITEM_7, 0, NULL_TEXT,					CELL_LTE_ESIM_SELECT_TAG, {CELL_LTE_ESIM_SELECT}},
+{ITEM_8, 0, NULL_TEXT,					FCC_TEST_ALL_TAG, {FCC_TESTING_CHOICE}},
+{ITEM_9, 0, NULL_TEXT,					CELL_UART_RESET_TAG, {CELL_UART_RESET_CHOICE}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&HelpMenuHandler}}
 };
 
@@ -2459,7 +2458,7 @@ void HelpMenuHandler(uint8 keyPressed, void* data)
 {
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	uint16 newItemIndex = *((uint16*)data);
-	char buildString[50];
+	char buildString[100];
 
 	if (keyPressed == ENTER_KEY)
 	{
@@ -2538,11 +2537,34 @@ void HelpMenuHandler(uint8 keyPressed, void* data)
 		}
 		else if (helpMenu[newItemIndex].data == TESTING_CHOICE) // Testing
 		{
+#if 0 /* Test */
 extern void DumpBatteryLog(void);
 			DumpBatteryLog();
 #if 0 /* Smart Sensor testing */
 			SmartSensorTest();
 #endif
+#else /* Test 2 */
+extern void USBHostControllerTest(void);
+			debug("Calling USBHostControllerTest...\r\n");
+			OverlayMessage(getLangText(STATUS_TEXT), "CHECKNIG...", 0);
+			USBHostControllerTest();
+#endif
+		}
+		else if (helpMenu[newItemIndex].data == CELL_LTE_ESIM_SELECT)
+		{
+			sprintf(buildString, "SELECT eSIM AS CELL SIM SOUIRCE? NOTE: PHYSICAL SIM MUST BE REMOVED FOR eSIM to WORK");
+			if (MessageBox(getLangText(SELECT_TEXT), buildString, MB_YESNO) == MB_FIRST_CHOICE)
+			{
+				g_cellModemSetupRecord.eSimSelect = YES;
+				debug("CELL/LTE: eSIM selected\r\n");
+				SaveRecordData(&g_cellModemSetupRecord, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
+			}
+			else
+			{
+				g_cellModemSetupRecord.eSimSelect = NO;
+				debug("CELL/LTE: Physical SIM selected\r\n");
+				SaveRecordData(&g_cellModemSetupRecord, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
+			}
 		}
 		else if (helpMenu[newItemIndex].data == FCC_TESTING_CHOICE)
 		{
@@ -2946,6 +2968,7 @@ void ModemSetupMenuHandler(uint8 keyPressed, void* data)
 {
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	uint16 newItemIndex = *((uint16*)data);
+	uint8_t previousModemStatus = g_modemSetupRecord.modemStatus;
 
 	if (keyPressed == ENTER_KEY)
 	{
@@ -2968,6 +2991,11 @@ void ModemSetupMenuHandler(uint8 keyPressed, void* data)
 		}
 		else // Modem Setup is NO
 		{
+			if (previousModemStatus == ON)
+			{
+				OverlayMessage(getLangText(STATUS_TEXT), "SHUTTING DOWN CELL MODEM...", 0);
+			}
+
 			g_modemStatus.connectionState = NOP_CMD;
 			g_modemStatus.modemAvailable = NO;
 
