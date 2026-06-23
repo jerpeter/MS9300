@@ -193,10 +193,10 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			break;
 
 		//----------------------------------------------------------------------------
-		case LED_1: // Active low (Blue)
+		case LED_1: // Active high (Blue)
 		//----------------------------------------------------------------------------
 			//debug("LED 1: %s\r\n", mode == ON ? "On" : "Off");
-#if 0 /* Original Active high */
+#if 1 /* Original Active high */
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_LED_1_PORT, GPIO_LED_1_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_LED_1_PORT, GPIO_LED_1_PIN); }
 #else /* Active low */
@@ -206,10 +206,10 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			break;
 
 		//----------------------------------------------------------------------------
-		case LED_2: // Active low (Green)
+		case LED_2: // Active high (Green)
 		//----------------------------------------------------------------------------
 			//debug("LED 2: %s\r\n", mode == ON ? "On" : "Off");
-#if 0 /* Original Active high */
+#if 1 /* Original Active high */
 			if (mode == ON) { MXC_GPIO_OutSet(GPIO_LED_2_PORT, GPIO_LED_2_PIN); }
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_LED_2_PORT, GPIO_LED_2_PIN); }
 #else /* Active low */
@@ -539,6 +539,13 @@ void PowerUnitOff(uint8 powerOffMode)
 	debug("Adding On/Off Log timestamp\r\n");
 	AddOnOffLogTimestamp(OFF);
 
+#if 1 /* Test */
+	debug("Debug Cache: Flush before turning off\r\n");
+
+extern void WriteDebugCacheToFile(uint8_t flush);
+	WriteDebugCacheToFile(1);
+#endif
+
 	// Make sure all open files are closed and data is flushed (unmount)
 	f_mount(NULL, "", 0);
 
@@ -747,7 +754,12 @@ void InitBattChargerRegisters(void)
 	// Config Reg 0
 	//	Default ADC start is disabled, ADC conv is one shot, switcing freq is 600kHz
 	//	No change from default
+#if 1 /* Original */
 	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0010);
+#else
+	// Change SW Freq to 1200 KHz
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0070);
+#endif
 
 	// Config Reg 1
 	//	Default junction temp OT regulation is enabled, juntion temp regulation point is 120C, tricle charge current is 100mA, pre-charge current is 400mA
@@ -1328,10 +1340,69 @@ uint16_t GetBattChargerOutputCurrentInDischargeMode(void)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void SetBattChargerConversionState(uint8_t state)
+{
+	// Disabled Continuous mode for ADC_CONV
+	debug("Battery Charger: Conversion state %s\r\n", ((state == 1) ? "Enabled" : "Disabled"));
+
+	if (state == 1) { SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0090); }
+	else /* (state == 0) */ { SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_0, 0x0010); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint8_t GetBattChargerChargeState(void)
+{
+	uint16_t bcReg = 0;
+
+	GetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, &bcReg);
+
+	// Filter for Charge Enable bit
+	bcReg &= 0x0001;
+
+	return ((uint8_t)bcReg);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void SetBattChargerChargeState(uint8_t state)
 {
-	debug("Battery Charger: Charging control %s\r\n", ((state & 0x01) ? "enabled" : "disabled"));
+	debug("Battery Charger: Charging control %s\r\n", ((state & 0x01) ? "Enabled" : "Disabled"));
+#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, (0x3C72 | (state & 0x01)));
+#else /* Older boards ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PROTOTYPE_1)) */
 	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, (0x3C52 | (state & 0x01)));
+#endif
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetBattChargerForceBgateCtrlOff(uint8_t state)
+{
+	uint16_t config2 = ReturnBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_2);
+
+	if (state == ON) { config2 |= 0x2000; }
+	else { config2 &= ~0x2000; }
+
+	debug("Battery Charger: Force BGate Ctrl Off: %s\r\n", ((state & 0x01) ? "Yes" : "No"));
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_2, config2);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetBattChargerBgateEnable(uint8_t state)
+{
+	uint16_t config4 = ReturnBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4);
+
+	if (state == ON) { config4 |= 0x0020; }
+	else { config4 &= ~0x0020; }
+
+	debug("Battery Charger: BGate Enable: %s\r\n", ((state & 0x01) ? "On" : "Off"));
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_2, config4);
 }
 
 ///----------------------------------------------------------------------------
@@ -1852,20 +1923,25 @@ int Ltc2944_get_charge_counter(int Qlsb, int* val)
 ///----------------------------------------------------------------------------
 int Ltc2944_get_voltage(int* val)
 {
-	int ret;
-	uint8_t datar[2];
-	uint64_t voltage; // Need storage above uint32 size if calc done in mV
+	int ret = 0;
 
-	ret = Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &datar[0], 2);
-	voltage = ((datar[0] << 8) | datar[1]);
+	if (GetBatteryPresenceState() == YES)
+	{
+		uint8_t datar[2];
+		uint64_t voltage; // Need storage above uint32 size if calc done in mV
 
-	//debug("Fuel Gauge: Get voltage register is 0x%x\r\n", voltage);
+		ret = Ltc2944_read_regs(LTC2944_REG_VOLTAGE_MSB, &datar[0], 2);
+		voltage = ((datar[0] << 8) | datar[1]);
 
-	voltage = ((voltage * 70800) / 0xFFFF); // units in mV
+		//debug("Fuel Gauge: Get voltage register is 0x%x\r\n", voltage);
 
-	//debug("Fuel Gauge: Voltage calc is %lu\r\n", voltage);
+		voltage = ((voltage * 70800) / 0xFFFF); // units in mV
 
-	*val = (int)voltage;
+		//debug("Fuel Gauge: Voltage calc is %lu\r\n", voltage);
+
+		*val = (int)voltage;
+	}
+
 	return (ret);
 }
 
@@ -2177,11 +2253,18 @@ void TestFuelGauge(void)
 ///----------------------------------------------------------------------------
 void FuelGaugeDebugInfo(void)
 {
-	int vVal, cVal, tVal;
-	Ltc2944_get_voltage(&vVal);
-	Ltc2944_get_current(Ltc2944_device.r_sense, &cVal);
-	Ltc2944_get_temperature_fahrenheit(&tVal);
-	debug("Fuel Gauge: %0.3fV, %0.3fmA, %dF\r\n", (double)((float)vVal / 1000), (double)((float)cVal / 1000), tVal);
+	if (GetBatteryPresenceState() == YES)
+	{
+		int vVal, cVal, tVal;
+		Ltc2944_get_voltage(&vVal);
+		Ltc2944_get_current(Ltc2944_device.r_sense, &cVal);
+		Ltc2944_get_temperature_fahrenheit(&tVal);
+		debug("Fuel Gauge: %0.3fV, %0.3fmA, %dF\r\n", (double)((float)vVal / 1000), (double)((float)cVal / 1000), tVal);
+	}
+	else
+	{
+		debugWarn("Fuel Gauge: Offline (no batteries installed)\r\n");
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -2189,12 +2272,20 @@ void FuelGaugeDebugInfo(void)
 ///----------------------------------------------------------------------------
 char* FuelGaugeDebugString(void)
 {
-	int vVal, cVal, tVal, bc_tVal;
-	Ltc2944_get_voltage(&vVal);
-	Ltc2944_get_current(Ltc2944_device.r_sense, &cVal);
-	Ltc2944_get_temperature_fahrenheit(&tVal);
-	bc_tVal = GetBattChargerJunctionTemperature();
-	sprintf((char*)g_debugBuffer, "Batt: %0.3fV, %0.3fmA, %dF, %dF", (double)((float)vVal / 1000), (double)((float)cVal / 1000), tVal, bc_tVal);
+	if (GetBatteryPresenceState() == YES)
+	{
+		int vVal, cVal, tVal, bc_tVal;
+		Ltc2944_get_voltage(&vVal);
+		Ltc2944_get_current(Ltc2944_device.r_sense, &cVal);
+		Ltc2944_get_temperature_fahrenheit(&tVal);
+		bc_tVal = GetBattChargerJunctionTemperature();
+		sprintf((char*)g_debugBuffer, "Batt: %0.3fV, %0.3fmA, %dF, %dF", (double)((float)vVal / 1000), (double)((float)cVal / 1000), tVal, bc_tVal);
+	}
+	else
+	{
+		sprintf((char*)g_debugBuffer, "Fuel Gauge offline (no batt)");
+	}
+
 	return ((char*)g_debugBuffer);
 }
 
@@ -2203,8 +2294,13 @@ char* FuelGaugeDebugString(void)
 ///----------------------------------------------------------------------------
 int FuelGaugeGetVoltage(void)
 {
-	int vVal;
-	Ltc2944_get_voltage(&vVal);
+	int vVal = 0;
+
+	if (GetBatteryPresenceState() == YES)
+	{
+		Ltc2944_get_voltage(&vVal);
+	}
+
 	return (vVal);
 }
 
@@ -2213,8 +2309,13 @@ int FuelGaugeGetVoltage(void)
 ///----------------------------------------------------------------------------
 int FuelGaugeGetCurrent(void)
 {
-	int cVal;
-	Ltc2944_get_current(Ltc2944_device.r_sense, &cVal);
+	int cVal = 0;
+
+	if (GetBatteryPresenceState() == YES)
+	{
+		Ltc2944_get_current(Ltc2944_device.r_sense, &cVal);
+	}
+
 	return (cVal);
 }
 
@@ -2223,8 +2324,13 @@ int FuelGaugeGetCurrent(void)
 ///----------------------------------------------------------------------------
 int FuelGaugeGetCurrentAbs(void)
 {
-	int cVal;
-	Ltc2944_get_current(Ltc2944_device.r_sense, &cVal);
+	int cVal = 0;
+
+	if (GetBatteryPresenceState() == YES)
+	{
+		Ltc2944_get_current(Ltc2944_device.r_sense, &cVal);
+	}
+
 	return (abs(cVal));
 }
 
@@ -2233,8 +2339,13 @@ int FuelGaugeGetCurrentAbs(void)
 ///----------------------------------------------------------------------------
 int FuelGaugeGetTemperature(void)
 {
-	int tVal;
-	Ltc2944_get_temperature_fahrenheit(&tVal);
+	int tVal = 0;
+
+	if (GetBatteryPresenceState() == YES)
+	{
+		Ltc2944_get_temperature_fahrenheit(&tVal);
+	}
+
 	return (tVal);
 }
 
