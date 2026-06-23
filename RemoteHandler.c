@@ -178,8 +178,11 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 						ResetSoftTimer(SYSTEM_LOCK_TIMER_NUM);
 
 						WaitForBargraphLiveMonitoringDataToFinishSendingWithTimeout();
-#if 1 /* Test */
+#if 0 /* Test - Short output */
 						debug("Remote: Processing <%c%c%c> Command\r\n", cmdMsg->msg[0], cmdMsg->msg[1], cmdMsg->msg[2]);
+#else /* Test - Output with time */
+						DATE_TIME_STRUCT dateTime = GetCurrentTime();
+						debug("Remote: Processing <%c%c%c> Command @ %02d:%02d:%02d on %d/%d/%d\r\n", cmdMsg->msg[0], cmdMsg->msg[1], cmdMsg->msg[2], dateTime.hour, dateTime.min, dateTime.sec, dateTime.month, dateTime.day, dateTime.year);
 #endif
 						s_cmdMessageTable[ cmdIndex ].cmdFunction(cmdMsg);
 						break;
@@ -209,7 +212,14 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 		else
 		{
 #if 1 /* Normal */
+
+#if 0 /* No connection, report system locked */
 			debug("System IS Locked\r\n");
+#else /* Report system locked with timestamp */
+			DATE_TIME_STRUCT dateTime = GetCurrentTime();
+			debug("System IS Locked (%02d:%02d:%02d on %d/%d/%d)\r\n", dateTime.hour, dateTime.min, dateTime.sec, dateTime.month, dateTime.day, dateTime.year);
+#endif
+
 #if 1 /* Process locked data looking for modem command mode responses */
 			if (strlen((char*)&cmdMsg->msg[0]))
 			{
@@ -391,6 +401,14 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 					//-----------------------------------------------------------------------------------------
 					else if(strstr((char*)&cmdMsg->msg[0], "connected"))
 					{
+#if 1 /* Test */
+						// Delay entering Data mode until the remote conneciton is active due to the rare occasion where the cell modem seems to drop data mode without notificaiton
+						int status, strLen;
+
+						// Issue command to enter Data mode immediately before status to minimize any chance of data loss if the remote sends immediately after conneciton
+						sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+						debug("AT#XTCPSEND...\r\n");
+#endif
 						char* loc = strstr((char*)&cmdMsg->msg[0], "connected");
 						if (loc) { *loc = '\0'; }
 						debug("RCMH: TCP Server Incoming connection from IP: %s\r\n", (char*)&cmdMsg->msg[11]);
@@ -415,6 +433,26 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 				{
 					g_modemStatus.remoteResponse = ERROR_RESPONSE;
 					debug("RCMH: Command response error\r\n");
+				}
+				//-----------------------------------------------------------------------------------------
+				// Datamode error response
+				//-----------------------------------------------------------------------------------------
+				else if (strcmp(AT_CMD_DATAMODE_ERROR, (char*)&cmdMsg->msg[0]) == 0)
+				{
+					g_modemStatus.remoteResponse = DATAMODE_ERROR;
+					debug("RCMH: Cell Datamode error\r\n");
+
+					// No reason TCP Server shouldn't start through TCP Sever start procedure if cell modem connection good, reset the whole process
+					ShutdownPdnAndCellModem();
+					PowerControl(LTE_RESET, ON);
+					PowerControl(CELL_ENABLE, OFF);
+
+					if (g_cellModemSetupRecord.tcpServer == YES)
+					{
+						g_tcpServerStartStage = TCP_SERVER_INIT;
+						AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_SEC), TcpServerStartCallback);
+					}
+					else { g_tcpServerStartStage = TCP_SERVER_IDLE; }
 				}
 				//-----------------------------------------------------------------------------------------
 				// Xmodem response
@@ -792,7 +830,9 @@ void ProcessCraftData()
 
 		if (YES == newPoolBuffer)
 		{
-			debug("PCD: New Msg (%c, %d)\r\n", (char)g_msgPool[s_msgWriteIndex].msg[0], g_msgPool[s_msgWriteIndex].size);
+			g_msgPool[s_msgWriteIndex].pipe = g_isrMessageBufferPtr->pipe;
+
+			debug("PCD: New Msg (%c, %d, Pipe: %d)\r\n", (char)g_msgPool[s_msgWriteIndex].msg[0], g_msgPool[s_msgWriteIndex].size, g_msgPool[s_msgWriteIndex].pipe);
 
 			newPoolBuffer = NO;
 
@@ -968,11 +1008,20 @@ void CheckAndProcessModemData(uint16_t timeoutHalfSeconds)
 uint8_t CheckforModem(uint16_t timeoutHalfSeconds)
 {
 	uint8_t modemFound = NO;
+
+#if 1 /* Original */
 	SoftUsecWait((1 * SOFT_SECS));
 	UartPuts((char*)(CMDMODE_CMD_STRING), CRAFT_COM_PORT);
 	SoftUsecWait((1 * SOFT_SECS));
 	UartPuts((char*)(INIT_CMD_STRING), CRAFT_COM_PORT);
 	UartPuts((char*)&g_CRLF, CRAFT_COM_PORT);
+#else
+	SoftUsecWait((1 * SOFT_SECS));
+	UartPuts((char*)(CMDMODE_CMD_STRING), SERIAL_PIPE_CELL);
+	SoftUsecWait((1 * SOFT_SECS));
+	UartPuts((char*)(INIT_CMD_STRING), SERIAL_PIPE_CELL);
+	UartPuts((char*)&g_CRLF, SERIAL_PIPE_CELL);
+#endif
 
 	CheckAndProcessModemData(timeoutHalfSeconds);
 
