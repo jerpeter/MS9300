@@ -56,6 +56,7 @@
 #define AT_CMD_TCP_SVR_STOP		"AT#XTCPSVR=0"
 #define AT_CMD_ENTER_DATA_MODE	"AT#XTCPSEND"
 #define AT_CMD_DATAMODE_EXIT	"#XDATAMODE: 0"
+#define AT_CMD_DATAMODE_ERROR	"#XDATAMODE: -5"
 #define AT_CMD_ERROR			"ERROR"
 #define AT_CMD_XMODEM			"#XMODEM:"
 
@@ -127,6 +128,12 @@
 #define MESSAGE_HEADER_SIMPLE_LENGTH	HDR_CMD_LEN + HDR_TYPE_LEN + HDR_DATALENGTH_LEN + HDR_SPARE_LEN
 #define MESSAGE_SIMPLE_TOTAL_LENGTH		MESSAGE_HEADER_SIMPLE_LENGTH + MESSAGE_FOOTER_LENGTH
 
+#define SERIAL_PIPE_NONE		0
+#define SERIAL_PIPE_CELL		CRAFT_COM_PORT
+#define SERIAL_PIPE_USB			8
+#define SERIAL_PIPE_EXPANSION	9
+#define SERIAL_PIPE_DEBUG		GLOBAL_DEBUG_PRINT_PORT
+
 enum {
 	MSGTYPE_REQUEST 			= 0,
 	MSGTYPE_RESPONSE			= 1,
@@ -135,7 +142,6 @@ enum {
 	MSGTYPE_ERROR_INVALID_DATA	= 4,
 	MSGTYPE_RESPONSE_REV1		= 5
 };
-
 
 enum {
 	COMPRESS_NOP			= 0,	// Starting value
@@ -275,7 +281,12 @@ enum {
 	TCP_SERVER_CELL_NETWORK_CONNECTED,
 	TCP_SERVER_START,
 	TCP_SERVER_UP,
+#if 0 /* Original */
 	TCP_SERVER_ACTIVE_DATA_MODE,
+#else /* Test */
+	// Delay entering Data mode until the remote conneciton is active due to the rare occasion where the cell modem seems to drop data mode without notificaiton
+	TCP_SERVER_ACTIVE,
+#endif
 	TCP_SERVER_PAUSE_FOR_ADO
 };
 
@@ -302,6 +313,7 @@ enum {
 #define TCPSVR_START			"Server start"
 #define TCPSVR_UP				"Server up"
 #define TCPSVR_ACTIVE_DATA_MODE	"Active Data mode"
+#define TCPSVR_ACTIVE			"Active"
 
 enum {
 	NO_RESPONSE = 0,
@@ -317,6 +329,7 @@ enum {
 	UNKNOWN_NETWORK_RESPONSE,
 	NOT_REGISTERED_RESPONSE,
 	DATAMODE_EXIT,
+	DATAMODE_ERROR,
 	TCP_CLIENT_DISCONNECT,
 	TCP_CLIENT_NOT_CONNECTED,
 	TCP_SERVER_STARTED,
@@ -413,7 +426,7 @@ typedef struct
 {
 	uint16	size;			// Size of msg with data and CRLF.
 	uint8	status;			// Status of buffer.
-
+	uint8	pipe;			// Mark the incoming pipe
 	uint8*	readPtr;		// Start of data in msg.
 	uint8*	writePtr;		// Element in array to be written.
 	uint8	msg[CMD_BUFFER_SIZE];
@@ -433,6 +446,7 @@ typedef struct
 typedef struct
 {
 	uint8 	xferStateFlag;
+	uint8 	serialPipe;
 	uint8 	msgHdr[MESSAGE_HEADER_LENGTH+1];
 	EVENT_RECORD_DOWNLOAD_STRUCT	dloadEventRec;
 
@@ -453,6 +467,7 @@ typedef struct
 typedef struct
 {
 	uint8 xferStateFlag;
+	uint8 serialPipe;
 	uint8 msgHdr[MESSAGE_HEADER_LENGTH+1];
 	uint8 numOfRecStr[DATA_FIELD_LEN+1];
 	uint8 spare;
@@ -484,6 +499,7 @@ typedef struct
 typedef struct
 {
 	uint8 	xferStateFlag;
+	uint8	serialPipe;
 	uint8 	dqmHdr[MESSAGE_HEADER_SIMPLE_LENGTH+10];
 	uint16	ramTableIndex;
 	uint16	numOfRecs;
@@ -493,6 +509,7 @@ typedef struct
 typedef struct
 {
 	uint8 	xferStateFlag;
+	uint8	serialPipe;
 	uint8 	vmlHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
 	uint16	lastDlUniqueEntryId;
 	uint16	startMonitorLogTableIndex;
@@ -686,7 +703,7 @@ uint8 ParseIncommingMsgCmd(CMD_BUFFER_STRUCT*, COMMAND_MESSAGE_HEADER*);
 
 void BuildOutgoingHeaderBuffer(COMMAND_MESSAGE_HEADER*, uint8*);
 void BuildOutgoingSimpleHeaderBuffer(uint8*, uint8*, uint8*, uint32, uint8, uint8);
-void SendErrorMsg(uint8*, uint8*);
+void SendErrorMsg(uint8*, uint8*, uint8);
 uint16 GetInt16Field(uint8*);
 void BuildIntDataField(char*, uint32, uint8);
 uint32 DataLengthStrToUint32(uint8*);
