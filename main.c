@@ -233,7 +233,8 @@ extern uint32_t testLifetimeCurrentAvgCount;
 		testLifetimeCurrentAvgCount++;
 		if (g_sampleProcessing == ACTIVE_STATE)
 		{
-			debug("(Cyclic Event) (%s) (%.0fmA avg) SPT: %lu, SPS: %d, Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), CycleCountToMicroseconds(sampleProcessTiming, SYS_CLK), (g_sampleCountHold / 4), (char*)g_spareBuffer);
+			//debug("(Cyclic Event) (%s) (%.0fmA avg) SPT: %lu, SPS: %d, Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), CycleCountToMicroseconds(sampleProcessTiming, SYS_CLK), (g_sampleCountHold / 4), (char*)g_spareBuffer);
+			debug("(Cyclic Event) (%s) (%.2fV) (%.2fV) SPT: %lu, SPS: %d, Exe/s: %s\r\n", FuelGaugeDebugString(), (double)((float)GetBattChargerInputVoltage() / (float)1000), (double)((float)GetBattChargerSystemVoltage() / (float)1000), CycleCountToMicroseconds(sampleProcessTiming, SYS_CLK), (g_sampleCountHold / 4), (char*)g_spareBuffer);
 		}
 #if 0 /* Orignial */
 		else { debug("(Cyclic Event) (%s) (%.0fmA avg) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer); }
@@ -306,14 +307,104 @@ uint8_t* tps25750_get_rx_sink_cap(void);
 		}
 
 		CheckForCycleChange();
+
+#if 1 /* Test */
+extern void WriteDebugCacheToFile(uint8_t flush);
+		WriteDebugCacheToFile(0);
+#endif
 	}
+
+#if 1 /* Test */
+extern uint8_t fuelGaugeReinit;
+	if (fuelGaugeReinit)
+	{
+		FuelGaugeInit();
+		fuelGaugeReinit = 0;
+	}
+#endif
 
 #if 1 /* Test */
 	//___________________________________________________________________________________________
 extern uint8_t batteryChargerInterruptActive;
+static uint16_t lastBcStat = 0;
+static uint16_t lastBcWarn = 0;
 	if (batteryChargerInterruptActive)
 	{
-		debug("BC Int: Reg0: %04x, Reg1: %04x\r\n", GetBattChargerStatusReg0(), GetBattChargerStatusReg1());
+		//debug("BC Int: Reg0: %04x, Reg1: %04x\r\n", GetBattChargerStatusReg0(), GetBattChargerStatusReg1());
+		//debug("BC Int: Reg0: %04x\r\n", GetBattChargerStatusReg0());
+		uint16_t bcStat = GetBattChargerStatusReg0();
+
+		if (bcStat != lastBcStat)
+		{
+			lastBcStat = bcStat;
+
+			sprintf((char*)g_debugBuffer, "BC Stat: ");
+
+			if (((bcStat & 0xC000) == 0x0000) || ((bcStat & 0xC000) == 0x8000)) { strcat((char*)g_debugBuffer, "(Standby) "); }
+			else if ((bcStat & 0xC000) == 0x4000) { strcat((char*)g_debugBuffer, "(Op mode 0) "); }
+			else { strcat((char*)g_debugBuffer, "(Op mode 1) "); }
+
+			if ((bcStat & 0x2000) == 0x0000) { strcat((char*)g_debugBuffer, "(No Vin) "); }
+			else { strcat((char*)g_debugBuffer, "(Vin) "); }
+
+			if ((bcStat & 0x1800) == 0x0000) { strcat((char*)g_debugBuffer, "(Idle) "); }
+			else if ((bcStat & 0x1800) == 0x0800) { strcat((char*)g_debugBuffer, "(Buck) "); }
+			else if ((bcStat & 0x1800) == 0x1000) { strcat((char*)g_debugBuffer, "(Buck-Boost) "); }
+			else { strcat((char*)g_debugBuffer, "(Boost) "); }
+
+			if ((bcStat & 0x0400) == 0x0400) { strcat((char*)g_debugBuffer, "(Batt missing) "); }
+
+			if ((bcStat & 0x01C0) == 0x0000) { strcat((char*)g_debugBuffer, "(No Charging) "); }
+			else if ((bcStat & 0x01C0) == 0x0040) { strcat((char*)g_debugBuffer, "(Trickle) "); }
+			else if ((bcStat & 0x01C0) == 0x0080) { strcat((char*)g_debugBuffer, "(Pre-Charge) "); }
+			else if ((bcStat & 0x01C0) == 0x00C0) { strcat((char*)g_debugBuffer, "(CC Charge) "); }
+			else if ((bcStat & 0x01C0) == 0x0100) { strcat((char*)g_debugBuffer, "(CV Charge) "); }
+			else { strcat((char*)g_debugBuffer, "(Charge term) "); }
+
+			if ((bcStat & 0x0020) == 0x0000) { strcat((char*)g_debugBuffer, "(No V limit) "); }
+			else { strcat((char*)g_debugBuffer, "(In V limit) "); }
+
+			if ((bcStat & 0x0010) == 0x0000) { strcat((char*)g_debugBuffer, "(No C limit) "); }
+			else { strcat((char*)g_debugBuffer, "(In C limit) "); }
+
+			if ((bcStat & 0x0004) == 0x0004) { strcat((char*)g_debugBuffer, "(BatFET OC) "); }
+
+			if ((bcStat & 0x0002) == 0x0002) { strcat((char*)g_debugBuffer, "(TS Hot) "); }
+
+			strcat((char*)g_debugBuffer, "\r\n");
+			debug("%s", (char*)g_debugBuffer);
+		}
+
+		uint16_t bcWarn = GetBattChargerStatusReg1();
+
+		if (bcWarn != lastBcWarn)
+		{
+			lastBcWarn = bcWarn;
+
+			if (bcWarn)
+			{
+				sprintf((char*)g_debugBuffer, "BC Warn: ");
+				if (bcWarn & 0x8000) { strcat((char*)g_debugBuffer, "(Out OVP in Src) "); }
+				if (bcWarn & 0x4000) { strcat((char*)g_debugBuffer, "(Out UVP in Src) "); }
+				if (bcWarn & 0x2000) { strcat((char*)g_debugBuffer, "(In OVP in Charge) "); }
+				if (bcWarn & 0x1000) { strcat((char*)g_debugBuffer, "(VADP OVP) "); }
+				if (bcWarn & 0x0800) { strcat((char*)g_debugBuffer, "(SYS OV) "); }
+				if (bcWarn & 0x0400) { strcat((char*)g_debugBuffer, "(SYS UV) "); }
+				if (bcWarn & 0x0100) { strcat((char*)g_debugBuffer, "(Battery OVP) "); }
+				if (bcWarn & 0x0080) { strcat((char*)g_debugBuffer, "(Discharge stop Batt low) "); }
+				if (bcWarn & 0x0040) { strcat((char*)g_debugBuffer, "(Watchdog exp) "); }
+				if (bcWarn & 0x0020) { strcat((char*)g_debugBuffer, "(Charge saftely tmr exp) "); }
+				if (bcWarn & 0x0010) { strcat((char*)g_debugBuffer, "(Thermal shutdown) "); }
+				if (bcWarn & 0x0001) { strcat((char*)g_debugBuffer, "(NTC cold) "); }
+				if (bcWarn & 0x0002) { strcat((char*)g_debugBuffer, "(NTC cool) "); }
+				if (bcWarn & 0x0003) { strcat((char*)g_debugBuffer, "(NTC warm) "); }
+				if (bcWarn & 0x0004) { strcat((char*)g_debugBuffer, "(NTC hot) "); }
+				if (bcWarn & 0x0007) { strcat((char*)g_debugBuffer, "(NTC float) "); }
+				strcat((char*)g_debugBuffer, "\r\n");
+				debug("%s", (char*)g_debugBuffer);
+			}
+		}
+
 		batteryChargerInterruptActive = NO;
 	}
 
@@ -322,6 +413,16 @@ extern uint8_t batteryChargerInterruptActive;
 	{
 		debug("BC: Charging %s\r\n", ((GetPowerGoodBatteryChargerState() == YES) ? "Started" : "Stopped"));
 		g_batteryChargingStatusChange = NO;
+	}
+#endif
+
+#if 1 /* Test */
+	//___________________________________________________________________________________________
+extern uint8_t seismicSensorDetectChange;
+	if (seismicSensorDetectChange)
+	{
+		debugWarn("-Seismic Sensor Detect (using LTE_OTA pin mod): %s-\r\n", ((MXC_GPIO_InGet(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN) == 0) ? "Removed" : "Added"));
+		seismicSensorDetectChange = NO;
 	}
 #endif
 
@@ -1573,7 +1674,7 @@ void BootLoadManager(void)
 
 		// Ready to jump to the Bootloader
 		debug("Reset Handler at Bootloader address (addr 0x%x): 0x%x\r\n", BOOTLOADER_RESET_HANDLER, *(uint32_t*)BOOTLOADER_RESET_HANDLER);
-		func = (void(*)())(*(uint32_t*)BOOTLOADER_RESET_HANDLER);
+		func = (void(*)(void))(*(uint32_t*)BOOTLOADER_RESET_HANDLER);
 
 		if (func == (void*)0xffffffff)
 		{
