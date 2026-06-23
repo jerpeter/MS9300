@@ -67,7 +67,7 @@ uint8 sendDSMData(void);
 void HandleDEM(CMD_BUFFER_STRUCT* inCmd);
 void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER*);
 uint8 sendDEMData(void);
-uint8* sendDataNoFlashWrapCheck(uint8*, uint8*);
+uint8* sendDataNoFlashWrapCheck(uint8*, uint8*, uint8);
 
 // Function: HandleDET - Download event CSV
 void HandleDET(CMD_BUFFER_STRUCT* inCmd);
@@ -90,7 +90,7 @@ void HandleHLM(CMD_BUFFER_STRUCT* inCmd);
 // Function: handleDLM - Download Bar Live Monitoring Pending Event Record
 void HandleDLM(CMD_BUFFER_STRUCT* inCmd);
 // Function: SendLMA - Live Monitoring Available status
-void SendLMA(void);
+void SendLMA(uint8 pipe);
 
 #if 1 /* Test */
 void HandleDBL(CMD_BUFFER_STRUCT* inCmd);
