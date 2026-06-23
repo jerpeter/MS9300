@@ -1396,7 +1396,7 @@ void restart_core(void)
 	ft81x_hostcmd(CMD_RST_PULSE);
 }
 
-bool read_chip_id()
+bool read_chip_id(void)
 {
 	// Read CHIP ID address until it returns a valid result.
 	for (uint16_t count = 0; count < 100; count++) {
@@ -1417,7 +1417,7 @@ bool read_chip_id()
 	return false;
 }
 
-void select_spi_byte_width()
+void select_spi_byte_width(void)
 {
 	// Enable QUAD spi mode if configured
 #if (FT81X_QUADSPI)
@@ -1431,7 +1431,7 @@ void select_spi_byte_width()
 #endif
 }
 
-void ft81x_init_display_settings()
+void ft81x_init_display_settings(void)
 {
 	/*
 		Reference display settings (different LCD screen)
@@ -1574,7 +1574,7 @@ void ft81x_init_display_settings()
 	debug("LCD: Horizontal/Width: %i, Vertical/Height: %i\r\n", ft81x_display_width, ft81x_display_height);
 }
 
-void ft81x_init_gpio()
+void ft81x_init_gpio(void)
 {
 	// Setup the FT81X GPIO PINS. These assume little-endian.
 	// DISP = output, GPIO 0 to 2 are unconnected so set to output, GPIO 3 is not included in the 810 version so leave default (input)
@@ -1588,7 +1588,7 @@ void ft81x_init_gpio()
 }
 
 #if 1 // Test with black screen before starting display clock
-void test_black_screen()
+void test_black_screen(void)
 {
 	// Build a black display and display it
 	ft81x_stream_start(); // Start streaming
@@ -1608,7 +1608,7 @@ void test_black_screen()
 #define test_black_screen()
 #endif
 
-void test_white_screen()
+void test_white_screen(void)
 {
 	// Build a white display and display it
 	ft81x_stream_start(); // Start streaming
@@ -1917,8 +1917,7 @@ void test_load_image(void)
 
 #if 1
 // Test memory operation(s) and CRC32 on 6 bytes of 0x00 will be 0xB1C2A1A3
-void test_memory_ops(
-)
+void test_memory_ops(void)
 {
 	// Start streaming
 	ft81x_stream_start();
@@ -1949,8 +1948,7 @@ void test_memory_ops(
 
 #if 1
 // Draw a gray screen and write Hello World, 123, button etc.
-void test_display(
-)
+void test_display(void)
 {
 	ft81x_set_backlight_level(8); // Values range from 0 to 128, 0 is no backlight, 128 is max backlight
 
@@ -2097,8 +2095,7 @@ void ft81x_NomisChargingScreen(uint8 batteryStats)
 
 #if 1
 // Fill the screen with a solid color cycling colors
-void test_cycle_colors(
-)
+void test_cycle_colors(void)
 {
 	uint32_t rgb = 0xff0000;
 	for (int x=0; x<300; x++) {
@@ -2127,8 +2124,7 @@ void test_cycle_colors(
 
 #if 1
 // Draw some dots of rand size, location and color.
-void test_dots(
-)
+void test_dots(void)
 {
 	for (int x=0; x<300; x++) {
 		ft81x_stream_start(); // Start streaming
