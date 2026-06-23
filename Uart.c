@@ -68,11 +68,15 @@ uint8 NibbleToA(uint8 hexData)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 ModemPutc(uint8 byteData, uint8 convertAsciiFlag)
+uint8 ModemPutc(uint8 byteData, uint8 convertAsciiFlag, uint8 pipe)
 {
 	uint8 status = MODEM_SEND_FAILED;
 	uint8 hexData;
 	uint8 asciiData;
+
+#if 0 /* Temp */
+	UNUSED(pipe);
+#endif
 
 #if 0 /* Original for Modem UART */
 	volatile uint32 timeout = g_lifetimeHalfSecondTickCount + (25 * 2); //Set timeout to 25 secs
@@ -130,19 +134,30 @@ uint8 ModemPutc(uint8 byteData, uint8 convertAsciiFlag)
 		asciiData = NibbleToA(hexData);
 
 		// Send the top nibble
+#if 0 /* Original */
 		UartPutc(asciiData, CRAFT_COM_PORT);
-
+#else /* Test dynamic pipes */
+		UartPutc(asciiData, pipe);
+#endif
 		// Convert the bottom nibble to hex
 		hexData = (uint8)(0x0F & byteData);
 		asciiData = NibbleToA(hexData);
 
 		// Send the bottom nibble
+#if 0 /* Original */
 		UartPutc(asciiData, CRAFT_COM_PORT);
+#else /* Test dynamic pipes */
+		UartPutc(asciiData, pipe);
+#endif
 	}
 	else
 	{
 		// Send the byte of data
+#if 0 /* Original */
 		UartPutc(byteData, CRAFT_COM_PORT);
+#else /* Test dynamic pipes */
+		UartPutc(byteData, pipe);
+#endif
 	}
 
 	// Set status to success because data has been sent
@@ -155,7 +170,7 @@ uint8 ModemPutc(uint8 byteData, uint8 convertAsciiFlag)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-uint8 ModemPuts(uint8* byteData, uint32 dataLength, uint8 convertAsciiFlag)
+uint8 ModemPuts(uint8* byteData, uint32 dataLength, uint8 convertAsciiFlag, uint8 pipe)
 {
 	uint32 dataDex;
 	uint8* theData = byteData;
@@ -171,7 +186,7 @@ uint8 ModemPuts(uint8* byteData, uint32 dataLength, uint8 convertAsciiFlag)
 #if 0 /* Exception testing (Prevent non-ISR soft loop watchdog from triggering) */
 		g_execCycles++;
 #endif
-		if (MODEM_SEND_FAILED == ModemPutc(*theData, convertAsciiFlag))
+		if (MODEM_SEND_FAILED == ModemPutc(*theData, convertAsciiFlag, pipe))
 		{
 			return (MODEM_SEND_FAILED);
 		}
@@ -190,6 +205,7 @@ void UartPutc(uint8 c, int32 channel)
 	mxc_uart_regs_t* port;
 
 	// Check if channel is USB CDC/ACM serial
+#if 0 /* Original */
 	if (channel == CRAFT_COM_PORT)
 	{
 		if (GetPowerControlState(CELL_ENABLE) == ON)
@@ -210,10 +226,79 @@ void UartPutc(uint8 c, int32 channel)
 			Expansion_UART_WriteCharacter(c);
 		}
 	}
+#else /* Test new pipes */
+	if ((channel == CRAFT_COM_PORT) || (channel == SERIAL_PIPE_CELL))
+	{
+		if (GetPowerControlState(CELL_ENABLE) == ON)
+		{
+			MXC_UART_WriteCharacter(MXC_UART1, c);
+		}
+	}
+	else if (channel == SERIAL_PIPE_USB)
+	{
+		// Check if USB serial channel is available
+		if (acm_present())
+		{
+			if (acm_write(&c, sizeof(c)) != sizeof(c))
+			{
+				debugErr("USB CDC/ACM serial transfer failed trying to send <%c>\r\n", c);
+			}
+		}
+	}
+	else if (channel == SERIAL_PIPE_EXPANSION)
+	{
+		// Check if Expansion RS232 is available
+		if (GetPowerControlState(EXPANSION_ENABLE) == ON)
+		{
+			Expansion_UART_WriteCharacter(c);
+		}
+	}
+#endif
 	else // channel is UART serial
 	{
 		if (channel == LTE_TX_COM_PORT) { port = MXC_UART1; }
 		else /* (channel == GLOBAL_DEBUG_PRINT_PORT) */ { port = MXC_UART2; }
+
+#if 1 /* Test debug cache */
+		if (channel == GLOBAL_DEBUG_PRINT_PORT)
+		{
+			if (g_debugCacheCount < 33799)
+			{
+				g_debugCache[g_debugCacheWriteIndex] = c;
+				g_debugCacheWriteIndex++;
+				if (g_debugCacheWriteIndex == 33800) { g_debugCacheWriteIndex = 0; }
+
+				g_debugCacheCount++;
+			}
+			else if (g_debugCacheCount == 33799)
+			{
+				if (g_debugCacheWriteIndex > 4)
+				{
+					g_debugCache[(g_debugCacheWriteIndex - 5)] = '<';
+					g_debugCache[(g_debugCacheWriteIndex - 4)] = 'D';
+					g_debugCache[(g_debugCacheWriteIndex - 3)] = 'O';
+					g_debugCache[(g_debugCacheWriteIndex - 2)] = 'V';
+					g_debugCache[(g_debugCacheWriteIndex - 1)] = 'W';
+					g_debugCache[(g_debugCacheWriteIndex - 0)] = '>';
+				}
+				else
+				{
+					g_debugCache[(33800 - 5)] = '<';
+					g_debugCache[(33800 - 4)] = 'D';
+					g_debugCache[(33800 - 3)] = 'O';
+					g_debugCache[(33800 - 2)] = 'V';
+					g_debugCache[(33800 - 1)] = 'W';
+					g_debugCache[(33800 - 0)] = '>';
+				}
+
+				g_debugCacheCount++;
+			}
+			else // (g_debugCacheCount == 33800)
+			{
+				// Stop queueing debug cache until system moves to log file
+			}
+		}
+#endif
 
 #if 1 /* Framework driver blocks waiting forever for TX FIFO space to be available */
 		MXC_UART_WriteCharacter(port, c);
@@ -1221,6 +1306,9 @@ extern void ReadUartBridgeRxFIFO(uint8_t* readData, uint8_t count);
 #if 1 /* Normal */
 				// Raise the Craft Data flag
 				g_modemStatus.craftPortRcvFlag = YES;
+
+				// Mark the incoming pipe
+				g_isrMessageBufferPtr->pipe = SERIAL_PIPE_EXPANSION;
 
 				// Write the received data into the buffer
 				//*g_isrMessageBufferPtr->writePtr = recieveData;
