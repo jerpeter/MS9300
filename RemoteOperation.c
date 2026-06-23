@@ -74,17 +74,17 @@ void HandleVFV(CMD_BUFFER_STRUCT* inCmd)
 	g_transmitCRC = CalcCCITT32((uint8*)&firmwareVersion[0], sizeof(firmwareVersion), g_transmitCRC);
 
 	// Send Starting CRLF
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 	// Send Simple header
-	ModemPuts((uint8*)vfvHdr, MESSAGE_HEADER_SIMPLE_LENGTH, g_binaryXferFlag);
+	ModemPuts((uint8*)vfvHdr, MESSAGE_HEADER_SIMPLE_LENGTH, g_binaryXferFlag, inCmd->pipe);
 	// Send Firmware version
-	ModemPuts((uint8*)&firmwareVersion[0], sizeof(firmwareVersion), g_binaryXferFlag);
+	ModemPuts((uint8*)&firmwareVersion[0], sizeof(firmwareVersion), g_binaryXferFlag, inCmd->pipe);
 	// Send Ending Footer
 #if ENDIAN_CONVERSION
 	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 	return;
 }
@@ -101,10 +101,23 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 	char buildVer;
 	uint8* channelOverridePtr;
 
+	SMART_SENSOR_STRUCT* seismicSmartSensorMemory;
+	SMART_SENSOR_STRUCT* acousticSmartSensorMemory;
+
 	UNUSED(inCmd);
 
 	memset(&cfg, 0, sizeof(cfg));
 
+	//-----------------------------------------------
+	// Smart Sensor selection based on active sensors
+	if (CheckIfSmartSensorPresent(SEISMIC_SENSOR_2)) { seismicSmartSensorMemory = &g_seismic2SmartSensorMemory; }
+	else { seismicSmartSensorMemory = &g_seismicSmartSensorMemory; } // Default to Seismic SS #1
+
+	if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR)) { acousticSmartSensorMemory = &g_acousticSmartSensorMemory; }
+	else { acousticSmartSensorMemory = &g_acoustic2SmartSensorMemory; } // Default to Acoustic SS #2
+
+	//-----------------------------------------------
+	// Set unit config parameters
 	cfg.mode = g_triggerRecord.opMode;
 	cfg.monitorStatus = g_sampleProcessing; 
 	cfg.currentTime = GetCurrentTime();
@@ -240,16 +253,16 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 	memcpy((uint8*)cfg.eventCfg.sessionComments, g_triggerRecord.trec.comments, SESSION_COMMENTS_STRING_SIZE - 2);
 	
 	memset(&(cfg.eventCfg.seismicSensorSerialNumber[0]), 0, SENSOR_SERIAL_NUMBER_SIZE);
-	memcpy(&(cfg.eventCfg.seismicSensorSerialNumber[0]), &(g_seismicSmartSensorMemory.serialNumber[0]), SENSOR_SERIAL_NUMBER_SIZE);
-	cfg.eventCfg.seismicSensorCurrentCalDate = g_seismicSmartSensorMemory.currentCal.calDate;
-	cfg.eventCfg.seismicSensorFacility = g_seismicSmartSensorMemory.currentCal.calFacility;
-	cfg.eventCfg.seismicSensorInstrument = g_seismicSmartSensorMemory.currentCal.calInstrument;
+	memcpy(&(cfg.eventCfg.seismicSensorSerialNumber[0]), &(seismicSmartSensorMemory->serialNumber[0]), SENSOR_SERIAL_NUMBER_SIZE);
+	cfg.eventCfg.seismicSensorCurrentCalDate = seismicSmartSensorMemory->currentCal.calDate;
+	cfg.eventCfg.seismicSensorFacility = seismicSmartSensorMemory->currentCal.calFacility;
+	cfg.eventCfg.seismicSensorInstrument = seismicSmartSensorMemory->currentCal.calInstrument;
 
 	memset(&(cfg.eventCfg.acousticSensorSerialNumber[0]), 0, SENSOR_SERIAL_NUMBER_SIZE);
-	memcpy(&(cfg.eventCfg.acousticSensorSerialNumber[0]), &(g_acousticSmartSensorMemory.serialNumber[0]), SENSOR_SERIAL_NUMBER_SIZE);
-	cfg.eventCfg.acousticSensorCurrentCalDate = g_acousticSmartSensorMemory.currentCal.calDate;
-	cfg.eventCfg.acousticSensorFacility = g_acousticSmartSensorMemory.currentCal.calFacility;
-	cfg.eventCfg.acousticSensorInstrument = g_acousticSmartSensorMemory.currentCal.calInstrument;
+	memcpy(&(cfg.eventCfg.acousticSensorSerialNumber[0]), &(acousticSmartSensorMemory->serialNumber[0]), SENSOR_SERIAL_NUMBER_SIZE);
+	cfg.eventCfg.acousticSensorCurrentCalDate = acousticSmartSensorMemory->currentCal.calDate;
+	cfg.eventCfg.acousticSensorFacility = acousticSmartSensorMemory->currentCal.calFacility;
+	cfg.eventCfg.acousticSensorInstrument = acousticSmartSensorMemory->currentCal.calInstrument;
 #if ENDIAN_CONVERSION
 	cfg.eventCfg.seismicSensorCurrentCalDate.year = __builtin_bswap16(cfg.eventCfg.seismicSensorCurrentCalDate.year);
 	cfg.eventCfg.acousticSensorCurrentCalDate.year = __builtin_bswap16(cfg.eventCfg.acousticSensorCurrentCalDate.year);
@@ -374,26 +387,26 @@ void HandleDCM(CMD_BUFFER_STRUCT* inCmd)
 		(uint32)(MESSAGE_SIMPLE_TOTAL_LENGTH + sizeof(SYSTEM_CFG)), COMPRESS_NONE, CRC_NONE);
 
 	// Send Starting CRLF
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 	// Calculate the CRC on the header
 	g_transmitCRC = CalcCCITT32((uint8*)&dcmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send Simple header
-	ModemPuts((uint8*)dcmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, g_binaryXferFlag);
+	ModemPuts((uint8*)dcmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, g_binaryXferFlag, inCmd->pipe);
 
 	// Calculate the CRC on the data
 	g_transmitCRC = CalcCCITT32((uint8*)&cfg, sizeof(SYSTEM_CFG), g_transmitCRC);
 
 	// Send the configuration data
-	ModemPuts((uint8*)&cfg, sizeof(SYSTEM_CFG), g_binaryXferFlag);
+	ModemPuts((uint8*)&cfg, sizeof(SYSTEM_CFG), g_binaryXferFlag, inCmd->pipe);
 
 	// Ending Footer
 #if ENDIAN_CONVERSION
 	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 }
 
 ///----------------------------------------------------------------------------
@@ -473,20 +486,20 @@ void HandleUCM(CMD_BUFFER_STRUCT* inCmd)
 					(uint8*)msgTypeStr, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);
 
 				// Send Starting CRLF
-				ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+				ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 				// Calculate the CRC on the header
 				g_transmitCRC = CalcCCITT32((uint8*)&ucmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 				// Send Simple header
-				ModemPuts((uint8*)ucmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
+				ModemPuts((uint8*)ucmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII, inCmd->pipe);
 
 				// Send Ending Footer
 #if ENDIAN_CONVERSION
 				g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-				ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-				ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+				ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+				ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 				
 				return;
 			}
@@ -1498,20 +1511,20 @@ SEND_UCM_ERROR_CODE:
 		(uint8*)msgTypeStr, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);
 
 	// Send Starting CRLF
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 	// Calculate the CRC on the header
 	g_transmitCRC = CalcCCITT32((uint8*)&ucmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send Simple header
-	ModemPuts((uint8*)&ucmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
+	ModemPuts((uint8*)&ucmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII, inCmd->pipe);
 
 	// Send Ending Footer
 #if ENDIAN_CONVERSION
 	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 	return;
 }
@@ -1539,26 +1552,26 @@ void HandleDMM(CMD_BUFFER_STRUCT* inCmd)
 		(uint32)(MESSAGE_SIMPLE_TOTAL_LENGTH + sizeof(MODEM_SETUP_STRUCT)), COMPRESS_NONE, CRC_NONE);
 
 	// Send Starting CRLF
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 	// Calculate the CRC on the header
 	g_transmitCRC = CalcCCITT32((uint8*)&dmmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send Simple header
-	ModemPuts((uint8*)dmmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, g_binaryXferFlag);
+	ModemPuts((uint8*)dmmHdr, MESSAGE_HEADER_SIMPLE_LENGTH, g_binaryXferFlag, inCmd->pipe);
 
 	// Calculate the CRC on the data
 	g_transmitCRC = CalcCCITT32((uint8*)&modemCfg, sizeof(MODEM_SETUP_STRUCT), g_transmitCRC);
 
 	// Send the configuration data
-	ModemPuts((uint8*)&modemCfg, sizeof(MODEM_SETUP_STRUCT), g_binaryXferFlag);
+	ModemPuts((uint8*)&modemCfg, sizeof(MODEM_SETUP_STRUCT), g_binaryXferFlag, inCmd->pipe);
 
 	// Ending Footer
 #if ENDIAN_CONVERSION
 	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 }
 
 ///----------------------------------------------------------------------------
@@ -1692,20 +1705,20 @@ void HandleUMM(CMD_BUFFER_STRUCT* inCmd)
 		(uint8*)msgTypeStr, MESSAGE_SIMPLE_TOTAL_LENGTH, COMPRESS_NONE, CRC_NONE);
 
 	// Send Starting CRLF
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 	// Calculate the CRC on the header
 	g_transmitCRC = CalcCCITT32((uint8*)&ummHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send Simple header
-	ModemPuts((uint8*)ummHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII);
+	ModemPuts((uint8*)ummHdr, MESSAGE_HEADER_SIMPLE_LENGTH, CONVERT_DATA_TO_ASCII, inCmd->pipe);
 
 	// Send Ending Footer
 #if ENDIAN_CONVERSION
 	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 }
 
 ///----------------------------------------------------------------------------
@@ -1832,13 +1845,13 @@ void HandleCAL(CMD_BUFFER_STRUCT* inCmd)
 	BuildOutgoingSimpleHeaderBuffer((uint8*)calHdr, (uint8*)"CALx", (uint8*)msgTypeStr, (returnCode == CFG_ERR_NONE) ? (MESSAGE_SIMPLE_TOTAL_LENGTH + 4) : (MESSAGE_SIMPLE_TOTAL_LENGTH), COMPRESS_NONE, CRC_NONE);
 
 	// Send Starting CRLF
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 	// Calculate the CRC on the header
 	g_transmitCRC = CalcCCITT32((uint8*)&calHdr, MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
 
 	// Send Simple header
-	ModemPuts((uint8*)calHdr, MESSAGE_HEADER_SIMPLE_LENGTH, NO_CONVERSION);
+	ModemPuts((uint8*)calHdr, MESSAGE_HEADER_SIMPLE_LENGTH, NO_CONVERSION, inCmd->pipe);
 
 	// Check if manual cal completed
 	if (returnCode == CFG_ERR_NONE)
@@ -1847,18 +1860,18 @@ void HandleCAL(CMD_BUFFER_STRUCT* inCmd)
 		else { strcpy((char*)msgResults, "FAIL"); }
 
 		// Calculate the CRC on the payload
-		g_transmitCRC = CalcCCITT32((uint8*)&msgResults, 4, SEED_32);
+		g_transmitCRC = CalcCCITT32((uint8*)&msgResults, 4, g_transmitCRC);
 
 		// Send payload
-		ModemPuts((uint8*)msgResults, 4, NO_CONVERSION);
+		ModemPuts((uint8*)msgResults, 4, NO_CONVERSION, inCmd->pipe);
 	}
 
 	// Send Ending Footer
 #if ENDIAN_CONVERSION
 	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
 #endif
-	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION);
-	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION);
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
 
 	return;
 }
@@ -1968,16 +1981,26 @@ void ModemInitProcess(void)
 	{
 		if (strlen(g_modemSetupRecord.reset) != 0)
 		{
+#if 1 /* Original */
 			UartPuts((char*)(g_modemSetupRecord.reset), CRAFT_COM_PORT);
 			UartPuts((char*)&g_CRLF, CRAFT_COM_PORT);
+#else
+			UartPuts((char*)(g_modemSetupRecord.reset), SERIAL_PIPE_CELL);
+			UartPuts((char*)&g_CRLF, SERIAL_PIPE_CELL);
+#endif
 
 			SoftUsecWait(3 * SOFT_SECS);
 		}
 
 		if (strlen(g_modemSetupRecord.init) != 0)
 		{
+#if 1 /* Original */
 			UartPuts((char*)(g_modemSetupRecord.init), CRAFT_COM_PORT);
 			UartPuts((char*)&g_CRLF, CRAFT_COM_PORT);
+#else
+			UartPuts((char*)(g_modemSetupRecord.init), SERIAL_PIPE_CELL);
+			UartPuts((char*)&g_CRLF, SERIAL_PIPE_CELL);
+#endif
 		}
 	}
 
@@ -2059,24 +2082,42 @@ void ModemResetProcess(void)
 
 	if (g_cellModemSetupRecord.tcpServer == YES)
 	{
+#if 0 /* Original */
 		// Check if the TCP Server was up and active and should be responding to a client MRS command
 		if (g_tcpServerStartStage == TCP_SERVER_ACTIVE_DATA_MODE)
+#else /* Test */
+			// Delay entering Data mode until the remote conneciton is active due to the rare occasion where the cell modem seems to drop data mode without notificaiton
+		// Check if the TCP Server was up and active and should be responding to a client MRS command
+		if (g_tcpServerStartStage == TCP_SERVER_ACTIVE)
+#endif
 		{
+#if 0 /* Original */
 			// Need to re-enter Datamode now
 			debug("AT#XTCPSEND..."); sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+#else /* Test */
+			// Delay entering Data mode until the remote conneciton is active due to the rare occasion where the cell modem seems to drop data mode without notificaiton
+#endif
 		}
 		// Check if the TCP Server was paused in a good state
 		else if (g_tcpServerStartStage == TCP_SERVER_PAUSE_FOR_ADO)
 		{
+#if 0 /* Original */
 			g_tcpServerStartStage = TCP_SERVER_ACTIVE_DATA_MODE;
-
+#else /* Test */
+			// Delay entering Data mode until the remote conneciton is active due to the rare occasion where the cell modem seems to drop data mode without notificaiton
+			g_tcpServerStartStage = TCP_SERVER_ACTIVE;
+#endif
 			// Ready to re-enter TCP Server mode now
 			debug("AT#XTCPSVR=1,%d...\r\n", g_cellModemSetupRecord.tcpServerListenPort); sprintf((char*)g_spareBuffer, "AT#XTCPSVR=1,%d\r\n", g_cellModemSetupRecord.tcpServerListenPort); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
 
+#if 0 /* Original */
 			debug("AT#XTCPSEND..."); sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
 			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+#else /* Test */
+			// Delay entering Data mode until the remote conneciton is active due to the rare occasion where the cell modem seems to drop data mode without notificaiton
+#endif
 		}
 		else // TCP Server was trying to start up before interruption
 		{
