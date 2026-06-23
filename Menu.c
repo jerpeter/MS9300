@@ -1573,12 +1573,23 @@ void DisplaySensorType(void)
 	UNUSED(acousticSensorType);
 #endif
 
+	SMART_SENSOR_STRUCT* seismicSmartSensorMemory;
+	SMART_SENSOR_STRUCT* acousticSmartSensorMemory;
+
+	// Smart Sensor selection based on active sensors
+	if (CheckIfSmartSensorPresent(SEISMIC_SENSOR_2)) { seismicSmartSensorMemory = &g_seismic2SmartSensorMemory; }
+	else { seismicSmartSensorMemory = &g_seismicSmartSensorMemory; } // Default to Seismic SS #1
+
+	if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR)) { acousticSmartSensorMemory = &g_acousticSmartSensorMemory; }
+	else { acousticSmartSensorMemory = &g_acoustic2SmartSensorMemory; } // Default to Acoustic SS #2
+
+	// Verify Factory setup is valid
 	if (!g_factorySetupRecord.invalid)
 	{
 		// Check if optioned to use Seismic Smart Sensor and Seismic smart sensor was successfully read
 		if ((g_factorySetupRecord.calibrationDateSource == SEISMIC_SMART_SENSOR_CAL_DATE) && (g_seismicSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY))
 		{
-			sensorType = (pow(2, g_seismicSmartSensorMemory.sensorType) * SENSOR_2_5_IN);
+			sensorType = (pow(2, seismicSmartSensorMemory->sensorType) * SENSOR_2_5_IN);
 		}
 		else // Default to factory setup record sensor type
 		{
@@ -1611,9 +1622,9 @@ void DisplaySensorType(void)
 		else sprintf((char*)g_spareBuffer, "%s: %s", "SEISMIC GAIN/TYPE", getLangText(sensorTypeTextElement));
 		MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK);
 
-		if ((g_acousticSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY) && CheckIfAcousticSensorTypeValid(g_acousticSmartSensorMemory.sensorType))
+		if ((acousticSmartSensorMemory->version & SMART_SENSOR_OVERLAY_KEY) && CheckIfAcousticSensorTypeValid(acousticSmartSensorMemory->sensorType))
 		{
-			acousticSensorType = g_acousticSmartSensorMemory.sensorType;
+			acousticSensorType = acousticSmartSensorMemory->sensorType;
 		}
 
 		GetAirSensorTypeName(&airSensorTypeName[0], acousticSensorType);
@@ -1643,6 +1654,17 @@ void DisplaySerialNumber(void)
 	char serialNumberString[20];
 	uint32 serialNumberConversion;
 
+	SMART_SENSOR_STRUCT* seismicSmartSensorMemory;
+	SMART_SENSOR_STRUCT* acousticSmartSensorMemory;
+
+	// Smart Sensor selection based on active sensors
+	if (CheckIfSmartSensorPresent(SEISMIC_SENSOR_2)) { seismicSmartSensorMemory = &g_seismic2SmartSensorMemory; }
+	else { seismicSmartSensorMemory = &g_seismicSmartSensorMemory; } // Default to Seismic SS #1
+
+	if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR)) { acousticSmartSensorMemory = &g_acousticSmartSensorMemory; }
+	else { acousticSmartSensorMemory = &g_acoustic2SmartSensorMemory; } // Default to Acoustic SS #2
+
+	// Verify Factory setup is valid
 	if (!g_factorySetupRecord.invalid)
 	{
 		memset(&serialNumberString[0], 0, sizeof(serialNumberString));
@@ -1655,9 +1677,9 @@ void DisplaySerialNumber(void)
 		MessageBox(getLangText(STATUS_TEXT), getLangText(SERIAL_NUMBER_NOT_SET_TEXT), MB_OK);
 	}
 
-	if (g_seismicSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY)
+	if (seismicSmartSensorMemory->version & SMART_SENSOR_OVERLAY_KEY)
 	{
-		serialNumberConversion = SerialNumberConverter(&g_seismicSmartSensorMemory.serialNumber[0]);
+		serialNumberConversion = SerialNumberConverter(&seismicSmartSensorMemory->serialNumber[0]);
 		sprintf((char*)g_spareBuffer, "%s %s: %06lu", getLangText(SEISMIC_TEXT), getLangText(SERIAL_NUMBER_TEXT), serialNumberConversion);
 		MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK);
 	}
@@ -1667,9 +1689,9 @@ void DisplaySerialNumber(void)
 		MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK);
 	}
 
-	if (g_acousticSmartSensorMemory.version & SMART_SENSOR_OVERLAY_KEY)
+	if (acousticSmartSensorMemory->version & SMART_SENSOR_OVERLAY_KEY)
 	{
-		serialNumberConversion = SerialNumberConverter(&g_acousticSmartSensorMemory.serialNumber[0]);
+		serialNumberConversion = SerialNumberConverter(&acousticSmartSensorMemory->serialNumber[0]);
 		sprintf((char*)g_spareBuffer, "%s %s: %06lu", getLangText(ACOUSTIC_TEXT), getLangText(SERIAL_NUMBER_TEXT), serialNumberConversion);
 		MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK);
 	}
