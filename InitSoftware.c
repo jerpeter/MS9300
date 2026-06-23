@@ -171,7 +171,7 @@ void LoadUnitConfig(void)
 		}
 #endif
 
-#if 0 /* Enable only when using the Expansion RS232 */
+#if 1 /* Enable only when using the Expansion RS232 */
 		ExpansionBridgeChangeBaud(g_unitConfig.baudRate);
 #endif
 
