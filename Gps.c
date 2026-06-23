@@ -171,7 +171,7 @@ void EnableGps(void)
 			if (g_gpsOutputToCraft)
 			{
 				uint16 length = sprintf((char*)g_spareBuffer, "<GPS: POWER ON>\r\n");
-				ModemPuts(g_spareBuffer, length, NO_CONVERSION);
+				ModemPuts(g_spareBuffer, length, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 			}
 
 			// Enable power for Gps module
@@ -217,7 +217,7 @@ void DisableGps(void)
 	if (g_gpsOutputToCraft)
 	{
 		uint16 length = sprintf((char*)g_spareBuffer, "<GPS: POWER OFF>\r\n");
-		ModemPuts(g_spareBuffer, length, NO_CONVERSION);
+		ModemPuts(g_spareBuffer, length, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 	}
 
 	ClearSoftTimer(GPS_POWER_OFF_TIMER_NUM);
@@ -301,13 +301,13 @@ void ProcessGpsSerialData(void)
 		{
 #if BINARY_RAW_OUTPUT
 			messageLength = sprintf((char*)g_spareBuffer, "\r\n========\r\nBinary Message Start\r\n========\r\n");
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 			s_binaryMessageInProgress = YES;
 
 #if BINARY_RAW_OUTPUT
 			messageLength = sprintf((char*)g_spareBuffer, "<A0>");
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 			g_gpsSerialData.binaryState = GPS_BINARY_MSG_START_END;
 		}
@@ -315,7 +315,7 @@ void ProcessGpsSerialData(void)
 		{
 #if BINARY_RAW_OUTPUT
 			messageLength = sprintf((char*)g_spareBuffer, "<A1>");
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 			g_gpsSerialData.binaryState = GPS_BINARY_MSG_PAYLOAD_START;
 		}
@@ -323,7 +323,7 @@ void ProcessGpsSerialData(void)
 		{
 #if BINARY_RAW_OUTPUT
 			messageLength = sprintf((char*)g_spareBuffer, "<%x>", *g_gpsSerialData.readPtr);
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 
 			s_binaryPayloadLength = ((*g_gpsSerialData.readPtr << 8) & 0xFF00);
@@ -334,7 +334,7 @@ void ProcessGpsSerialData(void)
 		{
 #if BINARY_RAW_OUTPUT
 			messageLength = sprintf((char*)g_spareBuffer, "<%x>", *g_gpsSerialData.readPtr);
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 
 			s_binaryPayloadLength |= *g_gpsSerialData.readPtr;
@@ -345,14 +345,14 @@ void ProcessGpsSerialData(void)
 
 #if BINARY_RAW_OUTPUT
 			messageLength = sprintf((char*)g_spareBuffer, "(L:%d)", s_binaryPayloadLength);
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 		}
 		else if (g_gpsSerialData.binaryState == GPS_BINARY_MSG_BODY)
 		{
 #if BINARY_RAW_OUTPUT
 			messageLength = sprintf((char*)g_spareBuffer, "<%x>", *g_gpsSerialData.readPtr);
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 			g_gpsBinaryQueue.message[g_gpsBinaryQueue.writeIndex].data[s_binaryPayloadCount] = *g_gpsSerialData.readPtr;
 
@@ -365,7 +365,7 @@ void ProcessGpsSerialData(void)
 			{
 #if BINARY_RAW_OUTPUT
 				messageLength = sprintf((char*)g_spareBuffer, "Overflow <Reseting>\r\n");
-				ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+				ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 				memset(&g_gpsBinaryQueue.message[g_gpsBinaryQueue.writeIndex], 0, sizeof(GPS_BINARY_MESSAGE));
 				g_gpsSerialData.binaryState = GPS_BINARY_MSG_START;
@@ -377,7 +377,7 @@ void ProcessGpsSerialData(void)
 		{
 #if BINARY_RAW_OUTPUT
 			messageLength = sprintf((char*)g_spareBuffer, "<%x>", *g_gpsSerialData.readPtr);
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 
 			if (GpsCalcBinaryChecksum(g_gpsBinaryQueue.message[g_gpsBinaryQueue.writeIndex].data, s_binaryPayloadLength) == *g_gpsSerialData.readPtr)
@@ -386,7 +386,7 @@ void ProcessGpsSerialData(void)
 
 #if BINARY_RAW_OUTPUT
 				messageLength = sprintf((char*)g_spareBuffer, "(Cksm:Pass)");
-				ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+				ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 			}
 			else
@@ -395,7 +395,7 @@ void ProcessGpsSerialData(void)
 
 #if BINARY_RAW_OUTPUT
 				messageLength = sprintf((char*)g_spareBuffer, "(Cksm:Fail)");
-				ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+				ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 			}
 
@@ -407,7 +407,7 @@ void ProcessGpsSerialData(void)
 			{
 #if BINARY_RAW_OUTPUT
 				messageLength = sprintf((char*)g_spareBuffer, "<End>");
-				ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+				ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 
 				if (g_gpsBinaryQueue.message[g_gpsBinaryQueue.writeIndex].binMsgValid == YES)
@@ -427,7 +427,7 @@ void ProcessGpsSerialData(void)
 			{
 #if BINARY_RAW_OUTPUT
 				messageLength = sprintf((char*)g_spareBuffer, "<Err>");
-				ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+				ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 
 				memset(&g_gpsBinaryQueue.message[g_gpsBinaryQueue.writeIndex], 0, sizeof(GPS_BINARY_MESSAGE));
@@ -436,7 +436,7 @@ void ProcessGpsSerialData(void)
 			s_binaryMessageInProgress = NO;
 
 #if BINARY_RAW_OUTPUT
-			ModemPutc(0x0A, NO_CONVERSION); ModemPutc(0x0D, NO_CONVERSION);
+			ModemPutc(0x0A, NO_CONVERSION); ModemPutc(0x0D, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 
 			g_gpsSerialData.binaryState = GPS_BINARY_MSG_START;
@@ -549,7 +549,7 @@ void HandleGGA(uint8* message)
 
 #if 0
 	messageLength = sprintf((char*)g_spareBuffer, "%s\r\n", (char*)message);
-	ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+	ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 
 	//========================================================================================================
@@ -579,7 +579,7 @@ void HandleGGA(uint8* message)
 		if (g_gpsOutputToCraft)
 		{
 			messageLength = sprintf((char*)g_spareBuffer, "<ERROR: GPGGA parse error>\r\n");
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 		}
 		return;
 	}
@@ -589,21 +589,21 @@ void HandleGGA(uint8* message)
 		if (g_gpsOutputToCraft)
 		{
 			messageLength = sprintf((char*)g_spareBuffer, "<ERROR: GPGGA time parse error>\r\n");
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 		}
 		return;
 	}
 
 #if 0
 	messageLength = sprintf((char*)g_spareBuffer, "<SUCCESS: GPGGA parsed correctly>\r\n");
-	ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+	ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 
 	if (g_gpsOutputToCraft)
 	{
 		messageLength = sprintf((char*)g_spareBuffer, "Lat: %.4f(%c), Lon:%.4f(%c), Time:%02d:%02d:%02d.%02d, GPS-Qual:%d, Sats-Used: %d, Alt:%fm\r\n",
 								gga.lat, gga.ns, gga.lon, gga.ew, gga.utc.hour, gga.utc.min, gga.utc.sec, gga.utc.hsec, gga.sig, gga.satinuse, gga.elv);
-		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 	}
 
 	// Check if status says data is valid
@@ -675,7 +675,7 @@ void HandleGLL(uint8* message)
 
 #if 0
 	messageLength = sprintf((char*)g_spareBuffer, "%s\r\n", (char*)message);
-	ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+	ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 
 	//========================================================================================================
@@ -700,7 +700,7 @@ void HandleGLL(uint8* message)
 		if (g_gpsOutputToCraft)
 		{
 			messageLength = sprintf((char*)g_spareBuffer, "<ERROR: GPGLL parse error>\r\n");
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 		}
 		return;
 	}
@@ -710,7 +710,7 @@ void HandleGLL(uint8* message)
 		if (g_gpsOutputToCraft)
 		{
 			messageLength = sprintf((char*)g_spareBuffer, "<ERROR: GPGLL time parse error>\r\n");
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 		}
 		return;
 	}
@@ -724,7 +724,7 @@ void HandleGLL(uint8* message)
 	{
 		messageLength = sprintf((char*)g_spareBuffer, "Lat: %.4f(%c), Lon:%.4f(%c), Time:%02d:%02d:%02d.%02d, Stat: %c, SI: %c\r\n", gll.lat, gll.ns, gll.lon, gll.ew,
 								gll.utc.hour, gll.utc.min, gll.utc.sec, gll.utc.hsec, gll.sta, gll.sig);
-		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 	}
 
 	// Check if status says data is valid
@@ -814,7 +814,7 @@ void HandleZDA(uint8* message)
 		if (g_gpsOutputToCraft)
 		{
 			messageLength = sprintf((char*)g_spareBuffer, "<ERROR: GPZDA parse error>\r\n");
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 		}
 		return;
 	}
@@ -824,14 +824,14 @@ void HandleZDA(uint8* message)
 		if (g_gpsOutputToCraft)
 		{
 			messageLength = sprintf((char*)g_spareBuffer, "<ERROR: GPZDA time parse error>\r\n");
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 		}
 		return;
 	}
 
 #if 0
 	messageLength = sprintf((char*)g_spareBuffer, "<SUCCESS: GPZDA parsed correctly>\r\n");
-	ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+	ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 
 	// Example --> GPS Date: 07-03-2023, Time:19:24:14
@@ -853,7 +853,7 @@ void HandleZDA(uint8* message)
 	if (g_gpsOutputToCraft)
 	{
 		messageLength = sprintf((char*)g_spareBuffer, "GPS Date: %02d-%02d-%04d, Time:%02d:%02d:%02d, GPS Epoch: %lu\r\n", zda.utc.day, zda.utc.mon, zda.utc.year, zda.utc.hour, zda.utc.min, zda.utc.sec, epochTime);
-		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 	}
 
 	g_gpsPosition.utcYear = zda.utc.year;
@@ -885,7 +885,7 @@ void ProcessGpsMessage(void)
 		{
 #if 0 /* Test */
 			messageLength = sprintf((char*)g_spareBuffer, "%s\r\n", (char*)&g_gpsQueue.message[g_gpsQueue.readIndex].data[0]);
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 #endif
 			CHAR_UPPER_CASE(g_gpsQueue.message[g_gpsQueue.readIndex].data[2]);
 			CHAR_UPPER_CASE(g_gpsQueue.message[g_gpsQueue.readIndex].data[3]);
@@ -907,7 +907,7 @@ void ProcessGpsMessage(void)
 				if (g_gpsOutputToCraft)
 				{
 					messageLength = sprintf((char*)g_spareBuffer, "[%s]\r\n", (char*)&g_gpsQueue.message[g_gpsQueue.readIndex].data[0]);
-					ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+					ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 				}
 			}
 		}
@@ -916,7 +916,7 @@ void ProcessGpsMessage(void)
 			if (g_gpsOutputToCraft)
 			{
 				messageLength = sprintf((char*)g_spareBuffer, "%s (0x%x<>0x%x)\r\n", (char*)&g_gpsQueue.message[g_gpsQueue.readIndex].data[0], g_gpsQueue.message[g_gpsQueue.readIndex].checksum,checksum);
-				ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+				ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 			}
 		}
 
@@ -967,7 +967,7 @@ void ProcessGpsBinaryMessage(void)
 										g_gpsBinaryQueue.message[g_gpsBinaryQueue.readIndex].data[5],
 										g_gpsBinaryQueue.message[g_gpsBinaryQueue.readIndex].data[6],
 										g_gpsBinaryQueue.message[g_gpsBinaryQueue.readIndex].data[7]);
-				ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+				ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 			}
 		}
 
@@ -1283,7 +1283,7 @@ void GpsQueryTime(void)
 	if (g_gpsOutputToCraft)
 	{
 		uint16 messageLength = sprintf((char*)g_spareBuffer, "GPS Query Time...\r\n");
-		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 	}
 
 	GpsSendBinaryMessage(queryTimeMessage, messageSize);
@@ -1307,7 +1307,7 @@ void GpsQueryUTCDate(void)
 	if (g_gpsOutputToCraft)
 	{
 		uint16 messageLength = sprintf((char*)g_spareBuffer, "GPS Query UTC Date...\r\n");
-		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 	}
 
 	GpsSendBinaryMessage(queryUTCDateMessage, messageSize);
@@ -1327,14 +1327,14 @@ void GpsDumpBinaryMessage(void)
 		if (g_gpsOutputToCraft)
 		{
 			messageLength = sprintf((char*)g_spareBuffer, "<%x>", g_gpsBinaryQueue.message[g_gpsBinaryQueue.readIndex].data[i]);
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 		}
 	}
 
 	if (g_gpsOutputToCraft)
 	{
-		ModemPutc(0x0D, NO_CONVERSION);
-		ModemPutc(0x0A, NO_CONVERSION);
+		ModemPutc(0x0D, NO_CONVERSION, SERIAL_PIPE_DEBUG);
+		ModemPutc(0x0A, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 	}
 }
 
@@ -1356,7 +1356,7 @@ void HandleVersionQuery(void)
 
 	if (g_gpsOutputToCraft)
 	{
-		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 
 		GpsDumpBinaryMessage();
 	}
@@ -1380,7 +1380,7 @@ void HandleSoftCrcQuery(void)
 
 	if (g_gpsOutputToCraft)
 	{
-		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 
 		GpsDumpBinaryMessage();
 	}
@@ -1404,7 +1404,7 @@ void HandleNmeaMsgIntervalQuery(void)
 
 	if (g_gpsOutputToCraft)
 	{
-		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 
 		GpsDumpBinaryMessage();
 	}
@@ -1435,7 +1435,7 @@ void HandleGPSQueryTime(void)
 
 	if (g_gpsOutputToCraft)
 	{
-		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 
 		GpsDumpBinaryMessage();
 	}
@@ -1459,7 +1459,7 @@ void HandleGPSQueryTime(void)
 	{
 		tempTime = ConvertEpochTimeToDateTime(epochTime);
 		messageLength = sprintf((char*)g_spareBuffer, "GPS current Epoch Time: %ld seconds, (%d/%d/%d @ %02d:%02d:%02d GMT time zone)\r\n", epochTime, tempTime.month, tempTime.day, tempTime.year, tempTime.hour, tempTime.min, tempTime.sec);
-		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 	}
 }
 
@@ -1486,7 +1486,7 @@ void HandleUTCDateQuery(void)
 
 	if (1) //(g_gpsOutputToCraft)
 	{
-		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 
 		GpsDumpBinaryMessage();
 	}
@@ -1498,7 +1498,7 @@ void HandleUTCDateQuery(void)
 	utcDay = msgData[6];
 
 	messageLength = sprintf((char*)g_spareBuffer, "UTC Date: %s, %02d, %4d\r\n", g_monthTable[utcMonth].name, utcDay, utcYear);
-	ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+	ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 }
 #endif
 
@@ -1595,7 +1595,7 @@ void HandleBinaryMsgAck(void)
 
 	if (g_gpsOutputToCraft)
 	{
-		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 
 		GpsDumpBinaryMessage();
 	}
@@ -1619,7 +1619,7 @@ void HandleBinaryMsgNack(void)
 
 	if (g_gpsOutputToCraft)
 	{
-		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION);
+		ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
 
 		GpsDumpBinaryMessage();
 	}
