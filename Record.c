@@ -604,6 +604,8 @@ void LoadCellModemSetupRecordDefaults()
 	g_cellModemSetupRecord.serverPort = 8005;
 	g_cellModemSetupRecord.tcpServerListenPort = 8005;
 	g_cellModemSetupRecord.packetDelay = CELL_PACKET_DELAY_DEFAULT_VALUE;
+
+	g_cellModemSetupRecord.eSimSelect = NO;
 }
 
 ///----------------------------------------------------------------------------
@@ -669,6 +671,13 @@ void ValidateCellModemSetupParameters(void)
 	if (g_cellModemSetupRecord.tcpServerListenPort == 0xFFFF)
 	{
 		g_cellModemSetupRecord.tcpServerListenPort = TCP_SERVER_LISTEN_PORT_DEFAULT_VALUE;
+		updated = YES;
+	}
+
+	// Check if eSIM Select is not 0 or 1
+	if (g_cellModemSetupRecord.eSimSelect > YES)
+	{
+		g_cellModemSetupRecord.eSimSelect = NO;
 		updated = YES;
 	}
 
