@@ -360,6 +360,8 @@ typedef struct
 	uint8 pdnAuthProtocol;
 	uint8 tcpServer;
 	uint16 packetDelay;
+	uint8 eSimSelect;
+	uint8 spare;
 } CELL_MODEM_SETUP_STRUCT;
 
 typedef struct
@@ -426,8 +428,8 @@ uint16 GetStartingMonitorLogTableIndex(void);
 uint16 GetStartingEventNumberForCurrentMonitorLog(void);
 void ClearMonitorLogEntry(void);
 void NewMonitorLogEntry(uint8 mode);
-void UpdateMonitorLogEntry();
-void CloseMonitorLogEntry();
+void UpdateMonitorLogEntry(void);
+void CloseMonitorLogEntry(void);
 void printMonitorLogEntry(uint8 mode, MONITOR_LOG_ENTRY_STRUCT* logEntry);
 void InitMonitorLogUniqueEntryId(void);
 void StoreMonitorLogUniqueEntryId(void);
