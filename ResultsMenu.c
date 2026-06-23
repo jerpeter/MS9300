@@ -890,7 +890,9 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 ///----------------------------------------------------------------------------
 void CacheResultsEventInfo(EVT_RECORD* eventRecordToCache)
 {
+#if 0 /* Test removal */
 	memcpy(&g_resultsEventCache[g_resultsCacheIndex], eventRecordToCache, sizeof(EVT_RECORD));
 	
 	if (++g_resultsCacheIndex >= 50) { g_resultsCacheIndex = 0; }
+#endif
 }
