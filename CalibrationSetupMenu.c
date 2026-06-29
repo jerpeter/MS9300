@@ -142,7 +142,7 @@ extern uint32_t testLifetimeCurrentAvgCount;
 					}
 #endif
 
-#if 1 /* Test to see A/D output */
+#if 0 /* Test to see A/D output with Accelerometer */
 					if (g_lifetimeHalfSecondTickCount & 0x1)
 					{
 						//debug("CS A/D: R:%+5ld/%+5ld V:%+5ld/%+5ld T:%+5ld/%+5ld A:%+5ld/%+5ld\r\n", g_sensorCalChanMin[1], g_sensorCalChanMax[1], g_sensorCalChanMin[2], g_sensorCalChanMax[2], g_sensorCalChanMin[3], g_sensorCalChanMax[3], g_sensorCalChanMin[0], g_sensorCalChanMax[0]);
@@ -155,6 +155,24 @@ extern uint32_t testLifetimeCurrentAvgCount;
 						yCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[5]) > g_sensorCalChanMax[5] ? abs(g_sensorCalChanMin[5]) : g_sensorCalChanMax[5]);
 						zCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[6]) > g_sensorCalChanMax[6] ? abs(g_sensorCalChanMin[6]) : g_sensorCalChanMax[6]);
 						debug("CS A/D: R %2.3f T %2.3f V %2.3f (IPS), A %1.3f (mB), X %1.4f Y %1.4f Z %1.4f (G)\r\n", (double)(rCalc), (double)(tCalc), (double)(vCalc), (double)(aCalc), (double)(xCalc), (double)(yCalc), (double)(zCalc));
+					}
+#else /* Test 8 channels */
+					if (g_lifetimeHalfSecondTickCount & 0x1)
+					{
+						//debug("CS A/D: R:%+5ld/%+5ld V:%+5ld/%+5ld T:%+5ld/%+5ld A:%+5ld/%+5ld\r\n", g_sensorCalChanMin[1], g_sensorCalChanMax[1], g_sensorCalChanMin[2], g_sensorCalChanMax[2], g_sensorCalChanMin[3], g_sensorCalChanMax[3], g_sensorCalChanMin[0], g_sensorCalChanMax[0]);
+						float rCalc, tCalc, vCalc, aCalc;
+						float r2Calc, t2Calc, v2Calc, a2Calc;
+						rCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[1]) > g_sensorCalChanMax[1] ? abs(g_sensorCalChanMin[1]) : g_sensorCalChanMax[1]);
+						tCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3]);
+						vCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2]);
+						aCalc = (float)5.120 / (float)32768 * (float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]);
+						r2Calc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[1+4]) > g_sensorCalChanMax[1+4] ? abs(g_sensorCalChanMin[1+4]) : g_sensorCalChanMax[1+4]);
+						t2Calc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[3+4]) > g_sensorCalChanMax[3+4] ? abs(g_sensorCalChanMin[3+4]) : g_sensorCalChanMax[3+4]);
+						v2Calc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[2+4]) > g_sensorCalChanMax[2+4] ? abs(g_sensorCalChanMin[2+4]) : g_sensorCalChanMax[2+4]);
+						a2Calc = (float)5.120 / (float)32768 * (float)(abs(g_sensorCalChanMin[0+4]) > g_sensorCalChanMax[0+4] ? abs(g_sensorCalChanMin[0+4]) : g_sensorCalChanMax[0+4]);
+						debug("CS A/D: R %2.3f T %2.3f V %2.3f, A %1.3f, R2 %2.3f T2 %2.3f V2 %2.3f, A2 %1.3f\r\n",
+								(double)(rCalc), (double)(tCalc), (double)(vCalc), (double)(aCalc),
+								(double)(r2Calc), (double)(t2Calc), (double)(v2Calc), (double)(a2Calc));
 					}
 #endif
 					WriteMapToLcd(g_mmap);
@@ -440,7 +458,7 @@ extern uint32_t testLifetimeCurrentAvgCount;
 						if (GetPowerOnButtonState() == ON)
 						{
 							if (gainState == SEISMIC_GAIN_NORMAL) { gainState = SEISMIC_GAIN_HIGH; } else { gainState = SEISMIC_GAIN_NORMAL; }
-							if ((g_currentSensorGroup == SENSOR_GROUP_A_1) || (g_currentSensorGroup == SENSOR_GROUP_BOTH))
+							if (g_currentSensorGroup == SENSOR_GROUP_A_1)
 							{
 								if (gainState == SEISMIC_GAIN_NORMAL){ strcpy(filterText, "Normal"); SetGainGeo1State(HIGH); } else { strcpy(filterText, "High"); SetGainGeo1State(LOW); }
 								sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo1 gain (%s)", filterText);
@@ -450,11 +468,16 @@ extern uint32_t testLifetimeCurrentAvgCount;
 								if (gainState == SEISMIC_GAIN_NORMAL){ strcpy(filterText, "Normal"); SetGainGeo2State(HIGH); } else { strcpy(filterText, "High"); SetGainGeo2State(LOW); }
 								sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo2 gain (%s)", filterText);
 							}
+							else // SENSOR_GROUP_BOTH
+							{
+								if (gainState == SEISMIC_GAIN_NORMAL){ strcpy(filterText, "Normal"); SetGainGeo1State(HIGH); SetGainGeo2State(HIGH); } else { strcpy(filterText, "High"); SetGainGeo1State(LOW); SetGainGeo2State(LOW); }
+								sprintf((char*)g_debugBuffer, "Cal Setup: Changing Geo1/2 gain (%s)", filterText);
+							}
 						}
 						else
 						{
 							if (pathState == ACOUSTIC_PATH_AOP) { pathState = ACOUSTIC_PATH_A_WEIGHTED; } else { pathState = ACOUSTIC_PATH_AOP; }
-							if ((g_currentSensorGroup == SENSOR_GROUP_A_1) || (g_currentSensorGroup == SENSOR_GROUP_BOTH))
+							if (g_currentSensorGroup == SENSOR_GROUP_A_1)
 							{
 #if 0 /* Original, Geo + AOP on one sensor group */
 								if (pathState == ACOUSTIC_PATH_AOP) { strcpy(filterText, "AOP"); SetPathSelectAop1State(HIGH); } else { strcpy(filterText, "C-weight"); SetPathSelectAop1State(LOW); }
@@ -473,6 +496,11 @@ extern uint32_t testLifetimeCurrentAvgCount;
 								if (pathState == ACOUSTIC_PATH_AOP) { strcpy(filterText, "AOP"); SetPathSelectAop1State(HIGH); } else { strcpy(filterText, "C-weight"); SetPathSelectAop1State(LOW); }
 								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP1 path (%s)", filterText);
 #endif
+							}
+							else // SENSOR_GROUP_BOTH
+							{
+								if (pathState == ACOUSTIC_PATH_AOP) { strcpy(filterText, "AOP"); SetPathSelectAop1State(HIGH); SetPathSelectAop2State(HIGH); } else { strcpy(filterText, "A/C weight"); SetPathSelectAop1State(LOW); SetPathSelectAop2State(LOW); }
+								sprintf((char*)g_debugBuffer, "Cal Setup: Changing AOP1/2 path (%s)", filterText);
 							}
 						}
 
@@ -728,11 +756,16 @@ void CalSetupMnProc(INPUT_MSG_STRUCT msg,
 			mn_layout_ptr->top_ln = CAL_SETUP_MN_TBL_START_LINE;
 
 			// Enable the Cal Mux for Sensor group A (Geo1 + AOP1)
-#if 1 /* Prompt for Cal Mux choice */
+#if 0 /* Prompt for Cal Mux choice */
 			mbChoice = MessageBox(getLangText(SELECT_TEXT), "TEST WITH SENSOR GROUP A/1? NO WILL SWAP TO SENSOR GROUP B/2", MB_YESNO);
 			if (mbChoice == MB_FIRST_CHOICE) { g_currentSensorGroup = SENSOR_GROUP_A_1; }
 			else if (mbChoice == MB_SECOND_CHOICE) { g_currentSensorGroup = SENSOR_GROUP_B_2; }
 			else /* (mbChoice == MB_SPECIAL_ACTION) */ { g_currentSensorGroup = SENSOR_GROUP_BOTH; }
+#endif
+#if 1 /* Test 8 channels */
+			g_currentSensorGroup = SENSOR_GROUP_BOTH;
+			g_adChannelConfig = EIGHT_AD_CHANNELS_WITH_READBACK_WITH_TEMP;
+			OverlayMessage(getLangText(STATUS_TEXT), "Eight Channels with Readback and Temp", (2 * SOFT_SECS));
 #endif
 			OverlayMessage(getLangText(STATUS_TEXT), getLangText(PLEASE_BE_PATIENT_TEXT), 0);
 
@@ -742,8 +775,14 @@ void CalSetupMnProc(INPUT_MSG_STRUCT msg,
 			// Set the sample rate to a fixed 1K
 			g_triggerRecord.trec.sample_rate = SAMPLE_RATE_1K;
 
-#if 1 /* Test starting the Accelerometer */
+#if 0 /* Test starting the Accelerometer */
 			StartAccelerometerAquisition();
+#endif
+#if 1 /* Test needing Acc online for zero offset calibration */
+			if (g_saveAccelerometerCompanionEvent)
+			{
+				StartAccelerometerAquisition();
+			}
 #endif
 			// Fool system and initialize buffers and pointers as if a waveform
 			InitDataBuffs(WAVEFORM_MODE);
@@ -819,9 +858,11 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 {
 	uint8 buff[50];
 	uint8 buff1[12], buff2[12], buff3[12];
+	uint8 buff4[12], buff5[12], buff6[12];
 	uint8 length;
 	DATE_TIME_STRUCT time;
 	float div, r1, r2, r3, v1, v2, v3, t1, t2, t3;
+	float r2_1, r2_2, r2_3, v2_1, v2_2, v2_3, t2_1, t2_2, t2_3;
 	uint16 sensorType = g_factorySetupRecord.seismicSensorType;
 	uint8 acousticSensorType = g_factorySetupRecord.acousticSensorType;
 
@@ -919,6 +960,7 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 #else /* Standard config, Geo + Aop on separate sensors */
 		if (g_currentSensorGroup == SENSOR_GROUP_A_1) { if (pathState == ACOUSTIC_PATH_AOP) { strcpy(weightText, "AOP"); } else { strcpy(weightText, "A-W"); } }
 		if (g_currentSensorGroup == SENSOR_GROUP_B_2) { if (pathState == ACOUSTIC_PATH_AOP) { strcpy(weightText, "AOP"); } else { strcpy(weightText, "C-W"); } }
+		if (g_currentSensorGroup == SENSOR_GROUP_BOTH) { if (pathState == ACOUSTIC_PATH_AOP) { strcpy(weightText, "AOP"); } else { strcpy(weightText, "A/C"); } }
 #endif
 #endif
 
@@ -995,102 +1037,269 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT,REG_LN);
 
 				// PRINT R,V,T,A Min, Max and Avg
-				memset(&buff[0], 0, sizeof(buff));
-				// Setup R value for Column 1
-				r1 = (float)((float)g_sensorCalPeaks[0].r / (float)div);
-				// Setup R value for Column 2
-				if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE)) { r2 = (float)((float)(g_sensorCalChanMax[1] - g_sensorCalChanMin[1]) / (float)div); }
-				else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR)) { r2 = (float)((float)(g_sensorCalChanMax[1] - g_sensorCalChanMin[1]) / (2 * (float)div)); }
-				else { r2 = (float)((float)g_sensorCalPeaks[1].r / (float)div); }
-				// Setup R value for Column 3
-				if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { r3 = (float)((float)CALIBRATION_FIXED_SAMPLE_RATE / (float)(g_sensorCalFreqCounts.r * 4)); }
-				else { r3 = (float)((float)g_sensorCalPeaks[2].r / (float)div); }
 
-				if (r1 < 10) { sprintf((char*)buff1, "%01.3f", (double)r1); } else if (r1 < 100) { sprintf((char*)buff1, "%02.2f", (double)r1); } else { sprintf((char*)buff1, "%03.1f", (double)r1); }
-				if (r2 < 10) { sprintf((char*)buff2, "%01.3f", (double)r2); } else if (r2 < 100) { sprintf((char*)buff2, "%02.2f", (double)r2); } else { sprintf((char*)buff2, "%03.1f", (double)r2); }
-				if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff3, "%5d", (int)r3); }
-				else { if (r3 < 10) { sprintf((char*)buff3, "%01.3f", (double)r3); } else if (r3 < 100) { sprintf((char*)buff3, "%02.2f", (double)r3); } else { sprintf((char*)buff3, "%03.1f", (double)r3); } }
-
-				sprintf((char*)buff, "R|%s|%s|%s|", (char*)buff1, (char*)buff2, (char*)buff3);
-				wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FOUR;
-				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
-
-				memset(&buff[0], 0, sizeof(buff));
-				// Setup V value for Column 1
-				v1 = (float)((float)g_sensorCalPeaks[0].v / (float)div);
-				// Setup V value for Column 2
-				if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE)) { v2 = (float)((float)(g_sensorCalChanMax[2] - g_sensorCalChanMin[2]) / (float)div); }
-				else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR)) { v2 = (float)((float)(g_sensorCalChanMax[2] - g_sensorCalChanMin[2]) / (2 * (float)div)); }
-				else { v2 = (float)((float)g_sensorCalPeaks[1].v / (float)div); }
-				// Setup V value for Column 3
-				if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { v3 = (float)((float)CALIBRATION_FIXED_SAMPLE_RATE / (float)(g_sensorCalFreqCounts.v * 4)); }
-				else { v3 = (float)((float)g_sensorCalPeaks[2].v / (float)div); }
-
-				if (v1 < 10) { sprintf((char*)buff1, "%01.3f", (double)v1); } else if (v1 < 100) { sprintf((char*)buff1, "%02.2f", (double)v1); } else { sprintf((char*)buff1, "%03.1f", (double)v1); }
-				if (v2 < 10) { sprintf((char*)buff2, "%01.3f", (double)v2); } else if (v2 < 100) { sprintf((char*)buff2, "%02.2f", (double)v2); } else { sprintf((char*)buff2, "%03.1f", (double)v2); }
-				if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff3, "%5d", (int)v3); }
-				else { if (v3 < 10) { sprintf((char*)buff3, "%01.3f", (double)v3); } else if (v3 < 100) { sprintf((char*)buff3, "%02.2f", (double)v3); } else { sprintf((char*)buff3, "%03.1f", (double)v3); } }
-
-				sprintf((char*)buff, "V|%s|%s|%s|", (char*)buff1, (char*)buff2, (char*)buff3);
-				wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FIVE;
-				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
-
-				memset(&buff[0], 0, sizeof(buff));
-				// Setup T value for Column 1
-				t1 = (float)((float)g_sensorCalPeaks[0].t / (float)div);
-				// Setup T value for Column 2
-				if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE)) { t2 = (float)((float)(g_sensorCalChanMax[3] - g_sensorCalChanMin[3]) / (float)div); }
-				else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR)) { t2 = (float)((float)(g_sensorCalChanMax[3] - g_sensorCalChanMin[3]) / (2 * (float)div)); }
-				else { t2 = (float)((float)g_sensorCalPeaks[1].t / (float)div); }
-				// Setup T value for Column 3
-				if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { t3 = (float)((float)CALIBRATION_FIXED_SAMPLE_RATE / (float)(g_sensorCalFreqCounts.t * 4)); }
-				else { t3 = (float)((float)g_sensorCalPeaks[2].t / (float)div); }
-
-				if (t1 < 10) { sprintf((char*)buff1, "%01.3f", (double)t1); } else if (t1 < 100) { sprintf((char*)buff1, "%02.2f", (double)t1); } else { sprintf((char*)buff1, "%03.1f", (double)t1); }
-				if (t2 < 10) { sprintf((char*)buff2, "%01.3f", (double)t2); } else if (t2 < 100) { sprintf((char*)buff2, "%02.2f", (double)t2); } else { sprintf((char*)buff2, "%03.1f", (double)t2); }
-				if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff3, "%5d", (int)t3); }
-				else { if (t3 < 10) { sprintf((char*)buff3, "%01.3f", (double)t3); } else if (t3 < 100) { sprintf((char*)buff3, "%02.2f", (double)t3); } else { sprintf((char*)buff3, "%03.1f", (double)t3); } }
-
-				sprintf((char*)buff, "T|%s|%s|%s|", (char*)buff1, (char*)buff2, (char*)buff3);
-				wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SIX;
-				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
-
-				memset(&buff[0], 0, sizeof(buff));
-				if (g_displayAlternateResultState == DEFAULT_RESULTS)
+				if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
 				{
-					// Setup A value for Column 1
-					sprintf((char*)buff1, "%05.3f", (double)HexToMB(g_sensorCalPeaks[0].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType));
-					// Setup A value for Column 2
-					if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE))
-						{ sprintf((char*)buff2, "%05.3f", (double)HexToMB((g_sensorCalChanMax[0] - g_sensorCalChanMin[0]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
-					else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR))
-						{ sprintf((char*)buff2, "%05.3f", (double)HexToMB(((g_sensorCalChanMax[0] - g_sensorCalChanMin[0]) / 2), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
-					else { sprintf((char*)buff2, "%05.3f", (double)HexToMB(g_sensorCalPeaks[1].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+					memset(&buff[0], 0, sizeof(buff));
+					// Setup R value for Column 1
+					r1 = (float)((float)g_sensorCalPeaks[0].r / (float)div);
+					r2_1 = (float)((float)g_sensorCalPeaks2[0].r / (float)div);
+					// Setup R value for Column 2
+					if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE)) { r2 = (float)((float)(g_sensorCalChanMax[1] - g_sensorCalChanMin[1]) / (float)div); }
+					else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR)) { r2 = (float)((float)(g_sensorCalChanMax[1] - g_sensorCalChanMin[1]) / (2 * (float)div)); }
+					else { r2 = (float)((float)g_sensorCalPeaks[1].r / (float)div); }
+					if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE)) { r2_2 = (float)((float)(g_sensorCalChanMax[1+4] - g_sensorCalChanMin[1+4]) / (float)div); }
+					else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR)) { r2_2 = (float)((float)(g_sensorCalChanMax[1+4] - g_sensorCalChanMin[1+4]) / (2 * (float)div)); }
+					else { r2_2 = (float)((float)g_sensorCalPeaks2[1].r / (float)div); }
 					// Setup R value for Column 3
-					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff3, "%5d", (int)(CALIBRATION_FIXED_SAMPLE_RATE / (g_sensorCalFreqCounts.a * 4))); }
-					else { sprintf((char*)buff3, "%05.3f", (double)HexToMB(g_sensorCalPeaks[2].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { r3 = (float)((float)CALIBRATION_FIXED_SAMPLE_RATE / (float)(g_sensorCalFreqCounts.r * 4)); }
+					else { r3 = (float)((float)g_sensorCalPeaks[2].r / (float)div); }
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { r2_3 = (float)((float)CALIBRATION_FIXED_SAMPLE_RATE / (float)(g_sensorCalFreqCounts2.r * 4)); }
+					else { r2_3 = (float)((float)g_sensorCalPeaks2[2].r / (float)div); }
 
-					sprintf((char*)buff, "A|%s|%s|%s|", (char*)buff1, (char*)buff2, (char*)buff3);
-					//strcpy((char*)g_spareBuffer, (char*)buff);
+					if (r1 < 10) { sprintf((char*)buff1, "%01.3f", (double)r1); } else if (r1 < 100) { sprintf((char*)buff1, "%02.2f", (double)r1); } else { sprintf((char*)buff1, "%03.1f", (double)r1); }
+					if (r2 < 10) { sprintf((char*)buff2, "%01.3f", (double)r2); } else if (r2 < 100) { sprintf((char*)buff2, "%02.2f", (double)r2); } else { sprintf((char*)buff2, "%03.1f", (double)r2); }
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff3, "%5d", (int)r3); }
+					else { if (r3 < 10) { sprintf((char*)buff3, "%01.3f", (double)r3); } else if (r3 < 100) { sprintf((char*)buff3, "%02.2f", (double)r3); } else { sprintf((char*)buff3, "%03.1f", (double)r3); } }
+					if (r2_1 < 10) { sprintf((char*)buff4, "%01.3f", (double)r2_1); } else if (r2_1 < 100) { sprintf((char*)buff4, "%02.2f", (double)r2_1); } else { sprintf((char*)buff4, "%03.1f", (double)r2_1); }
+					if (r2_2 < 10) { sprintf((char*)buff5, "%01.3f", (double)r2_2); } else if (r2_2 < 100) { sprintf((char*)buff5, "%02.2f", (double)r2_2); } else { sprintf((char*)buff5, "%03.1f", (double)r2_2); }
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff6, "%5d", (int)r2_3); }
+					else { if (r2_3 < 10) { sprintf((char*)buff6, "%01.3f", (double)r2_3); } else if (r2_3 < 100) { sprintf((char*)buff6, "%02.2f", (double)r2_3); } else { sprintf((char*)buff6, "%03.1f", (double)r2_3); } }
+
+					sprintf((char*)buff, "R|%s|%s|%s|   R2|%s|%s|%s|", (char*)buff1, (char*)buff2, (char*)buff3, (char*)buff4, (char*)buff5, (char*)buff6);
+					wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FOUR;
+					WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 				}
 				else
 				{
-					// Setup A value for Column 1
-					sprintf((char*)buff1, "%5.1f", (double)HexToDB(g_sensorCalPeaks[0].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType));
-					// Setup A value for Column 2
-					if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE))
-						{ sprintf((char*)buff2, "%5.1f", (double)HexToDB((g_sensorCalChanMax[0] - g_sensorCalChanMin[0]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
-					else { sprintf((char*)buff2, "%5.1f", (double)HexToDB(g_sensorCalPeaks[1].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
-					// Setup A value for Column 3
-					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff3, "%5d", (int)(CALIBRATION_FIXED_SAMPLE_RATE / (g_sensorCalFreqCounts.a * 4))); }
-						//{ sprintf((char*)buff3, "%5d", (int)(g_sensorCalFreqCounts.a)); }
-					else { sprintf((char*)buff3, "%5.1f", (double)HexToDB(g_sensorCalPeaks[2].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+					memset(&buff[0], 0, sizeof(buff));
+					// Setup R value for Column 1
+					r1 = (float)((float)g_sensorCalPeaks[0].r / (float)div);
+					// Setup R value for Column 2
+					if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE)) { r2 = (float)((float)(g_sensorCalChanMax[1] - g_sensorCalChanMin[1]) / (float)div); }
+					else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR)) { r2 = (float)((float)(g_sensorCalChanMax[1] - g_sensorCalChanMin[1]) / (2 * (float)div)); }
+					else { r2 = (float)((float)g_sensorCalPeaks[1].r / (float)div); }
+					// Setup R value for Column 3
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { r3 = (float)((float)CALIBRATION_FIXED_SAMPLE_RATE / (float)(g_sensorCalFreqCounts.r * 4)); }
+					else { r3 = (float)((float)g_sensorCalPeaks[2].r / (float)div); }
 
-					sprintf((char*)buff, "A|%s|%s|%s|", (char*)buff1, (char*)buff2, (char*)buff3);
-					//strcpy((char*)&g_spareBuffer[50], (char*)buff);
+					if (r1 < 10) { sprintf((char*)buff1, "%01.3f", (double)r1); } else if (r1 < 100) { sprintf((char*)buff1, "%02.2f", (double)r1); } else { sprintf((char*)buff1, "%03.1f", (double)r1); }
+					if (r2 < 10) { sprintf((char*)buff2, "%01.3f", (double)r2); } else if (r2 < 100) { sprintf((char*)buff2, "%02.2f", (double)r2); } else { sprintf((char*)buff2, "%03.1f", (double)r2); }
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff3, "%5d", (int)r3); }
+					else { if (r3 < 10) { sprintf((char*)buff3, "%01.3f", (double)r3); } else if (r3 < 100) { sprintf((char*)buff3, "%02.2f", (double)r3); } else { sprintf((char*)buff3, "%03.1f", (double)r3); } }
+
+					sprintf((char*)buff, "R|%s|%s|%s|", (char*)buff1, (char*)buff2, (char*)buff3);
+					wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FOUR;
+					WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 				}
-				wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SEVEN;
-				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+
+				if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+				{
+					memset(&buff[0], 0, sizeof(buff));
+
+					// Setup V value for Column 1
+					v1 = (float)((float)g_sensorCalPeaks[0].v / (float)div);
+					v2_1 = (float)((float)g_sensorCalPeaks2[0].v / (float)div);
+					// Setup V value for Column 2
+					if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE)) { v2 = (float)((float)(g_sensorCalChanMax[2] - g_sensorCalChanMin[2]) / (float)div); }
+					else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR)) { v2 = (float)((float)(g_sensorCalChanMax[2] - g_sensorCalChanMin[2]) / (2 * (float)div)); }
+					else { v2 = (float)((float)g_sensorCalPeaks[1].v / (float)div); }
+					if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE)) { v2_2 = (float)((float)(g_sensorCalChanMax[2+4] - g_sensorCalChanMin[2+4]) / (float)div); }
+					else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR)) { v2_2 = (float)((float)(g_sensorCalChanMax[2+4] - g_sensorCalChanMin[2+4]) / (2 * (float)div)); }
+					else { v2_2 = (float)((float)g_sensorCalPeaks2[1].v / (float)div); }
+					// Setup V value for Column 3
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { v3 = (float)((float)CALIBRATION_FIXED_SAMPLE_RATE / (float)(g_sensorCalFreqCounts.v * 4)); }
+					else { v3 = (float)((float)g_sensorCalPeaks[2].v / (float)div); }
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { v2_3 = (float)((float)CALIBRATION_FIXED_SAMPLE_RATE / (float)(g_sensorCalFreqCounts2.v * 4)); }
+					else { v2_3 = (float)((float)g_sensorCalPeaks2[2].v / (float)div); }
+
+					if (v1 < 10) { sprintf((char*)buff1, "%01.3f", (double)v1); } else if (v1 < 100) { sprintf((char*)buff1, "%02.2f", (double)v1); } else { sprintf((char*)buff1, "%03.1f", (double)v1); }
+					if (v2 < 10) { sprintf((char*)buff2, "%01.3f", (double)v2); } else if (v2 < 100) { sprintf((char*)buff2, "%02.2f", (double)v2); } else { sprintf((char*)buff2, "%03.1f", (double)v2); }
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff3, "%5d", (int)v3); }
+					else { if (v3 < 10) { sprintf((char*)buff3, "%01.3f", (double)v3); } else if (v3 < 100) { sprintf((char*)buff3, "%02.2f", (double)v3); } else { sprintf((char*)buff3, "%03.1f", (double)v3); } }
+					if (v2_1 < 10) { sprintf((char*)buff4, "%01.3f", (double)v2_1); } else if (v2_1 < 100) { sprintf((char*)buff4, "%02.2f", (double)v2_1); } else { sprintf((char*)buff4, "%03.1f", (double)v2_1); }
+					if (v2_2 < 10) { sprintf((char*)buff5, "%01.3f", (double)v2_2); } else if (v2_2 < 100) { sprintf((char*)buff5, "%02.2f", (double)v2_2); } else { sprintf((char*)buff5, "%03.1f", (double)v2_2); }
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff6, "%5d", (int)v3); }
+					else { if (v2_3 < 10) { sprintf((char*)buff6, "%01.3f", (double)v2_3); } else if (v2_3 < 100) { sprintf((char*)buff6, "%02.2f", (double)v2_3); } else { sprintf((char*)buff6, "%03.1f", (double)v2_3); } }
+
+					sprintf((char*)buff, "V|%s|%s|%s|   V2|%s|%s|%s|", (char*)buff1, (char*)buff2, (char*)buff3, (char*)buff4, (char*)buff5, (char*)buff6);
+					wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FIVE;
+					WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+				}
+				else
+				{
+					memset(&buff[0], 0, sizeof(buff));
+					// Setup V value for Column 1
+					v1 = (float)((float)g_sensorCalPeaks[0].v / (float)div);
+					// Setup V value for Column 2
+					if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE)) { v2 = (float)((float)(g_sensorCalChanMax[2] - g_sensorCalChanMin[2]) / (float)div); }
+					else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR)) { v2 = (float)((float)(g_sensorCalChanMax[2] - g_sensorCalChanMin[2]) / (2 * (float)div)); }
+					else { v2 = (float)((float)g_sensorCalPeaks[1].v / (float)div); }
+					// Setup V value for Column 3
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { v3 = (float)((float)CALIBRATION_FIXED_SAMPLE_RATE / (float)(g_sensorCalFreqCounts.v * 4)); }
+					else { v3 = (float)((float)g_sensorCalPeaks[2].v / (float)div); }
+
+					if (v1 < 10) { sprintf((char*)buff1, "%01.3f", (double)v1); } else if (v1 < 100) { sprintf((char*)buff1, "%02.2f", (double)v1); } else { sprintf((char*)buff1, "%03.1f", (double)v1); }
+					if (v2 < 10) { sprintf((char*)buff2, "%01.3f", (double)v2); } else if (v2 < 100) { sprintf((char*)buff2, "%02.2f", (double)v2); } else { sprintf((char*)buff2, "%03.1f", (double)v2); }
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff3, "%5d", (int)v3); }
+					else { if (v3 < 10) { sprintf((char*)buff3, "%01.3f", (double)v3); } else if (v3 < 100) { sprintf((char*)buff3, "%02.2f", (double)v3); } else { sprintf((char*)buff3, "%03.1f", (double)v3); } }
+
+					sprintf((char*)buff, "V|%s|%s|%s|", (char*)buff1, (char*)buff2, (char*)buff3);
+					wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FIVE;
+					WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+				}
+
+				if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+				{
+					memset(&buff[0], 0, sizeof(buff));
+					// Setup T value for Column 1
+					t1 = (float)((float)g_sensorCalPeaks[0].t / (float)div);
+					t2_1 = (float)((float)g_sensorCalPeaks2[0].t / (float)div);
+					// Setup T value for Column 2
+					if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE)) { t2 = (float)((float)(g_sensorCalChanMax[3] - g_sensorCalChanMin[3]) / (float)div); }
+					else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR)) { t2 = (float)((float)(g_sensorCalChanMax[3] - g_sensorCalChanMin[3]) / (2 * (float)div)); }
+					else { t2 = (float)((float)g_sensorCalPeaks[1].t / (float)div); }
+					if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE)) { t2_2 = (float)((float)(g_sensorCalChanMax[3+4] - g_sensorCalChanMin[3+4]) / (float)div); }
+					else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR)) { t2_2 = (float)((float)(g_sensorCalChanMax[3+4] - g_sensorCalChanMin[3+4]) / (2 * (float)div)); }
+					else { t2_2 = (float)((float)g_sensorCalPeaks2[1].t / (float)div); }
+					// Setup T value for Column 3
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { t3 = (float)((float)CALIBRATION_FIXED_SAMPLE_RATE / (float)(g_sensorCalFreqCounts.t * 4)); }
+					else { t3 = (float)((float)g_sensorCalPeaks[2].t / (float)div); }
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { t2_3 = (float)((float)CALIBRATION_FIXED_SAMPLE_RATE / (float)(g_sensorCalFreqCounts2.t * 4)); }
+					else { t2_3 = (float)((float)g_sensorCalPeaks2[2].t / (float)div); }
+
+					if (t1 < 10) { sprintf((char*)buff1, "%01.3f", (double)t1); } else if (t1 < 100) { sprintf((char*)buff1, "%02.2f", (double)t1); } else { sprintf((char*)buff1, "%03.1f", (double)t1); }
+					if (t2 < 10) { sprintf((char*)buff2, "%01.3f", (double)t2); } else if (t2 < 100) { sprintf((char*)buff2, "%02.2f", (double)t2); } else { sprintf((char*)buff2, "%03.1f", (double)t2); }
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff3, "%5d", (int)t3); }
+					else { if (t3 < 10) { sprintf((char*)buff3, "%01.3f", (double)t3); } else if (t3 < 100) { sprintf((char*)buff3, "%02.2f", (double)t3); } else { sprintf((char*)buff3, "%03.1f", (double)t3); } }
+
+					if (t2_1 < 10) { sprintf((char*)buff4, "%01.3f", (double)t2_1); } else if (t2_1 < 100) { sprintf((char*)buff4, "%02.2f", (double)t2_1); } else { sprintf((char*)buff4, "%03.1f", (double)t2_1); }
+					if (t2_2 < 10) { sprintf((char*)buff5, "%01.3f", (double)t2_2); } else if (t2_2 < 100) { sprintf((char*)buff5, "%02.2f", (double)t2_2); } else { sprintf((char*)buff5, "%03.1f", (double)t2_2); }
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff6, "%5d", (int)t3); }
+					else { if (t2_3 < 10) { sprintf((char*)buff6, "%01.3f", (double)t2_3); } else if (t2_3 < 100) { sprintf((char*)buff6, "%02.2f", (double)t2_3); } else { sprintf((char*)buff6, "%03.1f", (double)t2_3); } }
+
+					sprintf((char*)buff, "T|%s|%s|%s|   T2|%s|%s|%s|", (char*)buff1, (char*)buff2, (char*)buff3, (char*)buff4, (char*)buff5, (char*)buff6);
+					wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SIX;
+					WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+				}
+				else
+				{
+					memset(&buff[0], 0, sizeof(buff));
+					// Setup T value for Column 1
+					t1 = (float)((float)g_sensorCalPeaks[0].t / (float)div);
+					// Setup T value for Column 2
+					if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE)) { t2 = (float)((float)(g_sensorCalChanMax[3] - g_sensorCalChanMin[3]) / (float)div); }
+					else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR)) { t2 = (float)((float)(g_sensorCalChanMax[3] - g_sensorCalChanMin[3]) / (2 * (float)div)); }
+					else { t2 = (float)((float)g_sensorCalPeaks[1].t / (float)div); }
+					// Setup T value for Column 3
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { t3 = (float)((float)CALIBRATION_FIXED_SAMPLE_RATE / (float)(g_sensorCalFreqCounts.t * 4)); }
+					else { t3 = (float)((float)g_sensorCalPeaks[2].t / (float)div); }
+
+					if (t1 < 10) { sprintf((char*)buff1, "%01.3f", (double)t1); } else if (t1 < 100) { sprintf((char*)buff1, "%02.2f", (double)t1); } else { sprintf((char*)buff1, "%03.1f", (double)t1); }
+					if (t2 < 10) { sprintf((char*)buff2, "%01.3f", (double)t2); } else if (t2 < 100) { sprintf((char*)buff2, "%02.2f", (double)t2); } else { sprintf((char*)buff2, "%03.1f", (double)t2); }
+					if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff3, "%5d", (int)t3); }
+					else { if (t3 < 10) { sprintf((char*)buff3, "%01.3f", (double)t3); } else if (t3 < 100) { sprintf((char*)buff3, "%02.2f", (double)t3); } else { sprintf((char*)buff3, "%03.1f", (double)t3); } }
+
+					sprintf((char*)buff, "T|%s|%s|%s|", (char*)buff1, (char*)buff2, (char*)buff3);
+					wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SIX;
+					WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+				}
+
+				if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+				{
+					memset(&buff[0], 0, sizeof(buff));
+					if (g_displayAlternateResultState == DEFAULT_RESULTS)
+					{
+						// Setup A value for Column 1
+						sprintf((char*)buff1, "%05.3f", (double)HexToMB(g_sensorCalPeaks[0].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType));
+						sprintf((char*)buff4, "%05.3f", (double)HexToMB(g_sensorCalPeaks2[0].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType));
+						// Setup A value for Column 2
+						if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE))
+							{ sprintf((char*)buff2, "%05.3f", (double)HexToMB((g_sensorCalChanMax[0] - g_sensorCalChanMin[0]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+						else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR))
+							{ sprintf((char*)buff2, "%05.3f", (double)HexToMB(((g_sensorCalChanMax[0] - g_sensorCalChanMin[0]) / 2), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+						else { sprintf((char*)buff2, "%05.3f", (double)HexToMB(g_sensorCalPeaks[1].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+						if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE))
+							{ sprintf((char*)buff5, "%05.3f", (double)HexToMB((g_sensorCalChanMax[0+4] - g_sensorCalChanMin[0+4]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+						else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR))
+							{ sprintf((char*)buff5, "%05.3f", (double)HexToMB(((g_sensorCalChanMax[0+4] - g_sensorCalChanMin[0+4]) / 2), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+						else { sprintf((char*)buff5, "%05.3f", (double)HexToMB(g_sensorCalPeaks2[1].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+
+						// Setup R value for Column 3
+						if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff3, "%5d", (int)(CALIBRATION_FIXED_SAMPLE_RATE / (g_sensorCalFreqCounts.a * 4))); }
+						else { sprintf((char*)buff3, "%05.3f", (double)HexToMB(g_sensorCalPeaks[2].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+
+						if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff6, "%5d", (int)(CALIBRATION_FIXED_SAMPLE_RATE / (g_sensorCalFreqCounts2.a * 4))); }
+						else { sprintf((char*)buff6, "%05.3f", (double)HexToMB(g_sensorCalPeaks2[2].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+
+						sprintf((char*)buff, "A|%s|%s|%s|   A2|%s|%s|%s|", (char*)buff1, (char*)buff2, (char*)buff3, (char*)buff4, (char*)buff5, (char*)buff6);
+					}
+					else
+					{
+						// Setup A value for Column 1
+						sprintf((char*)buff1, "%5.1f", (double)HexToDB(g_sensorCalPeaks[0].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType));
+						sprintf((char*)buff4, "%5.1f", (double)HexToDB(g_sensorCalPeaks2[0].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType));
+						// Setup A value for Column 2
+						if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE))
+							{ sprintf((char*)buff2, "%5.1f", (double)HexToDB((g_sensorCalChanMax[0] - g_sensorCalChanMin[0]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+						else { sprintf((char*)buff2, "%5.1f", (double)HexToDB(g_sensorCalPeaks[1].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+						if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE))
+							{ sprintf((char*)buff5, "%5.1f", (double)HexToDB((g_sensorCalChanMax[0+4] - g_sensorCalChanMin[0+4]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+						else { sprintf((char*)buff5, "%5.1f", (double)HexToDB(g_sensorCalPeaks2[1].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+						// Setup A value for Column 3
+						if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff3, "%5d", (int)(CALIBRATION_FIXED_SAMPLE_RATE / (g_sensorCalFreqCounts.a * 4))); }
+							//{ sprintf((char*)buff3, "%5d", (int)(g_sensorCalFreqCounts.a)); }
+						else { sprintf((char*)buff3, "%5.1f", (double)HexToDB(g_sensorCalPeaks[2].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+
+						if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff6, "%5d", (int)(CALIBRATION_FIXED_SAMPLE_RATE / (g_sensorCalFreqCounts2.a * 4))); }
+							//{ sprintf((char*)buff3, "%5d", (int)(g_sensorCalFreqCounts.a)); }
+						else { sprintf((char*)buff6, "%5.1f", (double)HexToDB(g_sensorCalPeaks2[2].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+
+						sprintf((char*)buff, "A|%s|%s|%s|   A2|%s|%s|%s|", (char*)buff1, (char*)buff2, (char*)buff3, (char*)buff4, (char*)buff5, (char*)buff6);
+						//strcpy((char*)&g_spareBuffer[50], (char*)buff);
+					}
+					wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SEVEN;
+					WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+				}
+				else // Normal 4 channels
+				{
+					memset(&buff[0], 0, sizeof(buff));
+					if (g_displayAlternateResultState == DEFAULT_RESULTS)
+					{
+						// Setup A value for Column 1
+						sprintf((char*)buff1, "%05.3f", (double)HexToMB(g_sensorCalPeaks[0].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType));
+						// Setup A value for Column 2
+						if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE))
+							{ sprintf((char*)buff2, "%05.3f", (double)HexToMB((g_sensorCalChanMax[0] - g_sensorCalChanMin[0]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+						else if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATE_SENSOR))
+							{ sprintf((char*)buff2, "%05.3f", (double)HexToMB(((g_sensorCalChanMax[0] - g_sensorCalChanMin[0]) / 2), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+						else { sprintf((char*)buff2, "%05.3f", (double)HexToMB(g_sensorCalPeaks[1].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+						// Setup R value for Column 3
+						if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff3, "%5d", (int)(CALIBRATION_FIXED_SAMPLE_RATE / (g_sensorCalFreqCounts.a * 4))); }
+						else { sprintf((char*)buff3, "%05.3f", (double)HexToMB(g_sensorCalPeaks[2].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+
+						sprintf((char*)buff, "A|%s|%s|%s|", (char*)buff1, (char*)buff2, (char*)buff3);
+						//strcpy((char*)g_spareBuffer, (char*)buff);
+					}
+					else
+					{
+						// Setup A value for Column 1
+						sprintf((char*)buff1, "%5.1f", (double)HexToDB(g_sensorCalPeaks[0].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType));
+						// Setup A value for Column 2
+						if ((g_calDisplayAlternateResultState == DEFAULT_RESULTS) && (s_calDisplayScreen == CAL_MENU_CALIBRATION_PULSE))
+							{ sprintf((char*)buff2, "%5.1f", (double)HexToDB((g_sensorCalChanMax[0] - g_sensorCalChanMin[0]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+						else { sprintf((char*)buff2, "%5.1f", (double)HexToDB(g_sensorCalPeaks[1].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+						// Setup A value for Column 3
+						if (g_calDisplayAlternateResultState == DEFAULT_RESULTS) { sprintf((char*)buff3, "%5d", (int)(CALIBRATION_FIXED_SAMPLE_RATE / (g_sensorCalFreqCounts.a * 4))); }
+							//{ sprintf((char*)buff3, "%5d", (int)(g_sensorCalFreqCounts.a)); }
+						else { sprintf((char*)buff3, "%5.1f", (double)HexToDB(g_sensorCalPeaks[2].a, DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType)); }
+
+						sprintf((char*)buff, "A|%s|%s|%s|", (char*)buff1, (char*)buff2, (char*)buff3);
+						//strcpy((char*)&g_spareBuffer[50], (char*)buff);
+					}
+					wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SEVEN;
+					WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+				}
 			}
 			else // (s_pauseDisplay == YES)
 			{
@@ -1109,8 +1318,10 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			//sprintf((char*)buff, "C|  Min|  Max|  Avg|");
 #if 0 /* Normal */
 			sprintf((char*)buff, "Chan   Min   Max   Units   Acc");
-#else /* Test Addition */
+#elif 0 /* Test Accelerometer Addition */
 			sprintf((char*)buff, "Chan Min Max Units Acc (%c/CM:%s)", ((gainState == SEISMIC_GAIN_NORMAL) ? 'N' : 'H'), ((cmState == OFF) ? "OFF" : "ON"));
+#else
+			sprintf((char*)buff, "Ch1 Min Max Units   Ch2 Min Max Units (%c/CM:%s)", ((gainState == SEISMIC_GAIN_NORMAL) ? 'N' : 'H'), ((cmState == OFF) ? "OFF" : "ON"));
 #endif
 			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_THREE;
 			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT,REG_LN);
@@ -1131,7 +1342,7 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			sprintf((char*)buff, "T|%+5ld|%+5ld|%+5ld|", g_sensorCalChanMin[3], g_sensorCalChanMax[3], g_sensorCalChanAvg[3]);
 			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SIX;
 			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
-#else /* Test adding in Acc results */
+#elif 0 /* Test adding in Acc results */
 			float rCalc, tCalc, vCalc, xCalc, yCalc, zCalc, aCalc;
 			rCalc = (float)((float)((abs(g_sensorCalChanMin[1]) > g_sensorCalChanMax[1] ? abs(g_sensorCalChanMin[1]) : g_sensorCalChanMax[1])) / (float)div);
 			tCalc = (float)((float)((abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3])) / (float)div);
@@ -1177,9 +1388,34 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
  */
 			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SIX;
 			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+#else /* Test 8 channels */
+			float rCalc, tCalc, vCalc, aCalc, r2Calc, t2Calc, v2Calc, a2Calc;
+			rCalc = (float)((float)((abs(g_sensorCalChanMin[1]) > g_sensorCalChanMax[1] ? abs(g_sensorCalChanMin[1]) : g_sensorCalChanMax[1])) / (float)div);
+			tCalc = (float)((float)((abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3])) / (float)div);
+			vCalc = (float)((float)((abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2])) / (float)div);
+			aCalc = (float)HexToMB((float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType);
+
+			r2Calc = (float)((float)((abs(g_sensorCalChanMin[1+4]) > g_sensorCalChanMax[1+4] ? abs(g_sensorCalChanMin[1+4]) : g_sensorCalChanMax[1+4])) / (float)div);
+			t2Calc = (float)((float)((abs(g_sensorCalChanMin[3+4]) > g_sensorCalChanMax[3+4] ? abs(g_sensorCalChanMin[3+4]) : g_sensorCalChanMax[3+4])) / (float)div);
+			v2Calc = (float)((float)((abs(g_sensorCalChanMin[2+4]) > g_sensorCalChanMax[2+4] ? abs(g_sensorCalChanMin[2+4]) : g_sensorCalChanMax[2+4])) / (float)div);
+			a2Calc = (float)HexToMB((float)(abs(g_sensorCalChanMin[0+4]) > g_sensorCalChanMax[0+4] ? abs(g_sensorCalChanMin[0+4]) : g_sensorCalChanMax[0+4]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType);
+
+			sprintf((char*)buff, "(R) %+5ld  %+5ld  %2.3f   (R2) %+5ld  %+5ld  %2.3f", g_sensorCalChanMin[1], g_sensorCalChanMax[1], (double)rCalc, g_sensorCalChanMin[1+4], g_sensorCalChanMax[1+4], (double)r2Calc);
+			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FOUR;
+			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+
+			memset(&buff[0], 0, sizeof(buff));
+			sprintf((char*)buff, "(T) %+5ld  %+5ld  %2.3f   (T2) %+5ld  %+5ld  %2.3f", g_sensorCalChanMin[3], g_sensorCalChanMax[3], (double)tCalc, g_sensorCalChanMin[3+4], g_sensorCalChanMax[3+4], (double)t2Calc);
+			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FIVE;
+			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+
+			memset(&buff[0], 0, sizeof(buff));
+			sprintf((char*)buff, "(V) %+5ld  %+5ld  %2.3f   (V2) %+5ld  %+5ld  %2.3f", g_sensorCalChanMin[2], g_sensorCalChanMax[2], (double)vCalc, g_sensorCalChanMin[2+4], g_sensorCalChanMax[2+4], (double)v2Calc);
+			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SIX;
+			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 #endif
 			memset(&buff[0], 0, sizeof(buff));
-			sprintf((char*)buff, "(A) %+5ld  %+5ld   (A) %1.3f mB", g_sensorCalChanMin[0], g_sensorCalChanMax[0], (double)aCalc);
+			sprintf((char*)buff, "(A) %+5ld  %+5ld  %1.3f   (A2) %+5ld  %+5ld  %1.3f", g_sensorCalChanMin[0], g_sensorCalChanMax[0], (double)aCalc, g_sensorCalChanMin[0+4], g_sensorCalChanMax[0+4], (double)a2Calc);
 			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SEVEN;
 			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 		}
