@@ -67,12 +67,21 @@ enum {
 	ANALOG_CUTOFF_FREQ_16K	// Filters ~16 kHz and above
 };
 
+#define EIGHT_AD_CHANNEL_MASK	0x80
+
 enum {
-	FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP,
-	FOUR_AD_CHANNELS_NO_READBACK_WITH_TEMP,
-	FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP,
-	THREE_ACC_CHANNELS_NO_AIR,
+	FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP = 0x01,
+	FOUR_AD_CHANNELS_NO_READBACK_WITH_TEMP = 0x02,
+	FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP = 0x04,
+	THREE_ACC_CHANNELS_NO_AIR = 0x03,
+#if 0 /* Original */
 	ONE_AD_CHANNEL_NO_READBACK_NO_TEMP
+#else /* New eight channels */
+	ONE_AD_CHANNEL_NO_READBACK_NO_TEMP = 0x05,
+	EIGHT_AD_CHANNELS_WITH_READBACK_WITH_TEMP = (EIGHT_AD_CHANNEL_MASK | 0x01),
+	EIGHT_AD_CHANNELS_NO_READBACK_WITH_TEMP = (EIGHT_AD_CHANNEL_MASK | 0x02),
+	EIGHT_AD_CHANNELS_NO_READBACK_NO_TEMP = (EIGHT_AD_CHANNEL_MASK | 0x04)
+#endif
 };
 
 enum {
@@ -111,7 +120,7 @@ typedef union
 ///	Prototypes
 ///----------------------------------------------------------------------------
 uint8_t GetAnalogConfigReadback(void);
-void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr);
+void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr, SAMPLE_DATA_STRUCT* data2Ptr);
 void AnalogControlInit(void);
 void SetAnalogCutoffFrequency(uint8 freq);
 void SetSeismicGainSelect(uint8 seismicGain);
