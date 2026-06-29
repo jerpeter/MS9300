@@ -143,6 +143,9 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 				input = ENTER_KEY;
 			}
 
+#if 1 /* Test USB HC */
+extern void USBHostControllerTest(void);
+#endif
 			switch (input)
 			{
 				case (ENTER_KEY):
@@ -231,9 +234,9 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 #endif
 					break;
 				case (RIGHT_ARROW_KEY):
-#if 1 /* Original */
+#if 0 /* Original */
 					AdjustLcdContrast(LIGHTER);
-#else /* Test */
+#elif 0 /* Test */
 					//debug("USB: Manually connecting (resource)...\r\n");
 					//MXC_USB_Connect();
 					if (GetPowerOnButtonState() == OFF)
@@ -253,6 +256,11 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 						debug("LED2: Toggling %s\r\n", ((g_led2State == ON) ? "On" : "Off"));
 						PowerControl(LED_2, g_led2State);
 					}
+#else /* Test USB HC */
+//extern void USBHostControllerTest(void);
+					debug("Calling USBHostControllerTest...\r\n");
+					OverlayMessage(getLangText(STATUS_TEXT), "CHECKNIG...", 0);
+					USBHostControllerTest();
 #endif
 					break;
 				case (ESC_KEY):
