@@ -241,6 +241,100 @@ void MoveWaveformEventToFile(void)
 				break;
 
 			case WAVE_STORE:
+#if 1 /* Test Acc companion event */
+				if (g_saveAccelerometerCompanionEvent)
+				{
+					GetEventFilename(g_pendingEventRecord.summary.eventNumber);
+					MakeDirectoryIfNotPresent(EVENTS_PATH, g_pendingEventRecord.summary.eventNumber);
+
+					if (f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
+					{
+						debugErr("Unable to create event file: %s, mode: %s\r\n", g_spareFileName, (g_triggerRecord.opMode == WAVEFORM_MODE) ? "Waveform (Acc)" : "Combo - Waveform (Acc)");
+					}
+					else // File created, write out the event
+					{
+						ActivateDisplayShortDuration(1);
+						sprintf((char*)g_spareBuffer, "ACCEL %s %s #%d %s... (%s)", (g_triggerRecord.opMode == WAVEFORM_MODE) ? getLangText(WAVEFORM_TEXT) : getLangText(COMBO_WAVEFORM_TEXT), getLangText(EVENT_TEXT),
+								g_pendingEventRecord.summary.eventNumber, getLangText(BEING_SAVED_TEXT), getLangText(MAY_TAKE_TIME_TEXT));
+
+						g_pendingAccEventRecord = g_pendingEventRecord;
+						memset(&g_pendingAccEventRecord.summary.calculated, 0, sizeof(CALCULATED_DATA_STRUCT));
+						g_pendingAccEventRecord.summary.parameters.seismicSensorType = SENSOR_ACC_INT_16G;
+						g_pendingAccEventRecord.summary.parameters.airSensorType = 0;
+
+						// Swap event record to Big Endian for saving
+						EndianSwapEventRecord(&g_pendingAccEventRecord);
+
+						// Write the event record header and summary
+						f_write(&file, &g_pendingAccEventRecord, sizeof(EVT_RECORD), (UINT*)&bytesWritten);
+
+						if (bytesWritten != sizeof(EVT_RECORD))
+						{
+							debugErr("Waveform (Acc) Event Record written size incorrect (%d)\r\n", bytesWritten);
+						}
+
+						// Setup for saving event data
+						remainingDataLength = (g_wordSizeInEvent * 2);
+						tempDataPtr = g_startOfEventBufferPtr + (g_accEventBufferIndex * g_wordSizeInEvent);
+
+						// Swap data to Big Endian for event file (and compression below if used)
+						EndianSwapDataX16(tempDataPtr, g_wordSizeInEvent);
+
+						// New filesystem should not have a write limit, however Waveform saves that cross the 0x20080000 Int RAM boundary hang the SDHC Fat driver if the write size is greater than the eMMC Flash sector side
+						while (remainingDataLength)
+						{
+							if (remainingDataLength > WAVEFORM_FILE_WRITE_CHUNK_SIZE)
+							{
+								// Write the event data, containing the Pretrigger, event and cal
+								f_write(&file, tempDataPtr, WAVEFORM_FILE_WRITE_CHUNK_SIZE, (UINT*)&bytesWritten);
+
+								if (bytesWritten != WAVEFORM_FILE_WRITE_CHUNK_SIZE)
+								{
+									debugErr("Waveform (Acc) Event Data written size incorrect (%d)\r\n", bytesWritten);
+								}
+
+								remainingDataLength -= WAVEFORM_FILE_WRITE_CHUNK_SIZE;
+								tempDataPtr += (WAVEFORM_FILE_WRITE_CHUNK_SIZE / 2);
+
+								// Quickly toggle the green LED to show status of saving a waveform event (while too busy to update LCD)
+								// Todo: Toggle the green LED
+							}
+							else // Remaining data size is less than the file write chunk size
+							{
+								// Write the event data, containing the Pretrigger, event and cal
+								f_write(&file, tempDataPtr, remainingDataLength, (UINT*)&bytesWritten);
+
+								if (bytesWritten != remainingDataLength)
+								{
+									debugErr("Waveform (Acc) Event Data written size incorrect (%d)\r\n", bytesWritten);
+								}
+
+								remainingDataLength = 0;
+							}
+						}
+
+						// Done writing the event file, close the file handle
+						g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+						f_close(&file);
+						SetFileTimestamp(g_spareFileName);
+						debug("Waveform (Acc) Event file closed\r\n");
+
+						UpdateMonitorLogEntry();
+
+						// Swap event record to Little Endian for processing
+						EndianSwapEventRecord(&g_pendingAccEventRecord);
+
+						AddEventNumberToCache(g_pendingAccEventRecord.summary.eventNumber);
+						StoreCurrentEventNumber();
+
+						// Reset External Trigger event record flag
+						g_pendingEventRecord.summary.captured.externalTrigger = NO;
+
+						// Now store the updated event number in the universal ram storage.
+						g_pendingEventRecord.summary.eventNumber = g_nextEventNumberToUse;
+					}
+				}
+#endif
 				// Setup new event file name
 				CheckStoredEventsCapEventsLimit();
 				GetEventFilename(g_pendingEventRecord.summary.eventNumber);
@@ -446,6 +540,93 @@ void MoveWaveformEventToFile(void)
 				// Now store the updated event number in the universal ram storage.
 				g_pendingEventRecord.summary.eventNumber = g_nextEventNumberToUse;
 
+#if 0 /* Test Acc companion event */
+				if (g_saveAccelerometerCompanionEvent)
+				{
+					GetEventFilename(g_pendingEventRecord.summary.eventNumber);
+					MakeDirectoryIfNotPresent(EVENTS_PATH, g_pendingEventRecord.summary.eventNumber);
+
+					if (f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
+					{
+						debugErr("Unable to create event file: %s, mode: %s\r\n", g_spareFileName, (g_triggerRecord.opMode == WAVEFORM_MODE) ? "Waveform (Acc)" : "Combo - Waveform (Acc)");
+					}
+					else // File created, write out the event
+					{
+						g_pendingAccEventRecord = g_pendingEventRecord;
+						//memset(&g_pendingAccEventRecord.summary.calculated, 0, sizeof(CALCULATED_DATA_STRUCT));
+						g_pendingAccEventRecord.summary.parameters.seismicSensorType = SENSOR_ACC_INT_16G;
+						g_pendingAccEventRecord.summary.parameters.airSensorType = 0;
+
+						// Swap event record to Big Endian for saving
+						EndianSwapEventRecord(&g_pendingAccEventRecord);
+
+						// Write the event record header and summary
+						f_write(&file, &g_pendingAccEventRecord, sizeof(EVT_RECORD), (UINT*)&bytesWritten);
+
+						if (bytesWritten != sizeof(EVT_RECORD))
+						{
+							debugErr("Waveform (Acc) Event Record written size incorrect (%d)\r\n", bytesWritten);
+						}
+
+						// Setup for saving event data
+						remainingDataLength = (g_wordSizeInEvent * 2);
+						tempDataPtr = g_startOfEventBufferPtr + (g_accEventBufferIndex * g_wordSizeInEvent);
+
+						// Swap data to Big Endian for event file (and compression below if used)
+						EndianSwapDataX16(tempDataPtr, g_wordSizeInEvent);
+
+						// New filesystem should not have a write limit, however Waveform saves that cross the 0x20080000 Int RAM boundary hang the SDHC Fat driver if the write size is greater than the eMMC Flash sector side
+						while (remainingDataLength)
+						{
+							if (remainingDataLength > WAVEFORM_FILE_WRITE_CHUNK_SIZE)
+							{
+								// Write the event data, containing the Pretrigger, event and cal
+								f_write(&file, tempDataPtr, WAVEFORM_FILE_WRITE_CHUNK_SIZE, (UINT*)&bytesWritten);
+
+								if (bytesWritten != WAVEFORM_FILE_WRITE_CHUNK_SIZE)
+								{
+									debugErr("Waveform (Acc) Event Data written size incorrect (%d)\r\n", bytesWritten);
+								}
+
+								remainingDataLength -= WAVEFORM_FILE_WRITE_CHUNK_SIZE;
+								tempDataPtr += (WAVEFORM_FILE_WRITE_CHUNK_SIZE / 2);
+
+								// Quickly toggle the green LED to show status of saving a waveform event (while too busy to update LCD)
+								// Todo: Toggle the green LED
+							}
+							else // Remaining data size is less than the file write chunk size
+							{
+								// Write the event data, containing the Pretrigger, event and cal
+								f_write(&file, tempDataPtr, remainingDataLength, (UINT*)&bytesWritten);
+
+								if (bytesWritten != remainingDataLength)
+								{
+									debugErr("Waveform (Acc) Event Data written size incorrect (%d)\r\n", bytesWritten);
+								}
+
+								remainingDataLength = 0;
+							}
+						}
+
+						// Done writing the event file, close the file handle
+						g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+						f_close(&file);
+						SetFileTimestamp(g_spareFileName);
+						debug("Waveform (Acc) Event file closed\r\n");
+
+						UpdateMonitorLogEntry();
+
+						AddEventNumberToCache(g_pendingEventRecord.summary.eventNumber);
+						StoreCurrentEventNumber();
+
+						// Reset External Trigger event record flag
+						g_pendingEventRecord.summary.captured.externalTrigger = NO;
+
+						// Now store the updated event number in the universal ram storage.
+						g_pendingEventRecord.summary.eventNumber = g_nextEventNumberToUse;
+					}
+				}
+#endif
 				// Update event buffer count and pointers
 				if (++g_eventBufferReadIndex == g_maxEventBuffers)
 				{
