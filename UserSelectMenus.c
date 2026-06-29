@@ -3684,6 +3684,22 @@ void SaveSetupMenuHandler(uint8 keyPressed, void* data)
 		}
 		else // User selected NO
 		{
+#if 1 /* Test Acc companion event */
+			if (MessageBox(getLangText(STATUS_TEXT), "SAVE ACCELEROMETER COMPANION EVENT WITH WAVEFORM?", MB_YESNO) == MB_FIRST_CHOICE)
+			{
+				g_saveAccelerometerCompanionEvent = YES;
+
+				if (g_triggerRecord.trec.sample_rate > SAMPLE_RATE_4K)
+				{
+					if (MessageBox(getLangText(STATUS_TEXT), "ACC MAX SAMPLE RATE IS 4K. DROP TO 4K? SELECTING NO WILL CANCEL ACC COMPANION", MB_YESNO) == MB_FIRST_CHOICE)
+					{
+						g_triggerRecord.trec.sample_rate = SAMPLE_RATE_4K;
+					}
+					else { g_saveAccelerometerCompanionEvent = NO; }
+				}
+			}
+			else { g_saveAccelerometerCompanionEvent = NO; }
+#endif
 			// Save the current trig record into the default location
 			SaveRecordData(&g_triggerRecord, DEFAULT_RECORD, REC_TRIGGER_USER_MENU_TYPE);
 
