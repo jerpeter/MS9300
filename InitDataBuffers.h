@@ -31,7 +31,8 @@
 #if 0 /* Normal */
 #define MAX_NUM_OF_CHANNELS			4
 #else /* Add storage for Acc data testing */
-#define MAX_NUM_OF_CHANNELS			(4 + 3)
+//#define MAX_NUM_OF_CHANNELS			(4 + 3)
+#define MAX_NUM_OF_CHANNELS			(4 + 4) // Accomodates 8 full ADC channels or 4+3 ADC+Acc
 #endif
 #define CHANNEL_DATA_IN_BYTES		2
 #define MAX_CAL_SAMPLES				100
@@ -43,7 +44,7 @@
 #endif
 #define MAX_DATA_PER_SECOND			(MAX_SAMPLE_RATE * MAX_DATA_PER_SAMPLE) // 131K
 
-#define LARGEST_PRETRIGGER_SIZE_IN_BYTES	(MAX_DATA_PER_SECOND)
+#define LARGEST_PRETRIGGER_SIZE_IN_BYTES	(MAX_DATA_PER_SECOND + (CONSECUTIVE_TRIGGERS_THRESHOLD * MAX_DATA_PER_SAMPLE)) // Max pretrigger size plus consecutive samples for trigger condition
 #if VT_FEATURE_DISABLED /* Original */
 //#define LARGEST_EVENT_SIZE_IN_BYTES			(MAX_DATA_PER_SECOND * 1) // Determined by max data and ram storage available
 #else /* New VT feature */
