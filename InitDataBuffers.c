@@ -52,15 +52,47 @@ void InitDataBuffs(uint8 opMode)
 		// Per requirement fix sample rate for Calibration
 		sampleRate = MANUAL_CAL_DEFAULT_SAMPLE_RATE;
 
+#if 1 /* Original */
 		// Variable Pretrigger size in words; sample rate / Pretrigger buffer divider times channels plus 1 extra sample (to ensure a full Pretrigger plus a trigger sample)
 		pretriggerBufferSize = ((uint32)(sampleRate / MANUAL_CAL_PRETRIGGER_BUFFER_DIVIDER) * g_sensorInfo.numOfChannels) + g_sensorInfo.numOfChannels;
+#else /* Move to handling consecutive trigger samples as triggers */
+		// Variable Pretrigger size in words; sample rate / Pretrigger buffer divider times channels plus consecutive samples for trigger condition (to ensure a full Pretrigger plus trigger samples)
+		pretriggerBufferSize = ((uint32)(sampleRate / MANUAL_CAL_PRETRIGGER_BUFFER_DIVIDER) * g_sensorInfo.numOfChannels) + (CONSECUTIVE_TRIGGERS_THRESHOLD * g_sensorInfo.numOfChannels);
+#endif
+#if 1 /* Test 8 channels */
+		if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+		{
+			pretriggerBufferSize *= 2;
+		}
+#endif
 	}
 	else // Waveform, Bargraph, Combo
 	{
 		sampleRate = g_triggerRecord.trec.sample_rate;
 
+#if 1 /* Original */
 		// Variable Pretrigger size in words; sample rate / Pretrigger buffer divider times channels plus 1 extra sample (to ensure a full Pretrigger plus a trigger sample)
 		pretriggerBufferSize = ((uint32)(sampleRate / g_unitConfig.pretrigBufferDivider) * g_sensorInfo.numOfChannels) + g_sensorInfo.numOfChannels;
+#else /* Move to handling consecutive trigger samples as triggers */
+		// Variable Pretrigger size in words; sample rate / Pretrigger buffer divider times channels plus consecutive samples for trigger condition (to ensure a full Pretrigger plus trigger samples)
+		pretriggerBufferSize = ((uint32)(sampleRate / g_unitConfig.pretrigBufferDivider) * g_sensorInfo.numOfChannels) + (CONSECUTIVE_TRIGGERS_THRESHOLD * g_sensorInfo.numOfChannels);
+#endif
+#if 1 /* Test 8 channels */
+		if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+		{
+			if (g_triggerRecord.trec.sample_rate >= SAMPLE_RATE_16K)
+			{
+				// Down cast the sample rate since 8K x 8 is the max
+				sampleRate = g_triggerRecord.trec.sample_rate = SAMPLE_RATE_8K;
+
+				// Don't double the pretrigger size since it's set correctly
+			}
+			else // Double the pretrigger size for 8 channels
+			{
+				pretriggerBufferSize *= 2;
+			}
+		}
+#endif
 	}
 
 	// Setup the Pretrigger buffer pointers
@@ -132,6 +164,25 @@ void InitDataBuffs(uint8 opMode)
 			g_startOfEventBufferPtr = &(g_eventDataBuffer[0]);
 		}
 
+#if 1 /* Test saving the last event buffer for recording the companion Accelerometer data for event storage */
+		if (g_saveAccelerometerCompanionEvent)
+		{
+			if (g_maxEventBuffers > 1)
+			{
+				g_maxEventBuffers--;
+				g_accEventBufferIndex = g_maxEventBuffers;
+
+				// Setup the Pretrigger buffer pointers for Acc companion (non-VT only)
+				g_accStartOfPretriggerBuff = &(g_pretriggerBuff[pretriggerBufferSize]);
+				g_accTailOfPretriggerBuff = &(g_pretriggerBuff[pretriggerBufferSize]);
+				g_accEndOfPretriggerBuff = &(g_pretriggerBuff[(pretriggerBufferSize * 2)]);
+			}
+			else // Not enough event buffer cache to maintain waveform event and companion Acc event
+			{
+				g_saveAccelerometerCompanionEvent = NO;
+			}
+		}
+#endif
 		g_freeEventBuffers = g_maxEventBuffers;
 		g_eventBufferReadIndex = 0;
 		g_eventBufferWriteIndex = 0;
