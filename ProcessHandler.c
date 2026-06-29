@@ -193,6 +193,13 @@ void StartMonitoring(uint8 operationMode, TRIGGER_EVENT_DATA_STRUCT* opModeParam
 		ForcedCalibration();
 	}
 
+#if 1 /* Test Accelerometer companion event */
+	if (g_saveAccelerometerCompanionEvent)
+	{
+		StartAccelerometerAquisition();
+	}
+#endif
+
 	// Initialize buffers and settings and gp_ramEventRecord
 	debug("Init data buffers (mode: %d)\r\n", operationMode);
 	InitDataBuffs(operationMode);
@@ -292,7 +299,7 @@ void StartMonitoring(uint8 operationMode, TRIGGER_EVENT_DATA_STRUCT* opModeParam
 ///----------------------------------------------------------------------------
 void StartDataCollection(uint32 sampleRate)
 {
-#if 1 /* Test Accelerometer */
+#if 0 /* Test Accelerometer */
 	if (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType))
 	{
 		debug("Start data collection: Using Accelerometer\r\n");
@@ -355,7 +362,7 @@ void StartDataCollection(uint32 sampleRate)
 	SoftUsecWait(8 * SOFT_SECS);
 #else /* Testing leaving Analog channel enabled from startup */
 #endif
-#if 1 /* Test Accelerometer */
+#if 0 /* Test Accelerometer */
 	} // Ending section
 #endif
 
@@ -432,7 +439,7 @@ void StopMonitoring(uint8 mode, uint8 operation)
 		// Stop the data transfers
 		StopDataCollection();
 
-#if 1 /* Test Accelerometer */
+#if 0 /* Test Accelerometer */
 	if (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType))
 	{
 		debug("Stop data collection: Accelerometer\r\n");
@@ -900,7 +907,7 @@ void StopMonitoringForLowPowerState(void)
 ///----------------------------------------------------------------------------
 void StartADDataCollectionForCalibration(uint16 sampleRate)
 {
-#if 1 /* New option for Accelerometer */
+#if 0 /* New option for Accelerometer */
 	if (IsSeismicSensorInternalAccelerometer(g_factorySetupRecord.seismicSensorType))
 	{
 		debug("A/D data collection: Using Internal Accelerometer\r\n");
@@ -931,7 +938,7 @@ void StartADDataCollectionForCalibration(uint16 sampleRate)
 	SoftUsecWait(8 * SOFT_SECS);
 #else /* Testing leaving Analog channel enabled from startup */
 #endif
-#if 1 /* Test Accelerometer */
+#if 0 /* Test Accelerometer */
 	} // Ending section
 #endif
 
