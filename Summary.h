@@ -46,10 +46,17 @@ typedef struct
 //-------------------------------------------------------------------------------------
 typedef struct
 {
-	int16 a_offset;
-	int16 r_offset;
-	int16 v_offset;
-	int16 t_offset;
+	int16 a_offset;		// Used in normal 4 Channel config
+	int16 r_offset;		// Used in normal 4 Channel config
+	int16 v_offset;		// Used in normal 4 Channel config
+	int16 t_offset;		// Used in normal 4 Channel config
+	int16 a2_offset;	// Used in 8 Channel config only
+	int16 r2_offset;	// Used in 8 Channel config only
+	int16 v2_offset;	// Used in 8 Channel config only
+	int16 t2_offset;	// Used in 8 Channel config only
+	int16 x_offset;		// Used when Accelerometer is enabled
+	int16 y_offset;		// Used when Accelerometer is enabled
+	int16 z_offset;		// Used when Accelerometer is enabled
 } OFFSET_DATA_STRUCT;
 
 //-------------------------------------------------------------------------------------
