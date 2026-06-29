@@ -62,11 +62,16 @@ extern uint8 craft_g_input_buffer[];
 ///----------------------------------------------------------------------------
 // Flags and variables to statically defined to prevent creating and clearing stack variables every ISR data process call
 static uint16 s_R_channelReading, s_V_channelReading, s_T_channelReading, s_A_channelReading;
+static uint16 s_R2_channelReading, s_V2_channelReading, s_T2_channelReading, s_A2_channelReading;
 #if 0 /* temp removed while unused */
 static uint16 s_channelConfigReadBack;
 #endif
 static uint16* s_pretrigPtr;
 static uint16* s_samplePtr;
+#if 1 /* Test Acc companion event */
+static uint16* s_accPretrigPtr;
+static uint16* s_accSamplePtr;
+#endif
 static uint16* s_calPtr[3] = {NULL, NULL, NULL};
 static uint32 s_pretrigCount = 0;
 static uint32 s_sampleCount = 0;
@@ -107,6 +112,12 @@ static int32 s_tempChanMin[MAX_NUM_OF_CHANNELS];
 static int32 s_tempChanMax[MAX_NUM_OF_CHANNELS];
 static int32 s_tempChanAvg[MAX_NUM_OF_CHANNELS];
 static uint32 s_tempChanMed[MAX_NUM_OF_CHANNELS][8];
+#if 1 /* Test 8 full channels */
+static SAMPLE_DATA_STRUCT s_tempSensorCalPeaks2;
+static SAMPLE_DATA_STRUCT s_tempSensorCalFreqCounts2;
+static SAMPLE_DATA_STRUCT s_tempSensorCalFreqSign2;
+static SAMPLE_DATA_STRUCT s_tempSensorCalFreqCounter2;
+#endif
 
 static VARIABLE_TRIGGER_FREQ_CALC_BUFFER s_variableTriggerFreqCalcBuffer;
 static float s_vtDiv;
@@ -1111,17 +1122,18 @@ static inline void fillPretriggerBufferUntilFull_ISR_Inline(void)
 ///----------------------------------------------------------------------------
 static inline void normalizeSampleData_ISR_Inline(void)
 {
-	if (s_R_channelReading < ACCURACY_16_BIT_MIDPOINT) { s_R_channelReading = ACCURACY_16_BIT_MIDPOINT - s_R_channelReading; }
-	else { s_R_channelReading -= ACCURACY_16_BIT_MIDPOINT; }
+	if (s_R_channelReading < ACCURACY_16_BIT_MIDPOINT) { s_R_channelReading = ACCURACY_16_BIT_MIDPOINT - s_R_channelReading; } else { s_R_channelReading -= ACCURACY_16_BIT_MIDPOINT; }
+	if (s_V_channelReading < ACCURACY_16_BIT_MIDPOINT) { s_V_channelReading = ACCURACY_16_BIT_MIDPOINT - s_V_channelReading; } else { s_V_channelReading -= ACCURACY_16_BIT_MIDPOINT; }
+	if (s_T_channelReading < ACCURACY_16_BIT_MIDPOINT) { s_T_channelReading = ACCURACY_16_BIT_MIDPOINT - s_T_channelReading; } else { s_T_channelReading -= ACCURACY_16_BIT_MIDPOINT; }
+	if (s_A_channelReading < ACCURACY_16_BIT_MIDPOINT) { s_A_channelReading = ACCURACY_16_BIT_MIDPOINT - s_A_channelReading; } else { s_A_channelReading -= ACCURACY_16_BIT_MIDPOINT; }
 
-	if (s_V_channelReading < ACCURACY_16_BIT_MIDPOINT) { s_V_channelReading = ACCURACY_16_BIT_MIDPOINT - s_V_channelReading; }
-	else { s_V_channelReading -= ACCURACY_16_BIT_MIDPOINT; }
-
-	if (s_T_channelReading < ACCURACY_16_BIT_MIDPOINT) { s_T_channelReading = ACCURACY_16_BIT_MIDPOINT - s_T_channelReading; }
-	else { s_T_channelReading -= ACCURACY_16_BIT_MIDPOINT; }
-
-	if (s_A_channelReading < ACCURACY_16_BIT_MIDPOINT) { s_A_channelReading = ACCURACY_16_BIT_MIDPOINT - s_A_channelReading; }
-	else { s_A_channelReading -= ACCURACY_16_BIT_MIDPOINT; }
+	if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+	{
+		if (s_R2_channelReading < ACCURACY_16_BIT_MIDPOINT) { s_R2_channelReading = ACCURACY_16_BIT_MIDPOINT - s_R2_channelReading; } else { s_R2_channelReading -= ACCURACY_16_BIT_MIDPOINT; }
+		if (s_V2_channelReading < ACCURACY_16_BIT_MIDPOINT) { s_V2_channelReading = ACCURACY_16_BIT_MIDPOINT - s_V2_channelReading; } else { s_V2_channelReading -= ACCURACY_16_BIT_MIDPOINT; }
+		if (s_T2_channelReading < ACCURACY_16_BIT_MIDPOINT) { s_T2_channelReading = ACCURACY_16_BIT_MIDPOINT - s_T2_channelReading; } else { s_T2_channelReading -= ACCURACY_16_BIT_MIDPOINT; }
+		if (s_A2_channelReading < ACCURACY_16_BIT_MIDPOINT) { s_A2_channelReading = ACCURACY_16_BIT_MIDPOINT - s_A2_channelReading; } else { s_A2_channelReading -= ACCURACY_16_BIT_MIDPOINT; }
+	}
 }
 	
 ///----------------------------------------------------------------------------
@@ -1870,6 +1882,13 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 				s_pretrigPtr = g_startOfEventBufferPtr + (g_eventBufferWriteIndex * g_wordSizeInEvent);
 				s_samplePtr = s_pretrigPtr + g_wordSizeInPretrig;
 
+#if 1 /* Test Acc companion event */
+				if (g_saveAccelerometerCompanionEvent)
+				{
+					s_accPretrigPtr = g_startOfEventBufferPtr + (g_accEventBufferIndex * g_wordSizeInEvent);
+					s_accSamplePtr = s_accPretrigPtr + g_wordSizeInPretrig;
+				}
+#endif
 				s_pretrigCount = g_samplesInPretrig;
 				s_sampleCount = g_samplesInBody;
 
@@ -1928,6 +1947,25 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 					{
 						*(SAMPLE_DATA_STRUCT*)s_pretrigPtr = *(SAMPLE_DATA_STRUCT*)(g_tailOfPretriggerBuff + NUMBER_OF_CHANNELS_DEFAULT);
 					}
+
+#if 1 /* Test Acc companion event */
+					if (g_saveAccelerometerCompanionEvent)
+					{
+						//___Copy current Pretrigger buffer sample to event
+						*(SAMPLE_DATA_STRUCT*)s_accSamplePtr = *(SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff;
+
+						//___Copy oldest Pretrigger buffer sample to Pretrigger
+						if ((g_accTailOfPretriggerBuff + NUMBER_OF_CHANNELS_DEFAULT) >= g_accEndOfPretriggerBuff)
+						{
+							// Copy first (which is currently the oldest) Pretrigger buffer sample to Pretrigger buffer
+							*(SAMPLE_DATA_STRUCT*)s_accPretrigPtr = *(SAMPLE_DATA_STRUCT*)g_accStartOfPretriggerBuff;
+						}
+						else // Copy oldest Pretrigger buffer sample to Pretrigger
+						{
+							*(SAMPLE_DATA_STRUCT*)s_accPretrigPtr = *(SAMPLE_DATA_STRUCT*)(g_accTailOfPretriggerBuff + NUMBER_OF_CHANNELS_DEFAULT);
+						}
+					}
+#endif
 				}
 				else // Variable trigger standard (USBM, OSM)
 				{
@@ -1955,6 +1993,9 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 									
 				s_pretrigPtr += NUMBER_OF_CHANNELS_DEFAULT;
 				s_pretrigCount--;
+#if 1 /* Test Acc companion event */
+				if (g_saveAccelerometerCompanionEvent) { s_accSamplePtr += NUMBER_OF_CHANNELS_DEFAULT; s_accPretrigPtr += NUMBER_OF_CHANNELS_DEFAULT; }
+#endif
 			}
 		}
 		//___________________________________________________________________________________________
@@ -2011,6 +2052,21 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 				{
 					*(SAMPLE_DATA_STRUCT*)s_pretrigPtr = *(SAMPLE_DATA_STRUCT*)(g_tailOfPretriggerBuff + NUMBER_OF_CHANNELS_DEFAULT);
 				}
+#if 1 /* Test Acc companion event */
+				if (g_saveAccelerometerCompanionEvent)
+				{
+					// Check if the end of the Pretrigger buffer has been reached
+					if ((g_accTailOfPretriggerBuff + NUMBER_OF_CHANNELS_DEFAULT) >= g_accEndOfPretriggerBuff)
+					{
+						// Copy oldest (which is currently the first) Pretrigger buffer samples to event Pretrigger
+						*(SAMPLE_DATA_STRUCT*)s_accPretrigPtr = *(SAMPLE_DATA_STRUCT*)g_accStartOfPretriggerBuff;
+					}
+					else // Copy oldest Pretrigger buffer samples to event Pretrigger
+					{
+						*(SAMPLE_DATA_STRUCT*)s_accPretrigPtr = *(SAMPLE_DATA_STRUCT*)(g_accTailOfPretriggerBuff + NUMBER_OF_CHANNELS_DEFAULT);
+					}
+				}
+#endif
 			}
 			else // Variable trigger standard (USBM, OSM)
 			{
@@ -2026,6 +2082,9 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 #endif
 			s_pretrigPtr += NUMBER_OF_CHANNELS_DEFAULT;
 			s_pretrigCount--;
+#if 1 /* Test Acc companion event */
+			if (g_saveAccelerometerCompanionEvent) { s_accPretrigPtr += NUMBER_OF_CHANNELS_DEFAULT; }
+#endif
 		}
 
 #if VT_FEATURE_DISABLED
@@ -2039,6 +2098,14 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 			//___________________________________________________________________________________________
 			//___Copy data samples to event buffer
 			*(SAMPLE_DATA_STRUCT*)s_samplePtr = *(SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff;
+
+#if 1 /* Test Acc companion event */
+			if (g_saveAccelerometerCompanionEvent)
+			{
+				//___Copy data samples to event buffer
+				*(SAMPLE_DATA_STRUCT*)s_accSamplePtr = *(SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff;
+			}
+#endif
 		}
 		else // Variable trigger standard (USBM, OSM)
 		{
@@ -2055,7 +2122,9 @@ static inline void processAndMoveWaveformData_ISR_Inline(void)
 #endif
 		s_samplePtr += NUMBER_OF_CHANNELS_DEFAULT;
 		s_sampleCount--;
-					
+#if 1 /* Test Acc companion event */
+		if (g_saveAccelerometerCompanionEvent) { s_accSamplePtr += NUMBER_OF_CHANNELS_DEFAULT; }
+#endif
 		//___________________________________________________________________________________________
 		//___Check if all the event samples have been handled
 		if (s_sampleCount == 0)
@@ -2328,6 +2397,14 @@ void SensorCalibrationDataInit(void)
 	memset(&s_tempSensorCalFreqCounter, 0, sizeof(s_tempSensorCalFreqCounter));
 	memset(&s_tempSensorCalFreqCounts, 0, sizeof(s_tempSensorCalFreqCounts));
 
+#if 1 /* Test 8 channels */
+	if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+	{
+		memset(&s_tempSensorCalPeaks2, 0, sizeof(s_tempSensorCalPeaks2));
+		memset(&s_tempSensorCalFreqCounter2, 0, sizeof(s_tempSensorCalFreqCounter2));
+		memset(&s_tempSensorCalFreqCounts2, 0, sizeof(s_tempSensorCalFreqCounts2));
+	}
+#endif
 	// Reset the Min and Max to initial condition and Avg to zero
 	for (i = 0; i < MAX_NUM_OF_CHANNELS; i++)
 	{
@@ -2369,6 +2446,18 @@ void ProcessSensorCalibrationData(void)
 
 		// Clear out the first Peak hold values
 		memset(&s_tempSensorCalPeaks, 0, sizeof(SAMPLE_DATA_STRUCT));
+
+		if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+		{
+			// Shift the Peaks out after a second (index 1 being the current peak for the last second, index 2 for the peak the second before, etc) and save frequency counts
+			g_sensorCalPeaks2[2] = g_sensorCalPeaks2[1];
+			g_sensorCalPeaks2[1] = g_sensorCalPeaks2[0];
+			g_sensorCalPeaks2[0] = s_tempSensorCalPeaks2;
+			g_sensorCalFreqCounts2 = s_tempSensorCalFreqCounts2;
+
+			// Clear out the first Peak hold values
+			memset(&s_tempSensorCalPeaks2, 0, sizeof(SAMPLE_DATA_STRUCT));
+		}
 
 		//==============
 		// Channel Noise
@@ -2466,6 +2555,32 @@ void ProcessSensorCalibrationData(void)
 	if (s_tempSensorCalFreqSign.a ^ (s_A_channelReading & g_bitAccuracyMidpoint)) { s_tempSensorCalFreqSign.a = (uint16)(s_A_channelReading & g_bitAccuracyMidpoint); s_tempSensorCalFreqCounter.a = 1; }
 	else { if (s_tempSensorCalFreqCounter.a < 0xFFFF) { s_tempSensorCalFreqCounter.a++; } }
 
+	if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+	{
+		// Check for initial condition
+		if (s_tempSensorCalFreqCounter2.a == 0)
+		{
+			// Init the sign and counter
+			s_tempSensorCalFreqSign2.r = (uint16)(s_R2_channelReading & g_bitAccuracyMidpoint); s_tempSensorCalFreqCounter2.r = 1;
+			s_tempSensorCalFreqSign2.v = (uint16)(s_V2_channelReading & g_bitAccuracyMidpoint); s_tempSensorCalFreqCounter2.v = 1;
+			s_tempSensorCalFreqSign2.t = (uint16)(s_T2_channelReading & g_bitAccuracyMidpoint); s_tempSensorCalFreqCounter2.t = 1;
+			s_tempSensorCalFreqSign2.a = (uint16)(s_A2_channelReading & g_bitAccuracyMidpoint); s_tempSensorCalFreqCounter2.a = 1;
+		}
+
+		// Check if the stored sign comparison signals a zero crossing and if so save new sign and reset freq counter otherwise increment count
+		if (s_tempSensorCalFreqSign2.r ^ (s_R2_channelReading & g_bitAccuracyMidpoint)) { s_tempSensorCalFreqSign2.r = (uint16)(s_R2_channelReading & g_bitAccuracyMidpoint); s_tempSensorCalFreqCounter2.r = 1; }
+		else { if (s_tempSensorCalFreqCounter2.r < 0xFFFF) { s_tempSensorCalFreqCounter2.r++; } }
+
+		if (s_tempSensorCalFreqSign2.v ^ (s_V2_channelReading & g_bitAccuracyMidpoint)) { s_tempSensorCalFreqSign2.v = (uint16)(s_V2_channelReading & g_bitAccuracyMidpoint); s_tempSensorCalFreqCounter2.v = 1; }
+		else { if (s_tempSensorCalFreqCounter2.v < 0xFFFF) { s_tempSensorCalFreqCounter2.v++; } }
+
+		if (s_tempSensorCalFreqSign2.t ^ (s_T2_channelReading & g_bitAccuracyMidpoint)) { s_tempSensorCalFreqSign2.t = (uint16)(s_T2_channelReading & g_bitAccuracyMidpoint); s_tempSensorCalFreqCounter2.t = 1; }
+		else { if (s_tempSensorCalFreqCounter2.t < 0xFFFF) { s_tempSensorCalFreqCounter2.t++; } }
+
+		if (s_tempSensorCalFreqSign2.a ^ (s_A2_channelReading & g_bitAccuracyMidpoint)) { s_tempSensorCalFreqSign2.a = (uint16)(s_A2_channelReading & g_bitAccuracyMidpoint); s_tempSensorCalFreqCounter2.a = 1; }
+		else { if (s_tempSensorCalFreqCounter2.a < 0xFFFF) { s_tempSensorCalFreqCounter2.a++; } }
+	}
+
 	//=================
 	// Min, Max and Avg
 	//-----------------
@@ -2485,6 +2600,25 @@ void ProcessSensorCalibrationData(void)
 	if (s_A_channelReading > s_tempChanMax[0]) { s_tempChanMax[0] = s_A_channelReading; }
 	s_tempChanAvg[0] += s_A_channelReading;
 
+	if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+	{
+		if (s_R2_channelReading < s_tempChanMin[1+4]) { s_tempChanMin[1+4] = s_R2_channelReading; }
+		if (s_R2_channelReading > s_tempChanMax[1+4]) { s_tempChanMax[1+4] = s_R2_channelReading; }
+		s_tempChanAvg[1+4] += s_R_channelReading;
+
+		if (s_V2_channelReading < s_tempChanMin[2+4]) { s_tempChanMin[2+4] = s_V2_channelReading; }
+		if (s_V2_channelReading > s_tempChanMax[2+4]) { s_tempChanMax[2+4] = s_V2_channelReading; }
+		s_tempChanAvg[2+4] += s_V_channelReading;
+
+		if (s_T2_channelReading < s_tempChanMin[3+4]) { s_tempChanMin[3+4] = s_T2_channelReading; }
+		if (s_T2_channelReading > s_tempChanMax[3+4]) { s_tempChanMax[3+4] = s_T2_channelReading; }
+		s_tempChanAvg[3+4] += s_T_channelReading;
+
+		if (s_A2_channelReading < s_tempChanMin[0+4]) { s_tempChanMin[0+4] = s_A2_channelReading; }
+		if (s_A2_channelReading > s_tempChanMax[0+4]) { s_tempChanMax[0+4] = s_A2_channelReading; }
+		s_tempChanAvg[0+4] += s_A_channelReading;
+	}
+
 	//======================
 	// Normalize sample data
 	//----------------------
@@ -2500,37 +2634,53 @@ void ProcessSensorCalibrationData(void)
 	if (s_R_channelReading < 7) { s_tempChanMed[1][s_R_channelReading]++; } else { s_tempChanMed[1][7]++; }
 	if (s_V_channelReading < 7) { s_tempChanMed[2][s_V_channelReading]++; } else { s_tempChanMed[2][7]++; }
 	if (s_T_channelReading < 7) { s_tempChanMed[3][s_T_channelReading]++; } else { s_tempChanMed[3][7]++; }
-	if (s_A_channelReading < 7)	{ s_tempChanMed[0][s_A_channelReading]++; } else { s_tempChanMed[0][7]++; }
+	if (s_A_channelReading < 7) { s_tempChanMed[0][s_A_channelReading]++; } else { s_tempChanMed[0][7]++; }
 
-#if 1 /* Test */
-	ACC_DATA_STRUCT channelData;
+	if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+	{
+		if (s_R2_channelReading > s_tempSensorCalPeaks2.r) { s_tempSensorCalPeaks2.r = s_R2_channelReading; s_tempSensorCalFreqCounts2.r = s_tempSensorCalFreqCounter2.r; }
+		if (s_V2_channelReading > s_tempSensorCalPeaks2.v) { s_tempSensorCalPeaks2.v = s_V2_channelReading; s_tempSensorCalFreqCounts2.v = s_tempSensorCalFreqCounter2.v; }
+		if (s_T2_channelReading > s_tempSensorCalPeaks2.t) { s_tempSensorCalPeaks2.t = s_T2_channelReading; s_tempSensorCalFreqCounts2.t = s_tempSensorCalFreqCounter2.t; }
+		if (s_A2_channelReading > s_tempSensorCalPeaks2.a) { s_tempSensorCalPeaks2.a = s_A2_channelReading; s_tempSensorCalFreqCounts2.a = s_tempSensorCalFreqCounter2.a; }
+
+		if (s_R2_channelReading < 7) { s_tempChanMed[1+4][s_R2_channelReading]++; } else { s_tempChanMed[1+4][7]++; }
+		if (s_V2_channelReading < 7) { s_tempChanMed[2+4][s_V2_channelReading]++; } else { s_tempChanMed[2+4][7]++; }
+		if (s_T2_channelReading < 7) { s_tempChanMed[3+4][s_T2_channelReading]++; } else { s_tempChanMed[3+4][7]++; }
+		if (s_A2_channelReading < 7) { s_tempChanMed[0+4][s_A2_channelReading]++; } else { s_tempChanMed[0+4][7]++; }
+	}
+
+	if ((g_adChannelConfig & EIGHT_AD_CHANNEL_MASK) == 0)
+#if 1 /* Test */ //--------------------------------------------------------------------------------------------
+	{
+		ACC_DATA_STRUCT channelData;
 #if 0 /* Original */
-	GetAccelerometerChannelData(&channelData);
-#else
-	if (g_spi2InUseByLCD)
-	{
-		// Hopefully an updated Acc data cache is available (executed just prior to LCD write), otherwise it's worst case with no ability to get current Acc data so duplicate last sample
-		channelData = g_accDataCache;
-	}
-	else
-	{
 		GetAccelerometerChannelData(&channelData);
-		g_accDataCache = channelData;
+#else
+		if (g_spi2InUseByLCD)
+		{
+			// Hopefully an updated Acc data cache is available (executed just prior to LCD write), otherwise it's worst case with no ability to get current Acc data so duplicate last sample
+			channelData = g_accDataCache;
+		}
+		else
+		{
+			GetAccelerometerChannelData(&channelData);
+			g_accDataCache = channelData;
+		}
+#endif
+
+		if (channelData.x < s_tempChanMin[4]) { s_tempChanMin[4] = channelData.x; }
+		if (channelData.x > s_tempChanMax[4]) { s_tempChanMax[4] = channelData.x; }
+		s_tempChanAvg[4] += channelData.x;
+
+		if (channelData.y < s_tempChanMin[5]) { s_tempChanMin[5] = channelData.y; }
+		if (channelData.y > s_tempChanMax[5]) { s_tempChanMax[5] = channelData.y; }
+		s_tempChanAvg[5] += channelData.y;
+
+		if (channelData.z < s_tempChanMin[6]) { s_tempChanMin[6] = channelData.z; }
+		if (channelData.z > s_tempChanMax[6]) { s_tempChanMax[6] = channelData.z; }
+		s_tempChanAvg[6] += channelData.z;
 	}
-#endif
-
-	if (channelData.x < s_tempChanMin[4]) { s_tempChanMin[4] = channelData.x; }
-	if (channelData.x > s_tempChanMax[4]) { s_tempChanMax[4] = channelData.x; }
-	s_tempChanAvg[4] += channelData.x;
-
-	if (channelData.y < s_tempChanMin[5]) { s_tempChanMin[5] = channelData.y; }
-	if (channelData.y > s_tempChanMax[5]) { s_tempChanMax[5] = channelData.y; }
-	s_tempChanAvg[5] += channelData.y;
-
-	if (channelData.z < s_tempChanMin[6]) { s_tempChanMin[6] = channelData.z; }
-	if (channelData.z > s_tempChanMax[6]) { s_tempChanMax[6] = channelData.z; }
-	s_tempChanAvg[6] += channelData.z;
-#endif
+#endif //--------------------------------------------------------------------------------------------
 }
 
 ///----------------------------------------------------------------------------
@@ -2544,6 +2694,17 @@ static inline void applyOffsetAndCacheSampleData_ISR_Inline(void)
 	s_V_channelReading -= g_channelOffset.v_offset;
 	s_T_channelReading -= g_channelOffset.t_offset;
 	s_A_channelReading -= g_channelOffset.a_offset;
+
+#if 1 /* Test eight channels */
+	if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+	{
+		s_R2_channelReading -= g_channelOffset.r2_offset;
+		s_V2_channelReading -= g_channelOffset.v2_offset;
+		s_T2_channelReading -= g_channelOffset.t2_offset;
+		s_A2_channelReading -= g_channelOffset.a2_offset;
+	}
+#endif
+
 #else /* Test (Mark cal pulse with identifiable data when no sensor connected) */
 	if ((s_calPulse == YES) && (s_calSampleCount))
 	{
@@ -2566,6 +2727,46 @@ static inline void applyOffsetAndCacheSampleData_ISR_Inline(void)
 	((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->v = s_V_channelReading;
 	((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->t = s_T_channelReading;
 	((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->a = s_A_channelReading;
+
+#if 1 /* Test eight channels */
+	if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+	{
+		((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->r = s_R2_channelReading;
+		((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->v = s_V2_channelReading;
+		((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->t = s_T2_channelReading;
+		((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->a = s_A2_channelReading;
+	}
+#endif
+
+#if 1 /* Test Acc companion event */
+	if (g_saveAccelerometerCompanionEvent)
+	{
+		ACC_DATA_STRUCT accData;
+
+		if (g_spi2InUseByLCD)
+		{
+			// Hopefully an updated Acc data cache is available (executed just prior to LCD write), otherwise it's worst case with no ability to get current Acc data so duplicate last sample
+			accData = g_accDataCache;
+		}
+		else
+		{
+			GetAccelerometerChannelData(&accData);
+			g_accDataCache = accData;
+		}
+
+#if 1 /* Normal 1G */
+		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->r = accData.x - g_channelOffset.x_offset;
+		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->t = accData.y - g_channelOffset.y_offset;
+		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->v = accData.z - g_channelOffset.z_offset;
+		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->a = 0x8000;
+#else /* Adjust for normal 1G without zero calibration */
+		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->r = accData.x;
+		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->t = accData.y;
+		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->v = accData.z + 0x800;
+		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->a = 0x8000;
+#endif
+	}
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -2611,6 +2812,46 @@ extern uint8_t chanActive[8];
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+static inline void getEightChannelDataWithReadbackWithTemp_ISR_Inline(void)
+{
+	uint8_t chanDataRaw[AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS];
+	uint8_t overVoltageAlert = NO;
+	uint8_t ovAlertChannels = 0;
+
+	// Todo: verify channel inputs on which channel data lines
+
+	// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
+	// Dynamic channels with Over voltage Alert
+extern uint8_t chanActive[8];
+	if (chanActive[0]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+		s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 0) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+	if (chanActive[1]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+		s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 1) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+	if (chanActive[2]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+		s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 2) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+	if (chanActive[3]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+		s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 3) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+
+	if (chanActive[4]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+		s_R2_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 4) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+	if (chanActive[5]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+		s_T2_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 5) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+	if (chanActive[6]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+		s_V2_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 6) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+	if (chanActive[7]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+		s_A2_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 7) { s_channelSyncError = YES; } if (chanDataRaw[2] & 0x10) { overVoltageAlert = YES; ovAlertChannels |= (chanDataRaw[2] & 0x0F); } }
+
+	if (overVoltageAlert) { debugErr("AD Over Voltage Alert: Channel bit mask 0x%x\r\n", ovAlertChannels); }
+
+	// Temperature
+	AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+	g_currentTempReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+	if ((chanDataRaw[2] & 0x0F) != 15) { s_channelSyncError = YES; } // An INx value of 15 corresponds to either IN15 or the temperature sensor
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 static inline void getChannelDataNoReadbackWithTemp_ISR_Inline(void)
 {
 	uint8_t chanDataRaw[AD4695_CHANNEL_DATA_READ_SIZE];
@@ -2636,6 +2877,31 @@ extern uint8_t chanActive[8];
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+static inline void getEightChannelDataNoReadbackWithTemp_ISR_Inline(void)
+{
+	uint8_t chanDataRaw[AD4695_CHANNEL_DATA_READ_SIZE];
+
+	// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
+	// Dynamic channels
+extern uint8_t chanActive[8];
+	if (chanActive[0]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[1]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[2]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[3]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+
+	if (chanActive[4]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_R2_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[5]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_T2_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[6]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_V2_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[7]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_A2_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+
+	// Temp
+	AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE);
+	g_currentTempReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 static inline void getChannelDataNoReadbackNoTemp_ISR_Inline(void)
 {
 	uint8_t chanDataRaw[AD4695_CHANNEL_DATA_READ_SIZE];
@@ -2652,6 +2918,27 @@ extern uint8_t chanActive[8];
 	if (chanActive[5]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
 	if (chanActive[6]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
 	if (chanActive[7]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+static inline void getEightChannelDataNoReadbackNoTemp_ISR_Inline(void)
+{
+	uint8_t chanDataRaw[AD4695_CHANNEL_DATA_READ_SIZE];
+
+	// Conversion time max is 415ns (~50 clock cycles), normal SPI setup processing should take longer than that without requiring waiting on the ADC busy state (Port 0, Pin 17)
+	// Dynamic channels
+extern uint8_t chanActive[8];
+	if (chanActive[0]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_R_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[1]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_T_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[2]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_V_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[3]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_A_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+
+	if (chanActive[4]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_R2_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[5]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_T2_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[6]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_V2_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
+	if (chanActive[7]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); s_A2_channelReading = ((chanDataRaw[0] << 8) | chanDataRaw[1]); }
 }
 
 ///----------------------------------------------------------------------------
@@ -2876,13 +3163,77 @@ static uint32_t trash = 0;
 		goto SKIP_PRIOR_PROCESSING_FOR_ADAPTIVE_MIN_RATE;
 	}
 
-#if 1 /* Test Accelerometer */
+#if 0 /* Test Accelerometer */
 	//___________________________________________________________________________________________
 	//___Internal Accelerometer raw data read 3 channels
 	if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
 	{
 		getChannelDataAcc_ISR_Inline();
 	}
+	else
+#endif
+#if 1 /* Test eight channels */
+	//___________________________________________________________________________________________
+	//___AD raw data read all 8 channels without config read back and no temp
+	if (g_adChannelConfig == EIGHT_AD_CHANNELS_NO_READBACK_NO_TEMP)
+	{
+		getEightChannelDataNoReadbackNoTemp_ISR_Inline();
+	}
+	//___________________________________________________________________________________________
+	//___AD raw data read all 8 channels without config read back and temp
+	else if (g_adChannelConfig == EIGHT_AD_CHANNELS_NO_READBACK_WITH_TEMP)
+	{
+		getEightChannelDataNoReadbackWithTemp_ISR_Inline();
+
+		//___________________________________________________________________________________________
+		//___Check for temperature drift (only will start after Pretrigger buffer is full initially)
+		if (s_checkForTempDrift == YES)
+		{
+			checkForTemperatureDrift_ISR_Inline();
+		}
+	}
+	//___________________________________________________________________________________________
+	//___AD raw data read all 8 channels with config read back and temp
+	else if (g_adChannelConfig == EIGHT_AD_CHANNELS_WITH_READBACK_WITH_TEMP)
+	{
+		getEightChannelDataWithReadbackWithTemp_ISR_Inline();
+
+		//___________________________________________________________________________________________
+		//___Check for channel sync error
+		if (s_channelSyncError == YES)
+		{
+			s_channelSyncError = NO;
+
+			if (s_channelSyncErrorCount)
+			{
+				g_breakpointCause = BP_AD_CHAN_SYNC_ERR;
+				// Todo: Issue a breakpoint
+				debugErr("AD Channel Sync Error: Second occurance, soft locking the unit\r\n");
+				while (1) {;}
+			}
+			else
+			{
+				s_channelSyncErrorCount++;
+
+				HandleChannelSyncError_ISR_Inline();
+			}
+
+			// Clear the interrupt flag
+#if INTERNAL_SAMPLING_SOURCE
+			INTERNAL_SAMPLING_TIMER_NUM->intr = MXC_F_TMR_INTR_IRQ;
+#elif EXTERNAL_SAMPLING_SOURCE
+			MXC_GPIO_ClearFlags(GPIO_RTC_CLOCK_PORT, GPIO_RTC_CLOCK_PIN);
+#endif
+			return;
+		}
+
+		//___________________________________________________________________________________________
+		//___Check for temperature drift (only will start after Pretrigger buffer is full initially)
+		if (s_checkForTempDrift == YES)
+		{
+			checkForTemperatureDrift_ISR_Inline();
+		}
+	} // End of reading raw data from External A/D
 	else
 #endif
 	//___________________________________________________________________________________________
@@ -3014,6 +3365,14 @@ SKIP_PRIOR_PROCESSING_FOR_ADAPTIVE_MIN_RATE:
 
 	// Check if the end of the Pretrigger buffer has been reached
 	if (g_tailOfPretriggerBuff >= g_endOfPretriggerBuff) g_tailOfPretriggerBuff = g_startOfPretriggerBuff;
+
+#if 1 /* Test Acc companion event */
+	if (g_saveAccelerometerCompanionEvent)
+	{
+		g_accTailOfPretriggerBuff += g_sensorInfo.numOfChannels;
+		if (g_accTailOfPretriggerBuff >= g_accEndOfPretriggerBuff) g_accTailOfPretriggerBuff = g_accStartOfPretriggerBuff;
+	}
+#endif
 
 #if 1 /* Test */
 	if (sampleProcessTiming) { sampleProcessTiming += (0xffffff - SysTick->VAL); sampleProcessTiming >>= 1; }
