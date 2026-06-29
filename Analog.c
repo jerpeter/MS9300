@@ -36,6 +36,13 @@ typedef struct {
 	uint32 vTotal;
 	uint32 tTotal;
 	uint32 aTotal;
+	uint32 r2Total;
+	uint32 v2Total;
+	uint32 t2Total;
+	uint32 a2Total;
+	uint32 xTotal;
+	uint32 yTotal;
+	uint32 zTotal;
 } CHANNEL_OFFSET_TOTALS;
 
 typedef struct {
@@ -43,6 +50,13 @@ typedef struct {
 	uint32 vCount;
 	uint32 tCount;
 	uint32 aCount;
+	uint32 r2Count;
+	uint32 v2Count;
+	uint32 t2Count;
+	uint32 a2Count;
+	uint32 xCount;
+	uint32 yCount;
+	uint32 zCount;
 } CHANNEL_OFFSET_COUNTS;
 
 ///----------------------------------------------------------------------------
@@ -55,6 +69,8 @@ typedef struct {
 ///----------------------------------------------------------------------------
 static uint16* s_zeroSensorPretriggerComparePtr;
 static SAMPLE_DATA_STRUCT s_tempData;
+static SAMPLE_DATA_STRUCT s_tempData2;
+static ACC_DATA_STRUCT s_tempAccData;
 static CHANNEL_OFFSET_TOTALS s_workingChannelOffset;
 static CHANNEL_OFFSET_COUNTS s_workingChannelCounts;
 static CHANNEL_OFFSET_TOTALS s_compareChannelOffset;
@@ -78,11 +94,94 @@ uint8_t GetAnalogConfigReadback(void)
 ///----------------------------------------------------------------------------
 uint16_t dataTemperature;
 uint8_t chanActive[8];
-void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr)
+void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr, SAMPLE_DATA_STRUCT* data2Ptr)
 {
 	uint8_t chanDataRaw[3];
 	uint8_t configError = NO;
 
+#if 1 /* Test 8 channels */
+	if (g_adChannelConfig == EIGHT_AD_CHANNELS_WITH_READBACK_WITH_TEMP)
+	{
+		// Chan 0 - Geo1/R
+		if (chanActive[0]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+			dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 0) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 0, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
+
+		// Chan 1 - Geo1/T
+		if (chanActive[1]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+			dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 1) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 1, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
+
+		// Chan 2 - Geo1/V
+		if (chanActive[2]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+			dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 2) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 2, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
+
+		// Chan 3 - AOP1/A
+		if (chanActive[3]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+			dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 3) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 3, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
+
+		// Chan 4 - Geo2/R
+		if (chanActive[4]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+			data2Ptr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 4) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 4, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
+
+		// Chan 5 - Geo2/T
+		if (chanActive[5]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+			data2Ptr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 5) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 5, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
+
+		// Chan 6 - Geo2/V
+		if (chanActive[6]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+			data2Ptr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 6) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 6, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
+
+		// Chan 7 - AOP2/A
+		if (chanActive[7]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+			data2Ptr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]); if ((chanDataRaw[2] & 0x0F) != 7) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 7, (chanDataRaw[2] & 0x0F)); }
+			if (chanDataRaw[2] & 0x10) { debugErr("AD Over Voltage Alert: Channel %d\r\n", (chanDataRaw[2] & 0x0F)); } }
+
+		// Temp
+		AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
+		dataTemperature = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+		if ((chanDataRaw[2] & 0x0F) != 15) { configError = YES; debugErr("AD Channel config error: Expected %d, got %d\r\n", 15, (chanDataRaw[2] & 0x0F)); } // An INx value of 15 corresponds to either IN15 or the temperature sensor
+
+		if (configError == YES)
+		{
+			debugErr("AD Channel config error! Channel data is not in sync\r\n");
+		}
+	}
+	else if (g_adChannelConfig == EIGHT_AD_CHANNELS_NO_READBACK_WITH_TEMP)
+	{
+		// Dynaimc channels
+		if (chanActive[0]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 0 - Geo1/R
+		if (chanActive[1]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 1 - Geo1/T
+		if (chanActive[2]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 2 - Geo1/V
+		if (chanActive[3]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 3 - AOP1/A
+		if (chanActive[4]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); data2Ptr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 4 - Geo2/R
+		if (chanActive[5]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); data2Ptr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 5 - Geo2/T
+		if (chanActive[6]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); data2Ptr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 6 - Geo2/V
+		if (chanActive[7]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); data2Ptr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 7 - AOP2/A
+
+		// Temp
+		AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE);
+		dataTemperature = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
+	}
+	else if (g_adChannelConfig == EIGHT_AD_CHANNELS_NO_READBACK_NO_TEMP)
+	{
+		// Dynaimc channels
+		if (chanActive[0]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); dataPtr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 0 - Geo1/R
+		if (chanActive[1]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); dataPtr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 1 - Geo1/T
+		if (chanActive[2]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); dataPtr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 2 - Geo1/V
+		if (chanActive[3]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); dataPtr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 3 - AOP1/A
+		if (chanActive[4]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); data2Ptr->r = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 4 - Geo2/R
+		if (chanActive[5]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); data2Ptr->t = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 5 - Geo2/T
+		if (chanActive[6]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); data2Ptr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 6 - Geo2/V
+		if (chanActive[7]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); data2Ptr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 7 - AOP2/A
+	}
+	else
+#endif
 	if (g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP)
 	{
 		// Chan 0 - Geo1/R
@@ -223,13 +322,17 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 		AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_AOP_2));
 #endif
 	}
-	else // SENSOR_GROUP_B_2
+	else if (g_currentSensorGroup == SENSOR_GROUP_B_2)
 	{
 #if 0 /* Original, Geo + AOP on one sensor group */
 		AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_2 | ANALOG_AOP_2));
 #else /* Standard config, Geo + AOP split on two sensor groups */
 		AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_2 | ANALOG_AOP_1));
 #endif
+	}
+	else // SENSOR_GROUP_BOTH
+	{
+		AD4695_SetStandardSequenceActiveChannels((ANALOG_GEO_1 | ANALOG_GEO_2 | ANALOG_AOP_1 | ANALOG_AOP_2));
 	}
 
 	// For any sample rate 8K and below
@@ -238,25 +341,66 @@ void SetupADChannelConfig(uint32 sampleRate, uint8 channelVerification)
 		// Check if channel verification is not disabled or verification override is enabled to allow reading back the config
 		if ((g_unitConfig.adChannelVerification != DISABLED) || (channelVerification == OVERRIDE_ENABLE_CHANNEL_VERIFICATION))
 		{
-			debug("ADC Channel Setup: 4 channels + Temperature + Readback\r\n");
-			g_adChannelConfig = FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP;
+			if (g_currentSensorGroup == SENSOR_GROUP_BOTH)
+			{
+				debug("ADC Channel Setup: 8 channels + Temperature + Readback\r\n");
+				g_adChannelConfig = EIGHT_AD_CHANNELS_WITH_READBACK_WITH_TEMP;
+			}
+			else // Normal
+			{
+				debug("ADC Channel Setup: 4 channels + Temperature + Readback\r\n");
+				g_adChannelConfig = FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP;
+			}
 		}
 		else // Verification disabled, don't read back config
 		{
-			debug("ADC Channel Setup: 4 channels + Temperature (No readback)\r\n");
-			g_adChannelConfig = FOUR_AD_CHANNELS_NO_READBACK_WITH_TEMP;
+			if (g_currentSensorGroup == SENSOR_GROUP_BOTH)
+			{
+				debug("ADC Channel Setup: 8 channels + Temperature (No readback)\r\n");
+				g_adChannelConfig = EIGHT_AD_CHANNELS_NO_READBACK_WITH_TEMP;
+			}
+			else // Normal
+			{
+				debug("ADC Channel Setup: 4 channels + Temperature (No readback)\r\n");
+				g_adChannelConfig = FOUR_AD_CHANNELS_NO_READBACK_WITH_TEMP;
+			}
 		}
 	}
 	else // Sample rates 16384 and above take too long to read back config and temp, so skip them
 	{
-			debug("ADC Channel Setup: 4 channels only (No Temp, No readback)\r\n");
-		g_adChannelConfig = FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP;
+			if (g_currentSensorGroup == SENSOR_GROUP_BOTH)
+			{
+				debug("ADC Channel Setup: 8 channels only (No Temp, No readback)\r\n");
+				g_adChannelConfig = EIGHT_AD_CHANNELS_NO_READBACK_NO_TEMP;
+			}
+			else // Normal
+			{
+				debug("ADC Channel Setup: 4 channels only (No Temp, No readback)\r\n");
+				g_adChannelConfig = FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP;
+			}
 	}
 
-	// Enable temp sensor if channel config is anything but no temperature reading, otherwise disable
-	AD4695_SetTemperatureSensorEnable(((g_adChannelConfig != FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP) ? YES : NO));
-	// Start conversion mode and enable status if readback is enabled, otherwise disable status
-	AD4695_EnterConversionMode(((g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP) ? YES : NO));
+	if (g_currentSensorGroup == SENSOR_GROUP_BOTH)
+	{
+		// Enable temp sensor if channel config is anything but no temperature reading, otherwise disable
+		AD4695_SetTemperatureSensorEnable(((g_adChannelConfig != EIGHT_AD_CHANNELS_NO_READBACK_NO_TEMP) ? YES : NO));
+	}
+	else // Normal
+	{
+		// Enable temp sensor if channel config is anything but no temperature reading, otherwise disable
+		AD4695_SetTemperatureSensorEnable(((g_adChannelConfig != FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP) ? YES : NO));
+	}
+
+	if (g_currentSensorGroup == SENSOR_GROUP_BOTH)
+	{
+		// Start conversion mode and enable status if readback is enabled, otherwise disable status
+		AD4695_EnterConversionMode(((g_adChannelConfig == EIGHT_AD_CHANNELS_WITH_READBACK_WITH_TEMP) ? YES : NO));
+	}
+	else // Normal
+	{
+		// Start conversion mode and enable status if readback is enabled, otherwise disable status
+		AD4695_EnterConversionMode(((g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP) ? YES : NO));
+	}
 }
 
 ///----------------------------------------------------------------------------
@@ -481,7 +625,7 @@ void GetChannelOffsets(uint32 sampleRate)
 	uint32 timeDelay = (977 / (sampleRate / 1024));
 	uint8 powerAnalogDown = NO;
 
-#if 1 /* Test Accelerometer */
+#if 0 /* Test Accelerometer */
 	if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
 	{
 		debug("Get Chan Offsets: Using Accelerometer\r\n");
@@ -505,7 +649,7 @@ void GetChannelOffsets(uint32 sampleRate)
 	// Read and pitch samples
 	for (i = 0; i < (sampleRate * 1); i++)
 	{
-#if 1 /* Test Accelerometer */
+#if 0 /* Test Accelerometer */
 		if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
 		{
 			ACC_DATA_STRUCT accData;
@@ -514,9 +658,14 @@ void GetChannelOffsets(uint32 sampleRate)
 		}
 		else { ReadAnalogData(&s_tempData); }
 #else
-		ReadAnalogData(&s_tempData);
+		ReadAnalogData(&s_tempData, &s_tempData2);
 #endif
-
+#if 1 /* Test Accelerometer companion event */
+		if (g_saveAccelerometerCompanionEvent)
+		{
+			GetAccelerometerChannelData(&s_tempAccData);
+		}
+#endif
 		//debug("Offset throw away data: 0x%x, 0x%x, 0x%x, 0x%x\r\n", s_tempData.r, s_tempData.v, s_tempData.t, s_tempData.a);
 
 		// Delay equivalent to the time in between gathering samples for the current sample rate
@@ -530,7 +679,7 @@ void GetChannelOffsets(uint32 sampleRate)
 	// Read and sum samples
 	for (i = 0; i < (sampleRate * 1); i++)
 	{
-#if 1 /* Test Accelerometer */
+#if 0 /* Test Accelerometer */
 		if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
 		{
 			ACC_DATA_STRUCT accData;
@@ -539,15 +688,37 @@ void GetChannelOffsets(uint32 sampleRate)
 		}
 		else { ReadAnalogData(&s_tempData); }
 #else
-		ReadAnalogData(&s_tempData);
+		ReadAnalogData(&s_tempData, &s_tempData2);
 #endif
-
+#if 1 /* Test Accelerometer companion event */
+		if (g_saveAccelerometerCompanionEvent)
+		{
+			GetAccelerometerChannelData(&s_tempAccData);
+		}
+#endif
 		//debug("Offset sum data: 0x%x, 0x%x, 0x%x, 0x%x\r\n", s_tempData.r, s_tempData.v, s_tempData.t, s_tempData.a);
 
 		s_workingChannelOffset.rTotal += s_tempData.r;
 		s_workingChannelOffset.vTotal += s_tempData.v;
 		s_workingChannelOffset.tTotal += s_tempData.t;
 		s_workingChannelOffset.aTotal += s_tempData.a;
+
+		if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+		{
+			s_workingChannelOffset.r2Total += s_tempData2.r;
+			s_workingChannelOffset.v2Total += s_tempData2.v;
+			s_workingChannelOffset.t2Total += s_tempData2.t;
+			s_workingChannelOffset.a2Total += s_tempData2.a;
+		}
+
+#if 1 /* Test Accelerometer companion event */
+		if (g_saveAccelerometerCompanionEvent)
+		{
+			s_workingChannelOffset.xTotal += s_tempAccData.x;
+			s_workingChannelOffset.yTotal += s_tempAccData.y;
+			s_workingChannelOffset.zTotal += s_tempAccData.z;
+		}
+#endif
 
 		// Delay equivalent to the time in between gathering samples for the current sample rate
 		SoftUsecWait(timeDelay);
@@ -559,14 +730,67 @@ void GetChannelOffsets(uint32 sampleRate)
 	s_workingChannelOffset.tTotal /= (sampleRate * 1);
 	s_workingChannelOffset.aTotal /= (sampleRate * 1);
 
+	if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+	{
+		s_workingChannelOffset.r2Total /= (sampleRate * 1);
+		s_workingChannelOffset.v2Total /= (sampleRate * 1);
+		s_workingChannelOffset.t2Total /= (sampleRate * 1);
+		s_workingChannelOffset.a2Total /= (sampleRate * 1);
+	}
+
+#if 1 /* Test Accelerometer companion event */
+	if (g_saveAccelerometerCompanionEvent)
+	{
+		s_workingChannelOffset.xTotal /= (sampleRate * 1);
+		s_workingChannelOffset.yTotal /= (sampleRate * 1);
+		s_workingChannelOffset.zTotal /= (sampleRate * 1);
+	}
+#endif
+
 	// Set the channel offsets
 	g_channelOffset.r_offset = (int16)(s_workingChannelOffset.rTotal - ACCURACY_16_BIT_MIDPOINT);
 	g_channelOffset.v_offset = (int16)(s_workingChannelOffset.vTotal - ACCURACY_16_BIT_MIDPOINT);
 	g_channelOffset.t_offset = (int16)(s_workingChannelOffset.tTotal - ACCURACY_16_BIT_MIDPOINT);
 	g_channelOffset.a_offset = (int16)(s_workingChannelOffset.aTotal - ACCURACY_16_BIT_MIDPOINT);
 
-	debug("A/D Channel First Pass channel average: 0x%x, 0x%x, 0x%x, 0x%x\r\n", s_workingChannelOffset.rTotal, s_workingChannelOffset.vTotal, s_workingChannelOffset.tTotal, s_workingChannelOffset.aTotal);
-	debug("A/D Channel First Pass channel offsets: %d, %d, %d, %d\r\n", g_channelOffset.r_offset, g_channelOffset.v_offset, g_channelOffset.t_offset, g_channelOffset.a_offset);
+	if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+	{
+		g_channelOffset.r2_offset = (int16)(s_workingChannelOffset.r2Total - ACCURACY_16_BIT_MIDPOINT);
+		g_channelOffset.v2_offset = (int16)(s_workingChannelOffset.v2Total - ACCURACY_16_BIT_MIDPOINT);
+		g_channelOffset.t2_offset = (int16)(s_workingChannelOffset.t2Total - ACCURACY_16_BIT_MIDPOINT);
+		g_channelOffset.a2_offset = (int16)(s_workingChannelOffset.a2Total - ACCURACY_16_BIT_MIDPOINT);
+	}
+
+#if 1 /* Test Accelerometer companion event */
+	if (g_saveAccelerometerCompanionEvent)
+	{
+		g_channelOffset.x_offset = (int16)(s_workingChannelOffset.xTotal - ACCURACY_16_BIT_MIDPOINT);
+		g_channelOffset.y_offset = (int16)(s_workingChannelOffset.yTotal - ACCURACY_16_BIT_MIDPOINT);
+		g_channelOffset.z_offset = (int16)(s_workingChannelOffset.zTotal - ACCURACY_16_BIT_MIDPOINT);
+	}
+#endif
+
+	if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+	{
+		debug("(Geo1 + AOP1) A/D Channel First Pass channel average: 0x%x, 0x%x, 0x%x, 0x%x\r\n", s_workingChannelOffset.rTotal, s_workingChannelOffset.vTotal, s_workingChannelOffset.tTotal, s_workingChannelOffset.aTotal);
+		debug("(Geo1 + AOP1) A/D Channel First Pass channel offsets: %d, %d, %d, %d\r\n", g_channelOffset.r_offset, g_channelOffset.v_offset, g_channelOffset.t_offset, g_channelOffset.a_offset);
+
+		debug("(Geo2 + AOP2) A/D Channel First Pass channel average: 0x%x, 0x%x, 0x%x, 0x%x\r\n", s_workingChannelOffset.r2Total, s_workingChannelOffset.v2Total, s_workingChannelOffset.t2Total, s_workingChannelOffset.a2Total);
+		debug("(Geo2 + AOP2) A/D Channel First Pass channel offsets: %d, %d, %d, %d\r\n", g_channelOffset.r2_offset, g_channelOffset.v2_offset, g_channelOffset.t2_offset, g_channelOffset.a2_offset);
+	}
+	else
+	{
+		debug("A/D Channel First Pass channel average: 0x%x, 0x%x, 0x%x, 0x%x\r\n", s_workingChannelOffset.rTotal, s_workingChannelOffset.vTotal, s_workingChannelOffset.tTotal, s_workingChannelOffset.aTotal);
+		debug("A/D Channel First Pass channel offsets: %d, %d, %d, %d\r\n", g_channelOffset.r_offset, g_channelOffset.v_offset, g_channelOffset.t_offset, g_channelOffset.a_offset);
+	}
+
+#if 1 /* Test Accelerometer companion event */
+	if (g_saveAccelerometerCompanionEvent)
+	{
+		debug("(Acc) A/D Channel First Pass channel average: 0x%x, 0x%x, 0x%x\r\n", s_workingChannelOffset.xTotal, s_workingChannelOffset.yTotal, s_workingChannelOffset.zTotal);
+		debug("(Acc) A/D Channel First Pass channel offsets: %d, %d, %d\r\n", g_channelOffset.x_offset, g_channelOffset.y_offset, g_channelOffset.z_offset);
+	}
+#endif
 
 	memset(&s_workingChannelOffset, 0, sizeof(s_workingChannelOffset));
 	memset(&s_workingChannelCounts, 0, sizeof(s_workingChannelCounts));
@@ -575,7 +799,7 @@ void GetChannelOffsets(uint32 sampleRate)
 	// Read and sum samples
 	for (i = 0; i < (sampleRate * 1); i++)
 	{
-#if 1 /* Test Accelerometer */
+#if 0 /* Test Accelerometer */
 		if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
 		{
 			ACC_DATA_STRUCT accData;
@@ -584,9 +808,14 @@ void GetChannelOffsets(uint32 sampleRate)
 		}
 		else { ReadAnalogData(&s_tempData); }
 #else
-		ReadAnalogData(&s_tempData);
+		ReadAnalogData(&s_tempData, &s_tempData2);
 #endif
-
+#if 1 /* Test Accelerometer companion event */
+	if (g_saveAccelerometerCompanionEvent)
+	{
+		GetAccelerometerChannelData(&s_tempAccData);
+	}
+#endif
 		//debug("Offset sum data: 0x%x, 0x%x, 0x%x, 0x%x\r\n", s_tempData.r, s_tempData.v, s_tempData.t, s_tempData.a);
 
 		if (((s_tempData.r - g_channelOffset.r_offset) > (ACCURACY_16_BIT_MIDPOINT - SEISMIC_TRIGGER_MIN_VALUE)) && 
@@ -617,6 +846,49 @@ void GetChannelOffsets(uint32 sampleRate)
 			s_workingChannelCounts.aCount++;
 		}
 
+		if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+		{
+			if (((s_tempData2.r - g_channelOffset.r2_offset) > (ACCURACY_16_BIT_MIDPOINT - SEISMIC_TRIGGER_MIN_VALUE)) && (((s_tempData2.r - g_channelOffset.r2_offset) < (ACCURACY_16_BIT_MIDPOINT + SEISMIC_TRIGGER_MIN_VALUE))))
+			{
+				s_workingChannelOffset.r2Total += s_tempData2.r; s_workingChannelCounts.r2Count++;
+			}
+
+			if (((s_tempData2.v - g_channelOffset.v2_offset) > (ACCURACY_16_BIT_MIDPOINT - SEISMIC_TRIGGER_MIN_VALUE)) && (((s_tempData2.v - g_channelOffset.v2_offset) < (ACCURACY_16_BIT_MIDPOINT + SEISMIC_TRIGGER_MIN_VALUE))))
+			{
+				s_workingChannelOffset.v2Total += s_tempData2.v; s_workingChannelCounts.v2Count++;
+			}
+
+			if (((s_tempData2.t - g_channelOffset.t2_offset) > (ACCURACY_16_BIT_MIDPOINT - SEISMIC_TRIGGER_MIN_VALUE)) && (((s_tempData2.t - g_channelOffset.t2_offset) < (ACCURACY_16_BIT_MIDPOINT + SEISMIC_TRIGGER_MIN_VALUE))))
+			{
+				s_workingChannelOffset.t2Total += s_tempData2.t; s_workingChannelCounts.t2Count++;
+			}
+
+			if (((s_tempData2.a - g_channelOffset.a2_offset) > (ACCURACY_16_BIT_MIDPOINT - SEISMIC_TRIGGER_MIN_VALUE)) && (((s_tempData2.a - g_channelOffset.a2_offset) < (ACCURACY_16_BIT_MIDPOINT + SEISMIC_TRIGGER_MIN_VALUE))))
+			{
+				s_workingChannelOffset.a2Total += s_tempData2.a; s_workingChannelCounts.a2Count++;
+			}
+		}
+
+#if 1 /* Test Accelerometer companion event */
+		if (g_saveAccelerometerCompanionEvent)
+		{
+			if (((s_tempAccData.x - g_channelOffset.x_offset) > (ACCURACY_16_BIT_MIDPOINT - SEISMIC_TRIGGER_MIN_VALUE)) && (((s_tempAccData.x - g_channelOffset.x_offset) < (ACCURACY_16_BIT_MIDPOINT + SEISMIC_TRIGGER_MIN_VALUE))))
+			{
+				s_workingChannelOffset.xTotal += s_tempAccData.x; s_workingChannelCounts.xCount++;
+			}
+
+			if (((s_tempAccData.y - g_channelOffset.y_offset) > (ACCURACY_16_BIT_MIDPOINT - SEISMIC_TRIGGER_MIN_VALUE)) && (((s_tempAccData.y - g_channelOffset.y_offset) < (ACCURACY_16_BIT_MIDPOINT + SEISMIC_TRIGGER_MIN_VALUE))))
+			{
+				s_workingChannelOffset.yTotal += s_tempAccData.y; s_workingChannelCounts.yCount++;
+			}
+
+			if (((s_tempAccData.z - g_channelOffset.z_offset) > (ACCURACY_16_BIT_MIDPOINT - SEISMIC_TRIGGER_MIN_VALUE)) && (((s_tempAccData.z - g_channelOffset.z_offset) < (ACCURACY_16_BIT_MIDPOINT + SEISMIC_TRIGGER_MIN_VALUE))))
+			{
+				s_workingChannelOffset.zTotal += s_tempAccData.z; s_workingChannelCounts.zCount++;
+			}
+		}
+#endif
+
 		// Delay equivalent to the time in between gathering samples for the current sample rate
 		SoftUsecWait(timeDelay);
 	}
@@ -627,8 +899,44 @@ void GetChannelOffsets(uint32 sampleRate)
 	if (s_workingChannelCounts.tCount) { s_workingChannelOffset.tTotal /= s_workingChannelCounts.tCount; g_channelOffset.t_offset = (int16)(s_workingChannelOffset.tTotal - ACCURACY_16_BIT_MIDPOINT); }
 	if (s_workingChannelCounts.aCount) { s_workingChannelOffset.aTotal /= s_workingChannelCounts.aCount; g_channelOffset.a_offset = (int16)(s_workingChannelOffset.aTotal - ACCURACY_16_BIT_MIDPOINT); }
 
-	debug("A/D Channel Second Pass channel average: 0x%x, 0x%x, 0x%x, 0x%x\r\n", s_workingChannelOffset.rTotal, s_workingChannelOffset.vTotal, s_workingChannelOffset.tTotal, s_workingChannelOffset.aTotal);
-	debug("A/D Channel Second Pass channel offsets: %d, %d, %d, %d\r\n", g_channelOffset.r_offset, g_channelOffset.v_offset, g_channelOffset.t_offset, g_channelOffset.a_offset);
+	if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+	{
+		if (s_workingChannelCounts.r2Count) { s_workingChannelOffset.r2Total /= s_workingChannelCounts.r2Count; g_channelOffset.r2_offset = (int16)(s_workingChannelOffset.r2Total - ACCURACY_16_BIT_MIDPOINT); }
+		if (s_workingChannelCounts.v2Count) { s_workingChannelOffset.v2Total /= s_workingChannelCounts.v2Count; g_channelOffset.v2_offset = (int16)(s_workingChannelOffset.v2Total - ACCURACY_16_BIT_MIDPOINT); }
+		if (s_workingChannelCounts.t2Count) { s_workingChannelOffset.t2Total /= s_workingChannelCounts.t2Count; g_channelOffset.t2_offset = (int16)(s_workingChannelOffset.t2Total - ACCURACY_16_BIT_MIDPOINT); }
+		if (s_workingChannelCounts.a2Count) { s_workingChannelOffset.a2Total /= s_workingChannelCounts.a2Count; g_channelOffset.a2_offset = (int16)(s_workingChannelOffset.a2Total - ACCURACY_16_BIT_MIDPOINT); }
+	}
+
+#if 1 /* Test Accelerometer companion event */
+	if (g_saveAccelerometerCompanionEvent)
+	{
+		if (s_workingChannelCounts.xCount) { s_workingChannelOffset.xTotal /= s_workingChannelCounts.xCount; g_channelOffset.x_offset = (int16)(s_workingChannelOffset.xTotal - ACCURACY_16_BIT_MIDPOINT); }
+		if (s_workingChannelCounts.yCount) { s_workingChannelOffset.yTotal /= s_workingChannelCounts.yCount; g_channelOffset.y_offset = (int16)(s_workingChannelOffset.yTotal - ACCURACY_16_BIT_MIDPOINT); }
+		if (s_workingChannelCounts.zCount) { s_workingChannelOffset.zTotal /= s_workingChannelCounts.zCount; g_channelOffset.z_offset = (int16)(s_workingChannelOffset.zTotal - ACCURACY_16_BIT_MIDPOINT); }
+	}
+#endif
+
+	if (g_adChannelConfig & EIGHT_AD_CHANNEL_MASK)
+	{
+		debug("(Geo1 + AOP1) A/D Channel Second Pass channel average: 0x%x, 0x%x, 0x%x, 0x%x\r\n", s_workingChannelOffset.rTotal, s_workingChannelOffset.vTotal, s_workingChannelOffset.tTotal, s_workingChannelOffset.aTotal);
+		debug("(Geo1 + AOP1) A/D Channel Second Pass channel offsets: %d, %d, %d, %d\r\n", g_channelOffset.r_offset, g_channelOffset.v_offset, g_channelOffset.t_offset, g_channelOffset.a_offset);
+
+		debug("(Geo2 + AOP2) A/D Channel Second Pass channel average: 0x%x, 0x%x, 0x%x, 0x%x\r\n", s_workingChannelOffset.r2Total, s_workingChannelOffset.v2Total, s_workingChannelOffset.t2Total, s_workingChannelOffset.a2Total);
+		debug("(Geo2 + AOP2) A/D Channel Second Pass channel offsets: %d, %d, %d, %d\r\n", g_channelOffset.r2_offset, g_channelOffset.v2_offset, g_channelOffset.t2_offset, g_channelOffset.a2_offset);
+	}
+	else
+	{
+		debug("A/D Channel Second Pass channel average: 0x%x, 0x%x, 0x%x, 0x%x\r\n", s_workingChannelOffset.rTotal, s_workingChannelOffset.vTotal, s_workingChannelOffset.tTotal, s_workingChannelOffset.aTotal);
+		debug("A/D Channel Second Pass channel offsets: %d, %d, %d, %d\r\n", g_channelOffset.r_offset, g_channelOffset.v_offset, g_channelOffset.t_offset, g_channelOffset.a_offset);
+	}
+
+#if 1 /* Test Accelerometer companion event */
+	if (g_saveAccelerometerCompanionEvent)
+	{
+		debug("(Acc) A/D Channel Second Pass channel average: 0x%x, 0x%x, 0x%x\r\n", s_workingChannelOffset.xTotal, s_workingChannelOffset.yTotal, s_workingChannelOffset.zTotal);
+		debug("(Acc) A/D Channel Second Pass channel offsets: %d, %d, %d\r\n", g_channelOffset.x_offset, g_channelOffset.y_offset, g_channelOffset.z_offset);
+	}
+#endif
 
 	// If we had to power on the A/D here locally, then power it off
 	if (powerAnalogDown == YES)
@@ -767,12 +1075,15 @@ void UpdateChannelOffsetsForTempChange(void)
 ///----------------------------------------------------------------------------
 void ZeroingSensorCalibration(void)
 {
-	OFFSET_DATA_STRUCT zeroCheck = {0, 0, 0, 0};
-	OFFSET_DATA_STRUCT zeroCheckCompare = {0, 0, 0, 0};
+	OFFSET_DATA_STRUCT zeroCheck;
+	OFFSET_DATA_STRUCT zeroCheckCompare;
 	uint32 startZeroSensorTime;
 	uint32 lastHalfSecondTime;
 	uint16 rDiff, vDiff, tDiff, aDiff;
 	char spareBuffer[128]; // Using stack string buffer since prior use of the global spare buffer looks to be stepped on while zeroing
+
+	memset(&zeroCheck, 0, sizeof(OFFSET_DATA_STRUCT));
+	memset(&zeroCheckCompare, 0, sizeof(OFFSET_DATA_STRUCT));
 
 	//=========================================================================
 	// Zero Sensor Calibration
