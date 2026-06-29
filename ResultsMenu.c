@@ -253,6 +253,7 @@ void ResultsMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 				case (UP_ARROW_KEY):
 					if (g_sampleProcessing == ACTIVE_STATE)
 					{
+#if 0 /* Normal */
 						if (msg.data[0] == DOWN_ARROW_KEY)
 						{
 							if (g_resultsEventIndex < s_monitorSessionLastEvent)
@@ -269,6 +270,27 @@ void ResultsMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 								g_updateResultsEventRecord = YES;
 							}
 						}
+#else /* Skip with Accelerometer companion event */
+						if (g_saveAccelerometerCompanionEvent == NO)
+						{
+							if (msg.data[0] == DOWN_ARROW_KEY)
+							{
+								if (g_resultsEventIndex < s_monitorSessionLastEvent)
+								{
+									g_resultsEventIndex++;
+									g_updateResultsEventRecord = YES;
+								}
+							}
+							else // msg.data[0] == UP_ARROW_KEY
+							{
+								if (g_resultsEventIndex > s_monitorSessionFirstEvent)
+								{
+									g_resultsEventIndex--;
+									g_updateResultsEventRecord = YES;
+								}
+							}
+						}
+#endif
 					}
 					else // (g_sampleProcessing == IDLE_STATE)
 					{
