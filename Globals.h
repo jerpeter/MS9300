@@ -266,6 +266,9 @@ extern uint8* g_bargraphBarIntervalLiveMonitorBIDataPtr;
 extern SAMPLE_DATA_STRUCT g_sensorCalPeaks[];
 extern SAMPLE_DATA_STRUCT g_sensorCalFreqCounts;
 extern SAMPLE_DATA_STRUCT g_sensorCalTransitionCounts;
+extern SAMPLE_DATA_STRUCT g_sensorCalPeaks2[];
+extern SAMPLE_DATA_STRUCT g_sensorCalFreqCounts2;
+extern SAMPLE_DATA_STRUCT g_sensorCalTransitionCounts2;
 extern int32 g_sensorCalChanMin[MAX_NUM_OF_CHANNELS];
 extern int32 g_sensorCalChanMax[MAX_NUM_OF_CHANNELS];
 extern int32 g_sensorCalChanAvg[MAX_NUM_OF_CHANNELS];
@@ -306,5 +309,12 @@ extern uint32 g_testTimeSinceLastCalPulse;
 extern uint32 g_calSampleRate;
 extern uint32 g_calSampleSource;
 #endif
-
+#if 1 /* Test */
+extern uint8 g_saveAccelerometerCompanionEvent;
+extern uint16 g_accEventBufferIndex;
+extern uint16* g_accStartOfPretriggerBuff;
+extern uint16* g_accTailOfPretriggerBuff;
+extern uint16* g_accEndOfPretriggerBuff;
+extern EVT_RECORD g_pendingAccEventRecord;
+#endif
 #endif /* GLOBALS_H_ */
