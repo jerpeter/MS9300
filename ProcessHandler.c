@@ -32,6 +32,8 @@
 #include "RemoteOperation.h"
 
 #include "spi.h"
+#include "enumerate.h"
+#include "msc.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -495,6 +497,16 @@ void StopMonitoring(uint8 mode, uint8 operation)
 
 #if 1 /* FCC testing option */
 	ClearSoftTimer(AUTO_EVENT_GENERATION_NUM);
+#endif
+#if 0 //(USB_COMPOSITE_OPTION || USB_MSC_ONLY_OPTION) /* Test, not working as intended */
+extern volatile int g_usbConfigured;
+extern msc_cfg_t msc_cfg;
+	if (g_usbConfigured == 2)
+	{
+		OverlayMessage(getLangText(STATUS_TEXT), "RE-ENABLING USB MASS SOTARGE (MSC)...", (1 * SOFT_SECS));
+		msc_configure(&msc_cfg);
+		g_usbConfigured = 1;
+	}
 #endif
 
 	// Check if Auto Monitor is active and not in monitor mode
