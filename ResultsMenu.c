@@ -253,7 +253,7 @@ void ResultsMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 				case (UP_ARROW_KEY):
 					if (g_sampleProcessing == ACTIVE_STATE)
 					{
-#if 0 /* Normal */
+#if 1 /* Normal */
 						if (msg.data[0] == DOWN_ARROW_KEY)
 						{
 							if (g_resultsEventIndex < s_monitorSessionLastEvent)
