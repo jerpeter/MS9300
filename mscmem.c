@@ -43,6 +43,7 @@
 #include <stdio.h>
 
 #include "sdhc_lib.h"
+#include "Globals.h"
 
 /***** Definitions *****/
 #define LBA_SIZE 512 /* Size of "logical blocks" in bytes */
@@ -451,12 +452,18 @@ int mscmem_Read(uint32_t lba, uint8_t *buffer)
 
 	memcpy(buffer, cachedSector, LBA_SIZE);
 
+#if 1 /* Test */
+	g_mscFlashMemReadCount++;
+#endif
 	return (status);
 #else /* Raw access */
 	// Read sector, lba directly translates to sector number, assume that also equals sector address for SDHC lib read (raw addres wouldn't fit in uint32)
 	//int status = MXC_SDHC_Lib_Read(buffer, lba, LBA_SIZE, MXC_SDHC_LIB_QUAD_DATA);
 	int status = MXC_SDHC_Lib_Read(buffer, lba, 1, MXC_SDHC_LIB_QUAD_DATA);
 
+#if 1 /* Test */
+	g_mscFlashMemReadCount++;
+#endif
 	return (status);
 #endif
 }
@@ -482,12 +489,18 @@ int mscmem_Write(uint32_t lba, uint8_t *buffer)
 	memcpy(cachedSector, buffer, LBA_SIZE);
 	cachedSectorDirty = 1;
 
+#if 1 /* Test */
+	g_mscFlashMemWriteCount++;
+#endif
 	return (0);
 #else /* Raw access */
 	// Write sector, lba directly translates to sector number, assume that also equals sector address for SDHC lib write (raw addres wouldn't fit in uint32)
 	//int status = MXC_SDHC_Lib_Write(lba, (void *)buffer, LBA_SIZE, MXC_SDHC_LIB_QUAD_DATA);
 	int status = MXC_SDHC_Lib_Write(lba, (void *)buffer, 1, MXC_SDHC_LIB_QUAD_DATA);
 
+#if 1 /* Test */
+	g_mscFlashMemWriteCount++;
+#endif
 	return (status);
 #endif
 }
