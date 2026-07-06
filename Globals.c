@@ -199,7 +199,8 @@ USER_MENU_TAGS_STRUCT g_menuTags[TOTAL_TAGS] = {
 	{"INT", INT_TAG},
 	{"CELL PACKET DELAY", CELL_PACKET_DELAY_TAG},
 	{"CELL/LTE eSIM SELECT", CELL_LTE_ESIM_SELECT_TAG},
-	{"USB DEVICE CONFIG", USB_DEVICE_CONFIG_TAG}
+	{"USB DEVICE CONFIG", USB_DEVICE_CONFIG_TAG},
+	{"ACC COMPANION EVENT", ACC_COMPANION_EVENT_TAG}
 };
 uint8 g_monitorOperationMode;
 uint8 g_waitForUser = FALSE;
@@ -388,5 +389,11 @@ uint16* g_accStartOfPretriggerBuff;
 uint16* g_accTailOfPretriggerBuff;
 uint16* g_accEndOfPretriggerBuff;
 EVT_RECORD g_pendingAccEventRecord;
+ACC_DATA_STRUCT g_accSampleData;
+//uint8 g_postIsrSampleDataProcessing = NO;
+#endif
+#if 1 /* Test */
+uint32 g_mscFlashMemReadCount = 0;
+uint32 g_mscFlashMemWriteCount = 0;
 #endif
 // End of the list

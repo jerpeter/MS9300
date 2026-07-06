@@ -316,5 +316,11 @@ extern uint16* g_accStartOfPretriggerBuff;
 extern uint16* g_accTailOfPretriggerBuff;
 extern uint16* g_accEndOfPretriggerBuff;
 extern EVT_RECORD g_pendingAccEventRecord;
+extern ACC_DATA_STRUCT g_accSampleData;
+//extern uint8 g_postIsrSampleDataProcessing;
+#endif
+#if 1 /* Test */
+extern uint32 g_mscFlashMemReadCount;
+extern uint32 g_mscFlashMemWriteCount;
 #endif
 #endif /* GLOBALS_H_ */
