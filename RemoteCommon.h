@@ -59,6 +59,8 @@
 #define AT_CMD_DATAMODE_ERROR	"#XDATAMODE: -5"
 #define AT_CMD_ERROR			"ERROR"
 #define AT_CMD_XMODEM			"#XMODEM:"
+#define AT_CMD_XPING			"#XPING:"
+#define AT_CMD_XPING_AVERAGE	"#XPING: average"
 
 #define MODEM_PDP_CONTEXT		"+CGDCONT: 0,"
 #define MODEM_HOME_NETWORK				"+CEREG: 0,1"
