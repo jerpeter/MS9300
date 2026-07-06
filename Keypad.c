@@ -474,7 +474,7 @@ static uint8_t s_bgateEnable = ON;
 						SetBattChargerBgateEnable(s_bgateEnable);
 						debug("Charger: Toggle BGate Enable to %s\r\n", ((s_bgateEnable == ON) ? "On" : "Off"));
 #endif
-#if 1 /* Test */
+#if 0 /* Test */
 extern void BatteryChargerInit(void);
 extern void SetBattChargerForceBgateCtrlOff(uint8_t state);
 						OverlayMessage(getLangText(STATUS_TEXT), (char*)"BATTERY CHARGER DISABLE AND RE-INIT", 0);
@@ -489,6 +489,22 @@ extern void SetBattChargerForceBgateCtrlOff(uint8_t state);
 					//---------------------------------------------------
 					else if (keyPressed == HELP_KEY)
 					{
+#if 1 /* Test */
+						// Cell modem Ping command and parameters, AT#XPING="<IP_ADDRESS>",<PACKETS>,<PACKET_SIZE>,<RETRIES>,<TIMEOUT>
+						if ((g_tcpServerStartStage == TCP_SERVER_ACTIVE) && (g_modemStatus.remoteConnectionActive == NO))
+						{
+							int strLen, status;
+							debug("AT#XPING=\"8.8.8.8\",45,5000,5,1000...\r\n"); sprintf((char*)g_spareBuffer, "AT#XPING=\"8.8.8.8\",45,5000,5,1000\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+							//{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+						}
+						else
+						{
+							OverlayMessage(getLangText(WARNING_TEXT), "(CELL MODEM) UNABLE TO PING, TCP SERVER IS NOT ACTIVE OR IDLE", (2 * SOFT_SECS));
+						}
+
+						// Clear out the message parameters
+						mn_msg.cmd = 0; mn_msg.length = 0; mn_msg.data[0] = 0;
+#endif
 #if 0 /* Test */
 						g_breakpointCause = BP_END;
 
@@ -553,7 +569,7 @@ extern void USBHostControllerTest(void);
 							OverlayMessage(getLangText(STATUS_TEXT), (char*)g_debugBuffer, (2 * SOFT_SECS));
 						}
 #endif
-#if 1 /* Test */
+#if 0 /* Test */
 extern void SetBattChargerForceBgateCtrlOff(uint8_t state);
 static uint8_t s_forceBgateCtrlOff = OFF;
 						s_forceBgateCtrlOff ^= ON;
