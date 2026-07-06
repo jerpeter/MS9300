@@ -519,13 +519,20 @@ void InitTcpListenServer(void)
 	return;
 #endif
 
-	if ((!g_cellModemSetupRecord.invalid) && (g_cellModemSetupRecord.tcpServer == YES))
+	if (!g_cellModemSetupRecord.invalid)
 	{
-		//OverlayMessage(getLangText(STATUS_TEXT), "CELL MODEM STARTNG LISTEN SERVER. PLEASE WAIT A MOMENT", (0 * SOFT_SECS));
+		if (g_cellModemSetupRecord.tcpServer == YES)
+		{
+			//OverlayMessage(getLangText(STATUS_TEXT), "CELL MODEM STARTNG LISTEN SERVER. PLEASE WAIT A MOMENT", (0 * SOFT_SECS));
 
-		debug("TCP Listen Server: Selected, setting delayed start timer (15 seconds)\r\n");
-		g_tcpServerStartStage = TCP_SERVER_INIT;
-		AssignSoftTimer(TCP_SERVER_START_NUM, (15 * TICKS_PER_SEC), TcpServerStartCallback);
+			debug("TCP Listen Server: Selected, setting delayed start timer (15 seconds)\r\n");
+			g_tcpServerStartStage = TCP_SERVER_INIT;
+			AssignSoftTimer(TCP_SERVER_START_NUM, (15 * TICKS_PER_SEC), TcpServerStartCallback);
+		}
+		else
+		{
+			debug("TCP Listen Server: Not Selected, disabled\r\n");
+		}
 	}
 }
 
@@ -875,6 +882,7 @@ void AutoDialoutStateMachine(void)
 
 				// Send out GAD command (includes serial number and auto dialout parameters)
 				debug("ADO: Sending GAD...");
+				msg.pipe = CRAFT_COM_PORT; // Need to set the serial pipe since the GAD is sent without request
 				handleGAD(&msg);
 
 				// Update timer to current tick count
@@ -911,6 +919,7 @@ void AutoDialoutStateMachine(void)
 			{
 				// Send out GAD command again
 				debug("ADO: Sending GAD...");
+				msg.pipe = CRAFT_COM_PORT; // Need to set the serial pipe since the GAD is sent without request
 				handleGAD(&msg);
 
 				// Update timer to current tick count
@@ -1156,8 +1165,8 @@ void AutoDialoutStateMachine(void)
 
 			if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
 			{
-				debug("ADO: restart timer\r\n");
 				AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_modemSetupRecord.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
+				debug("ADO: restart timer (%d mins) (%s)\r\n", g_modemSetupRecord.dialOutCycleTime, ((IsSoftTimerActive(AUTO_DIAL_OUT_CYCLE_TIMER_NUM) == YES) ? "Active" : "Inactive"));
 			}
 
 			// Check for a special case where ADO Events only no active connections called out but failed to connect
