@@ -283,6 +283,7 @@ void WriteStringToLcd(uint8* p, uint8 x, uint8 y, uint8 (*table_ptr)[2][10])
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+extern volatile int g_usbConfigured;
 int32_t testLifetimeCurrentAvg = -18;
 uint32_t testLifetimeCurrentAvgCount = 1;
 void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
@@ -544,6 +545,27 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 				ft81x_stream_start(); ft81x_cmd_text(550, 380, 28, 0, debugInfo); ft81x_stream_stop();
 			}
 
+		}
+		else if (g_usbConfigured == 1) // Show USB MSC Flash mem stats
+		{
+			// Cell Config: ADO Events/ADO Evts/Config/Status + Server
+			sprintf(debugInfo, "USB Mass Storage:");
+			ft81x_stream_start(); ft81x_cmd_text(550, 200, 28, 0, debugInfo); ft81x_stream_stop();
+
+			sprintf(debugInfo, "Read sector count: %d", g_mscFlashMemReadCount);
+			ft81x_stream_start(); ft81x_cmd_text(550, 220, 28, 0, debugInfo); ft81x_stream_stop();
+
+			sprintf(debugInfo, "Write sector count: %d", g_mscFlashMemWriteCount);
+			ft81x_stream_start(); ft81x_cmd_text(550, 240, 28, 0, debugInfo); ft81x_stream_stop();
+		}
+		else if (g_usbConfigured == 2) // Show USB MSC Flash mem stats
+		{
+			// Cell Config: ADO Events/ADO Evts/Config/Status + Server
+			sprintf(debugInfo, "USB Mass Storage:");
+			ft81x_stream_start(); ft81x_cmd_text(550, 200, 28, 0, debugInfo); ft81x_stream_stop();
+
+			sprintf(debugInfo, "Suspended (monitoring)");
+			ft81x_stream_start(); ft81x_cmd_text(550, 220, 28, 0, debugInfo); ft81x_stream_stop();
 		}
 	}
 #endif
