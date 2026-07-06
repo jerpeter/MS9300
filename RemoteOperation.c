@@ -1690,6 +1690,7 @@ void HandleUMM(CMD_BUFFER_STRUCT* inCmd)
 				if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
 				{
 					AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_modemSetupRecord.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
+					debug("ADO: restart timer (%d mins) (%s)\r\n", g_modemSetupRecord.dialOutCycleTime, ((IsSoftTimerActive(AUTO_DIAL_OUT_CYCLE_TIMER_NUM) == YES) ? "Active" : "Inactive"));
 				}
 			}
 
