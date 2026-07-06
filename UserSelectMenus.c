@@ -257,7 +257,7 @@ void AirScaleMenuHandler(uint8 keyPressed, void* data)
 			}
 			else // Save setup
 			{
-				SETUP_USER_MENU_MSG(&saveSetupMenu, YES);
+				SETUP_USER_MENU_MSG(&saveSetupMenu, NO);
 			}
 #endif
 		}
@@ -649,7 +649,7 @@ void AlarmTwoMenuHandler(uint8 keyPressed, void* data)
 
 				SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
 
-				SETUP_USER_MENU_MSG(&saveSetupMenu, YES);
+				SETUP_USER_MENU_MSG(&saveSetupMenu, NO);
 			break;
 
 			case (ALARM_MODE_SEISMIC):
@@ -1340,7 +1340,7 @@ void BarResultMenuHandler(uint8 keyPressed, void* data)
 		}
 		else // Save setup
 		{
-			SETUP_USER_MENU_MSG(&saveSetupMenu, YES);
+			SETUP_USER_MENU_MSG(&saveSetupMenu, NO);
 		}
 	}
 	else if (keyPressed == ESC_KEY)
@@ -2397,9 +2397,9 @@ USER_MENU_STRUCT hardwareIDMenu[HARDWARE_ID_MENU_ENTRIES] = {
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&HardwareIDMenuHandler}}
 };
 
-//------------------
-// Help Menu Handler
-//------------------
+//-------------------------
+// Hardware ID Menu Handler
+//-------------------------
 void HardwareIDMenuHandler(uint8 keyPressed, void* data)
 {
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
@@ -2445,7 +2445,11 @@ USER_MENU_STRUCT helpMenu[HELP_MENU_ENTRIES] = {
 #else /* Test 2 */
 {ITEM_6, 0, NULL_TEXT,					USB_DEVICE_CONFIG_TAG, {TESTING_CHOICE}},
 #endif
+#if 0 /* Test */
 {ITEM_7, 0, NULL_TEXT,					CELL_LTE_ESIM_SELECT_TAG, {CELL_LTE_ESIM_SELECT}},
+#else /* Test 2 */
+{ITEM_7, 0, NULL_TEXT,					ACC_COMPANION_EVENT_TAG, {ACC_COMPANION_EVENT_CHOICE}},
+#endif
 {ITEM_8, 0, NULL_TEXT,					FCC_TEST_ALL_TAG, {FCC_TESTING_CHOICE}},
 {ITEM_9, 0, NULL_TEXT,					CELL_UART_RESET_TAG, {CELL_UART_RESET_CHOICE}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&HelpMenuHandler}}
@@ -2565,6 +2569,28 @@ extern void USBHostControllerTest(void);
 				debug("CELL/LTE: Physical SIM selected\r\n");
 				SaveRecordData(&g_cellModemSetupRecord, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
 			}
+		}
+		else if (helpMenu[newItemIndex].data == ACC_COMPANION_EVENT_CHOICE)
+		{
+#if 1 /* Test Acc companion event */
+			sprintf((char*)g_spareBuffer, "ACCELEROMETER COMPANION EVENT OPTION IS CURRENTLY %s", ((g_saveAccelerometerCompanionEvent == YES) ? "ENABLED" : "DISABLED"));
+			OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, (2 * SOFT_SECS));
+
+			if (MessageBox(getLangText(STATUS_TEXT), "SAVE ACCELEROMETER COMPANION EVENT WITH WAVEFORM?", MB_YESNO) == MB_FIRST_CHOICE)
+			{
+				g_saveAccelerometerCompanionEvent = YES;
+
+				if (g_triggerRecord.trec.sample_rate > SAMPLE_RATE_4K)
+				{
+					if (MessageBox(getLangText(STATUS_TEXT), "ACC MAX SAMPLE RATE IS 4K. DROP TO 4K? SELECTING NO WILL CANCEL ACC COMPANION", MB_YESNO) == MB_FIRST_CHOICE)
+					{
+						g_triggerRecord.trec.sample_rate = SAMPLE_RATE_4K;
+					}
+					else { g_saveAccelerometerCompanionEvent = NO; }
+				}
+			}
+			else { g_saveAccelerometerCompanionEvent = NO; }
+#endif
 		}
 		else if (helpMenu[newItemIndex].data == FCC_TESTING_CHOICE)
 		{
@@ -3663,8 +3689,8 @@ void SaveCompressedDataMenuHandler(uint8 keyPressed, void* data)
 USER_MENU_STRUCT saveSetupMenu[SAVE_SETUP_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, SAVE_SETUP_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, SAVE_SETUP_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
-{ITEM_1, 0, YES_TEXT,	NO_TAG, {YES}},
-{ITEM_2, 0, NO_TEXT,	NO_TAG, {NO}},
+{ITEM_1, 0, NO_TEXT,	NO_TAG, {NO}},
+{ITEM_2, 0, YES_TEXT,	NO_TAG, {YES}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&SaveSetupMenuHandler}}
 };
 
@@ -3684,7 +3710,7 @@ void SaveSetupMenuHandler(uint8 keyPressed, void* data)
 		}
 		else // User selected NO
 		{
-#if 1 /* Test Acc companion event */
+#if 0 /* Test Acc companion event */
 			if (MessageBox(getLangText(STATUS_TEXT), "SAVE ACCELEROMETER COMPANION EVENT WITH WAVEFORM?", MB_YESNO) == MB_FIRST_CHOICE)
 			{
 				g_saveAccelerometerCompanionEvent = YES;
@@ -3700,6 +3726,8 @@ void SaveSetupMenuHandler(uint8 keyPressed, void* data)
 			}
 			else { g_saveAccelerometerCompanionEvent = NO; }
 #endif
+			OverlayMessage(getLangText(STATUS_TEXT), "SAVING AS DEFAULT CONFIGURATION", (2 * SOFT_SECS));
+
 			// Save the current trig record into the default location
 			SaveRecordData(&g_triggerRecord, DEFAULT_RECORD, REC_TRIGGER_USER_MENU_TYPE);
 
