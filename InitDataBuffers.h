@@ -153,6 +153,7 @@ enum
 void InitDataBuffs(uint8 opMode);
 uint16 CalcSumFreq(uint16* dataPtr, uint32 sampleRate, uint16* startAddrPtr, uint16* endAddrPtr);
 uint16 FixDataToZero(uint16 data_);
+uint16_t GetChannelPeak(uint16_t* dataPtr, uint32_t dataLength);
 
 void ProcessWaveformData(void);
 void MoveWaveformEventToFile(void);

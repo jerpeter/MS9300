@@ -389,3 +389,23 @@ uint16 FixDataToZero(uint16 data_)
 
 	return (data_);
 }
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+uint16_t GetChannelPeak(uint16_t* dataPtr, uint32_t dataLength)
+{
+	uint16_t* samplePtr = dataPtr;
+	uint16_t sampleData, max = 0;
+	uint32_t i;
+
+	for (i = 0; i < dataLength; i++)
+	{
+		sampleData = *samplePtr;
+		if (sampleData > 0x8000) { sampleData -= 0x8000; } else { sampleData = 0x8000 - sampleData; }
+		if (sampleData > max) { max = sampleData; }
+		samplePtr += NUMBER_OF_CHANNELS_DEFAULT;
+	}
+
+	return (max);
+}
