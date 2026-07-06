@@ -115,6 +115,13 @@ void ClearSoftTimer(uint16 timerNum)
 		return;
 	}
 
+#if 1 /* Test */
+	if ((timerNum == AUTO_DIAL_OUT_CYCLE_TIMER_NUM) && (g_rtcTimerBank[AUTO_DIAL_OUT_CYCLE_TIMER_NUM].timePeriod > g_lifetimeHalfSecondTickCount))
+	{
+		debugWarn("ADO timer cleared early (timeout remaining: %d half seconds)\r\n", (g_rtcTimerBank[AUTO_DIAL_OUT_CYCLE_TIMER_NUM].timePeriod - g_lifetimeHalfSecondTickCount));
+	}
+#endif
+
 	g_rtcTimerBank[timerNum].state = TIMER_DISABLED;
 	g_rtcTimerBank[timerNum].tickStart = 0;
 	g_rtcTimerBank[timerNum].timePeriod = 0;
@@ -672,8 +679,8 @@ void AutoDialOutCycleTimerCallBack(void)
 	// Check if AutoDialout is enabled and signal the system if necessary
 	if (CheckAutoDialoutStatusAndFlagIfAvailable() == NO)
 	{
-		debug("Auto Dial Out: Unable to start, resetting ADO timer (State %d, Lock %d, M-Avail %d, Reset %d, Status %d)\r\n",
-				g_autoDialoutState, g_modemStatus.systemIsLockedFlag, g_modemStatus.modemAvailable, g_modemResetStage, g_modemSetupRecord.modemStatus);
+		debug("Auto Dial Out: Unable to start, resetting ADO timer (%d mins) (State %d, Lock %d, M-Avail %d, Reset %d, Status %d)\r\n",
+				g_modemSetupRecord.dialOutCycleTime, g_autoDialoutState, g_modemStatus.systemIsLockedFlag, g_modemStatus.modemAvailable, g_modemResetStage, g_modemSetupRecord.modemStatus);
 		AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_modemSetupRecord.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
 
 #if 0 /* Original - External modem */
