@@ -2491,10 +2491,10 @@ void SetupSPI2_LCDAndAcc(void)
 #define TOSTRING(x) STRINGIFY(x)
 
 // USB Global Data
-volatile int configured;
-volatile int suspended;
-volatile unsigned int event_flags;
-int remote_wake_en;
+volatile int g_usbConfigured;
+volatile int g_usbSuspended;
+volatile unsigned int g_usbEventFlags;
+int g_usbRemoteWakeEnable;
 
 // USB Function Prototypes
 #if USB_COMPOSITE_OPTION /* Composite MSC + CDC-ACM */
@@ -2561,10 +2561,10 @@ void SetupUSBComposite(void)
 	debug("Waiting for VBUS...\r\n");
 
 	// Initialize state
-	configured = 0;
-	suspended = 0;
-	event_flags = 0;
-	remote_wake_en = 0;
+	g_usbConfigured = 0;
+	g_usbSuspended = 0;
+	g_usbEventFlags = 0;
+	g_usbRemoteWakeEnable = 0;
 
 	// Start out in full speed
 	usb_opts.enable_hs = 1; // 0 for Full Speed, 1 for High Speed
@@ -2765,8 +2765,8 @@ int setconfigCallback_Composite(MXC_USB_SetupPkt *sud, void *cbdata)
 	/* Confirm the configuration value */
 	if (sud->wValue == composite_config_descriptor.config_descriptor.bConfigurationValue)
 	{
-		configured = 1;
-		MXC_SETBIT(&event_flags, EVENT_ENUM_COMP);
+		g_usbConfigured = 1;
+		MXC_SETBIT(&g_usbEventFlags, EVENT_ENUM_COMP);
 
 		if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED)
 		{
@@ -2800,7 +2800,7 @@ int setconfigCallback_Composite(MXC_USB_SetupPkt *sud, void *cbdata)
 	}
 	else if (sud->wValue == 0)
 	{
-		configured = 0;
+		g_usbConfigured = 0;
 		msc_deconfigure();
 		return acm_deconfigure();
 	}
@@ -2817,9 +2817,10 @@ int setconfigCallback_CDCACM(MXC_USB_SetupPkt *sud, void *cbdata)
 	debugRaw("<U-cc>");
 
 	/* Confirm the configuration value */
-	if (sud->wValue == config_descriptor.config_descriptor.bConfigurationValue) {
-		configured = 1;
-		MXC_SETBIT(&event_flags, EVENT_ENUM_COMP);
+	if (sud->wValue == config_descriptor.config_descriptor.bConfigurationValue)
+	{
+		g_usbConfigured = 1;
+		MXC_SETBIT(&g_usbEventFlags, EVENT_ENUM_COMP);
 
 		acm_cfg.out_ep = config_descriptor.endpoint_descriptor_4.bEndpointAddress & 0x7;
 		acm_cfg.out_maxpacket = config_descriptor.endpoint_descriptor_4.wMaxPacketSize;
@@ -2833,7 +2834,7 @@ int setconfigCallback_CDCACM(MXC_USB_SetupPkt *sud, void *cbdata)
 #endif
 		return acm_configure(&acm_cfg); /* Configure the device class */
 	} else if (sud->wValue == 0) {
-		configured = 0;
+		g_usbConfigured = 0;
 		return acm_deconfigure();
 	}
 
@@ -2849,9 +2850,10 @@ int setconfigCallback_MSC(MXC_USB_SetupPkt *sud, void *cbdata)
 	debugRaw("<U-cc>");
 
 	/* Confirm the configuration value */
-	if (sud->wValue == config_descriptor.config_descriptor.bConfigurationValue) {
-		configured = 1;
-		MXC_SETBIT(&event_flags, EVENT_ENUM_COMP);
+	if (sud->wValue == config_descriptor.config_descriptor.bConfigurationValue)
+	{
+		g_usbConfigured = 1;
+		MXC_SETBIT(&g_usbEventFlags, EVENT_ENUM_COMP);
 
 		if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
 			msc_cfg.out_ep = config_descriptor_hs.endpoint_descriptor_1.bEndpointAddress & 0x7;
@@ -2872,7 +2874,7 @@ int setconfigCallback_MSC(MXC_USB_SetupPkt *sud, void *cbdata)
 		return msc_configure(&msc_cfg); /* Configure the device class */
 
 	} else if (sud->wValue == 0) {
-		configured = 0;
+		g_usbConfigured = 0;
 		return msc_deconfigure();
 	}
 
@@ -2886,7 +2888,7 @@ int setconfigCallback_MSC(MXC_USB_SetupPkt *sud, void *cbdata)
 static int setfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata)
 {
 	if (sud->wValue == FEAT_REMOTE_WAKE) {
-		remote_wake_en = 1;
+		g_usbRemoteWakeEnable = 1;
 	} else {
 		// Unknown callback
 		return -1;
@@ -2901,7 +2903,7 @@ static int setfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata)
 static int clrfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata)
 {
 	if (sud->wValue == FEAT_REMOTE_WAKE) {
-		remote_wake_en = 0;
+		g_usbRemoteWakeEnable = 0;
 	} else {
 		// Unknown callback
 		return -1;
@@ -2915,7 +2917,7 @@ static int clrfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata)
 ///----------------------------------------------------------------------------
 static void usbAppSleep(void)
 {
-	suspended = 1;
+	g_usbSuspended = 1;
 
 	// Todo: Any low power code to place here?
 }
@@ -2925,7 +2927,7 @@ static void usbAppSleep(void)
 ///----------------------------------------------------------------------------
 static void usbAppWakeup(void)
 {
-	suspended = 0;
+	g_usbSuspended = 0;
 
 	// Todo: Any power up code to place here?
 }
@@ -2943,7 +2945,7 @@ int usbEventCallback_Composite(maxusb_event_t evt, void *data)
 	debugRaw("<U-ec:%d>", evt);
 
 	/* Set event flag */
-	MXC_SETBIT(&event_flags, evt);
+	MXC_SETBIT(&g_usbEventFlags, evt);
 
 	switch (evt) {
 	case MAXUSB_EVENT_NOVBUS:
@@ -2951,7 +2953,7 @@ int usbEventCallback_Composite(maxusb_event_t evt, void *data)
 		MXC_USB_EventDisable(MAXUSB_EVENT_SUSP);
 		MXC_USB_EventDisable(MAXUSB_EVENT_DPACT);
 		MXC_USB_Disconnect();
-		configured = 0;
+		g_usbConfigured = 0;
 		enum_clearconfig();
 		msc_deconfigure();
 		acm_deconfigure();
@@ -2976,8 +2978,8 @@ int usbEventCallback_Composite(maxusb_event_t evt, void *data)
 		enum_clearconfig();
 		msc_deconfigure();
 		acm_deconfigure();
-		configured = 0;
-		suspended = 0;
+		g_usbConfigured = 0;
+		g_usbSuspended = 0;
 		break;
 	case MAXUSB_EVENT_BRSTDN:
 		if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
@@ -3012,7 +3014,7 @@ int usbEventCallback_CDCACM(maxusb_event_t evt, void *data)
 	debugRaw("<U-ec:%d>", evt);
 
 	/* Set event flag */
-	MXC_SETBIT(&event_flags, evt);
+	MXC_SETBIT(&g_usbEventFlags, evt);
 
 	switch (evt) {
 	case MAXUSB_EVENT_NOVBUS:
@@ -3020,7 +3022,7 @@ int usbEventCallback_CDCACM(maxusb_event_t evt, void *data)
 		MXC_USB_EventDisable(MAXUSB_EVENT_SUSP);
 		MXC_USB_EventDisable(MAXUSB_EVENT_DPACT);
 		MXC_USB_Disconnect();
-		configured = 0;
+		g_usbConfigured = 0;
 		enum_clearconfig();
 		acm_deconfigure();
 		usbAppSleep();
@@ -3043,8 +3045,8 @@ int usbEventCallback_CDCACM(maxusb_event_t evt, void *data)
 		usbAppWakeup();
 		enum_clearconfig();
 		acm_deconfigure();
-		configured = 0;
-		suspended = 0;
+		g_usbConfigured = 0;
+		g_usbSuspended = 0;
 		break;
 	case MAXUSB_EVENT_BRSTDN:
 		if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
@@ -3077,7 +3079,7 @@ int usbEventCallback_MSC(maxusb_event_t evt, void *data)
 	debugRaw("<U-ec:%d>", evt);
 
 	/* Set event flag */
-	MXC_SETBIT(&event_flags, evt);
+	MXC_SETBIT(&g_usbEventFlags, evt);
 
 	switch (evt) {
 	case MAXUSB_EVENT_NOVBUS:
@@ -3085,7 +3087,7 @@ int usbEventCallback_MSC(maxusb_event_t evt, void *data)
 		MXC_USB_EventDisable(MAXUSB_EVENT_SUSP);
 		MXC_USB_EventDisable(MAXUSB_EVENT_DPACT);
 		MXC_USB_Disconnect();
-		configured = 0;
+		g_usbConfigured = 0;
 		enum_clearconfig();
 		msc_deconfigure();
 		usbAppSleep();
@@ -3110,8 +3112,8 @@ int usbEventCallback_MSC(maxusb_event_t evt, void *data)
 		usbAppWakeup();
 		enum_clearconfig();
 		msc_deconfigure();
-		configured = 0;
-		suspended = 0;
+		g_usbConfigured = 0;
+		g_usbSuspended = 0;
 		break;
 
 	case MAXUSB_EVENT_BRSTDN:
@@ -3246,39 +3248,56 @@ void USB_IRQHandler(void)
 void UsbReportEvents(void)
 {
 #if 0 /* Prevent reporting every call, or find another status to toggle like LED or display */
-	if ((suspended) || (!configured)) { debug("USB: Suspended or not configured\r\n"); }
+	if ((g_usbSuspended) || (!g_usbConfigured)) { debug("USB: Suspended or not configured\r\n"); }
 	else { debug("USB: Configured\r\n"); }
 #endif
 
-	if (event_flags)
+	if (g_usbEventFlags)
 	{
-		if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_NOVBUS)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_NOVBUS); debug("USB: VBUS Disconnect\r\n"); }
-		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_VBUS)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_VBUS); debug("USB: VBUS Connect\r\n"); }
-		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRST)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRST); debug("USB: Bus Reset\r\n"); }
+		if (MXC_GETBIT(&g_usbEventFlags, MAXUSB_EVENT_NOVBUS)) { MXC_CLRBIT(&g_usbEventFlags, MAXUSB_EVENT_NOVBUS); debug("USB: VBUS Disconnect\r\n"); }
+		else if (MXC_GETBIT(&g_usbEventFlags, MAXUSB_EVENT_VBUS)) { MXC_CLRBIT(&g_usbEventFlags, MAXUSB_EVENT_VBUS); debug("USB: VBUS Connect\r\n"); }
+		else if (MXC_GETBIT(&g_usbEventFlags, MAXUSB_EVENT_BRST)) { MXC_CLRBIT(&g_usbEventFlags, MAXUSB_EVENT_BRST); debug("USB: Bus Reset\r\n"); }
 #if 1 /* Original */
-		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRSTDN)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRSTDN); debug("USB: Bus Reset Done: %s speed\r\n", (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) ? "High" : "Full"); }
+		else if (MXC_GETBIT(&g_usbEventFlags, MAXUSB_EVENT_BRSTDN)) { MXC_CLRBIT(&g_usbEventFlags, MAXUSB_EVENT_BRSTDN); debug("USB: Bus Reset Done: %s speed\r\n", (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) ? "High" : "Full"); }
 #else /* Test */
-		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_BRSTDN))
+		else if (MXC_GETBIT(&g_usbEventFlags, MAXUSB_EVENT_BRSTDN))
 		{
-			MXC_CLRBIT(&event_flags, MAXUSB_EVENT_BRSTDN);
+			MXC_CLRBIT(&g_usbEventFlags, MAXUSB_EVENT_BRSTDN);
 			debug("USB: Bus Reset Done: %s speed\r\n", (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) ? "High" : "Full");
 
 void WriteDebugCacheToFile(uint8_t flush);
 			WriteDebugCacheToFile(1);
 		}
 #endif
-		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_SUSP)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_SUSP); debug("USB: Suspended\r\n"); }
-		else if (MXC_GETBIT(&event_flags, MAXUSB_EVENT_DPACT)) { MXC_CLRBIT(&event_flags, MAXUSB_EVENT_DPACT); debug("USB: Resume\r\n"); }
-		else if (MXC_GETBIT(&event_flags, EVENT_ENUM_COMP)) { MXC_CLRBIT(&event_flags, EVENT_ENUM_COMP); debug("USB: Enumeration complete...\r\n"); }
-		else if (MXC_GETBIT(&event_flags, EVENT_REMOTE_WAKE)) { MXC_CLRBIT(&event_flags, EVENT_REMOTE_WAKE); debug("USB: Remote Wakeup\r\n"); }
+		else if (MXC_GETBIT(&g_usbEventFlags, MAXUSB_EVENT_SUSP)) { MXC_CLRBIT(&g_usbEventFlags, MAXUSB_EVENT_SUSP); debug("USB: Suspended\r\n"); }
+		else if (MXC_GETBIT(&g_usbEventFlags, MAXUSB_EVENT_DPACT)) { MXC_CLRBIT(&g_usbEventFlags, MAXUSB_EVENT_DPACT); debug("USB: Resume\r\n"); }
+		else if (MXC_GETBIT(&g_usbEventFlags, EVENT_ENUM_COMP)) { MXC_CLRBIT(&g_usbEventFlags, EVENT_ENUM_COMP); debug("USB: Enumeration complete...\r\n"); }
+		else if (MXC_GETBIT(&g_usbEventFlags, EVENT_REMOTE_WAKE)) { MXC_CLRBIT(&g_usbEventFlags, EVENT_REMOTE_WAKE); debug("USB: Remote Wakeup\r\n"); }
 	}
 
-	// 0 = int enabled, 1 = disabled
+	// Fix for the Framework USB driver that sometimes doesn't re-enable interrupts after setup
+	// Notes: 0 = int enabled, 1 = disabled
 	if (__get_PRIMASK() != 0)
 	{
 		debugWarn("MCU: Interrupts are disabled, attempting re-enable...\r\n");
 		__enable_irq();
 	}
+
+#if 0 /* Test doesn't work if there's any delay for display time */
+static uint8_t s_previousUsbState = OFF;
+	if ((s_previousUsbState == OFF) && (g_usbConfigured))
+	{
+#if USB_COMPOSITE_OPTION
+		OverlayMessage(getLangText(STATUS_TEXT), "USB CONNECTING... (COMPOSITE MSC + CDC-ACM)", (250 * SOFT_MSECS));
+#elif USB_CDC_ACM_ONLY_OPTION
+		OverlayMessage(getLangText(STATUS_TEXT), "USB CONNECTING... (CDC-ACM Only)", (250 * SOFT_MSECS));
+#elif USB_MSC_ONLY_OPTION
+		OverlayMessage(getLangText(STATUS_TEXT), "USB CONNECTING... (MSC Only)", (250 * SOFT_MSECS));
+#endif
+		s_previousUsbState = ON;
+	}
+	else if (s_previousUsbState != g_usbConfigured) { s_previousUsbState = g_usbConfigured; }
+#endif
 }
 
 // Defined with SPI
