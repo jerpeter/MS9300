@@ -132,6 +132,28 @@ void SystemEventManager(void)
 		}
 	}
 
+#if 1 /* Test */
+	//___________________________________________________________________________________________
+	if (getSystemEventState(POST_ISR_PROCESSING_EVENT))
+	{
+		clearSystemEventFlag(POST_ISR_PROCESSING_EVENT);
+
+		if (g_saveAccelerometerCompanionEvent)
+		{
+			if (g_spi2InUseByLCD)
+			{
+				// Hopefully an updated Acc data cache is available (executed just prior to LCD write), otherwise it's worst case with no ability to get current Acc data so duplicate last sample
+				g_accSampleData = g_accDataCache;
+			}
+			else
+			{
+				GetAccelerometerChannelData(&g_accSampleData);
+				g_accDataCache = g_accSampleData;
+			}
+		}
+	}
+#endif
+
 	//___________________________________________________________________________________________
 #if 0 /* Unused */
 	if (getSystemEventState())
