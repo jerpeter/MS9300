@@ -1922,7 +1922,7 @@ void HandleDEM(CMD_BUFFER_STRUCT* inCmd)
 	{
 		// Expecting a single field, so move to that location.
 		eventNumToSend = GetInt16Field(inCmd->msg + MESSAGE_HEADER_LENGTH);
-		debug("eventNumToSend = %d \r\n",eventNumToSend);
+		debug("Event number to send: %d \r\n",eventNumToSend);
 
 		spareOption = ConvertAscii2Binary(g_inCmdHeaderPtr->spare[0], g_inCmdHeaderPtr->spare[1]);
 
