@@ -867,16 +867,19 @@ void System_power_button_irq(void)
 			debugRaw("\n--> SAFE FALL <--");
 
 			// Handle and finish any processing
+#if 0 /* Orignial logic, needs device comms access that may be locked in a loop so need to skip for now */
 			StopMonitoring(g_triggerRecord.opMode, FINISH_PROCESSING);
 			OverlayMessage(getLangText(WARNING_TEXT), getLangText(FORCED_POWER_OFF_TEXT), 0);
+#endif
 			AddOnOffLogTimestamp(FORCED_OFF);
 
 			// Unmount the file system, graceful shutdown
 			f_mount(NULL, "", 0);
 
+#if 0 /* Orignial logic, needs device comms access that may be locked in a loop so need to skip for now */
 			// Put Fuel Gauge ADC to sleep while off (device is battery powered and not placed into reset)
 			Ltc2944_i2c_shutdown();
-
+#endif
 			// Disable USB
 			MXC_USB_Shutdown();
 
@@ -2741,30 +2744,10 @@ static inline void applyOffsetAndCacheSampleData_ISR_Inline(void)
 #if 1 /* Test Acc companion event */
 	if (g_saveAccelerometerCompanionEvent)
 	{
-		ACC_DATA_STRUCT accData;
-
-		if (g_spi2InUseByLCD)
-		{
-			// Hopefully an updated Acc data cache is available (executed just prior to LCD write), otherwise it's worst case with no ability to get current Acc data so duplicate last sample
-			accData = g_accDataCache;
-		}
-		else
-		{
-			GetAccelerometerChannelData(&accData);
-			g_accDataCache = accData;
-		}
-
-#if 1 /* Normal 1G */
-		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->r = accData.x - g_channelOffset.x_offset;
-		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->t = accData.y - g_channelOffset.y_offset;
-		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->v = accData.z - g_channelOffset.z_offset;
+		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->r = g_accSampleData.x - g_channelOffset.x_offset;
+		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->t = g_accSampleData.y - g_channelOffset.y_offset;
+		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->v = g_accSampleData.z - g_channelOffset.z_offset;
 		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->a = 0x8000;
-#else /* Adjust for normal 1G without zero calibration */
-		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->r = accData.x;
-		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->t = accData.y;
-		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->v = accData.z + 0x800;
-		((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->a = 0x8000;
-#endif
 	}
 #endif
 }
@@ -3374,10 +3357,34 @@ SKIP_PRIOR_PROCESSING_FOR_ADAPTIVE_MIN_RATE:
 	}
 #endif
 
+#if 0 /* Test catching any UART data that may have been queued but interrupt missed during data acquisition */
+	// Check if the Uart0 RX FIFO is not empty
+	if ((MXC_UART0->stat & MXC_F_UART_STAT_RX_EMPTY) == 0)
+	{
+#if 0 /* Test 1 */
+		// Loop while there is data in the FIFO
+		while (MXC_UART0->stat & MXC_F_UART_STAT_RX_EMPTY)
+		{
+			g_modemStatus.craftPortRcvFlag = YES;
+			g_isrMessageBufferPtr->pipe = SERIAL_PIPE_CELL;
+			*g_isrMessageBufferPtr->writePtr = (uint8_t)MXC_UART0->fifo;
+			g_isrMessageBufferPtr->writePtr++;
+			if (g_isrMessageBufferPtr->writePtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE)) { g_isrMessageBufferPtr->writePtr = g_isrMessageBufferPtr->msg; }
+		}
+#else /* Test 2 */
+		MXC_UART_AsyncHandler(MXC_UART0);
+#endif
+	}
+#endif
+
 #if 1 /* Test */
 	if (sampleProcessTiming) { sampleProcessTiming += (0xffffff - SysTick->VAL); sampleProcessTiming >>= 1; }
 	else { sampleProcessTiming = (0xffffff - SysTick->VAL); }
 	SysTick->CTRL = 0; /* Disable */
+#endif
+
+#if 1 /* Test */
+	raiseSystemEventFlag_ISR(POST_ISR_PROCESSING_EVENT);
 #endif
 
 	// Clear the interrupt flag
