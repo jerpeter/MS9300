@@ -29,6 +29,8 @@
 #include "Analog.h"
 #include "Sensor.h"
 //#include "usb_drv.h"
+#include "enumerate.h"
+#include "msc.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -168,6 +170,15 @@ void MonitorMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 #if 1 /* Test */
 			g_testCounter = CAL_MUX_SELECT_SENSOR_GROUP_A; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); SetCalMuxPreADEnableState(ON);
 			debug("Cal Mux: Enabling Sensor Group A/1 output on DB9\r\n");
+#endif
+#if 0 //(USB_COMPOSITE_OPTION || USB_MSC_ONLY_OPTION) /* Test, not working as intended */
+extern volatile int g_usbConfigured;
+			if (g_usbConfigured == 1)
+			{
+				OverlayMessage(getLangText(STATUS_TEXT), "DISABLING USB MASS SOTARGE (MSC) FOR MONITORING...", (1 * SOFT_SECS));
+				msc_deconfigure();
+				g_usbConfigured = 2;
+			}
 #endif
 			// Make sure the parameters are up to date based on the trigger setup information
 			InitSensorParameters(g_factorySetupRecord.seismicSensorType, (uint8)g_triggerRecord.srec.sensitivity);
