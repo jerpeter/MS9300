@@ -244,8 +244,21 @@ void MoveWaveformEventToFile(void)
 #if 1 /* Test Acc companion event */
 				if (g_saveAccelerometerCompanionEvent)
 				{
-					GetEventFilename(g_pendingEventRecord.summary.eventNumber);
-					MakeDirectoryIfNotPresent(EVENTS_PATH, g_pendingEventRecord.summary.eventNumber);
+					// Copy Wave event record into Acc event record and clear the calculated section and Air sensor type
+					g_pendingAccEventRecord = g_pendingEventRecord;
+					memset(&g_pendingAccEventRecord.summary.calculated, 0, sizeof(CALCULATED_DATA_STRUCT));
+					g_pendingAccEventRecord.summary.parameters.seismicSensorType = SENSOR_ACC_INT_16G;
+					g_pendingAccEventRecord.summary.parameters.airSensorType = 0;
+
+					// Set the pointer to the start of the data
+					tempDataPtr = g_startOfEventBufferPtr + (g_accEventBufferIndex * g_wordSizeInEvent);
+					// Get the max peak from the event (including pretrigger) minus the cal pulse which shouldn't be included (also isn't filled in for Acc events)
+					g_pendingAccEventRecord.summary.calculated.r.peak = GetChannelPeak((tempDataPtr + R_CHAN_OFFSET), ((g_wordSizeInEvent - g_wordSizeInCal) / 4));
+					g_pendingAccEventRecord.summary.calculated.t.peak = GetChannelPeak((tempDataPtr + T_CHAN_OFFSET), ((g_wordSizeInEvent - g_wordSizeInCal) / 4));
+					g_pendingAccEventRecord.summary.calculated.v.peak = GetChannelPeak((tempDataPtr + V_CHAN_OFFSET), ((g_wordSizeInEvent - g_wordSizeInCal) / 4));
+
+					GetEventFilename(g_pendingAccEventRecord.summary.eventNumber);
+					MakeDirectoryIfNotPresent(EVENTS_PATH, g_pendingAccEventRecord.summary.eventNumber);
 
 					if (f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
 					{
@@ -255,18 +268,14 @@ void MoveWaveformEventToFile(void)
 					{
 						ActivateDisplayShortDuration(1);
 						sprintf((char*)g_spareBuffer, "ACCEL %s %s #%d %s... (%s)", (g_triggerRecord.opMode == WAVEFORM_MODE) ? getLangText(WAVEFORM_TEXT) : getLangText(COMBO_WAVEFORM_TEXT), getLangText(EVENT_TEXT),
-								g_pendingEventRecord.summary.eventNumber, getLangText(BEING_SAVED_TEXT), getLangText(MAY_TAKE_TIME_TEXT));
-
-						g_pendingAccEventRecord = g_pendingEventRecord;
-						memset(&g_pendingAccEventRecord.summary.calculated, 0, sizeof(CALCULATED_DATA_STRUCT));
-						g_pendingAccEventRecord.summary.parameters.seismicSensorType = SENSOR_ACC_INT_16G;
-						g_pendingAccEventRecord.summary.parameters.airSensorType = 0;
+								g_pendingAccEventRecord.summary.eventNumber, getLangText(BEING_SAVED_TEXT), getLangText(MAY_TAKE_TIME_TEXT));
 
 						// Swap event record to Big Endian for saving
 						EndianSwapEventRecord(&g_pendingAccEventRecord);
-
 						// Write the event record header and summary
 						f_write(&file, &g_pendingAccEventRecord, sizeof(EVT_RECORD), (UINT*)&bytesWritten);
+						// Swap event record to Litte Endian for processing
+						EndianSwapEventRecord(&g_pendingAccEventRecord);
 
 						if (bytesWritten != sizeof(EVT_RECORD))
 						{
@@ -319,10 +328,99 @@ void MoveWaveformEventToFile(void)
 						SetFileTimestamp(g_spareFileName);
 						debug("Waveform (Acc) Event file closed\r\n");
 
-						UpdateMonitorLogEntry();
+						//==========================================================================================================
+						// Save compressed event record file
+						//----------------------------------------------------------------------------------------------------------
+						if (g_unitConfig.saveCompressedData != DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA)
+						{
+							// Get new ERData compressed event file name
+							GetEREventRecordFilename(g_pendingAccEventRecord.summary.eventNumber);
+							MakeDirectoryIfNotPresent(ER_DATA_PATH, g_pendingAccEventRecord.summary.eventNumber);
 
-						// Swap event record to Little Endian for processing
-						EndianSwapEventRecord(&g_pendingAccEventRecord);
+							if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
+							{
+								debugErr("Unable to create EReventrecord event file: %s\r\n", g_spareFileName);
+							}
+							else // File created, write out the event
+							{
+								g_globalFileHandle = &file;
+								g_spareBufferIndex = 0;
+	#if ENDIAN_CONVERSION
+								// Swap event record to Big Endian for compression
+								EndianSwapEventRecord(&g_pendingAccEventRecord);
+	#endif
+								compressSize = lzo1x_1_compress((void*)&g_pendingAccEventRecord, sizeof(g_pendingAccEventRecord), OUT_FILE);
+
+								// Check if any remaining compressed data is queued
+								if (g_spareBufferIndex)
+								{
+									// Finish writing the remaining compressed data
+									f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesWritten);
+									g_spareBufferIndex = 0;
+								}
+
+								debug("Wave (Acc) Compressed Event Record length: %d (Matches file: %s)\r\n", compressSize, (compressSize == f_size(&file)) ? "Yes" : "No");
+	#if ENDIAN_CONVERSION
+								// Swap event record back to Little Endian for processing
+								EndianSwapEventRecord(&g_pendingAccEventRecord);
+	#endif
+								// Update the remaining space left
+								UpdateSDCardUsageStats(f_size(&file));
+
+								// Done writing the event file, close the file handle
+								g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+								f_close(&file);
+								SetFileTimestamp(g_spareFileName);
+							}
+						}
+						//==========================================================================================================
+
+						//==========================================================================================================
+						// Save compressed data file
+						//----------------------------------------------------------------------------------------------------------
+						if (g_unitConfig.saveCompressedData != DO_NOT_SAVE_EXTRA_FILE_COMPRESSED_DATA)
+						{
+							// Get new ERData compressed event file name
+							GetERDataFilename(g_pendingAccEventRecord.summary.eventNumber);
+							MakeDirectoryIfNotPresent(ER_DATA_PATH, g_pendingAccEventRecord.summary.eventNumber);
+
+							if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
+							{
+								debugErr("Unable to create ERdata event file: %s\r\n", g_spareFileName);
+							}
+							else // File created, write out the event
+							{
+								// Setup for saving event data
+								tempDataPtr = g_startOfEventBufferPtr + (g_accEventBufferIndex * g_wordSizeInEvent);
+
+								g_globalFileHandle = &file;
+								g_spareBufferIndex = 0;
+								compressSize = lzo1x_1_compress((void*)tempDataPtr, (g_wordSizeInEvent * 2), OUT_FILE);
+
+								// Check if any remaining compressed data is queued
+								if (g_spareBufferIndex)
+								{
+									// Finish writing the remaining compressed data
+									f_write(&file, g_spareBuffer, g_spareBufferIndex, (UINT*)&bytesWritten);
+									g_spareBufferIndex = 0;
+								}
+
+								debug("Wave (Acc) Compressed Data length: %d (Matches file: %s)\r\n", compressSize, (compressSize == f_size(&file)) ? "Yes" : "No");
+
+								// Update the remaining space left
+								UpdateSDCardUsageStats(f_size(&file));
+
+								// Done writing the event file, close the file handle
+								g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
+								f_close(&file);
+								SetFileTimestamp(g_spareFileName);
+							}
+						}
+						//==========================================================================================================
+
+						AddEventToSummaryList(&g_pendingAccEventRecord);
+
+						UpdateMonitorLogEntry();
 
 						AddEventNumberToCache(g_pendingAccEventRecord.summary.eventNumber);
 						StoreCurrentEventNumber();
@@ -333,7 +431,7 @@ void MoveWaveformEventToFile(void)
 						// Now store the updated event number in the universal ram storage.
 						g_pendingEventRecord.summary.eventNumber = g_nextEventNumberToUse;
 					}
-				}
+				} //======== End of Acc companion event =================================================================================================================================
 #endif
 				// Setup new event file name
 				CheckStoredEventsCapEventsLimit();
