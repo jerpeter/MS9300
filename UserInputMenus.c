@@ -636,7 +636,7 @@ void AlarmTwoTimeMenuHandler(uint8 keyPressed, void* data)
 
 		SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
 
-		SETUP_USER_MENU_MSG(&saveSetupMenu, YES);
+		SETUP_USER_MENU_MSG(&saveSetupMenu, NO);
 	}
 	else if (keyPressed == ESC_KEY)
 	{
@@ -1020,7 +1020,7 @@ void LcdImpulseTimeMenuHandler(uint8 keyPressed, void* data)
 			}
 			else // Save setup
 			{
-				SETUP_USER_MENU_MSG(&saveSetupMenu, YES);
+				SETUP_USER_MENU_MSG(&saveSetupMenu, NO);
 			}
 #endif
 		}
@@ -1651,7 +1651,7 @@ void RecordTimeMenuHandler(uint8 keyPressed, void* data)
 		}
 		else // Save setup
 		{
-			SETUP_USER_MENU_MSG(&saveSetupMenu, YES);
+			SETUP_USER_MENU_MSG(&saveSetupMenu, NO);
 		}
 	}
 	else if (keyPressed == ESC_KEY)
@@ -1775,7 +1775,7 @@ void SaveRecordMenuHandler(uint8 keyPressed, void* data)
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_MSG(&saveSetupMenu, YES);
+		SETUP_USER_MENU_MSG(&saveSetupMenu, NO);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
