@@ -36,6 +36,9 @@
 ///----------------------------------------------------------------------------
 static uint8 s_msgReadIndex;
 static uint8 s_msgWriteIndex;
+#if 1 /* Test */
+static uint8_t s_pingResponseCount = 0;
+#endif
 static const COMMAND_MESSAGE_STRUCT s_cmdMessageTable[ TOTAL_COMMAND_MESSAGES ] = {
 	{ 'A', 'A', 'A', HandleAAA },		// Dummy function call.
 	{ 'M', 'R', 'S', HandleMRS },		// Modem reset.
@@ -139,6 +142,7 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 	CHAR_UPPER_CASE(cmdMsg->msg[1]);
 	CHAR_UPPER_CASE(cmdMsg->msg[2]);
 		
+	// First check for the Unlock request
 	if ((cmdMsg->msg[0] == 'U') &&
 		(cmdMsg->msg[1] == 'N') &&
 		(cmdMsg->msg[2] == 'L'))
@@ -154,8 +158,7 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 			g_modemStatus.xferMutex = NO;
 		}
 	}
-
-	else 
+	else // Handle all other requests/responses
 	{ 
 		if (NO == g_modemStatus.systemIsLockedFlag)
 		{
@@ -471,6 +474,7 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 					if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
 					{
 						AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_modemSetupRecord.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
+						debug("ADO: restart timer (%d mins) (%s)\r\n", g_modemSetupRecord.dialOutCycleTime, ((IsSoftTimerActive(AUTO_DIAL_OUT_CYCLE_TIMER_NUM) == YES) ? "Active" : "Inactive"));
 					}
 					else // ADO Events only
 					{
@@ -558,6 +562,25 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 				{
 					g_cellConnectStats.cellUiccError = 1;
 					debugErr("RCMH: UICC problem\r\n");
+				}
+				//-----------------------------------------------------------------------------------------
+				// Ping request response
+				//-----------------------------------------------------------------------------------------
+				else if (strncmp(AT_CMD_XPING_AVERAGE, (char*)&cmdMsg->msg[0], 15) == 0)
+				{
+					debug("RCMH: Ping complete, %d of 5 responses from 8.8.8.8, %s\r\n", s_pingResponseCount, (char*)&cmdMsg->msg[8]);
+					sprintf((char*)g_spareBuffer, "Ping complete, %d of 5 responses from 8.8.8.8, %s", s_pingResponseCount, (char*)&cmdMsg->msg[8]);
+					OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, (4 * SOFT_SECS));
+					s_pingResponseCount = 0;
+				}
+				//-----------------------------------------------------------------------------------------
+				// Ping request response
+				//-----------------------------------------------------------------------------------------
+				else if (strncmp(AT_CMD_XPING, (char*)&cmdMsg->msg[0], 7) == 0)
+				{
+					debug("RCMH: Ping response, %s\r\n", (char*)&cmdMsg->msg[0]);
+					OverlayMessage(getLangText(STATUS_TEXT), (char*)&cmdMsg->msg[0], (1 * SOFT_SECS));
+					s_pingResponseCount++;
 				}
 				//-----------------------------------------------------------------------------------------
 				// Unknown response
