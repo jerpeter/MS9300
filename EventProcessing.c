@@ -490,7 +490,6 @@ void AddEventToSummaryList(EVT_RECORD* event)
 	if ((f_open(&file, (const TCHAR*)s_summaryListFileName, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 	{
 		debugErr("File access problem: Add Event to Summary list with: %s\r\n", s_summaryListFileName);
-		//debugErr("File access problem: Add Event to Summary list\r\n");
 	}
 	else // File successfully created or opened
 	{
@@ -3037,25 +3036,24 @@ void WriteDebugCacheToFile(uint8_t flush)
 		// Open file
 		if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
 		{
-			debugErr("File access problem: Add Event to Summary list with: %s\r\n", s_summaryListFileName);
-			//debugErr("File access problem: Add Event to Summary list\r\n");
+			debugErr("File access problem: Add debug to Debug file: %s\r\n", g_spareFileName);
 		}
 		else // File successfully created or opened
 		{
 			// Check if a contiguous write
 			if (g_debugCacheReadIndex < g_debugCacheWriteIndex)
 			{
-				// FA_OPEN_APPEND should set write pointer to the end
+				// FA_OPEN_APPEND should set write pointer to the end, write total cache count
 				f_write(&file, &g_debugCache[g_debugCacheReadIndex], g_debugCacheCount, (UINT*)&writeSize);
 			}
 			else // Split write
 			{
-				// FA_OPEN_APPEND should set write pointer to the end
-				f_write(&file, &g_debugCache[g_debugCacheReadIndex], (33800 - g_debugCacheCount), (UINT*)&writeSize);
+				// FA_OPEN_APPEND should set write pointer to the end, write split portion from end of buffer
+				f_write(&file, &g_debugCache[g_debugCacheReadIndex], (DEBUG_BUFFER_SIZE - g_debugCacheReadIndex), (UINT*)&writeSize);
 
-				g_debugCacheCount -= (33800 - g_debugCacheCount);
+				g_debugCacheCount -= (DEBUG_BUFFER_SIZE - g_debugCacheReadIndex);
 
-				// FA_OPEN_APPEND should set write pointer to the end
+				// FA_OPEN_APPEND should set write pointer to the end, write remaining size from start of buffer
 				f_write(&file, &g_debugCache[0], g_debugCacheCount, (UINT*)&writeSize);
 			}
 
