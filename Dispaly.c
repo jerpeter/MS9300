@@ -546,27 +546,52 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 			}
 
 		}
-		else if (g_usbConfigured == 1) // Show USB MSC Flash mem stats
+		else if (g_usbConfigured)
 		{
-			// Cell Config: ADO Events/ADO Evts/Config/Status + Server
-			sprintf(debugInfo, "USB Mass Storage:");
+			sprintf(debugInfo, "USB Active Config:");
 			ft81x_stream_start(); ft81x_cmd_text(550, 200, 28, 0, debugInfo); ft81x_stream_stop();
 
-			sprintf(debugInfo, "Read sector count: %d", g_mscFlashMemReadCount);
-			ft81x_stream_start(); ft81x_cmd_text(550, 220, 28, 0, debugInfo); ft81x_stream_stop();
+			if (g_usbConfigured & USB_CDC_ACM_OPTION_FLAG)
+			{
+				sprintf(debugInfo, "Comms (CDC-ACM)");
+				ft81x_stream_start(); ft81x_cmd_text(550, 220, 28, 0, debugInfo); ft81x_stream_stop();
+			}
 
-			sprintf(debugInfo, "Write sector count: %d", g_mscFlashMemWriteCount);
-			ft81x_stream_start(); ft81x_cmd_text(550, 240, 28, 0, debugInfo); ft81x_stream_stop();
+			if (g_usbConfigured & USB_MSC_OPTION_FLAG)
+			{
+				sprintf(debugInfo, "Mass Storage (MSC)");
+				ft81x_stream_start(); ft81x_cmd_text(550, 240, 28, 0, debugInfo); ft81x_stream_stop();
+
+				sprintf(debugInfo, "Read sector count: %d", g_mscFlashMemReadCount);
+				ft81x_stream_start(); ft81x_cmd_text(550, 260, 28, 0, debugInfo); ft81x_stream_stop();
+
+				sprintf(debugInfo, "Write sector count: %d", g_mscFlashMemWriteCount);
+				ft81x_stream_start(); ft81x_cmd_text(550, 280, 28, 0, debugInfo); ft81x_stream_stop();
+			}
+			else
+			{
+				sprintf(debugInfo, "USB Mass Storage:");
+				ft81x_stream_start(); ft81x_cmd_text(550, 240, 28, 0, debugInfo); ft81x_stream_stop();
+
+				sprintf(debugInfo, "    Suspended");
+				ft81x_stream_start(); ft81x_cmd_text(550, 260, 28, 0, debugInfo); ft81x_stream_stop();
+			}
 		}
-		else if (g_usbConfigured == 2) // Show USB MSC Flash mem stats
+
+#if 1 /* Test showing comms timeout counts if populated */
 		{
-			// Cell Config: ADO Events/ADO Evts/Config/Status + Server
-			sprintf(debugInfo, "USB Mass Storage:");
-			ft81x_stream_start(); ft81x_cmd_text(550, 200, 28, 0, debugInfo); ft81x_stream_stop();
-
-			sprintf(debugInfo, "Suspended (monitoring)");
-			ft81x_stream_start(); ft81x_cmd_text(550, 220, 28, 0, debugInfo); ft81x_stream_stop();
+			if ((g_spiTimeoutCount == 0) && (g_i2cTimeoutCount == 0) && (g_uart1TimeoutCount == 0) && (g_uart2TimeoutCount == 0))
+			{
+				sprintf(debugInfo, "No comms timeouts");
+				ft81x_stream_start(); ft81x_cmd_text(550, 0, 28, 0, debugInfo); ft81x_stream_stop();
+			}
+			else
+			{
+				sprintf(debugInfo, "S:%d, I:%d, U1:%d, U2:%d", g_spiTimeoutCount, g_i2cTimeoutCount, g_uart1TimeoutCount, g_uart2TimeoutCount);
+				ft81x_stream_start(); ft81x_cmd_text(550, 0, 28, 0, debugInfo); ft81x_stream_stop();
+			}
 		}
+#endif
 	}
 #endif
 
