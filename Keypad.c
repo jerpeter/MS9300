@@ -489,7 +489,7 @@ extern void SetBattChargerForceBgateCtrlOff(uint8_t state);
 					//---------------------------------------------------
 					else if (keyPressed == HELP_KEY)
 					{
-#if 1 /* Test */
+#if 0 /* Test */
 						// Cell modem Ping command and parameters, AT#XPING="<IP_ADDRESS>",<PACKETS>,<PACKET_SIZE>,<RETRIES>,<TIMEOUT>
 						if ((g_tcpServerStartStage == TCP_SERVER_ACTIVE) && (g_modemStatus.remoteConnectionActive == NO))
 						{
@@ -510,9 +510,9 @@ extern void SetBattChargerForceBgateCtrlOff(uint8_t state);
 
 						__asm__ __volatile__ ("breakpoint");
 #endif
-#if 0 /* Test */
+#if 1 /* Test */
 static uint8_t s_bcChargeState = ON;
-+						s_bcChargeState = GetBattChargerChargeState();
+						s_bcChargeState = GetBattChargerChargeState();
 						s_bcChargeState ^= ON;
 						SetBattChargerChargeState(s_bcChargeState);
 						debug("Battery charging toggle: %s\r\n", ((s_bcChargeState == ON) ? "Enabled" : "Disabled"));
