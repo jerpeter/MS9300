@@ -227,7 +227,7 @@ extern uint8 g_lcdContrastChanged;
 extern EVT_RECORD g_resultsEventCache[50];
 extern uint16 g_resultsCacheIndex;
 #else /* Test */
-extern uint8 g_debugCache[33800];
+extern uint8 g_debugCache[DEBUG_BUFFER_SIZE];
 extern uint16 g_debugCacheWriteIndex;
 extern uint16 g_debugCacheReadIndex;
 extern uint16 g_debugCacheCount;
@@ -322,5 +322,11 @@ extern ACC_DATA_STRUCT g_accSampleData;
 #if 1 /* Test */
 extern uint32 g_mscFlashMemReadCount;
 extern uint32 g_mscFlashMemWriteCount;
+#endif
+#if 1 /* Test */
+extern uint16_t g_spiTimeoutCount;
+extern uint16_t g_i2cTimeoutCount;
+extern uint16_t g_uart1TimeoutCount;
+extern uint16_t g_uart2TimeoutCount;
 #endif
 #endif /* GLOBALS_H_ */
