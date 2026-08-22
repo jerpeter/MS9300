@@ -95,20 +95,9 @@ enum {
 	BACKUP_MODE
 };
 
-// Select which USB Driver option is active between the three options, note: Only one can be active
-#if 1 /* Composite */
-#define USB_COMPOSITE_OPTION		YES
-#define USB_CDC_ACM_ONLY_OPTION		NO
-#define USB_MSC_ONLY_OPTION			NO
-#elif 1 /* Serial only */
-#define USB_COMPOSITE_OPTION		NO
-#define USB_CDC_ACM_ONLY_OPTION		YES
-#define USB_MSC_ONLY_OPTION			NO
-#else /* Mass storage only */
-#define USB_COMPOSITE_OPTION		NO
-#define USB_CDC_ACM_ONLY_OPTION		NO
-#define USB_MSC_ONLY_OPTION			YES
-#endif
+#define USB_COMPOSITE_OPTION_FLAG	0x03
+#define USB_CDC_ACM_OPTION_FLAG		0x01
+#define USB_MSC_OPTION_FLAG			0x02
 
 #define ENDIAN_CONVERSION	1
 
@@ -375,6 +364,7 @@ enum {
 #define DER_CACHE_SIZE					(65536)
 
 #define SPARE_BUFFER_SIZE				8192
+#define DEBUG_BUFFER_SIZE				33800
 
 /* Battery Level defines */
 #define BATT_MIN_VOLTS 			4.0
