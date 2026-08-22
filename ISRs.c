@@ -564,8 +564,8 @@ uint32_t uart1CtsCount = 0;
 void UART1_Handler(void)
 {
 #if 0 /* Test */
-    unsigned int flags;
-    flags = MXC_UART_GetFlags(MXC_UART1);
+	unsigned int flags;
+	flags = MXC_UART_GetFlags(MXC_UART1);
 	if (flags & MXC_S_UART_INT_FL_CTS_CHANGE_ACTIVE)
 	{
 		//debugWarn("\r\nCell/LTE flow control engaged\r\n\r\n");
@@ -880,6 +880,12 @@ void System_power_button_irq(void)
 			// Put Fuel Gauge ADC to sleep while off (device is battery powered and not placed into reset)
 			Ltc2944_i2c_shutdown();
 #endif
+#if 1 /* Test */
+extern void USBHostControllerSetMuxAndSource(uint8_t state);
+			// Revert USB Host Controller back to default state to prevent 5V supply from looking like power
+			USBHostControllerSetMuxAndSource(0);
+#endif
+
 			// Disable USB
 			MXC_USB_Shutdown();
 
@@ -2993,7 +2999,7 @@ void DataIsrInit(uint16 sampleRate)
 	s_channelSyncErrorCount = 0;
 
 #if 1 /* Test */
-	extern uint32 sampleProcessTiming;
+	extern uint32_t sampleProcessTiming;
 	sampleProcessTiming = 0;
 #endif
 
@@ -3111,13 +3117,21 @@ static inline void processAdaptiveSamplingStateAndLogic(void)
 ///	Function Break
 ///----------------------------------------------------------------------------
 #if 1 /* Test */
-uint32 sampleProcessTiming = 0;
+uint32_t sampleProcessTiming = 0;
+uint32_t freeProcessTiming = 0;
 #endif
 __attribute__((__interrupt__))
 void Sample_irq(void)
 {
-#if 1 /* Test */
+#if 0 /* Test */
 	//SysTick->LOAD = 0xffffff; /* set reload register */
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+#elif 1 /* Alt test to check free non-ISR procesing time between samples */
+	if (freeProcessTiming) { freeProcessTiming += (0xffffff - SysTick->VAL); freeProcessTiming >>= 1; }
+	else { freeProcessTiming = (0xffffff - SysTick->VAL); }
+	SysTick->CTRL = 0; /* Disable */
+
 	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
 	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
 #endif
@@ -3377,11 +3391,20 @@ SKIP_PRIOR_PROCESSING_FOR_ADAPTIVE_MIN_RATE:
 	}
 #endif
 
-#if 1 /* Test */
+#if 0 /* Test */
 	if (sampleProcessTiming) { sampleProcessTiming += (0xffffff - SysTick->VAL); sampleProcessTiming >>= 1; }
 	else { sampleProcessTiming = (0xffffff - SysTick->VAL); }
 	SysTick->CTRL = 0; /* Disable */
+#elif 1 /* Alt test to check free non-ISR procesing time between samples */
+	if (sampleProcessTiming) { sampleProcessTiming += (0xffffff - SysTick->VAL); sampleProcessTiming >>= 1; }
+	else { sampleProcessTiming = (0xffffff - SysTick->VAL); }
+	SysTick->CTRL = 0; /* Disable */
+
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
 #endif
+
+
 
 #if 1 /* Test */
 	raiseSystemEventFlag_ISR(POST_ISR_PROCESSING_EVENT);
