@@ -86,10 +86,12 @@ void MainMenu(INPUT_MSG_STRUCT msg)
 static uint8_t g_led1State = ON;
 static uint8_t g_led2State = ON;
 #endif
-extern void SetupUSBComposite(void);
+extern void SetupUSBComposite(uint8_t);
 extern void USBCPortControllerInit(void);
 extern void USBCPortControllerSwapToHost(void);
 extern uint8_t g_mscDelayState;
+extern void SetupUsbMscFlashDriveAndFilesystem(void);
+extern void UsbMscFlashTestFile(void);
 #endif
 void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LAYOUT_STRUCT *mn_layout_ptr)
 {
@@ -208,7 +210,7 @@ extern void USBHostControllerTest(void);
 				case (LEFT_ARROW_KEY):
 #if 1 /* Original */
 					AdjustLcdContrast(DARKER);
-#else /* Test */
+#elif 0 /* Test */
 					//debug("USB: Manually disconnecting (resource)...\r\n");
 					//MXC_USB_Disconnect();
 					if (GetPowerOnButtonState() == OFF)
@@ -231,10 +233,15 @@ extern void USBHostControllerTest(void);
 						debug("LED1: Toggling %s\r\n", ((g_led1State == ON) ? "On" : "Off"));
 						PowerControl(LED_1, g_led1State);
 					}
+#else /* Test */
+					debug("Calling SetupUsbMscFlashDriveAndFilesystem...\r\n");
+					SetupUsbMscFlashDriveAndFilesystem();
+					SoftUsecWait(1 * SOFT_SECS);
+					UsbMscFlashTestFile();
 #endif
 					break;
 				case (RIGHT_ARROW_KEY):
-#if 0 /* Original */
+#if 1 /* Original */
 					AdjustLcdContrast(LIGHTER);
 #elif 0 /* Test */
 					//debug("USB: Manually connecting (resource)...\r\n");
