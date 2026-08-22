@@ -586,8 +586,10 @@ extern void StartBatteryLog(void);
 #if 1 /* Test delayed start so that the USB driver isn't initializing while the unit is going through init */
 	//NVIC_EnableIRQ(USB_IRQn);
 	//MXC_USB_Connect();
-extern void SetupUSBComposite(void);
-	SetupUSBComposite();
+extern void SetupUSBComposite(uint8_t);
+	SetupUSBComposite(USB_COMPOSITE_OPTION_FLAG);
+	//SetupUSBComposite(USB_CDC_ACM_OPTION_FLAG);
+	//SetupUSBComposite(USB_MSC_OPTION_FLAG);
 #endif
 }
 
