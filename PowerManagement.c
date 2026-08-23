@@ -30,6 +30,7 @@
 #include "usb.h"
 #include "uart.h"
 #include "math.h"
+#include "UsbPortController.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -559,6 +560,16 @@ extern void WriteDebugCacheToFile(uint8_t flush);
 		// Disable USB
 		MXC_USB_Shutdown();
 
+#if 1 /* Test */
+extern int USBCPortControllerGetRole(void);
+extern void USBCPortControllerSwapToDevice(void);
+		if (USBCPortControllerGetRole() == TYPEC_SOURCE)
+		{
+			debug("USB in Host mode, need to swap to Device mode\r\n");
+			// Revert to Device mode if in Host mode
+			USBCPortControllerSwapToDevice();
+		}
+#endif
 		// Disable Cell module
 		if (GetPowerControlState(CELL_ENABLE) == ON)
 		{
