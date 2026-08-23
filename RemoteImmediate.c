@@ -465,7 +465,7 @@ void HandleDBL(CMD_BUFFER_STRUCT* inCmd)
 	char logData;
 
 	// Check if the Battery Log file does not exit
-    if (f_stat((const TCHAR*)pathAndFilename, NULL) == FR_OK)
+	if (f_stat((const TCHAR*)pathAndFilename, NULL) == FR_OK)
 	{
 		// Try to create new Battery log file
 		if ((f_open(&file, (const TCHAR*)pathAndFilename, FA_READ)) != FR_OK)
