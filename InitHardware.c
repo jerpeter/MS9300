@@ -1958,7 +1958,7 @@ void SetupCellModuleRxUART(void)
 ///----------------------------------------------------------------------------
 void ShutdownCellModuleRxUART(void)
 {
-    int status;
+	int status;
 	status = MXC_UART_Shutdown(MXC_UART0);
 	if (status != E_SUCCESS) { debugErr("UART0 failed to shutdown with code: %d\r\n", status); }
 }
@@ -2018,7 +2018,7 @@ void SetupCellModuleTxUART(void)
 ///----------------------------------------------------------------------------
 void ShutdownCellModuleTxUART(void)
 {
-    int status;
+	int status;
 	status = MXC_UART_Shutdown(MXC_UART1);
 	if (status != E_SUCCESS) { debugErr("UART1 failed to shutdown with code: %d\r\n", status); }
 }
@@ -2168,6 +2168,44 @@ int WriteI2CDevice(mxc_i2c_regs_t* i2cChannel, uint8_t slaveAddr, uint8_t* write
 	__enable_irq();
 #endif
 
+#if 1 /* Test timeout catch and I2C driver re-init */
+	if (status == E_TIME_OUT)
+	{
+		g_i2cTimeoutCount++;
+
+		debugErr("I2C%d Master transaction to Slave (%02x) timed out\r\n", ((i2cChannel == MXC_I2C0) ? 0 : 1), slaveAddr, status);
+		debugWarn("I2C%d: Attempting to restart the driver...\r\n", ((i2cChannel == MXC_I2C0) ? 0 : 1));
+
+		int error;
+		if (i2cChannel == MXC_I2C0)
+		{
+			MXC_I2C_Shutdown(MXC_I2C0);
+
+			// Setup I2C0 as Master (1.8V)
+			error = MXC_I2C_Init(MXC_I2C0, 1, 0);
+			if (error != E_NO_ERROR) { debugErr("I2C0 init (master) failed to initialize with code: %d\r\n", error); return (E_COMM_ERR); }
+
+			MXC_I2C_SetFrequency(MXC_I2C0, MXC_I2C_FAST_SPEED);
+		}
+		else // (i2cChannel == MXC_I2C1)
+		{
+			MXC_I2C_Shutdown(MXC_I2C1);
+
+			// Setup I2C1 as Master (3.3V)
+			error = MXC_I2C_Init(MXC_I2C1, 1, 0);
+			if (error != E_NO_ERROR) { debugErr("I2C1 init (master) failed to initialize with code: %d\r\n", error); return (E_COMM_ERR); }
+
+			MXC_I2C_SetFrequency(MXC_I2C1, MXC_I2C_FAST_SPEED);
+		}
+
+		debugWarn("I2C%d: Retrying Master transaction...\r\n", ((i2cChannel == MXC_I2C0) ? 0 : 1));
+		// Retry the request
+		status = MXC_I2C_MasterTransaction(&masterRequest);
+
+		if (status != E_NO_ERROR) { debugErr("I2C%d Master transaction retry failed with code (%d)\r\n", ((i2cChannel == MXC_I2C0) ? 0 : 1), status); }
+	}
+#endif
+
 	// Clear I2C1 access lock if not
 	if ((slaveAddr == I2C_ADDR_EXPANSION) || (slaveAddr == I2C_ADDR_FUEL_GAUGE) || ((slaveAddr == I2C_ADDR_EXTERNAL_RTC) && (g_i2c1AccessLock != SENSOR_CHECK_LOCK)))
 	{
@@ -2212,11 +2250,11 @@ void SetupI2C(void)
 	MXC_I2C_Shutdown(MXC_I2C1);
 #endif
 
-	// Setup I2C0 as Master (1.8V) 
+	// Setup I2C0 as Master (1.8V)
 	error = MXC_I2C_Init(MXC_I2C0, 1, 0);
 	if (error != E_NO_ERROR) { debugErr("I2C0 init (master) failed to initialize with code: %d\r\n", error); }
 
-	// Setup I2C1 as Master (3.3V) 
+	// Setup I2C1 as Master (3.3V)
 	error = MXC_I2C_Init(MXC_I2C1, 1, 0);
 	if (error != E_NO_ERROR) { debugErr("I2C1 init (master) failed to initialize with code: %d\r\n", error); }
 
@@ -2349,6 +2387,7 @@ void SpiTransaction(uint8_t spiDevice, uint8_t dataBits, uint8_t ssDeassert, uin
 	mxc_spi_req_t spiRequest;
 	IRQn_Type spiIrq;
 	void (*irqHandler)(void);
+	int status;
 
 	if (spiDevice == SPI_ADC) { spiRequest.spi = MXC_SPI3; }
 	else /* LCD, Acc or UsbHC */ { spiRequest.spi = MXC_SPI2; }
@@ -2384,9 +2423,48 @@ void SpiTransaction(uint8_t spiDevice, uint8_t dataBits, uint8_t ssDeassert, uin
 #if 1 /* Test interrupt isolation */
 		__disable_irq();
 #endif
-		MXC_SPI_MasterTransaction(&spiRequest);
+		status = MXC_SPI_MasterTransaction(&spiRequest);
 #if 1 /* Test interrupt isolation */
 		__enable_irq();
+#endif
+
+#if 1 /* Test timeout catch and SPI driver re-init */
+		if (status == E_TIME_OUT)
+		{
+			g_spiTimeoutCount++;
+
+			char debugStr[6];
+			if (spiDevice == SPI_ADC) { strcpy(debugStr, "ADC"); }
+			else if (spiDevice == SPI_LCD) { strcpy(debugStr, "LCD"); }
+			else if (spiDevice == SPI_ACC) { strcpy(debugStr, "ACC"); }
+			else if (spiDevice == SPI_USBHC) { strcpy(debugStr, "USBHC"); }
+			else { strcpy(debugStr, "ERROR"); }
+			debugErr("SPI%d Master transaction to device (%s) timed out\r\n", ((spiDevice == SPI_ADC) ? 3 : 2), debugStr);
+			debugWarn("SPI%d: Attempting to restart the driver...\r\n", ((spiDevice == SPI_ADC) ? 3 : 2));
+
+			if (spiDevice == SPI_ADC) // SPI3
+			{
+				MXC_SPI_Shutdown(MXC_SPI3);
+				SetupSPI3_ExternalADC(30 * 1000000);
+			}
+			else // SPI2 devices LCD, ACC, USB HC
+			{
+				MXC_SPI_Shutdown(MXC_SPI2);
+				SetupSPI2_LCDAndAcc();
+			}
+
+			debugWarn("SPI%d: Retrying Master transaction...\r\n", ((spiDevice == SPI_ADC) ? 3 : 2));
+
+			// Retry the request
+#if 1 /* Test interrupt isolation */
+			__disable_irq();
+#endif
+			status = MXC_SPI_MasterTransaction(&spiRequest);
+#if 1 /* Test interrupt isolation */
+			__enable_irq();
+#endif
+			if (status != E_NO_ERROR) { debugErr("SPI%d Master transaction retry failed with code (%d)\r\n", ((spiDevice == SPI_ADC) ? 3 : 2), status); }
+		}
 #endif
 		if (spiDevice == SPI_LCD) { g_spi2InUseByLCD &= ~SPI2_ACTIVE; }
 	}
@@ -2497,16 +2575,12 @@ volatile unsigned int g_usbEventFlags;
 int g_usbRemoteWakeEnable;
 
 // USB Function Prototypes
-#if USB_COMPOSITE_OPTION /* Composite MSC + CDC-ACM */
 int setconfigCallback_Composite(MXC_USB_SetupPkt *sud, void *cbdata);
 int usbEventCallback_Composite(maxusb_event_t evt, void *data);
-#elif USB_CDC_ACM_ONLY_OPTION /* CDC-ACM only */
 int setconfigCallback_CDCACM(MXC_USB_SetupPkt *sud, void *cbdata);
 int usbEventCallback_CDCACM(maxusb_event_t evt, void *data);
-#elif USB_MSC_ONLY_OPTION /* MSC only */
 int setconfigCallback_MSC(MXC_USB_SetupPkt *sud, void *cbdata);
 int usbEventCallback_MSC(maxusb_event_t evt, void *data);
-#endif
 static int setfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata);
 static int clrfeatureCallback(MXC_USB_SetupPkt *sud, void *cbdata);
 static void usbAppSleep(void);
@@ -2554,7 +2628,7 @@ void delay_us(unsigned int usec)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void SetupUSBComposite(void)
+void SetupUSBComposite(uint8_t interfaceOption)
 {
 	maxusb_cfg_options_t usb_opts;
 
@@ -2578,107 +2652,124 @@ void SetupUSBComposite(void)
 	// Initialize the enumeration module
 	if (enum_init() != 0) { debugErr("Enumeration Init failed\r\n"); }
 
-#if USB_COMPOSITE_OPTION /* Original - Composite MSC + CDC-ACM */
-	// Register enumeration data
-	enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&composite_device_descriptor, 0);
-	enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&composite_config_descriptor, 0);
-	if (usb_opts.enable_hs) {
-		// Two additional descriptors needed for high-speed operation
-		enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&composite_config_descriptor_hs, 0);
-		enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&composite_device_qualifier_descriptor,
-									0);
+	if (interfaceOption == USB_COMPOSITE_OPTION_FLAG)
+	{
+		// Register enumeration data
+		enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&composite_device_descriptor, 0);
+		enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&composite_config_descriptor, 0);
+
+		if (usb_opts.enable_hs) {
+			// Two additional descriptors needed for high-speed operation
+			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&composite_config_descriptor_hs, 0);
+			enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&composite_device_qualifier_descriptor,	0);
+		}
+
+		enum_register_descriptor(ENUM_DESC_STRING, composite_lang_id_desc, 0);
+		enum_register_descriptor(ENUM_DESC_STRING, composite_mfg_id_desc, 1);
+		enum_register_descriptor(ENUM_DESC_STRING, composite_prod_id_desc, 2);
+		enum_register_descriptor(ENUM_DESC_STRING, composite_serial_id_desc, 3);
+		enum_register_descriptor(ENUM_DESC_STRING, composite_cdcacm_func_desc, 4);
+		enum_register_descriptor(ENUM_DESC_STRING, composite_msc_func_desc, 5);
+
+		// Handle configuration
+		enum_register_callback(ENUM_SETCONFIG, setconfigCallback_Composite, NULL);
+
+		// Handle feature set/clear
+		enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
+		enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
+
+		// Initialize the class driver
+		if (msc_init(&composite_config_descriptor.msc_interface_descriptor, &ids, &mem) != 0) { debugErr("MSC Init failed\r\n"); }
+		if (acm_init(&composite_config_descriptor.cdc_acm_interface_descriptor) != 0) { debugErr("CDC/ACM Init failed\r\n"); }
 	}
-	enum_register_descriptor(ENUM_DESC_STRING, lang_id_desc, 0);
-	enum_register_descriptor(ENUM_DESC_STRING, mfg_id_desc, 1);
-	enum_register_descriptor(ENUM_DESC_STRING, prod_id_desc, 2);
-	enum_register_descriptor(ENUM_DESC_STRING, serial_id_desc, 3);
-	enum_register_descriptor(ENUM_DESC_STRING, cdcacm_func_desc, 4);
-	enum_register_descriptor(ENUM_DESC_STRING, msc_func_desc, 5);
+	else if (interfaceOption == USB_CDC_ACM_OPTION_FLAG)
+	{
+		/* Register enumeration data */
+		enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&cdc_acm_device_descriptor, 0);
+		enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&cdc_acm_config_descriptor, 0);
 
-	// Handle configuration
-	enum_register_callback(ENUM_SETCONFIG, setconfigCallback_Composite, NULL);
+		if (usb_opts.enable_hs) {
+			/* Two additional descriptors needed for high-speed operation */
+			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&cdc_acm_config_descriptor_hs, 0);
+			enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&cdc_acm_device_qualifier_descriptor, 0);
+		}
 
-	// Handle feature set/clear
-	enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
-	enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
+		enum_register_descriptor(ENUM_DESC_STRING, cdcacm_lang_id_desc, 0);
+		enum_register_descriptor(ENUM_DESC_STRING, cdcacm_mfg_id_desc, 1);
+		enum_register_descriptor(ENUM_DESC_STRING, cdcacm_prod_id_desc, 2);
+		enum_register_descriptor(ENUM_DESC_STRING, cdcacm_serial_id_desc, 3);
+		enum_register_descriptor(ENUM_DESC_STRING, cdcacm_func_desc, 4);
 
-	// Initialize the class driver
-	if (msc_init(&composite_config_descriptor.msc_interface_descriptor, &ids, &mem) != 0) { debugErr("MSC Init failed\r\n"); }
-	if (acm_init(&composite_config_descriptor.comm_interface_descriptor) != 0) { debugErr("CDC/ACM Init failed\r\n"); }
+		/* Handle configuration */
+		enum_register_callback(ENUM_SETCONFIG, setconfigCallback_CDCACM, NULL);
 
-#elif USB_CDC_ACM_ONLY_OPTION /* CDC-ACM only */
-	/* Register enumeration data */
-	enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&device_descriptor, 0);
-	enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
+		/* Handle feature set/clear */
+		enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
+		enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
 
-	if (usb_opts.enable_hs) {
-		/* Two additional descriptors needed for high-speed operation */
-		enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
-		enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&device_qualifier_descriptor, 0);
+		/* Initialize the class driver */
+		if (acm_init(&cdc_acm_config_descriptor.cdc_acm_interface_descriptor) != 0) {
+			debugErr("USB: acm_init() failed\r\n");
+			//while (1) {} // Spin forever
+		}
 	}
+	else if (interfaceOption == USB_MSC_OPTION_FLAG)
+	{
+		/* Register enumeration data */
+		enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&msc_device_descriptor, 0);
+		enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&msc_config_descriptor, 0);
 
-	enum_register_descriptor(ENUM_DESC_STRING, lang_id_desc_cdcacm, 0);
-	enum_register_descriptor(ENUM_DESC_STRING, mfg_id_desc_cdcacm, 1);
-	enum_register_descriptor(ENUM_DESC_STRING, prod_id_desc_cdcacm, 2);
-	enum_register_descriptor(ENUM_DESC_STRING, serial_id_desc_cdcacm, 3);
-	enum_register_descriptor(ENUM_DESC_STRING, cdcacm_func_desc_cdcacm, 4);
+		if (usb_opts.enable_hs) {
+			/* Two additional descriptors needed for high-speed operation */
+			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&msc_config_descriptor_hs, 0);
+			enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&msc_device_qualifier_descriptor, 0);
+		}
 
-	/* Handle configuration */
-	enum_register_callback(ENUM_SETCONFIG, setconfigCallback_CDCACM, NULL);
+		enum_register_descriptor(ENUM_DESC_STRING, msc_lang_id_desc, 0);
+		enum_register_descriptor(ENUM_DESC_STRING, msc_mfg_id_desc, 1);
+		enum_register_descriptor(ENUM_DESC_STRING, msc_prod_id_desc, 2);
+		enum_register_descriptor(ENUM_DESC_STRING, msc_serial_id_desc, 3);
 
-	/* Handle feature set/clear */
-	enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
-	enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
+		/* Handle configuration */
+		enum_register_callback(ENUM_SETCONFIG, setconfigCallback_MSC, NULL);
 
-	/* Initialize the class driver */
-	if (acm_init(&config_descriptor.comm_interface_descriptor) != 0) {
-		debugErr("USB: acm_init() failed\r\n");
-		while (1) {}
+		/* Handle feature set/clear */
+		enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
+		enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
+
+		/* Initialize the class driver */
+		if (msc_init(&msc_config_descriptor.msc_interface_descriptor, &ids, &mem) != 0) {
+			debugErr("USB: msc_init() failed\r\n");
+			//while (1) {} // Spin forever
+		}
 	}
-
-#elif USB_MSC_ONLY_OPTION /* MSC only */
-	/* Register enumeration data */
-	enum_register_descriptor(ENUM_DESC_DEVICE, (uint8_t *)&device_descriptor, 0);
-	enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
-
-	if (usb_opts.enable_hs) {
-		/* Two additional descriptors needed for high-speed operation */
-		enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
-		enum_register_descriptor(ENUM_DESC_QUAL, (uint8_t *)&device_qualifier_descriptor, 0);
+	else
+	{
+		debugErr("USB: Setup has no recognizied interface options\r\n");
 	}
-
-	enum_register_descriptor(ENUM_DESC_STRING, lang_id_desc_msc, 0);
-	enum_register_descriptor(ENUM_DESC_STRING, mfg_id_desc_msc, 1);
-	enum_register_descriptor(ENUM_DESC_STRING, prod_id_desc_msc, 2);
-	enum_register_descriptor(ENUM_DESC_STRING, serial_id_desc_msc, 3);
-
-	/* Handle configuration */
-	enum_register_callback(ENUM_SETCONFIG, setconfigCallback_MSC, NULL);
-
-	/* Handle feature set/clear */
-	enum_register_callback(ENUM_SETFEATURE, setfeatureCallback, NULL);
-	enum_register_callback(ENUM_CLRFEATURE, clrfeatureCallback, NULL);
-
-	/* Initialize the class driver */
-	if (msc_init(&config_descriptor.msc_interface_descriptor, &ids, &mem) != 0) {
-		debugErr("USB: msc_init() failed\r\n");
-		while (1) {}
-	}
-#endif
 
 	// Register callbacks
-#if USB_COMPOSITE_OPTION /* Original - Composite MSC + CDC-ACM */
-	MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_Composite, NULL);
-	MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_Composite, NULL);
-	acm_register_callback(ACM_CB_READ_READY, usbReadCallback);
-#elif USB_CDC_ACM_ONLY_OPTION /* CDC-ACM */
-	MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_CDCACM, NULL);
-	MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_CDCACM, NULL);
-	acm_register_callback(ACM_CB_READ_READY, usbReadCallback);
-#elif USB_MSC_ONLY_OPTION /* MSC only */
-	MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_MSC, NULL);
-	MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_MSC, NULL);
-#endif
+	if (interfaceOption == USB_COMPOSITE_OPTION_FLAG)
+	{
+		MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_Composite, NULL);
+		MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_Composite, NULL);
+		acm_register_callback(ACM_CB_READ_READY, usbReadCallback);
+	}
+	else if (interfaceOption == USB_CDC_ACM_OPTION_FLAG)
+	{
+		MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_CDCACM, NULL);
+		MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_CDCACM, NULL);
+		acm_register_callback(ACM_CB_READ_READY, usbReadCallback);
+	}
+	else if (interfaceOption == USB_MSC_OPTION_FLAG)
+	{
+		MXC_USB_EventEnable(MAXUSB_EVENT_NOVBUS, usbEventCallback_MSC, NULL);
+		MXC_USB_EventEnable(MAXUSB_EVENT_VBUS, usbEventCallback_MSC, NULL);
+	}
+	else
+	{
+		debugErr("USB: No interface events to register\r\n");
+	}
 
 	// Start with USB in low power mode
 	usbAppSleep();
@@ -2754,7 +2845,6 @@ int usbShutdownCallback(void)
 }
 
 uint8_t g_mscDelayState = OFF;
-#if USB_COMPOSITE_OPTION /* Composite MSC + CDC-ACM */
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -2765,11 +2855,12 @@ int setconfigCallback_Composite(MXC_USB_SetupPkt *sud, void *cbdata)
 	/* Confirm the configuration value */
 	if (sud->wValue == composite_config_descriptor.config_descriptor.bConfigurationValue)
 	{
-		g_usbConfigured = 1;
+		g_usbConfigured = USB_COMPOSITE_OPTION_FLAG;
 		MXC_SETBIT(&g_usbEventFlags, EVENT_ENUM_COMP);
 
 		if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED)
 		{
+			debugRaw("<MSC HS>");
 			msc_cfg.out_ep = composite_config_descriptor_hs.endpoint_descriptor_1.bEndpointAddress & 0x7;
 			msc_cfg.out_maxpacket = composite_config_descriptor_hs.endpoint_descriptor_1.wMaxPacketSize;
 			msc_cfg.in_ep = composite_config_descriptor_hs.endpoint_descriptor_2.bEndpointAddress & 0x7;
@@ -2777,26 +2868,43 @@ int setconfigCallback_Composite(MXC_USB_SetupPkt *sud, void *cbdata)
 		}
 		else // Not high speed
 		{
+			debugRaw("<MSC>");
 			msc_cfg.out_ep = composite_config_descriptor.endpoint_descriptor_1.bEndpointAddress & 0x7;
 			msc_cfg.out_maxpacket = composite_config_descriptor.endpoint_descriptor_1.wMaxPacketSize;
 			msc_cfg.in_ep = composite_config_descriptor.endpoint_descriptor_2.bEndpointAddress & 0x7;
 			msc_cfg.in_maxpacket = composite_config_descriptor.endpoint_descriptor_2.wMaxPacketSize;
 		}
 
-		acm_cfg.out_ep = composite_config_descriptor.endpoint_descriptor_4.bEndpointAddress & 0x7;
-		acm_cfg.out_maxpacket = composite_config_descriptor.endpoint_descriptor_4.wMaxPacketSize;
-		acm_cfg.in_ep = composite_config_descriptor.endpoint_descriptor_5.bEndpointAddress & 0x7;
-		acm_cfg.in_maxpacket = composite_config_descriptor.endpoint_descriptor_5.wMaxPacketSize;
-		acm_cfg.notify_ep = composite_config_descriptor.endpoint_descriptor_3.bEndpointAddress & 0x7;
-		acm_cfg.notify_maxpacket = composite_config_descriptor.endpoint_descriptor_3.wMaxPacketSize;
+		if (0) //(MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) // CDC-ACM doesn't want to work at High speed
+		{
+			debugRaw("<CDC-ACM HS>");
+			acm_cfg.out_ep = composite_config_descriptor_hs.endpoint_descriptor_4.bEndpointAddress & 0x7;
+			acm_cfg.out_maxpacket = composite_config_descriptor_hs.endpoint_descriptor_4.wMaxPacketSize;
+			acm_cfg.in_ep = composite_config_descriptor_hs.endpoint_descriptor_5.bEndpointAddress & 0x7;
+			acm_cfg.in_maxpacket = composite_config_descriptor_hs.endpoint_descriptor_5.wMaxPacketSize;
+			acm_cfg.notify_ep = composite_config_descriptor_hs.endpoint_descriptor_3.bEndpointAddress & 0x7;
+			acm_cfg.notify_maxpacket = composite_config_descriptor_hs.endpoint_descriptor_3.wMaxPacketSize;
+		}
+		else // Not high speed
+		{
+			debugRaw("<CDC-ACM>");
+			acm_cfg.out_ep = composite_config_descriptor.endpoint_descriptor_4.bEndpointAddress & 0x7;
+			acm_cfg.out_maxpacket = composite_config_descriptor.endpoint_descriptor_4.wMaxPacketSize;
+			acm_cfg.in_ep = composite_config_descriptor.endpoint_descriptor_5.bEndpointAddress & 0x7;
+			acm_cfg.in_maxpacket = composite_config_descriptor.endpoint_descriptor_5.wMaxPacketSize;
+			acm_cfg.notify_ep = composite_config_descriptor.endpoint_descriptor_3.bEndpointAddress & 0x7;
+			acm_cfg.notify_maxpacket = composite_config_descriptor.endpoint_descriptor_3.wMaxPacketSize;
+		}
 
 #if 0 /* Test */
 		debugRaw("<msc/%d/%d,acm/%d/%d/%d>", msc_cfg.out_maxpacket, msc_cfg.in_maxpacket, acm_cfg.out_maxpacket, acm_cfg.in_maxpacket, acm_cfg.notify_maxpacket);
 #endif
+
 		if (g_mscDelayState == ON) { SoftUsecWait(1 * SOFT_SECS); }
-		msc_configure(&msc_cfg);
-		return acm_configure(&acm_cfg);
-		/* Configure the device class */
+		//debugRaw("<MSC>");
+		msc_configure(&msc_cfg); // Configure the device class
+		//debugRaw("<CDC-ACM>");
+		return acm_configure(&acm_cfg); // Configure the device class
 	}
 	else if (sud->wValue == 0)
 	{
@@ -2808,7 +2916,6 @@ int setconfigCallback_Composite(MXC_USB_SetupPkt *sud, void *cbdata)
 	return -1;
 }
 
-#elif USB_CDC_ACM_ONLY_OPTION /* CDC-ACM only */
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -2817,22 +2924,36 @@ int setconfigCallback_CDCACM(MXC_USB_SetupPkt *sud, void *cbdata)
 	debugRaw("<U-cc>");
 
 	/* Confirm the configuration value */
-	if (sud->wValue == config_descriptor.config_descriptor.bConfigurationValue)
+	if (sud->wValue == cdc_acm_config_descriptor.config_descriptor.bConfigurationValue)
 	{
-		g_usbConfigured = 1;
+		g_usbConfigured = USB_CDC_ACM_OPTION_FLAG;
 		MXC_SETBIT(&g_usbEventFlags, EVENT_ENUM_COMP);
 
-		acm_cfg.out_ep = config_descriptor.endpoint_descriptor_4.bEndpointAddress & 0x7;
-		acm_cfg.out_maxpacket = config_descriptor.endpoint_descriptor_4.wMaxPacketSize;
-		acm_cfg.in_ep = config_descriptor.endpoint_descriptor_5.bEndpointAddress & 0x7;
-		acm_cfg.in_maxpacket = config_descriptor.endpoint_descriptor_5.wMaxPacketSize;
-		acm_cfg.notify_ep = config_descriptor.endpoint_descriptor_3.bEndpointAddress & 0x7;
-		acm_cfg.notify_maxpacket = config_descriptor.endpoint_descriptor_3.wMaxPacketSize;
+		if (0) //(MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) // CDC-ACM doesn't want to work at High speed
+		{
+			debugRaw("<CDC-ACM HS>");
+			acm_cfg.out_ep = cdc_acm_config_descriptor_hs.endpoint_descriptor_4.bEndpointAddress & 0x7;
+			acm_cfg.out_maxpacket = cdc_acm_config_descriptor_hs.endpoint_descriptor_4.wMaxPacketSize;
+			acm_cfg.in_ep = cdc_acm_config_descriptor_hs.endpoint_descriptor_5.bEndpointAddress & 0x7;
+			acm_cfg.in_maxpacket = cdc_acm_config_descriptor_hs.endpoint_descriptor_5.wMaxPacketSize;
+			acm_cfg.notify_ep = cdc_acm_config_descriptor_hs.endpoint_descriptor_3.bEndpointAddress & 0x7;
+			acm_cfg.notify_maxpacket = cdc_acm_config_descriptor_hs.endpoint_descriptor_3.wMaxPacketSize;
+		}
+		else // Not high speed
+		{
+			debugRaw("<CDC-ACM>");
+			acm_cfg.out_ep = cdc_acm_config_descriptor.endpoint_descriptor_4.bEndpointAddress & 0x7;
+			acm_cfg.out_maxpacket = cdc_acm_config_descriptor.endpoint_descriptor_4.wMaxPacketSize;
+			acm_cfg.in_ep = cdc_acm_config_descriptor.endpoint_descriptor_5.bEndpointAddress & 0x7;
+			acm_cfg.in_maxpacket = cdc_acm_config_descriptor.endpoint_descriptor_5.wMaxPacketSize;
+			acm_cfg.notify_ep = cdc_acm_config_descriptor.endpoint_descriptor_3.bEndpointAddress & 0x7;
+			acm_cfg.notify_maxpacket = cdc_acm_config_descriptor.endpoint_descriptor_3.wMaxPacketSize;
+		}
 
 #if 0 /* Test */
 		debugRaw("<acm/%d/%d/%d>", acm_cfg.out_maxpacket, acm_cfg.in_maxpacket, acm_cfg.notify_maxpacket);
 #endif
-		return acm_configure(&acm_cfg); /* Configure the device class */
+		return acm_configure(&acm_cfg); // Configure the device class
 	} else if (sud->wValue == 0) {
 		g_usbConfigured = 0;
 		return acm_deconfigure();
@@ -2841,7 +2962,6 @@ int setconfigCallback_CDCACM(MXC_USB_SetupPkt *sud, void *cbdata)
 	return -1;
 }
 
-#elif USB_MSC_ONLY_OPTION /* MSC only */
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -2850,28 +2970,34 @@ int setconfigCallback_MSC(MXC_USB_SetupPkt *sud, void *cbdata)
 	debugRaw("<U-cc>");
 
 	/* Confirm the configuration value */
-	if (sud->wValue == config_descriptor.config_descriptor.bConfigurationValue)
+	if (sud->wValue == msc_config_descriptor.config_descriptor.bConfigurationValue)
 	{
-		g_usbConfigured = 1;
+		g_usbConfigured = USB_MSC_OPTION_FLAG;
 		MXC_SETBIT(&g_usbEventFlags, EVENT_ENUM_COMP);
 
-		if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
-			msc_cfg.out_ep = config_descriptor_hs.endpoint_descriptor_1.bEndpointAddress & 0x7;
-			msc_cfg.out_maxpacket = config_descriptor_hs.endpoint_descriptor_1.wMaxPacketSize;
-			msc_cfg.in_ep = config_descriptor_hs.endpoint_descriptor_2.bEndpointAddress & 0x7;
-			msc_cfg.in_maxpacket = config_descriptor_hs.endpoint_descriptor_2.wMaxPacketSize;
-		} else {
-			msc_cfg.out_ep = config_descriptor.endpoint_descriptor_1.bEndpointAddress & 0x7;
-			msc_cfg.out_maxpacket = config_descriptor.endpoint_descriptor_1.wMaxPacketSize;
-			msc_cfg.in_ep = config_descriptor.endpoint_descriptor_2.bEndpointAddress & 0x7;
-			msc_cfg.in_maxpacket = config_descriptor.endpoint_descriptor_2.wMaxPacketSize;
+		//if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED)
+		if (0) // Test not high speed
+		{
+			debugRaw("<MSC HS>");
+			msc_cfg.out_ep = msc_config_descriptor_hs.endpoint_descriptor_1.bEndpointAddress & 0x7;
+			msc_cfg.out_maxpacket = msc_config_descriptor_hs.endpoint_descriptor_1.wMaxPacketSize;
+			msc_cfg.in_ep = msc_config_descriptor_hs.endpoint_descriptor_2.bEndpointAddress & 0x7;
+			msc_cfg.in_maxpacket = msc_config_descriptor_hs.endpoint_descriptor_2.wMaxPacketSize;
+		}
+		else
+		{
+			debugRaw("<MSC>");
+			msc_cfg.out_ep = msc_config_descriptor.endpoint_descriptor_1.bEndpointAddress & 0x7;
+			msc_cfg.out_maxpacket = msc_config_descriptor.endpoint_descriptor_1.wMaxPacketSize;
+			msc_cfg.in_ep = msc_config_descriptor.endpoint_descriptor_2.bEndpointAddress & 0x7;
+			msc_cfg.in_maxpacket = msc_config_descriptor.endpoint_descriptor_2.wMaxPacketSize;
 		}
 
 #if 0 /* Test */
 		debugRaw("<msc/%d/%d>", msc_cfg.out_maxpacket, msc_cfg.in_maxpacket);
 #endif
 		if (g_mscDelayState == ON) { SoftUsecWait(1 * SOFT_SECS); }
-		return msc_configure(&msc_cfg); /* Configure the device class */
+		return msc_configure(&msc_cfg); // Configure the device class
 
 	} else if (sud->wValue == 0) {
 		g_usbConfigured = 0;
@@ -2880,7 +3006,6 @@ int setconfigCallback_MSC(MXC_USB_SetupPkt *sud, void *cbdata)
 
 	return -1;
 }
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -2936,7 +3061,6 @@ static void usbAppWakeup(void)
 void WriteDebugCacheToFile(uint8_t flush);
 #endif
 
-#if USB_COMPOSITE_OPTION /* Composite MSC + CDC-ACM */
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -3005,7 +3129,6 @@ int usbEventCallback_Composite(maxusb_event_t evt, void *data)
 	return 0;
 }
 
-#elif USB_CDC_ACM_ONLY_OPTION /* CDC-ACM only */
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -3050,11 +3173,11 @@ int usbEventCallback_CDCACM(maxusb_event_t evt, void *data)
 		break;
 	case MAXUSB_EVENT_BRSTDN:
 		if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
-			enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor_hs, 0);
-			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor, 0);
+			enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&cdc_acm_config_descriptor_hs, 0);
+			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&cdc_acm_config_descriptor, 0);
 		} else {
-			enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
-			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
+			enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&cdc_acm_config_descriptor, 0);
+			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&cdc_acm_config_descriptor_hs, 0);
 		}
 		break;
 	case MAXUSB_EVENT_SUSP:
@@ -3070,7 +3193,6 @@ int usbEventCallback_CDCACM(maxusb_event_t evt, void *data)
 	return 0;
 }
 
-#elif USB_MSC_ONLY_OPTION /* MSC only */
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -3118,11 +3240,11 @@ int usbEventCallback_MSC(maxusb_event_t evt, void *data)
 
 	case MAXUSB_EVENT_BRSTDN:
 		if (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) {
-			enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor_hs, 0);
-			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor, 0);
+			enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&msc_config_descriptor_hs, 0);
+			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&msc_config_descriptor, 0);
 		} else {
-			enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&config_descriptor, 0);
-			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&config_descriptor_hs, 0);
+			enum_register_descriptor(ENUM_DESC_CONFIG, (uint8_t *)&msc_config_descriptor, 0);
+			enum_register_descriptor(ENUM_DESC_OTHER, (uint8_t *)&msc_config_descriptor_hs, 0);
 		}
 		break;
 
@@ -3140,7 +3262,6 @@ int usbEventCallback_MSC(maxusb_event_t evt, void *data)
 
 	return 0;
 }
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -3287,13 +3408,9 @@ void WriteDebugCacheToFile(uint8_t flush);
 static uint8_t s_previousUsbState = OFF;
 	if ((s_previousUsbState == OFF) && (g_usbConfigured))
 	{
-#if USB_COMPOSITE_OPTION
-		OverlayMessage(getLangText(STATUS_TEXT), "USB CONNECTING... (COMPOSITE MSC + CDC-ACM)", (250 * SOFT_MSECS));
-#elif USB_CDC_ACM_ONLY_OPTION
-		OverlayMessage(getLangText(STATUS_TEXT), "USB CONNECTING... (CDC-ACM Only)", (250 * SOFT_MSECS));
-#elif USB_MSC_ONLY_OPTION
-		OverlayMessage(getLangText(STATUS_TEXT), "USB CONNECTING... (MSC Only)", (250 * SOFT_MSECS));
-#endif
+		if () { OverlayMessage(getLangText(STATUS_TEXT), "USB CONNECTING... (COMPOSITE MSC + CDC-ACM)", (250 * SOFT_MSECS)); }
+		else if () { OverlayMessage(getLangText(STATUS_TEXT), "USB CONNECTING... (CDC-ACM Only)", (250 * SOFT_MSECS)); }
+		else if () { OverlayMessage(getLangText(STATUS_TEXT), "USB CONNECTING... (MSC Only)", (250 * SOFT_MSECS)); }
 		s_previousUsbState = ON;
 	}
 	else if (s_previousUsbState != g_usbConfigured) { s_previousUsbState = g_usbConfigured; }
@@ -3307,7 +3424,7 @@ static uint8_t s_previousUsbState = OFF;
 #define MAXLEN 256
 
 // Globals
-FATFS* fs; //FFat Filesystem Object
+FATFS* fs; //FFat Filesystem Object // Needed for FS test
 FATFS fs_obj;
 FIL file; //FFat File Object
 FRESULT err; //FFat Result (Struct)
@@ -3320,6 +3437,11 @@ DWORD clusters_free = 0, sectors_free = 0, sectors_total = 0, volume_sn = 0;
 UINT bytes_written = 0, bytes_read = 0, mounted = 0;
 BYTE work[4096];
 static char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,.-#'?!";
+
+#if 1 /* Test storage for USB MSC Flash */
+FATFS msc_fs_obj;
+UINT msc_mounted = 0;
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -3802,7 +3924,7 @@ int CreateFilesystem_eMMCFlash(void)
 		// Remount
 		if ((err = f_mount(&fs_obj, "", 1)) != FR_OK)
 		{
-			debugErr("Drive(eMMC): filed to mount after formatting, with error %s\r\n", FF_ERRORS[err]);
+			debugErr("Drive(eMMC): failed to mount after formatting, with error %s\r\n", FF_ERRORS[err]);
 			f_mount(NULL, "", 0);
 		}
 		else if ((err = f_setlabel("NOMIS")) != FR_OK)
@@ -4042,7 +4164,7 @@ void SetupDriveAndFilesystem(void)
 	else { debug("Drive(eMMC): Formatted successfully\r\n"); }
 
 	// Remount
-	if ((err = f_mount(&fs_obj, "", 1)) != FR_OK) { debugErr("Drive(eMMC): filed to mount after formatting, with error %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); }
+	if ((err = f_mount(&fs_obj, "", 1)) != FR_OK) { debugErr("Drive(eMMC): failed to mount after formatting, with error %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); }
 	else if ((err = f_setlabel("NOMIS")) != FR_OK) { debugErr("Drive(eMMC): Setting label failed with error %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); }
 #endif
 
@@ -4057,7 +4179,7 @@ void SetupDriveAndFilesystem(void)
 #endif
 
 	// Mount the default drive to determine if the filesystem is created
-	if ((err = f_mount(&fs_obj, "", 1)) != FR_OK)
+	if ((err = f_mount(&fs_obj, "0:", 1)) != FR_OK)
 	{
 		// Check if failure was due to no filesystem
 		if (err == FR_NO_FILESYSTEM)
@@ -4080,23 +4202,23 @@ void SetupDriveAndFilesystem(void)
 				debug("Drive(eMMC): Formatted successfully\r\n");
 
 				// Remount
-				if ((err = f_mount(&fs_obj, "", 1)) != FR_OK)
+				if ((err = f_mount(&fs_obj, "0:", 1)) != FR_OK)
 				{
-					debugErr("Drive(eMMC): filed to mount after formatting, with error %s\r\n", FF_ERRORS[err]);
+					debugErr("Drive(eMMC): failed to mount after formatting, with error %s\r\n", FF_ERRORS[err]);
 					f_mount(NULL, "", 0);
 				}
 				else if ((err = f_setlabel("NOMIS")) != FR_OK)
 				{
 					debugErr("Drive(eMMC): Setting label failed with error %s\r\n", FF_ERRORS[err]);
-					f_mount(NULL, "", 0);
+					f_mount(NULL, "0:", 0);
 				}
 				else { mounted = 1; }
 			}
 		}
 		else // Mount error was other than no filesystem
 		{
-			debugErr("Drive(eMMC): filed to mount with error %s\r\n", FF_ERRORS[err]);
-			f_mount(NULL, "", 0);
+			debugErr("Drive(eMMC): failed to mount with error %s\r\n", FF_ERRORS[err]);
+			f_mount(NULL, "0:", 0);
 
 #if 1 /* Test */
 #if 0 /* For version FF13 and FF14 */
@@ -4104,7 +4226,7 @@ void SetupDriveAndFilesystem(void)
 #else /* Version FF15 */
 			MKFS_PARM setupFS = { FM_ANY, 0, 0, 0, 0 };
 			//MKFS_PARM setupFS = { FM_FAT32, 0, 0, 0, 0 };
-			if ((err = f_mkfs("", &setupFS, work, sizeof(work))) != FR_OK)
+			if ((err = f_mkfs("0:", &setupFS, work, sizeof(work))) != FR_OK)
 #endif
 			{
 				debugErr("Drive(eMMC): Formatting failed with error %s\r\n", FF_ERRORS[err]);
@@ -4116,13 +4238,13 @@ void SetupDriveAndFilesystem(void)
 				// Remount
 				if ((err = f_mount(&fs_obj, "", 1)) != FR_OK)
 				{
-					debugErr("Drive(eMMC): filed to mount after formatting, with error %s\r\n", FF_ERRORS[err]);
-					f_mount(NULL, "", 0);
+					debugErr("Drive(eMMC): failed to mount after formatting, with error %s\r\n", FF_ERRORS[err]);
+					f_mount(NULL, "0:", 0);
 				}
 				else if ((err = f_setlabel("NOMIS")) != FR_OK)
 				{
 					debugErr("Drive(eMMC): Setting label failed with error %s\r\n", FF_ERRORS[err]);
-					f_mount(NULL, "", 0);
+					f_mount(NULL, "0:", 0);
 				}
 				else { mounted = 1; }
 			}
@@ -4147,6 +4269,168 @@ void SetupDriveAndFilesystem(void)
 		if (f_stat(LANGUAGE_PATH, &fileInfo) != FR_OK) { if (f_mkdir(LANGUAGE_PATH) != FR_OK) { debugErr("Filesystem: Unable to create %s directory\r\n", LANGUAGE_PATH); } }
 		if (f_stat(LOGS_PATH, &fileInfo) != FR_OK) { if (f_mkdir(LOGS_PATH) != FR_OK) { debugErr("Filesystem: Unable to create %s directory\r\n", LOGS_PATH); } }
 	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetupUsbMscFlashDriveAndFilesystem(void)
+{
+	debug("Drive(USB MSC): Using FF15 version\r\n");
+	OverlayMessage(getLangText(STATUS_TEXT), "Reading USB Flash drive filesystem...", 0);
+
+	// Mount the default drive to determine if the filesystem is created
+	if ((err = f_mount(&msc_fs_obj, "1:", 1)) != FR_OK)
+	{
+		// Check if failure was due to no filesystem
+		if (err == FR_NO_FILESYSTEM)
+		{
+#if 0 /* Original */
+			debug("Drive(USB MSC): Formatting...\r\n");
+
+			// Format the default drive to a FAT filesystem
+			MKFS_PARM setupFS = { FM_ANY, 0, 0, 0, 0 };
+			//MKFS_PARM setupFS = { FM_FAT32, 0, 0, 0, 0 };
+			if ((err = f_mkfs("2:", &setupFS, work, sizeof(work))) != FR_OK)
+			{
+				debugErr("Drive(USB MSC): Formatting failed with error %s\r\n", FF_ERRORS[err]);
+			}
+			else
+			{
+				debug("Drive(USB MSC): Formatted successfully\r\n");
+
+				// Remount
+				if ((err = f_mount(&msc_fs_obj, "2:", 1)) != FR_OK)
+				{
+					debugErr("Drive(USB MSC): failed to mount after formatting, with error %s\r\n", FF_ERRORS[err]);
+					f_mount(NULL, "1:", 0);
+				}
+				else if ((err = f_setlabel("NOMIS")) != FR_OK)
+				{
+					debugErr("Drive(USB MSC): Setting label failed with error %s\r\n", FF_ERRORS[err]);
+					f_mount(NULL, "1:", 0);
+				}
+				else { msc_mounted = 1; }
+			}
+#else /* Skip formatting for now */
+			debugErr("Drive(USB MSC): No filesystem found...\r\n");
+			msc_mounted = 0;
+#endif
+		}
+		else // Mount error was other than no filesystem
+		{
+			debugErr("Drive(USB MSC): failed to mount with error %s\r\n", FF_ERRORS[err]);
+			f_mount(NULL, "1:", 0);
+
+			MKFS_PARM setupFS = { FM_ANY, 0, 0, 0, 0 };
+			//MKFS_PARM setupFS = { FM_FAT32, 0, 0, 0, 0 };
+			if ((err = f_mkfs("2:", &setupFS, work, sizeof(work))) != FR_OK)
+			{
+				debugErr("Drive(USB MSC): Formatting failed with error %s\r\n", FF_ERRORS[err]);
+			}
+			else
+			{
+				debug("Drive(USB MSC): Formatted successfully\r\n");
+
+				// Remount
+				if ((err = f_mount(&msc_fs_obj, "2:", 1)) != FR_OK)
+				{
+					debugErr("Drive(USB MSC): failed to mount after formatting, with error %s\r\n", FF_ERRORS[err]);
+					f_mount(NULL, "1:", 0);
+				}
+				else if ((err = f_setlabel("NOMIS")) != FR_OK)
+				{
+					debugErr("Drive(USB MSC): Setting label failed with error %s\r\n", FF_ERRORS[err]);
+					f_mount(NULL, "1:", 0);
+				}
+				else { msc_mounted = 1; }
+			}
+		}
+	}
+	else // Mount successful
+	{
+		debug("Drive(USB MSC): mounted successfully\r\n");
+
+#if 1 /* Test */
+		msc_mounted = 1;
+#endif
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void UsbMscFlashTestCopyFile(char* sourceFile, char* destFile)
+{
+	uint32_t dataSize;
+	uint16_t blockSize;
+	FIL file2;
+
+	if ((err = f_open(&file, sourceFile, FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "0:", 0); }
+	if ((err = f_open(&file2, destFile, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "1:", 0); }
+	dataSize = f_size(&file);
+
+	while (dataSize)
+	{
+		if (dataSize > 512) { blockSize = 512; }
+		else { blockSize = dataSize; }
+
+		f_read(&file, g_spareBuffer, blockSize, &bytes_read); if (bytes_read != blockSize) { debugErr("Bytes read not correct (%d != %d)\r\n", bytes_read, blockSize); }
+		f_write(&file2, g_spareBuffer, blockSize, &bytes_written); if (bytes_written != blockSize) { debugErr("Bytes written not correct (%d != %d)\r\n", bytes_written, blockSize); }
+		dataSize -= blockSize;
+	}
+
+	if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "0:", 0); }
+	if ((err = f_close(&file2)) != FR_OK) { debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "1:", 0); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void UsbMscFlashTestFile(void)
+{
+	//f_open(&file, "1:/Test.txt", FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]); }
+	//if ((err = f_read(&file, &message, bytes_written, &bytes_read)) != FR_OK) { debugErr("Unable to read file: %s\r\n", FF_ERRORS[err]); }
+	//if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "", 0); }
+
+	if (msc_mounted)
+	{
+		OverlayMessage(getLangText(STATUS_TEXT), "Starting USB Flash drive copy test...", 0);
+		debug("UsbMscFlashTestFile: Attempting to write a test file...\r\n");
+		uint16_t bufferLength = sprintf((char*)g_eventDataBuffer, "This is a test file to check the ability of the Fat filesystem to write to the USB MSC Flash device\r\n");
+
+		if ((err = f_open(&file, "1:/Test.txt", FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "1:", 0); }
+		if ((err = f_write(&file, g_eventDataBuffer, bufferLength, &bytes_written)) != FR_OK) { debugErr("Unable to write file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "1:", 0); }
+		if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]); f_mount(NULL, "1:", 0); }
+
+		f_mkdir("1:/Events");
+		f_mkdir("1:/Events/Evts 1-99");
+
+		// Events\Evts 1-99\Evt1.ns8
+		if ((f_stat("0:/Events/Evts 1-99/Evt1.ns8", &fno)) != FR_OK) { debugWarn("Evt1 event file not found, skipping copy test\r\n"); }
+		else { OverlayMessage(getLangText(STATUS_TEXT), "Copying Evt1 to USB Flash drive...", 0);
+				//UsbMscFlashTestCopyFile("0:/Events/Evts 1-99/Evt1.ns8", "1:/Evt1.ns8"); }
+				UsbMscFlashTestCopyFile("0:/Events/Evts 1-99/Evt1.ns8", "1:/Events/Evts 1-99/Evt1.ns8"); }
+
+		// Events\Evts 1-99\Evt2.ns8
+		if ((f_stat("0:/Events/Evts 1-99/Evt1.ns8", &fno)) != FR_OK) { debugWarn("Evt1 event file not found, skipping copy test\r\n"); }
+		else { OverlayMessage(getLangText(STATUS_TEXT), "Copying Evt2 to USB Flash drive...", 0);
+				//UsbMscFlashTestCopyFile("0:/Events/Evts 1-99/Evt2.ns8", "1:/Evt2.ns8"); }
+				UsbMscFlashTestCopyFile("0:/Events/Evts 1-99/Evt2.ns8", "1:/Events/Evts 1-99/Evt2.ns8"); }
+
+		// Events\Evts 1-99\Evt3.ns8
+		if ((f_stat("0:/Events/Evts 1-99/Evt1.ns8", &fno)) != FR_OK) { debugWarn("Evt1 event file not found, skipping copy test\r\n"); }
+		else { OverlayMessage(getLangText(STATUS_TEXT), "Copying Evt3 to USB Flash drive...", 0);
+				//UsbMscFlashTestCopyFile("0:/Events/Evts 1-99/Evt3.ns8", "1:/Evt3.ns8"); }
+				UsbMscFlashTestCopyFile("0:/Events/Evts 1-99/Evt3.ns8", "1:/Events/Evts 1-99/Evt3.ns8"); }
+
+		debug("UsbMscFlashTestFile: Unmounting USB MSC Flash filesystem\r\n");
+		f_mount(NULL, "1:", 0);
+	}
+	else { debug("UsbMscFlashTestFile: USB MSC Flash filesystem not mounted, can't write a test file...\r\n"); }
+
+extern void USBHostControllerTestShutdown(void);
+	USBHostControllerTestShutdown();
 }
 
 ///----------------------------------------------------------------------------
@@ -4744,6 +5028,7 @@ void ValidatePowerOn(void)
 	uint16_t i;
 	uint32_t timer;
 
+	// GPIO init sets initial LED state Blue
 #if 0 /* No longer needed with GPIO setup being the first action on Hardware init */
 	SetupPowerOnDetectGPIO();
 #endif
@@ -4798,9 +5083,6 @@ void ValidatePowerOn(void)
 
 		// Unit startup condition verified, latch power and continue
 		PowerControl(MCU_POWER_LATCH, ON);
-
-		// Todo: Turn on appropriate LED
-		//PowerControl(LED???, ON);
 	}
 	//------------------------------------------------------------------------------------------------------------------------------------------
 	// Check if USB charging is startup source
@@ -4809,6 +5091,9 @@ void ValidatePowerOn(void)
 	{
 		// Make sure latch is disabled in case it was still enabled from prior run and MCU reset
 		PowerControl(MCU_POWER_LATCH, OFF);
+
+		// Turn on Green LED to alert unit has external power
+		PowerControl(LED_1, OFF); PowerControl(LED_2, ON);
 
 		SetupHalfSecondTickTimer();
 
@@ -4853,8 +5138,7 @@ void ValidatePowerOn(void)
 		timer = g_lifetimeHalfSecondTickCount + 8;
 
 		// Turn on appropriate LED
-		PowerControl(LED_1, OFF);
-		PowerControl(LED_2, ON);
+		//PowerControl(LED_1, OFF); PowerControl(LED_2, ON);
 
 		while (1)
 		{
@@ -5827,7 +6111,7 @@ void InitSystemHardware_MS9300(void)
 	// Setup USB Composite (MSC + CDC/ACM)
 	//-------------------------------------------------------------------------
 #if 0 /* Normal */
-	SetupUSBComposite();
+	SetupUSBComposite(USB_COMPOSITE_OPTION_FLAG);
 #else /* Test wihtout setting up MCU USBC for Port Controller and power delivery */
 #endif
 
