@@ -202,7 +202,8 @@ uint8 ModemPuts(uint8* byteData, uint32 dataLength, uint8 convertAsciiFlag, uint
 ///----------------------------------------------------------------------------
 void UartPutc(uint8 c, int32 channel)
 {
-	mxc_uart_regs_t* port;
+	//mxc_uart_regs_t* port;
+	int status;
 
 	// Check if channel is USB CDC/ACM serial
 #if 0 /* Original */
@@ -227,11 +228,31 @@ void UartPutc(uint8 c, int32 channel)
 		}
 	}
 #else /* Test new pipes */
-	if ((channel == CRAFT_COM_PORT) || (channel == SERIAL_PIPE_CELL))
+	if ((channel == CRAFT_COM_PORT) || (channel == SERIAL_PIPE_CELL) || (channel == LTE_TX_COM_PORT))
 	{
 		if (GetPowerControlState(CELL_ENABLE) == ON)
 		{
-			MXC_UART_WriteCharacter(MXC_UART1, c);
+			status = MXC_UART_WriteCharacter(MXC_UART1, c);
+
+#if 1 /* Test timeout catch and Uart driver re-init */
+			if (status == E_TIME_OUT)
+			{
+				g_uart1TimeoutCount++;
+
+				debugErr("UART1 transaction to Cell device timed out\r\n");
+				debugWarn("UART1: Attempting to restart the driver...\r\n");
+
+				MXC_UART_Shutdown(MXC_UART1);
+				status = MXC_UART_Init(MXC_UART1, UART_BAUD);
+				if (status != E_SUCCESS) { debugErr("UART1 failed init with code: %d\r\n", status); }
+
+				debugWarn("UART1: Retrying transaction...\r\n");
+
+				// Retry the request
+				status = MXC_UART_WriteCharacter(MXC_UART1, c);
+				if (status != E_NO_ERROR) { debugErr("UART1 transaction retry failed with code (%d)\r\n", status); }
+			}
+#endif
 		}
 	}
 	else if (channel == SERIAL_PIPE_USB)
@@ -256,8 +277,8 @@ void UartPutc(uint8 c, int32 channel)
 #endif
 	else // channel is UART serial
 	{
-		if (channel == LTE_TX_COM_PORT) { port = MXC_UART1; }
-		else /* (channel == GLOBAL_DEBUG_PRINT_PORT) */ { port = MXC_UART2; }
+		//if (channel == LTE_TX_COM_PORT) { port = MXC_UART1; }
+		//else /* (channel == GLOBAL_DEBUG_PRINT_PORT) */ { port = MXC_UART2; }
 
 #if 1 /* Test debug cache */
 		if (channel == GLOBAL_DEBUG_PRINT_PORT)
@@ -266,7 +287,7 @@ void UartPutc(uint8 c, int32 channel)
 			{
 				g_debugCache[g_debugCacheWriteIndex] = c;
 				g_debugCacheWriteIndex++;
-				if (g_debugCacheWriteIndex == 33800) { g_debugCacheWriteIndex = 0; }
+				if (g_debugCacheWriteIndex == DEBUG_BUFFER_SIZE) { g_debugCacheWriteIndex = 0; }
 
 				g_debugCacheCount++;
 			}
@@ -283,17 +304,17 @@ void UartPutc(uint8 c, int32 channel)
 				}
 				else
 				{
-					g_debugCache[(33800 - 5)] = '<';
-					g_debugCache[(33800 - 4)] = 'D';
-					g_debugCache[(33800 - 3)] = 'O';
-					g_debugCache[(33800 - 2)] = 'V';
-					g_debugCache[(33800 - 1)] = 'W';
-					g_debugCache[(33800 - 0)] = '>';
+					g_debugCache[(DEBUG_BUFFER_SIZE - 5)] = '<';
+					g_debugCache[(DEBUG_BUFFER_SIZE - 4)] = 'D';
+					g_debugCache[(DEBUG_BUFFER_SIZE - 3)] = 'O';
+					g_debugCache[(DEBUG_BUFFER_SIZE - 2)] = 'V';
+					g_debugCache[(DEBUG_BUFFER_SIZE - 1)] = 'W';
+					g_debugCache[(DEBUG_BUFFER_SIZE - 0)] = '>';
 				}
 
 				g_debugCacheCount++;
 			}
-			else // (g_debugCacheCount == 33800)
+			else // (g_debugCacheCount == DEBUG_BUFFER_SIZE)
 			{
 				// Stop queueing debug cache until system moves to log file
 			}
@@ -301,7 +322,27 @@ void UartPutc(uint8 c, int32 channel)
 #endif
 
 #if 1 /* Framework driver blocks waiting forever for TX FIFO space to be available */
-		MXC_UART_WriteCharacter(port, c);
+		status = MXC_UART_WriteCharacter(MXC_UART2, c);
+
+#if 1 /* Test timeout catch and Uart driver re-init */
+		if (status == E_TIME_OUT)
+		{
+			g_uart2TimeoutCount++;
+
+			debugErr("UART2 transaction to Cell device timed out\r\n");
+			debugWarn("UART2: Attempting to restart the driver...\r\n");
+
+			MXC_UART_Shutdown(MXC_UART2);
+			status = MXC_UART_Init(MXC_UART2, UART_BAUD);
+			if (status != E_SUCCESS) { debugErr("UART2 failed init with code: %d\r\n", status); }
+
+			debugWarn("UART2: Retrying transaction...\r\n");
+
+			// Retry the request
+			status = MXC_UART_WriteCharacter(MXC_UART2, c);
+			if (status != E_NO_ERROR) { debugErr("UART2 transaction retry failed with code (%d)\r\n", status); }
+		}
+#endif
 #else /* Manage timeout ourselves */
 		uint32 retries = 100; //USART_DEFAULT_TIMEOUT;
 		int status;
