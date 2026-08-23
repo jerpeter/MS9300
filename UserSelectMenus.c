@@ -2550,7 +2550,7 @@ extern void DumpBatteryLog(void);
 #else /* Test 2 */
 extern void USBHostControllerTest(void);
 			debug("Calling USBHostControllerTest...\r\n");
-			OverlayMessage(getLangText(STATUS_TEXT), "CHECKNIG...", 0);
+			OverlayMessage(getLangText(STATUS_TEXT), "USB Flash drive sync...", 0);
 			USBHostControllerTest();
 #endif
 		}
