@@ -996,7 +996,7 @@ int tps25750_pr_set(struct tps25750* tps, enum typec_role role)
 	uint32_t status;
 	const char *cmd = (role == TYPEC_SINK) ? TPS_4CC_SWSK : TPS_4CC_SWSR;
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE))
 extern void USBHostControllerSetMuxAndSource(uint8_t state);
 	if (role == TYPEC_SINK) { USBHostControllerSetMuxAndSource(OFF); }
 	else /* (role == TYPEC_SOURCE) */ { USBHostControllerSetMuxAndSource(ON); }

@@ -106,7 +106,7 @@ void PowerControl(POWER_MGMT_OPTIONS option, BOOLEAN mode)
 			else /* (mode == OFF) */ { MXC_GPIO_OutClr(GPIO_ENABLE_12V_PORT, GPIO_ENABLE_12V_PIN); }
 			break;
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE))
 		//----------------------------------------------------------------------------
 		case USB_RESET: // Active low
 		//----------------------------------------------------------------------------
@@ -249,7 +249,7 @@ BOOLEAN GetPowerControlState(POWER_MGMT_OPTIONS option)
 		case TRIGGER_OUT: gpioReg = MXC_GPIO_OutGet(GPIO_EXTERNAL_TRIGGER_OUT_PORT, GPIO_EXTERNAL_TRIGGER_OUT_PIN); break;
 		case MCU_POWER_LATCH: gpioReg = MXC_GPIO_OutGet(GPIO_MCU_POWER_LATCH_PORT, GPIO_MCU_POWER_LATCH_PIN); break;
 		case ENABLE_12V: gpioReg = MXC_GPIO_OutGet(GPIO_ENABLE_12V_PORT, GPIO_ENABLE_12V_PIN); break;
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE))
 		case USB_RESET: gpioReg = !MXC_GPIO_OutGet(GPIO_USB_RESET_PORT, GPIO_USB_RESET_PIN); break; // Active low, invert state
 #else /* Old boards */
 		case USB_SOURCE_ENABLE: gpioReg = MXC_GPIO_OutGet(GPIO_USB_SOURCE_ENABLE_PORT, GPIO_USB_SOURCE_ENABLE_PIN); break;
@@ -705,7 +705,7 @@ void SetBattChargerRegister(uint8_t registerAddress, uint16_t registerContents)
 ///----------------------------------------------------------------------------
 void InitBattChargerRegisters(void)
 {
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE))
 	// Note: Some registers have OTP fields but assuming since no reference on how to accomplish this, assuming factory option only
 
 	// Device Address setting
@@ -1381,7 +1381,7 @@ uint8_t GetBattChargerChargeState(void)
 void SetBattChargerChargeState(uint8_t state)
 {
 	debug("Battery Charger: Charging control %s\r\n", ((state & 0x01) ? "Enabled" : "Disabled"));
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION)
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE))
 	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, (0x3C72 | (state & 0x01)));
 #else /* Older boards ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PROTOTYPE_1)) */
 	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, (0x3C52 | (state & 0x01)));

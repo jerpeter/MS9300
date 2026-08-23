@@ -168,7 +168,7 @@ Address	Register Name	R/W
 int GetAccRegister(uint8_t registerAddress, uint8_t* registerData, uint8_t dataSize)
 {
 	int status = E_SUCCESS;
-#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE))
 	if (dataSize > 7) { return (E_BAD_PARAM); }
 	uint8_t readData[8];
 	uint8_t writeData[8];
@@ -201,7 +201,7 @@ int SetAccRegister(uint8_t registerAddress, uint8_t registerData)
 	writeData[0] = registerAddress;
 	writeData[1] = registerData;
 
-#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE))
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutClr(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
 	SpiTransaction(SPI_ACC, SPI_8_BIT_DATA_SIZE, YES, &writeData[0], sizeof(writeData), NULL, 0, BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutSet(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
@@ -226,7 +226,7 @@ int SetAndReadAccRegister(uint8_t registerAddress, uint8_t registerData, uint8_t
 	writeData[0] = registerAddress;
 	writeData[1] = registerData;
 
-#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE))
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutClr(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
 	SpiTransaction(SPI_ACC, SPI_8_BIT_DATA_SIZE, YES, &writeData[0], sizeof(writeData), readData, dataSize, BLOCKING);
 	if (FT81X_SPI_2_SS_CONTROL_MANUAL) { MXC_GPIO_OutSet(GPIO_SPI2_SS1_ACC_PORT, GPIO_SPI2_SS1_ACC_PIN); }
@@ -725,7 +725,7 @@ extern volatile uint8_t testAccInt;
 }
 #endif /* KX134 */
 
-#if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION) /* IIM-42352 */
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE)) /* IIM-42352 */
 /*
  * ________________________________________________________________________________________________________
    Copyright (C) [2022] by InvenSense, Inc.
