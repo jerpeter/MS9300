@@ -309,7 +309,11 @@ void KeypadLedUpdateTimerCallBack(void)
 	static uint8 s_ledState = KEYPAD_LED_STATE_UNKNOWN;
 	//static uint8 s_repeatCount = 0;
 	uint8 lastLedState;
+#if 0 /* Original check if charging source is present and available, doesn't check actual charging is active */
 	BOOLEAN externalChargePresent = CheckExternalChargeVoltagePresent();
+#else /* Check if the unit is actively charging by looking at the incoming current flow */
+	BOOLEAN externalChargePresent = ((GetBattChargerBatteryChargeCurrent() > 0) ? YES : NO);
+#endif
 
 	// States (on prior 8100 unit)
 	// 1) Init complete, not monitoring, not charging --> Static Green
