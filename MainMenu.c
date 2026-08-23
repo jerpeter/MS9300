@@ -266,7 +266,7 @@ extern void USBHostControllerTest(void);
 #else /* Test USB HC */
 //extern void USBHostControllerTest(void);
 					debug("Calling USBHostControllerTest...\r\n");
-					OverlayMessage(getLangText(STATUS_TEXT), "CHECKNIG...", 0);
+					OverlayMessage(getLangText(STATUS_TEXT), "CHECKING...", 0);
 					USBHostControllerTest();
 #endif
 					break;
