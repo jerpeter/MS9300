@@ -171,13 +171,18 @@ void MonitorMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 			g_testCounter = CAL_MUX_SELECT_SENSOR_GROUP_A; SetCalMuxPreADSelectState(CAL_MUX_SELECT_SENSOR_GROUP_A); SetCalMuxPreADEnableState(ON);
 			debug("Cal Mux: Enabling Sensor Group A/1 output on DB9\r\n");
 #endif
-#if 0 //(USB_COMPOSITE_OPTION || USB_MSC_ONLY_OPTION) /* Test, not working as intended */
+#if 0 /* Test */
 extern volatile int g_usbConfigured;
-			if (g_usbConfigured == 1)
+extern void MXC_USB_Shutdown(void);
+			uint8_t usbDisabledForMSC = NO;
+			if (g_usbConfigured & USB_MSC_OPTION_FLAG)
 			{
 				OverlayMessage(getLangText(STATUS_TEXT), "DISABLING USB MASS SOTARGE (MSC) FOR MONITORING...", (1 * SOFT_SECS));
-				msc_deconfigure();
-				g_usbConfigured = 2;
+				usbDisabledForMSC = YES;
+				g_usbConfigured = 0;
+				MXC_USB_Shutdown();
+				//SoftUsecWait(1 * SOFT_SECS);
+				//SetupUSBComposite(USB_CDC_ACM_OPTION_FLAG);
 			}
 #endif
 			// Make sure the parameters are up to date based on the trigger setup information
@@ -186,6 +191,11 @@ extern volatile int g_usbConfigured;
 			CheckAndPromptUserWaitingForSensorWarmup();
 			ZeroingSensorCalibration();
 
+#if 0 /* Test */
+extern volatile int g_usbConfigured;
+extern void SetupUSBComposite(uint8_t);
+			if (usbDisabledForMSC) { SetupUSBComposite(USB_CDC_ACM_OPTION_FLAG); }
+#endif
 			switch(g_monitorOperationMode)
 			{
 				case WAVEFORM_MODE:
