@@ -235,7 +235,8 @@ uint32_t USBCPortControllerReadAndClearInt(void);
 #endif
 
 #if 1 /* Test (ISR/Exec Cycles) */
-		extern uint32 sampleProcessTiming;
+		extern uint32_t sampleProcessTiming;
+		extern uint32_t freeProcessTiming;
 
 		if ((g_execCycles / 4) > 10000) { strcpy((char*)g_spareBuffer, ">10K"); }
 		else { sprintf((char*)g_spareBuffer, "%d", (uint16)(g_execCycles / 4)); }
@@ -250,19 +251,28 @@ extern int32_t testLifetimeCurrentAvg;
 extern uint32_t testLifetimeCurrentAvgCount;
 //extern volatile uint32_t g_lifetimePeriodicSecondCount;
 		UNUSED(sampleProcessTiming);
+		UNUSED(freeProcessTiming);
 		//debug("(Cyclic Event) (%s) (USB: %08x %04x %08x) Exe/s: %s\r\n", FuelGaugeDebugString(), USBCPortControllerStatus(), USBCPortControllerPStatus(), USBCPortControllerPDStatus(), (char*)g_spareBuffer);
 		testLifetimeCurrentAvg += (FuelGaugeGetCurrent() / 1000);
 		testLifetimeCurrentAvgCount++;
 		if (g_sampleProcessing == ACTIVE_STATE)
 		{
 			//debug("(Cyclic Event) (%s) (%.0fmA avg) SPT: %lu, SPS: %d, Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), CycleCountToMicroseconds(sampleProcessTiming, SYS_CLK), (g_sampleCountHold / 4), (char*)g_spareBuffer);
+#if 0 /* Current */
 			debug("(Cyclic Event) (%s) (%.2fV) (%.2fV) SPT: %lu, SPS: %d, Exe/s: %s\r\n", FuelGaugeDebugString(), (double)((float)GetBattChargerInputVoltage() / (float)1000), (double)((float)GetBattChargerSystemVoltage() / (float)1000), CycleCountToMicroseconds(sampleProcessTiming, SYS_CLK), (g_sampleCountHold / 4), (char*)g_spareBuffer);
+#elif 1 /* Alt test to check free non-ISR procesing time between samples */
+			if (CycleCountToMicroseconds(freeProcessTiming, SYS_CLK) > 9) {
+				debug("(Cyclic Event) (%s) SPT: %lu, FPT: %lu, SPS: %d, Exe/s: %s\r\n", FuelGaugeDebugString(), CycleCountToMicroseconds(sampleProcessTiming, SYS_CLK), CycleCountToMicroseconds(freeProcessTiming, SYS_CLK), (g_sampleCountHold / 4), (char*)g_spareBuffer);
+			} else {
+				debug("(Cyclic Event) (%s) SPT: %lu, FPT: %0.2f, SPS: %d, Exe/s: %s\r\n", FuelGaugeDebugString(), CycleCountToMicroseconds(sampleProcessTiming, SYS_CLK), (double)((double)(freeProcessTiming) / (SYS_CLK / 1000000)), (g_sampleCountHold / 4), (char*)g_spareBuffer); }
+#endif
 		}
 #if 0 /* Orignial */
 		else { debug("(Cyclic Event) (%s) (%.0fmA avg) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer); }
 		//else { debug("(Cyclic Event) (%d) (%s) (%.0fmA avg) Exe/s: %s\r\n", g_lifetimePeriodicSecondCount, FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer); }
 #else /* Test */
-		else { debug("(Cyclic Event) (%s) (%.2fV) (%.2fV) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)((float)GetBattChargerInputVoltage() / (float)1000), (double)((float)GetBattChargerSystemVoltage() / (float)1000), (char*)g_spareBuffer); }
+		//else { debug("(Cyclic Event) (%s) (%.2fV) (%.2fV) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)((float)GetBattChargerInputVoltage() / (float)1000), (double)((float)GetBattChargerSystemVoltage() / (float)1000), (char*)g_spareBuffer); }
+		else { debug("(Cyclic Event) (%s) (%.2fV) (%umA) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)((float)GetBattChargerInputVoltage() / (float)1000), GetBattChargerBatteryChargeCurrent(), (char*)g_spareBuffer); }
 #endif
 
 #if 0 /* Test Exp serial */
@@ -2545,6 +2555,114 @@ extern void InitCellLTE(void);
 		}
 	}
 	debug("MiniLZO decompress data compare complete\r\n");
+#endif
+
+#if 0 /* Test moving memory time */
+	uint32_t processingTime = 0;
+
+	SoftUsecWait(5 * SOFT_SECS); // Wait for USB init to finish
+
+	debug("Testing: Disabling interrupts...\r\n");
+	__disable_irq();
+
+	// Test soft delay time
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	SoftUsecWait(100 * SOFT_MSECS);
+	processingTime = (0xffffff - SysTick->VAL);
+	SysTick->CTRL = 0; /* Disable */
+	debug("Testing: SoftUsecWait 100ms second equates to %lu processor ticks or %lu us\r\n", processingTime, CycleCountToMicroseconds(processingTime, SYS_CLK));
+
+	uint32_t maxPretriggerDataSize;
+	uint32_t i;
+	uint8_t copyValid;
+
+	maxPretriggerDataSize = ((256 * 4 * 2) + (4 * 2));
+	for (i = 0; i < (maxPretriggerDataSize / 2); i++) { g_eventDataBuffer[i] = i; }
+	debug("Testing: Timing %lu x 1 sec of data (%lu bytes) moved in memory\r\n", 256, maxPretriggerDataSize);
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	memcpy(&g_eventDataBuffer[maxPretriggerDataSize], &g_eventDataBuffer[0], maxPretriggerDataSize);
+	processingTime = (0xffffff - SysTick->VAL);
+	SysTick->CTRL = 0; /* Disable */
+	copyValid = YES;
+	for (i = 0; i < (maxPretriggerDataSize / 2); i++) { if (g_eventDataBuffer[i] != g_eventDataBuffer[(maxPretriggerDataSize + i)]) { copyValid = NO; break; } }
+	debug("Testing: Moving %lu bytes takes %lu ticks or %lu us or %0.3f ms(copy valid: %s)\r\n", maxPretriggerDataSize, processingTime, CycleCountToMicroseconds(processingTime, SYS_CLK), (double)((double)CycleCountToMicroseconds(processingTime, SYS_CLK) / 1000), ((copyValid == YES) ? "YES" : "NO"));
+
+	maxPretriggerDataSize = ((512 * 4 * 2) + (4 * 2));
+	for (i = 0; i < (maxPretriggerDataSize / 2); i++) { g_eventDataBuffer[i] = i; }
+	debug("Testing: Timing %lu x 1 sec of data (%lu bytes) moved in memory\r\n", 512, maxPretriggerDataSize);
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	memcpy(&g_eventDataBuffer[maxPretriggerDataSize], &g_eventDataBuffer[0], maxPretriggerDataSize);
+	processingTime = (0xffffff - SysTick->VAL);
+	SysTick->CTRL = 0; /* Disable */
+	copyValid = YES;
+	for (i = 0; i < (maxPretriggerDataSize / 2); i++) { if (g_eventDataBuffer[i] != g_eventDataBuffer[(maxPretriggerDataSize + i)]) { copyValid = NO; break; } }
+	debug("Testing: Moving %lu bytes takes %lu ticks or %lu us or %0.3f ms(copy valid: %s)\r\n", maxPretriggerDataSize, processingTime, CycleCountToMicroseconds(processingTime, SYS_CLK), (double)((double)CycleCountToMicroseconds(processingTime, SYS_CLK) / 1000), ((copyValid == YES) ? "YES" : "NO"));
+
+	maxPretriggerDataSize = ((SAMPLE_RATE_1K * 4 * 2) + (4 * 2));
+	for (i = 0; i < (maxPretriggerDataSize / 2); i++) { g_eventDataBuffer[i] = i; }
+	debug("Testing: Timing %lu x 1 sec of data (%lu bytes) moved in memory\r\n", SAMPLE_RATE_1K, maxPretriggerDataSize);
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	memcpy(&g_eventDataBuffer[maxPretriggerDataSize], &g_eventDataBuffer[0], maxPretriggerDataSize);
+	processingTime = (0xffffff - SysTick->VAL);
+	SysTick->CTRL = 0; /* Disable */
+	copyValid = YES;
+	for (i = 0; i < (maxPretriggerDataSize / 2); i++) { if (g_eventDataBuffer[i] != g_eventDataBuffer[(maxPretriggerDataSize + i)]) { copyValid = NO; break; } }
+	debug("Testing: Moving %lu bytes takes %lu ticks or %lu us or %0.3f ms(copy valid: %s)\r\n", maxPretriggerDataSize, processingTime, CycleCountToMicroseconds(processingTime, SYS_CLK), (double)((double)CycleCountToMicroseconds(processingTime, SYS_CLK) / 1000), ((copyValid == YES) ? "YES" : "NO"));
+
+	maxPretriggerDataSize = ((SAMPLE_RATE_2K * 4 * 2) + (4 * 2));
+	for (i = 0; i < (maxPretriggerDataSize / 2); i++) { g_eventDataBuffer[i] = i; }
+	debug("Testing: Timing %lu x 1 sec of data (%lu bytes) moved in memory\r\n", SAMPLE_RATE_2K, maxPretriggerDataSize);
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	memcpy(&g_eventDataBuffer[maxPretriggerDataSize], &g_eventDataBuffer[0], maxPretriggerDataSize);
+	processingTime = (0xffffff - SysTick->VAL);
+	SysTick->CTRL = 0; /* Disable */
+	copyValid = YES;
+	for (i = 0; i < (maxPretriggerDataSize / 2); i++) { if (g_eventDataBuffer[i] != g_eventDataBuffer[(maxPretriggerDataSize + i)]) { copyValid = NO; break; } }
+	debug("Testing: Moving %lu bytes takes %lu ticks or %lu us or %0.3f ms(copy valid: %s)\r\n", maxPretriggerDataSize, processingTime, CycleCountToMicroseconds(processingTime, SYS_CLK), (double)((double)CycleCountToMicroseconds(processingTime, SYS_CLK) / 1000), ((copyValid == YES) ? "YES" : "NO"));
+
+	maxPretriggerDataSize = ((SAMPLE_RATE_4K * 4 * 2) + (4 * 2));
+	for (i = 0; i < (maxPretriggerDataSize / 2); i++) { g_eventDataBuffer[i] = i; }
+	debug("Testing: Timing %lu x 1 sec of data (%lu bytes) moved in memory\r\n", SAMPLE_RATE_4K, maxPretriggerDataSize);
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	memcpy(&g_eventDataBuffer[maxPretriggerDataSize], &g_eventDataBuffer[0], maxPretriggerDataSize);
+	processingTime = (0xffffff - SysTick->VAL);
+	SysTick->CTRL = 0; /* Disable */
+	copyValid = YES;
+	for (i = 0; i < (maxPretriggerDataSize / 2); i++) { if (g_eventDataBuffer[i] != g_eventDataBuffer[(maxPretriggerDataSize + i)]) { copyValid = NO; break; } }
+	debug("Testing: Moving %lu bytes takes %lu ticks or %lu us or %0.3f ms(copy valid: %s)\r\n", maxPretriggerDataSize, processingTime, CycleCountToMicroseconds(processingTime, SYS_CLK), (double)((double)CycleCountToMicroseconds(processingTime, SYS_CLK) / 1000), ((copyValid == YES) ? "YES" : "NO"));
+
+	maxPretriggerDataSize = ((SAMPLE_RATE_8K * 4 * 2) + (4 * 2));
+	for (i = 0; i < (maxPretriggerDataSize / 2); i++) { g_eventDataBuffer[i] = i; }
+	debug("Testing: Timing %lu x 1 sec of data (%lu bytes) moved in memory\r\n", SAMPLE_RATE_8K, maxPretriggerDataSize);
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	memcpy(&g_eventDataBuffer[maxPretriggerDataSize], &g_eventDataBuffer[0], maxPretriggerDataSize);
+	processingTime = (0xffffff - SysTick->VAL);
+	SysTick->CTRL = 0; /* Disable */
+	copyValid = YES;
+	for (i = 0; i < (maxPretriggerDataSize / 2); i++) { if (g_eventDataBuffer[i] != g_eventDataBuffer[(maxPretriggerDataSize + i)]) { copyValid = NO; break; } }
+	debug("Testing: Moving %lu bytes takes %lu ticks or %lu us or %0.3f ms(copy valid: %s)\r\n", maxPretriggerDataSize, processingTime, CycleCountToMicroseconds(processingTime, SYS_CLK), (double)((double)CycleCountToMicroseconds(processingTime, SYS_CLK) / 1000), ((copyValid == YES) ? "YES" : "NO"));
+
+	maxPretriggerDataSize = ((SAMPLE_RATE_16K * 4 * 2) + (4 * 2));
+	for (i = 0; i < (maxPretriggerDataSize / 2); i++) { g_eventDataBuffer[i] = i; }
+	debug("Testing: Timing %lu x 1 sec of data (%lu bytes) moved in memory\r\n", SAMPLE_RATE_16K, maxPretriggerDataSize);
+	SysTick->VAL = 0xffffff; /* Load the SysTick Counter Value */
+	SysTick->CTRL = (SysTick_CTRL_CLKSOURCE_Msk | SysTick_CTRL_ENABLE_Msk); /* Enable SysTick Timer */
+	memcpy(&g_eventDataBuffer[maxPretriggerDataSize], &g_eventDataBuffer[0], maxPretriggerDataSize);
+	processingTime = (0xffffff - SysTick->VAL);
+	SysTick->CTRL = 0; /* Disable */
+	copyValid = YES;
+	for (i = 0; i < (maxPretriggerDataSize / 2); i++) { if (g_eventDataBuffer[i] != g_eventDataBuffer[(maxPretriggerDataSize + i)]) { copyValid = NO; break; } }
+	debug("Testing: Moving %lu bytes takes %lu ticks or %lu us or %0.3f ms(copy valid: %s)\r\n", maxPretriggerDataSize, processingTime, CycleCountToMicroseconds(processingTime, SYS_CLK), (double)((double)CycleCountToMicroseconds(processingTime, SYS_CLK) / 1000), ((copyValid == YES) ? "YES" : "NO"));
+
+	debug("Testing: Re-enabling interrupts...\r\n");
+	__enable_irq();
 #endif
 
  	// ==============
