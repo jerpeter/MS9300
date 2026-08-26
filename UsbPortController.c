@@ -1792,11 +1792,20 @@ void USBHostControllerSetMuxAndSource(uint8_t state)
 	uint8_t reg = 0xF0;
 	debug("USB Host Controller: Setting SPI GP Out 0 & 1 (%d)\r\n", state);
 
-#if 1 /* Normal */
+#if 0 /* Normal */
 	if (state) { reg |= 0x03; }
 #else
 	// Do not enable USB Source Enable, testing external power source
-	if (state) { reg |= 0x01; }
+	//if (state) { reg |= 0x01; }
+extern uint8_t g_usbSourceExternalPower;
+	if (g_usbSourceExternalPower)
+	{
+		if (state) { reg |= 0x01; }
+	}
+	else // Use internal 5V buck
+	{
+		if (state) { reg |= 0x03; }
+	}
 #endif
 
 	SetUsbHCRegister(20, reg);
@@ -1805,12 +1814,22 @@ void USBHostControllerSetMuxAndSource(uint8_t state)
 	GetUsbHCRegister(20, &reg, 1);
 	if (state)
 	{
-#if 1 /* Normal */
+#if 0 /* Normal */
 		if (reg == 0xF3) { debug("USB Host Controller: Mux and Source enabled\r\n"); }
 		else { debug("USB Host Controller: Mux and Source enable failed (0x%x)\r\n", state); }
 #else
-		if (reg == 0xF1) { debug("USB Host Controller: Mux enabled and Source disabled\r\n"); }
-		else { debug("USB Host Controller: Mux enable and Source disable failed (0x%x)\r\n", state); }
+		//if (reg == 0xF1) { debug("USB Host Controller: Mux enabled and Source disabled\r\n"); }
+		//else { debug("USB Host Controller: Mux enable and Source disable failed (0x%x)\r\n", state); }
+		if (g_usbSourceExternalPower)
+		{
+			if (reg == 0xF1) { debug("USB Host Controller: Mux enabled and Source disabled\r\n"); }
+			else { debug("USB Host Controller: Mux enable and Source disable failed (0x%x)\r\n", state); }
+		}
+		else // Use internal 5V buck
+		{
+			if (reg == 0xF3) { debug("USB Host Controller: Mux and Source enabled\r\n"); }
+			else { debug("USB Host Controller: Mux and Source enable failed (0x%x)\r\n", state); }
+		}
 #endif
 	}
 	else
@@ -4919,9 +4938,10 @@ void USBHostControllerTest(void)
 #endif
 
 #if 1 /* Test */
+#if 0 /* Option to shutdown the MCU USB Device driver */
 	// Disable MCU USB to make sure there is no interference
 	MXC_USB_Shutdown();
-
+#endif
 	debug("Fuel Gauge: %s, BC charge current: %u mA\r\n", FuelGaugeDebugString(), GetBattChargerBatteryChargeCurrent());
 
 	// Disable Aux power to prevent fake cahrging
@@ -4934,14 +4954,24 @@ void USBHostControllerTest(void)
 #endif
 
 	USBCPortControllerSwapToHost();
-#if 1 /* Normal */
+#if 0 /* Normal */
 	debug("USB Host Controller: Delay for USB Device power to stabilize\r\n");
 	SoftUsecWait(2 * SOFT_SECS);
 #else
-	debug("USB Host Controller: Turn on external power supply for USB 5V supply (press Power On when complete)...\r\n");
-	while (1)
+extern uint8_t g_usbSourceExternalPower;
+	if (g_usbSourceExternalPower)
 	{
-		if (GetPowerOnButtonState() == ON) { debug("\r\n\r\nKeypad: Loop break\r\n\r\n"); break; }
+		debug("USB Host Controller: Turn on external power supply for USB 5V supply (press Power On when complete)...\r\n");
+		OverlayMessage(getLangText(STATUS_TEXT), "TURN ON EXTERNAL POWER FOR USB 5V, THEN PRESS POWER ON BUTTON", 0);
+		while (1)
+		{
+			if (GetPowerOnButtonState() == ON) { debug("\r\n\r\nKeypad: Loop break\r\n\r\n"); break; }
+		}
+	}
+	else // Use internal 5V buck
+	{
+		debug("USB Host Controller: Delay for USB Device power to stabilize\r\n");
+		SoftUsecWait(2 * SOFT_SECS);
 	}
 #endif
 
@@ -5347,6 +5377,9 @@ extern void SetupUsbMscFlashDriveAndFilesystem(void);
 extern FRESULT USB_RecursiveSyncEventsDirectory(char* path);
 	USB_RecursiveSyncEventsDirectory(EVENTS_PATH);
 
+	debug("UsbMscFlashTestFile: Unmounting USB MSC Flash filesystem\r\n");
+	f_mount(NULL, "1:", 0);
+
 	sprintf((char*)g_spareBuffer, "USB Flash drive sync done (Device stalls overcome: %d)", usbStallsEncountered);
 	MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK);
 #endif
@@ -5371,9 +5404,16 @@ extern FRESULT USB_RecursiveSyncEventsDirectory(char* path);
 	// Re-enable Aux power
 	PowerControl(USB_AUX_POWER_ENABLE, ON);
 
+#if 0 /* Test re-init to see if second call to swap to Device mode works, didn't work */
+	USBCPortControllerSwapToDevice();
+	SoftUsecWait(2 * SOFT_SECS);
+#endif
+
+#if 0 /* Option to shutdown the MCU USB Device driver */
 	// Re-enable the MCU USB
 extern void SetupUSBComposite(uint8_t);
 	SetupUSBComposite(USB_COMPOSITE_OPTION_FLAG);
+#endif
 #endif
 #else /* Skip shutdown */
 	debug("USB Host Controller: ----------------\r\n");
@@ -5398,6 +5438,11 @@ extern void UsbMscFlashTestFile(void);
 #endif
 #endif
 }
+#endif
+
+#if 1 /* Test */
+uint8_t g_usbDebug = OFF;
+uint8_t g_usbSourceExternalPower = NO;
 #endif
 
 #if 1
