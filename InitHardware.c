@@ -694,9 +694,16 @@ void SetupAllGPIO(void)
 
 #if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE)
 	//----------------------------------------------------------------------------------------------------------------------
-	// Sensor Detect 1: Port 0, Pin 7, Input, ???
+	// Unused: Port 0, Pin 7, Output, No external pullup, 1.8V
 	//----------------------------------------------------------------------------------------------------------------------
 	// Unused
+	setupGPIO.port = MXC_GPIO0;
+	setupGPIO.mask = MXC_GPIO_PIN_7;
+	setupGPIO.func = MXC_GPIO_FUNC_OUT;
+	setupGPIO.pad = MXC_GPIO_PAD_NONE;
+	setupGPIO.vssel = MXC_GPIO_VSSEL_VDDIO; // Schematic suggests 3.3V
+	MXC_GPIO_Config(&setupGPIO);
+	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start low
 #elif /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
 	//----------------------------------------------------------------------------------------------------------------------
 	// Sensor Detect 1: Port 0, Pin 7, Input, No external pullup, Active high, 1.8, Interrupt
@@ -998,7 +1005,7 @@ void SetupAllGPIO(void)
 
 #if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE)
 	//----------------------------------------------------------------------------------------------------------------------
-	// Sensor Detect 1: Port 1, Pin 2, Input, No external pullup, Active high, 1.8, Interrupt
+	// Sensor Detect 1: Port 1, Pin 2, Input, External pullup, Active low, 1.8, Interrupt
 	//----------------------------------------------------------------------------------------------------------------------
 	setupGPIO.port = GPIO_SENSOR_DETECT_1_PORT;
 	setupGPIO.mask = GPIO_SENSOR_DETECT_1_PIN;
@@ -1085,7 +1092,7 @@ void SetupAllGPIO(void)
 
 #if /* New board */ (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE)
 	//----------------------------------------------------------------------------------------------------------------------
-	// Sensor Detect 2: Port 1, Pin 13, Input, ???
+	// Sensor Detect 2: Port 1, Pin 13, Input, External pullup, Active low, 1.8, Interrupt
 	//----------------------------------------------------------------------------------------------------------------------
 	setupGPIO.port = GPIO_SENSOR_DETECT_2_PORT;
 	setupGPIO.mask = GPIO_SENSOR_DETECT_2_PIN;
@@ -4110,7 +4117,7 @@ uint8_t SetupSDHCeMMC(void)
 #endif
 
 	// Set up card to get it ready for a transaction
-	if (MXC_SDHC_Lib_InitCard(10) == E_NO_ERROR) { debug("SDHC: Card/device Initialized\r\n"); }
+	if (MXC_SDHC_Lib_InitCard(1000) == E_NO_ERROR) { debug("SDHC: Card/device Initialized\r\n"); }
 	else { debugWarn("SDHC: No card/device response\n"); }
 
 	cardType = MXC_SDHC_Lib_Get_Card_Type();
