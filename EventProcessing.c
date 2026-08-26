@@ -2077,6 +2077,7 @@ void CompleteRamEventSummary(void)
 	//--------------------------------
 	// Complete the Summary (used for Wave, Cal, Combo-Wave
 	//--------------------------------
+	g_pendingEventRecord.summary.captured.batteryLevel = (uint32)(100.0 * GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
 
 	if (g_pendingEventRecord.summary.mode == COMBO_MODE)
 	{
