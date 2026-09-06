@@ -1499,7 +1499,7 @@ extern void Usb_host_controller_irq(void);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 #endif
 
-#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE))
 	//----------------------------------------------------------------------------------------------------------------------
 	// SPI2 Slave Select 1 Accelerometer: Port 2, Pin 1, Output, External pullup, Active low, 1.8V (minimum 1.7V)
 	//----------------------------------------------------------------------------------------------------------------------
@@ -1612,7 +1612,7 @@ extern void Usb_host_controller_irq(void);
 	MXC_GPIO_Config(&setupGPIO);
 	MXC_GPIO_OutClr(setupGPIO.port, setupGPIO.mask); // Start as disabled
 
-#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION))
+#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE))
 	//----------------------------------------------------------------------------------------------------------------------
 	// LCD Power Down: Port 2, Pin 12, Output, External pulldown, Active low, 1.8V (minimum 1.7V)
 	//----------------------------------------------------------------------------------------------------------------------
@@ -4059,6 +4059,7 @@ int MXC_SDHC_Lib_SetHighSpeedTiming(mxc_sdhc_hs_timing highSpeedTiming)
 	return result;
 }
 
+#if 1 /* Orignal */
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -4071,13 +4072,14 @@ uint8_t SetupSDHCeMMC(void)
 	// Initialize SDHC peripheral
 	cfg.bus_voltage = MXC_SDHC_Bus_Voltage_1_8;
 	cfg.block_gap = 0;
-#if 0 /* Normal */
+#if 1 /* Normal */
 	cfg.clk_div = 0x96; // Large divide ratio, setting frequency to 400 kHz during Card Identification phase
 #elif 0 /* Test full speed init */
 	//cfg.clk_div = 0; // Full speed
 #else /* Test slowest speed */
 	cfg.clk_div = 0x12C; // Large divide ratio for testing formatting
 #endif
+	debug("SDHC: Setting clock divider to %d (0x%x), %d kHz\r\n", cfg.clk_div, cfg.clk_div, (60000000 / (2 * cfg.clk_div)));
 
 #if 0 /* Interface call assigns incorrect GPIO (P0.31/SDHC_CDN and P1.2/SDHC_WP) */
 	if (MXC_SDHC_Init(&cfg) != E_NO_ERROR) { debugErr("SDHC/eMMC initialization failed\r\n"); }
@@ -4117,7 +4119,7 @@ uint8_t SetupSDHCeMMC(void)
 #endif
 
 	// Set up card to get it ready for a transaction
-	if (MXC_SDHC_Lib_InitCard(1000) == E_NO_ERROR) { debug("SDHC: Card/device Initialized\r\n"); }
+	if (MXC_SDHC_Lib_InitCard(100) == E_NO_ERROR) { debug("SDHC: Card/device Initialized\r\n"); }
 	else { debugWarn("SDHC: No card/device response\n"); }
 
 	cardType = MXC_SDHC_Lib_Get_Card_Type();
@@ -4165,10 +4167,12 @@ uint8_t SetupSDHCeMMC(void)
 	{
 		//debug("SD clock ratio (at card/device) is 4:1, %dMHz, (eMMC not to exceed 52 MHz for legacy or high speed modes)\r\n", (SystemCoreClock / 4));
 		//MXC_SDHC_Set_Clock_Config(1);
-		//debug("SD clock ratio: Super slow (%dHz)\r\n", (SystemCoreClock / (2 * 0x96)));
-		//MXC_SDHC_Set_Clock_Config(0x96);
-		debug("SD clock ratio: Extermely slow (%dHz)\r\n", (SystemCoreClock / (2 * 0x12C)));
-		MXC_SDHC_Set_Clock_Config(0x12C);
+		debug("SD clock ratio: Super slow (%dHz)\r\n", (60000000 / (2 * 0x96)));
+		MXC_SDHC_Set_Clock_Config(0x96);
+		//debug("SD clock ratio: Extermely slow (%dHz)\r\n", (SystemCoreClock / (2 * 0x12C)));
+		//MXC_SDHC_Set_Clock_Config(0x12C);
+		//debug("SDHC: Setting clock divider to %d (0x%x), %d kHz\r\n", 2, 2, (60000000 / (2 * 2)));
+		//MXC_SDHC_Set_Clock_Config(2);
 	}
 	else // Use smallest clock divider for fastest clock rate (max 60MHz)
 	{
@@ -4188,6 +4192,105 @@ uint8_t SetupSDHCeMMC(void)
 	// Return 0/E_NO_ERROR if the card is MMC
 	return (!(cardType == CARD_MMC));
 }
+#else /* Test new method */
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+int g_lastOCR;
+int SetupSDHCeMMC(void)
+{
+	mxc_sdhc_cfg_t cfg = { 0 };
+	mxc_gpio_cfg_t gpio_cfg_sdhc_1 = { 0 };
+	mxc_sdhc_lib_card_type cardType;
+	//ktm8gl1asi01_diagnostics_t diagnostics;
+	unsigned int inputClock;
+	unsigned int clockDivider;
+	unsigned int identificationClock;
+	int result;
+
+	/* Any explicit controller reinitialization invalidates the prior media state. */
+	//KTM8GL1ASI01_InvalidateInitialization();
+    //s_initialized = 0;
+    //s_initInProgress = 0;
+    //ResetDiagnostics();
+
+
+	cfg.bus_voltage = MXC_SDHC_Bus_Voltage_1_8;
+	gpio_cfg_sdhc_1.vssel = MXC_GPIO_VSSEL_VDDIO;
+	cfg.block_gap = 0;
+	cfg.clk_div = 0x96U;
+
+	gpio_cfg_sdhc_1.port = GPIO_SDHC_PORT;
+	gpio_cfg_sdhc_1.mask = GPIO_SDHC_CLK_PIN | GPIO_SDHC_CMD_PIN | GPIO_SDHC_DAT0_PIN | GPIO_SDHC_DAT1_PIN | GPIO_SDHC_DAT2_PIN | GPIO_SDHC_DAT3_PIN;
+	gpio_cfg_sdhc_1.func = MXC_GPIO_FUNC_ALT1;
+	gpio_cfg_sdhc_1.pad = MXC_GPIO_PAD_NONE;
+
+	MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_SDHC);
+
+	/*
+	 * Do not drive CMD low for a millisecond delay. With clocks present that is
+	 * an eMMC boot request, not the normal 74-clock initialization period.
+	 */
+	result = MXC_GPIO_Config(&gpio_cfg_sdhc_1);
+	if (result != E_NO_ERROR)
+	{
+		debugErr("SDHC: GPIO configuration failed (%d)\r\n", result);
+		return result;
+	}
+
+	debug("SDHC: VCCQ configured for %u mV, GPIO drive strength 2x\r\n", 1800);
+	gpio_cfg_sdhc_1.port->ds_sel0 |= gpio_cfg_sdhc_1.mask;
+	gpio_cfg_sdhc_1.port->ds_sel1 &= ~gpio_cfg_sdhc_1.mask;
+
+	result = MXC_SDHC_RevA_Init((mxc_sdhc_reva_regs_t *)MXC_SDHC, &cfg);
+	if (result != E_NO_ERROR)
+	{
+		debugErr("SDHC/eMMC controller initialization failed (%d)\r\n", result);
+		return result;
+	}
+
+	/*
+	 * The first patch explicitly set Host Control 2 bit 3 after controller init.
+	 * The original firmware effectively left it clear because controller reset
+	 * occurred after its write. Keep that known state unless explicitly enabled.
+	 */
+	MXC_SDHC->host_cn_2 |= MXC_F_SDHC_HOST_CN_2_1_8V_SIGNAL;
+
+	/* P0.31 is eMMC RST_n, so use the SDHCI embedded-card test level. */
+	//KTM8GL1ASI01_ForceCardPresent();
+	MXC_SDHC->host_cn_1 = (uint8_t)(MXC_SDHC->host_cn_1 |0xC0U);
+	MXC_SDHC_PowerUp();
+	MXC_Delay(5000);
+
+	inputClock = MXC_SDHC_Get_Input_Clock_Freq();
+	clockDivider = MXC_SDHC_Get_Clock_Config();
+	identificationClock = (clockDivider != 0U) ? (inputClock / (2U * clockDivider)) : inputClock;
+	debug("SDHC: Host Control 2 1.8V signal bit %s, input %u Hz, divider %u, identification clock about %u Hz\r\n",	(MXC_SDHC->host_cn_2 & MXC_F_SDHC_HOST_CN_2_1_8V_SIGNAL) ? "set" : "clear",	inputClock, clockDivider, identificationClock);
+
+	result = MXC_SDHC_Lib_InitCard(800);
+
+	cardType = MXC_SDHC_Lib_Get_Card_Type();
+	if (cardType != CARD_MMC)
+	{
+		debugErr("SDHC: initialized media was not identified as MMC/eMMC\r\n");
+		//KTM8GL1ASI01_InvalidateInitialization();
+		return E_NO_DEVICE;
+	}
+
+	//if (!KTM8GL1ASI01_IsReadyInSectorMode())
+	//if (!(((s_diag.last_ocr & 0x80000000UL) != 0U) && ((s_diag.last_ocr & 0x60000000UL) == 0x40000000UL)))
+	if (!(((g_lastOCR & 0x80000000UL) != 0U) && ((g_lastOCR & 0x60000000UL) == 0x40000000UL)))
+	{
+		debugErr("SDHC: eMMC did not finish in sector-addressed mode\r\n");
+		//KTM8GL1ASI01_InvalidateInitialization();
+		return E_BAD_STATE;
+	}
+
+	debug("SDHC: KTM8GL1ASI01 ready in sector mode; legacy SDR clock\r\n");
+
+	return E_NO_ERROR;
+}
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
