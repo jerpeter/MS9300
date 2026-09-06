@@ -169,11 +169,13 @@ void SystemEventManager(void)
 	if (getSystemEventState(LOW_BATTERY_WARNING_EVENT))
 	{
 		clearSystemEventFlag(LOW_BATTERY_WARNING_EVENT);
-		debugWarn("Low Battery Event\r\n");
+		if (GetBatteryPresenceState()) { debugWarn("Low Battery Event\r\n"); } // Only report if batteries are actually present
 
 		if ((GetBattChargerSystemVoltage() > (LOW_VOLTAGE_THRESHOLD * 1000)) || (GetBattChargerInputVoltage() > (LOW_VOLTAGE_THRESHOLD * 1000)))
 		{
-			debugWarn("System/Input voltage sufficient\r\n");
+#if 0 /* Benign alert just ends up wasting debug log/screen space */
+			debug("System/Input voltage sufficient\r\n");
+#endif
 		}
 		else if ((GetBattChargerSystemVoltage() > (MINIMUM_SYSTEM_VOLTAGE * 1000)) || (GetBattChargerInputVoltage() > (MINIMUM_SYSTEM_VOLTAGE * 1000)))
 		{
@@ -184,6 +186,8 @@ void SystemEventManager(void)
 			// Check if actively monitoring
 			if (g_sampleProcessing == ACTIVE_STATE)
 			{
+				debugWarn("System voltage too low to continue collecting data, need to stop monitoring\r\n");
+
 				// Stop monitoring
 				StopMonitoringForLowPowerState();
 			}
@@ -270,8 +274,15 @@ extern uint32_t testLifetimeCurrentAvgCount;
 #if 0 /* Orignial */
 		else { debug("(Cyclic Event) (%s) (%.0fmA avg) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer); }
 		//else { debug("(Cyclic Event) (%d) (%s) (%.0fmA avg) Exe/s: %s\r\n", g_lifetimePeriodicSecondCount, FuelGaugeDebugString(), (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount), (char*)g_spareBuffer); }
-#else /* Test */
-		//else { debug("(Cyclic Event) (%s) (%.2fV) (%.2fV) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)((float)GetBattChargerInputVoltage() / (float)1000), (double)((float)GetBattChargerSystemVoltage() / (float)1000), (char*)g_spareBuffer); }
+#elif 1 /* Test Alt 1 showing BC input V and System V */
+		else { debug("(Cyclic Event) (%s) (%.2fV) (%.2fV) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)((float)GetBattChargerInputVoltage() / (float)1000), (double)((float)GetBattChargerSystemVoltage() / (float)1000), (char*)g_spareBuffer); }
+#elif 0 /* Test Alt 2 showing BC input V and BC charge C */
+extern volatile int g_usbConfigured;
+		if (g_usbConfigured)
+		{
+			if ((g_execCycles / 4) > 1000) { debug("(C^)\r\n"); }
+			else { debug("(C-)\r\n"); }
+		}
 		else { debug("(Cyclic Event) (%s) (%.2fV) (%umA) Exe/s: %s\r\n", FuelGaugeDebugString(), (double)((float)GetBattChargerInputVoltage() / (float)1000), GetBattChargerBatteryChargeCurrent(), (char*)g_spareBuffer); }
 #endif
 
@@ -1953,8 +1964,14 @@ void PowerManager(void)
 	uint8 sleepStateNeeded;
 
 	// Check if no System Events (or just update offset) and LCD is off and Modem is not transferring and USB is not connected
+#if 0 /* Original */
 	if (((g_systemEventFlags.wrd == NO_SYSTEM_EVENT_ACTIVE) || (g_systemEventFlags.wrd == UPDATE_OFFSET_EVENT)) && (GetPowerControlState(LCD_POWER_ENABLE) == OFF) &&
 		(g_modemStatus.xferState == NOP_CMD) && (g_usbMassStorageState != USB_CONNECTED_AND_PROCESSING))
+#else
+extern volatile int g_usbConfigured;
+	if (((g_systemEventFlags.wrd == NO_SYSTEM_EVENT_ACTIVE) || (g_systemEventFlags.wrd == UPDATE_OFFSET_EVENT)) && (GetPowerControlState(LCD_POWER_ENABLE) == OFF) &&
+		(g_modemStatus.xferState == NOP_CMD) && (g_usbMassStorageState != USB_CONNECTED_AND_PROCESSING) && (!g_usbConfigured))
+#endif
 	{
 		SetupPowerSavingsBeforeSleeping();
 
