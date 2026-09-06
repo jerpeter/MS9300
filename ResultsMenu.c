@@ -171,7 +171,16 @@ void ResultsMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 				case (ENTER_KEY):
 					if (g_sampleProcessing != ACTIVE_STATE)
 					{
-						MessageBox(getLangText(STATUS_TEXT), getLangText(NOT_INCLUDED_TEXT), MB_OK);
+						if (g_summaryListMenuActive == YES)
+						{
+							SETUP_MENU_MSG(SUMMARY_MENU); msg.data[0] = ESC_KEY;
+						}
+						else
+						{
+							SETUP_MENU_MSG(MAIN_MENU);
+						}
+
+						JUMP_TO_ACTIVE_MENU();
 					}
 				break;
 
