@@ -642,30 +642,67 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 #if 1 /* Show hidden RTVA Values */
 		if (g_showRVTA == YES)
 		{
-			debug("R: %x, V: %x, T: %x, A: %x, Temp: %x\r\n", (((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->r), (((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->v),
-					(((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->t), (((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->a), g_previousTempReading);
+			if (g_saveAccelerometerCompanionEvent)
+			{
+				debug("R: %x, V: %x, T: %x, A: %x, X: %x, Y: %x, Z: %x, Temp: %x\r\n", (((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->r), (((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->v),
+						(((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->t), (((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->a),
+						(((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->r), (((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->t), (((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->v),
+						g_previousTempReading);
+			}
+			else /* Normal */
+			{
+				debug("R: %x, V: %x, T: %x, A: %x, Temp: %x\r\n", (((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->r), (((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->v),
+						(((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->t), (((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->a), g_previousTempReading);
+			}
 
 			//-----------------------------------------------------------------------
 			// Show RTVA
 			//-----------------------------------------------------------------------
-			memset(&buff[0], 0, sizeof(buff));
-			length = (uint8)sprintf(buff,"R    V    T    A"); 
+			if (g_saveAccelerometerCompanionEvent)
+			{
+				memset(&buff[0], 0, sizeof(buff));
+				length = (uint8)sprintf(buff," ACC %04x %04x %04x",
+					(((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->r), // X
+					(((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->t), // Y
+					(((SAMPLE_DATA_STRUCT*)g_accTailOfPretriggerBuff)->v)); // Z
 
-			wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+				wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
 
-			WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
-			wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
+				WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+				wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
 
-			memset(&buff[0], 0, sizeof(buff));
-			length = (uint8)sprintf(buff," %04x %04x %04x %04x", 
-				(((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->r),
-				(((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->v),
-				(((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->t),
-				(((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->a));
+				memset(&buff[0], 0, sizeof(buff));
+				length = (uint8)sprintf(buff," %04x %04x %04x %04x",
+					(((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->r),
+					(((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->v),
+					(((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->t),
+					(((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->a));
 
-			wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+				wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
 
-			WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+				WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+			}
+			else /* Normal */
+			{
+				memset(&buff[0], 0, sizeof(buff));
+				length = (uint8)sprintf(buff,"R    V    T    A");
+
+				wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+
+				WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+				wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
+
+				memset(&buff[0], 0, sizeof(buff));
+				length = (uint8)sprintf(buff," %04x %04x %04x %04x",
+					(((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->r),
+					(((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->v),
+					(((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->t),
+					(((SAMPLE_DATA_STRUCT*)g_tailOfPretriggerBuff)->a));
+
+				wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+
+				WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+			}
 		}
 #endif
 	}
