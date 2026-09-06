@@ -4394,7 +4394,7 @@ uint8_t USB_getBaseConfigDescriptor(uint8_t* fullConfigLength, uint8_t debug)
 		if (ControlBuffer[1] == USB_CONFIG_DESCRIPTOR)
 		{
 			*fullConfigLength = ControlBuffer[2];
-			if (debug) { debug("USB Host Controller: Config full length is %d\r\n", fullConfigLength); }
+			if (debug) { debug("USB Host Controller: Config full length is %d\r\n", *fullConfigLength); }
 		}
 		else
 		{
@@ -4464,6 +4464,7 @@ uint8_t USB_getFullConfigDescriptor(uint8_t fullConfigLength, uint8_t debug)
 			{
 				debugWarn("USB Host Controller: Read size did not match full Configuration Descriptor\r\n");
 				//OverlayMessage(getLangText(WARNING_TEXT), "Read size did not match full Configuration Descriptor", (3 * SOFT_SECS));
+				responseCode = rslUNDEF;
 			}
 		}
 		else { debugErr("USB Host Controller: Error getting full Configuration Descriptor\r\n"); }
@@ -4892,7 +4893,7 @@ uint8_t USB_writeSector(uint32_t sector, uint8_t* txBuffer, uint8_t debug)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void USBHostControllerTestShutdown(void)
+void USBHostControllerShutdown(void)
 {
 	debug("USB Host Controller: ----------------\r\n");
 	debug("USB Host Controller: Done with access, powering down\r\n");
@@ -4914,9 +4915,11 @@ void USBHostControllerTestShutdown(void)
 	// Re-enable Aux power
 	PowerControl(USB_AUX_POWER_ENABLE, ON);
 
+#if 0 /* Re-enable the MCU USB Device drivers */
 	// Re-enable the MCU USB
 extern void SetupUSBComposite(uint8_t);
 	SetupUSBComposite(USB_COMPOSITE_OPTION_FLAG);
+#endif
 #endif
 }
 
@@ -5010,7 +5013,7 @@ extern uint8_t g_usbSourceExternalPower;
 
 	MAX_processNewDevice(YES);
 
-	if (peripheralAvailable == false) { USBHostControllerTestShutdown(); return; }
+	if (peripheralAvailable == false) { USBHostControllerShutdown(); return; }
 
 	//debug("USB Host Controller: ** 5 second pause **\r\n"); SoftUsecWait(5 * SOFT_SECS);
 
@@ -5036,7 +5039,7 @@ extern uint8_t g_usbSourceExternalPower;
 
 	//___________________________________________________________________________________________
 	//___Get Full Config Descriptor
-	USB_getFullConfigDescriptor(fullConfigLength, YES);
+	if (USB_getFullConfigDescriptor(fullConfigLength, YES) != rslSUCCES) { USBHostControllerShutdown(); return; }
 
 	//___________________________________________________________________________________________
 	//___Set Configuration
