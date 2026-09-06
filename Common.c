@@ -1094,7 +1094,7 @@ uint8_t GetBatteryPresenceState(void)
 #if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE))
 	if ((GPIO_EXT_BATTERY_PRESENCE_1_PORT->in & GPIO_EXT_BATTERY_PRESENCE_1_PIN) || (GPIO_EXT_BATTERY_PRESENCE_2_PORT->in & GPIO_EXT_BATTERY_PRESENCE_2_PIN)) { return (YES); }
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
-	// Check if External Battery Presense is found, Active high (Port 0, Pin 2)
+	// Check if External Battery Presence is found, Active high (Port 0, Pin 2)
 	if ((GPIO_EXT_BATTERY_PRESENCE_1_PORT->in & GPIO_EXT_BATTERY_PRESENCE_1_PIN) || (GPIO_EXPANDED_BATTERY_PORT->in & GPIO_EXPANDED_BATTERY_PIN)) { return (YES); }
 #endif
 	else return (NO);
@@ -1108,7 +1108,7 @@ uint8_t GetExpandedBatteryPresenceState(void)
 #if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE))
 	if ((GPIO_EXT_BATTERY_PRESENCE_1_PORT->in & GPIO_EXT_BATTERY_PRESENCE_1_PIN) && (GPIO_EXT_BATTERY_PRESENCE_2_PORT->in & GPIO_EXT_BATTERY_PRESENCE_2_PIN)) { return (YES); }
 #else /* Old board - HARDWARE_ID_REV_PROTOTYPE_1 */
-	// Check if External Battery Presense is found, Active high (Port 0, Pin 2)
+	// Check if External Battery Presence is found, Active high (Port 0, Pin 2)
 	if (GPIO_EXPANDED_BATTERY_PORT->in & GPIO_EXPANDED_BATTERY_PIN) { return (YES); }
 #endif
 	else return (NO);
