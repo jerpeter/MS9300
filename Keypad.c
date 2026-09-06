@@ -483,6 +483,29 @@ extern void SetBattChargerForceBgateCtrlOff(uint8_t state);
 						SoftUsecWait(3 * SOFT_SECS);
 						BatteryChargerInit();
 #endif
+#if 0 /* Test */
+extern uint8_t g_usbSourceExternalPower;
+						g_usbSourceExternalPower ^= ON;
+						debug("USB Host Controller: USB Source External Power toggle: %s\r\n", ((g_usbSourceExternalPower == YES) ? "Enabled" : "Disabled"));
+						// Clear out the message parameters
+						mn_msg.cmd = 0; mn_msg.length = 0; mn_msg.data[0] = 0;
+#endif
+#if 0 /* Test */
+extern uint8_t SetupSDHCeMMC(void);
+extern void SetupSDHCeMMCTest(uint16_t clkDiv);
+						debug("FAT filesystem: Unmounting eMMC Flash (drive 0)\r\n");
+						f_mount(NULL, "", 0);
+						debug("SDHC eMMC Flash: Looping call on SDHC Setup...\r\n");
+						SoftUsecWait(2 * SOFT_SECS);
+						uint16_t clockDiv = 1023;
+						while (clockDiv > 0)
+						{
+							if (GetPowerOnButtonState() == ON) { debug("\r\n\r\nKeypad: Loop break\r\n\r\n"); break; }
+							//SetupSDHCeMMC();
+							SetupSDHCeMMCTest(clockDiv);
+							clockDiv--;
+						}
+#endif
 					}
 					//===================================================
 					// On-Help Combo key
@@ -510,12 +533,19 @@ extern void SetBattChargerForceBgateCtrlOff(uint8_t state);
 
 						__asm__ __volatile__ ("breakpoint");
 #endif
-#if 1 /* Test */
+#if 0 /* Test */
 static uint8_t s_bcChargeState = ON;
 						s_bcChargeState = GetBattChargerChargeState();
 						s_bcChargeState ^= ON;
 						SetBattChargerChargeState(s_bcChargeState);
 						debug("Battery charging toggle: %s\r\n", ((s_bcChargeState == ON) ? "Enabled" : "Disabled"));
+						// Clear out the message parameters
+						mn_msg.cmd = 0; mn_msg.length = 0; mn_msg.data[0] = 0;
+#endif
+#if 1 /* Test */
+extern uint8_t g_usbDebug;
+						g_usbDebug ^= ON;
+						debug("USB Host Controller: Driver debug toggle: %s\r\n", ((g_usbDebug == ON) ? "Enabled" : "Disabled"));
 						// Clear out the message parameters
 						mn_msg.cmd = 0; mn_msg.length = 0; mn_msg.data[0] = 0;
 #endif
