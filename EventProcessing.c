@@ -3020,6 +3020,23 @@ void EndianSwapEventData(EVT_RECORD* eRec, void* eData)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint8_t CheckEventFileSizeMatchOnDisk(uint16_t eventNumber)
+{
+	EVT_RECORD tempRec;
+	uint32_t eventSize;
+	uint8_t sizeMatch = NO;
+
+	GetEventFileRecord(eventNumber, &tempRec);
+	eventSize = GetEventSize(eventNumber);
+
+	if (eventSize == (tempRec.header.headerLength + tempRec.header.summaryLength + tempRec.header.dataLength)) { sizeMatch = YES; }
+
+	return (sizeMatch);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void WriteDebugCacheToFile(uint8_t flush)
 {
 	FIL file;

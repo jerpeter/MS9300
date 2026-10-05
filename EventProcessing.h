@@ -147,6 +147,9 @@ uint16_t GetEventListCacheAvailableIndex(void);
 // Custom function to set the file timestamp
 uint32_t SetFileTimestamp(char* filename);
 
+// Event size verification
+uint8_t CheckEventFileSizeMatchOnDisk(uint16_t eventNumber);
+
 // Endian swap conversions
 void EndianSwapDataX16(uint16_t* data, uint32_t wordDataLength);
 void EndianSwapEventRecordHeader(EVENT_HEADER_STRUCT* evtHdr);
