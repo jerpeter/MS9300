@@ -450,8 +450,8 @@ void LoadTrigRecordDefaults(REC_EVENT_MN_STRUCT* triggerRecordPtr, uint8 opMode)
 	triggerRecordPtr->trec.variableTriggerEnable = NO;
 	triggerRecordPtr->trec.variableTriggerVibrationStandard = OSM_REGULATIONS_STANDARD;
 	triggerRecordPtr->trec.variableTriggerPercentageLevel = 100;
-	triggerRecordPtr->bgrec.barInterval = SIXTY_SEC_PRD;
-	triggerRecordPtr->bgrec.summaryInterval = ONE_HOUR_INTVL;
+	triggerRecordPtr->bgrec.barInterval = ONE_SEC_PRD;
+	triggerRecordPtr->bgrec.summaryInterval = FIVE_MINUTE_INTVL;
 	triggerRecordPtr->berec.barScale = BAR_SCALE_FULL;
 	triggerRecordPtr->berec.barChannel = BAR_BOTH_CHANNELS;
 	triggerRecordPtr->berec.barIntervalDataType = BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE;
@@ -582,6 +582,8 @@ void LoadModemSetupRecordDefaults()
 
 	// New request to set the init string to point to Nomis servers
 	strcpy(g_modemSetupRecord.dial, "ATDTONLINE.NOMIS.COM/8005");
+
+	g_modemSetupRecord.dialOutType = AUTODIALOUT_EVENTS_CONFIG_STATUS;
 
 	ClearSoftTimer(SYSTEM_LOCK_TIMER_NUM);
 }
