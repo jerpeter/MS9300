@@ -709,6 +709,29 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint32_t RemoteMsgPoolCopyAndAdvance(uint8_t* copyPtr)
+{
+	uint32_t msgPoolSize = g_msgPool[s_msgReadIndex].size;
+
+	memcpy(copyPtr, g_msgPool[s_msgReadIndex].msg, g_msgPool[s_msgReadIndex].size);
+
+	memset(g_msgPool[s_msgReadIndex].msg, 0, CMD_BUFFER_SIZE);
+	g_msgPool[s_msgReadIndex].size = 0;
+	g_msgPool[s_msgReadIndex].readPtr = g_msgPool[s_msgReadIndex].msg;
+	g_msgPool[s_msgReadIndex].writePtr = g_msgPool[s_msgReadIndex].msg;
+
+	s_msgReadIndex++;
+	if (s_msgReadIndex >= CMD_MSG_POOL_SIZE)
+	{
+		s_msgReadIndex = 0;
+	}
+
+	return (msgPoolSize);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void RemoteCmdMessageProcessing()
 {
 #if 0 /* No longer needed */
@@ -875,6 +898,54 @@ void ProcessCraftData()
 			raiseSystemEventFlag(CRAFT_PORT_EVENT);
 		}
 		
+		*g_isrMessageBufferPtr->readPtr = 0x00;
+		g_isrMessageBufferPtr->readPtr++;
+		if (g_isrMessageBufferPtr->readPtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE))
+		{
+			g_isrMessageBufferPtr->readPtr = g_isrMessageBufferPtr->msg;
+		}
+	}
+
+	return;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void ProcessCraftDataDownload(void)
+{
+	while (g_isrMessageBufferPtr->readPtr != g_isrMessageBufferPtr->writePtr)
+	{
+		// Move data and increment pointer and count
+		*(g_msgPool[s_msgWriteIndex].writePtr) = *g_isrMessageBufferPtr->readPtr;
+		g_msgPool[s_msgWriteIndex].writePtr++;
+		g_msgPool[s_msgWriteIndex].size++;
+
+		// Check if the buffer is full with no terminating CR or LF
+		if (g_msgPool[s_msgWriteIndex].size == CMD_BUFFER_SIZE)
+		{
+			debug("<Msg Lmt>");
+		}
+
+		g_msgPool[s_msgWriteIndex].pipe = g_isrMessageBufferPtr->pipe;
+
+		//debug("PCD: New Msg (%c, %d, Pipe: %d)\r\n", (char)g_msgPool[s_msgWriteIndex].msg[0], g_msgPool[s_msgWriteIndex].size, g_msgPool[s_msgWriteIndex].pipe);
+
+		// The message is now complete so go to the next message pool buffer.
+		s_msgWriteIndex++;
+		if (s_msgWriteIndex >= CMD_MSG_POOL_SIZE)
+		{
+			s_msgWriteIndex = 0;
+		}
+
+		// Clear the new buffer
+		memset(g_msgPool[s_msgWriteIndex].msg, 0, CMD_BUFFER_SIZE);
+		g_msgPool[s_msgWriteIndex].size = 0;
+		g_msgPool[s_msgWriteIndex].writePtr = g_msgPool[s_msgWriteIndex].msg;
+
+		// Flag to indicate complete message to process
+		raiseSystemEventFlag(CRAFT_PORT_EVENT);
+
 		*g_isrMessageBufferPtr->readPtr = 0x00;
 		g_isrMessageBufferPtr->readPtr++;
 		if (g_isrMessageBufferPtr->readPtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE))
