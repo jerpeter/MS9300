@@ -381,6 +381,116 @@ void WriteCompressedData(uint8 compressedData, uint8 outMode)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint8_t RemoteImageDownload(char imageType, uint8_t pipe)
+{
+	uint32_t lastActiveDataTimestamp = g_lifetimeHalfSecondTickCount;
+	FIL imagefile;
+	uint32_t imageDataSize = 0;
+	uint32_t bytesHandled;
+	uint8_t* imageDownloadCachePtr = (uint8_t*)g_eventDataBuffer;
+	uint16_t inactivityTime = 120; // Start with 60 seconds
+
+	OverlayMessage(getLangText(STATUS_TEXT), "REMOTE IMAGE DOWNLOAD IN PROGRESS...", (0 * SOFT_SECS));
+	debug("Remote image download: Ready to receive remote file...\r\n");
+
+	if ((imageType != 'F') && (imageType != 'B')) { debugErr("Remote image download: Image type error\r\n"); return (FAILED); }
+
+	while (1)
+	{
+		SystemEventManager();
+		MenuEventManager();
+
+		//ProcessCraftData();
+extern void ProcessCraftDataDownload(void);
+		ProcessCraftDataDownload();
+
+		if (getSystemEventState(CRAFT_PORT_EVENT))
+		{
+			inactivityTime = 60; // Drop inacitivty time down to 30 seconds after data has been received
+			lastActiveDataTimestamp = g_lifetimeHalfSecondTickCount;
+
+			clearSystemEventFlag(CRAFT_PORT_EVENT);
+
+			//RemoteCmdMessageProcessing();
+
+extern uint32_t RemoteMsgPoolCopyAndAdvance(uint8_t* copyPtr);
+			bytesHandled = RemoteMsgPoolCopyAndAdvance(imageDownloadCachePtr);
+			imageDownloadCachePtr += bytesHandled;
+			imageDataSize += bytesHandled;
+		}
+
+		// Wait 10 seconds of inactivity before leaving data collection
+		if (g_lifetimeHalfSecondTickCount > (lastActiveDataTimestamp + inactivityTime))
+		{
+			debug("Remote image download: Inactivity timeout reached\r\n");
+			break;
+		}
+	}
+
+	debug("Remote image download: Total cache size: %d, validating image...\r\n", imageDataSize);
+
+	if (imageDataSize == 0)
+	{
+		debugWarn("Remote image download: No image data received\r\n");
+		OverlayMessage(getLangText(STATUS_TEXT), "REMOTE IMAGE DOWNLOAD: NO IMAGE RECEIVED", (2 * SOFT_SECS));
+		return (FAILED);
+	}
+
+	uint32 firmwareCRC = CalcCCITT32((uint8*)g_eventDataBuffer, (imageDataSize - 4), SEED_32);
+	uint32 storedFirmwareCRC = __builtin_bswap32(*(uint32*)((uint32)g_eventDataBuffer + (imageDataSize - 4)));
+
+	if (firmwareCRC == storedFirmwareCRC)
+	{
+		debug("Remote image download: CRC match, remote image validated\r\n");
+		OverlayMessage(getLangText(STATUS_TEXT), "REMOTE IMAGE DOWNLOAD: IMAGE VALIDATED", (2 * SOFT_SECS));
+	}
+	else
+	{
+		debugErr("Remote image download: CRC mismatch, remote image not usable\r\n");
+		OverlayMessage(getLangText(STATUS_TEXT), "REMOTE IMAGE DOWNLOAD: IMAGE FAILED VERIFICATION", (2 * SOFT_SECS));
+		return (FAILED);
+	}
+
+	if (imageType == 'F')
+	{
+		if ((f_open(&imagefile, SYSTEM_PATH"MS9300.bin", FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { debugErr("Remote image download: Unable to open firmware image temp file\r\n"); }
+	}
+	else if (imageType == 'B')
+	{
+		if ((f_open(&imagefile, SYSTEM_PATH"MS9300_Bootloader.bin", FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { debugErr("Remote image download: Unable to open bootloader image tmp file\r\n"); }
+	}
+
+	imageDownloadCachePtr = (uint8_t*)g_eventDataBuffer;
+	//f_write(&imagefile, imageDownloadCachePtr, imageDataSize, &bytesHandled);
+	//if (bytesHandled != imageDataSize) { debugErr("Remote image download: Bytes written not correct (%d != %d)\r\n", bytesHandled, bytesHandled); }
+
+	// New filesystem should not have a write limit, however Waveform saves that cross the 0x20080000 Int RAM boundary hang the SDHC Fat driver if the write size is greater than the eMMC Flash sector side
+	while (imageDataSize)
+	{
+		if (imageDataSize > WAVEFORM_FILE_WRITE_CHUNK_SIZE)
+		{
+			f_write(&imagefile, imageDownloadCachePtr, WAVEFORM_FILE_WRITE_CHUNK_SIZE, (UINT*)&bytesHandled);
+			if (bytesHandled != WAVEFORM_FILE_WRITE_CHUNK_SIZE)	{ debugErr("Remote image download: Waveform Event Data written size incorrect (%d != %d)\r\n", bytesHandled, WAVEFORM_FILE_WRITE_CHUNK_SIZE); }
+
+			imageDataSize -= WAVEFORM_FILE_WRITE_CHUNK_SIZE;
+			imageDownloadCachePtr += WAVEFORM_FILE_WRITE_CHUNK_SIZE;
+		}
+		else
+		{
+			f_write(&imagefile, imageDownloadCachePtr, imageDataSize, (UINT*)&bytesHandled);
+			if (bytesHandled != imageDataSize)	{ debugErr("Remote image download: Waveform Event Data written size incorrect (%d != %d)\r\n", bytesHandled, imageDataSize); }
+
+			imageDataSize = 0;
+		}
+	}
+
+	f_close(&imagefile);
+	return (PASSED);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void ShutdownPdnAndCellModem(void)
 {
 	int strLen;
