@@ -1385,6 +1385,7 @@ void DisplaySplashScreen(void)
 
 	wnd_layout.end_row = DEFAULT_END_ROW;
 	wnd_layout.end_col = DEFAULT_END_COL;
+	wnd_layout.start_col = DEFAULT_COL_SIX;
 
 	// Clear cached LCD memory map
 	ClearLcdMap();
@@ -1406,7 +1407,8 @@ void DisplaySplashScreen(void)
 	length = (uint8)sprintf((char*)(&buff[0]), "%s %s", getLangText(SOFTWARE_VER_TEXT), (char*)g_buildVersion);
 
 	wnd_layout.curr_row = DEFAULT_MENU_ROW_THREE;
-	wnd_layout.curr_col = (uint16)(((wnd_layout.end_col)/2) - ((length * SIX_COL_SIZE)/2));
+	//wnd_layout.curr_col = (uint16)(((wnd_layout.end_col)/2) - ((length * SIX_COL_SIZE)/2));
+	wnd_layout.curr_col = wnd_layout.start_col;
 	WndMpWrtString(&buff[0], &wnd_layout, SIX_BY_EIGHT_FONT, REG_LN);
 
 	//----------------------------------------------------------------------------------------
@@ -1416,7 +1418,8 @@ void DisplaySplashScreen(void)
 	length = (uint8)sprintf((char*)(&buff[0]), "%s", (char*)g_buildDate);
 
 	wnd_layout.curr_row = DEFAULT_MENU_ROW_FOUR;
-	wnd_layout.curr_col = (uint16)(((wnd_layout.end_col)/2) - ((length * SIX_COL_SIZE)/2));
+	//wnd_layout.curr_col = (uint16)(((wnd_layout.end_col)/2) - ((length * SIX_COL_SIZE)/2));
+	wnd_layout.curr_col = wnd_layout.start_col;
 	WndMpWrtString(&buff[0], &wnd_layout, SIX_BY_EIGHT_FONT, REG_LN);
 
 	//----------------------------------------------------------------------------------------
@@ -1426,7 +1429,8 @@ void DisplaySplashScreen(void)
 	length = (uint8)sprintf((char*)(&buff[0]), "%s: %.2f", getLangText(BATT_VOLTAGE_TEXT), (double)GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE));
 
 	wnd_layout.curr_row = DEFAULT_MENU_ROW_SIX;
-	wnd_layout.curr_col = (uint16)(((wnd_layout.end_col)/2) - ((length * SIX_COL_SIZE)/2));
+	//wnd_layout.curr_col = (uint16)(((wnd_layout.end_col)/2) - ((length * SIX_COL_SIZE)/2));
+	wnd_layout.curr_col = wnd_layout.start_col;
 	WndMpWrtString(&buff[0], &wnd_layout, SIX_BY_EIGHT_FONT, REG_LN);
 
 	debug("Init Write Splash Screen to LCD...\r\n");
