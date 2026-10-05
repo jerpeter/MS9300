@@ -648,6 +648,13 @@ void Usbc_port_controller_i2c_irq(void)
 
 	usbIsrActive = YES;
 
+#if 0 /* Test */
+extern int tps25750_block_read(void*, uint8_t reg, void *val, size_t len);
+		{ tps25750_block_read(NULL, 0x1A, &g_debugBuffer[240], 5); }
+		{ tps25750_block_read(NULL, 0x3F, &g_debugBuffer[250], 2); }
+		{ tps25750_block_read(NULL, 0x40, &g_debugBuffer[230], 4); }
+#endif
+
 	// Clear USBC I2C interrupt flag (Port 1, Pin 11)
 	GPIO_USBC_PORT_CONTROLLER_I2C_IRQ_PORT->int_clr = GPIO_USBC_PORT_CONTROLLER_I2C_IRQ_PIN;
 }
@@ -2326,6 +2333,7 @@ static inline void moveBargraphData_ISR_Inline(void)
 	// Bargraph Bar Interval clocking changed to be time synced (instead of sample count synced)
 	//________________________________________________________________________________________________
 
+#if 0 /* Original */
 	// Check if the clock needs to be initialized
 	if (g_bargraphBarIntervalClock == 0)
 	{
@@ -2346,6 +2354,28 @@ static inline void moveBargraphData_ISR_Inline(void)
 		// Check if write pointer is beyond the end of the circular bounds
 		if (g_bargraphDataWritePtr >= g_bargraphDataEndPtr) g_bargraphDataWritePtr = g_bargraphDataStartPtr;
 	}
+#else /* Base Bar interval clock on External RTC periodic second */
+	// Check if the clock needs to be initialized
+	if (g_bargraphBarIntervalClock == 0)
+	{
+		g_bargraphBarIntervalClock = g_lifetimePeriodicSecondCount + g_triggerRecord.bgrec.barInterval - 1; // Subtract 1 for if greater comparison
+	}
+
+	// Check if time signals end of a Bar Interval
+	if ((volatile int32)g_lifetimePeriodicSecondCount > (volatile int32)g_bargraphBarIntervalClock)
+	{
+		g_bargraphBarIntervalClock = g_lifetimePeriodicSecondCount + g_triggerRecord.bgrec.barInterval - 1; // Subtract 1 for if greater comparison
+
+		// Signal end of Bar Interval with special key
+		*(SAMPLE_DATA_STRUCT*)g_bargraphDataWritePtr = (SAMPLE_DATA_STRUCT)BAR_INTERVAL_END_KEY_SAMPLE;
+
+		// Increment the write pointer
+		g_bargraphDataWritePtr += NUMBER_OF_CHANNELS_DEFAULT;
+
+		// Check if write pointer is beyond the end of the circular bounds
+		if (g_bargraphDataWritePtr >= g_bargraphDataEndPtr) g_bargraphDataWritePtr = g_bargraphDataStartPtr;
+	}
+#endif
 
 	// Alert system that we have data in ram buffer, raise flag to calculate and move data to flash.
 	raiseSystemEventFlag_ISR(BARGRAPH_EVENT);
