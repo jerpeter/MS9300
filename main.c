@@ -357,6 +357,16 @@ extern void WriteDebugCacheToFile(uint8_t flush);
 #endif
 	}
 
+#if 0 /* Test soft timer accuracy */
+extern volatile uint8_t psChange;
+extern volatile uint32_t g_lifetimePeriodicSecondCount;
+	if (psChange)
+	{
+		psChange = 0;
+		debug("Periodic Second: %d, Soft half sec count %d\r\n", g_lifetimePeriodicSecondCount, g_lifetimeHalfSecondTickCount);
+	}
+#endif
+
 #if 1 /* Test */
 extern uint8_t fuelGaugeReinit;
 	if (fuelGaugeReinit)
@@ -1600,6 +1610,7 @@ void BootLoadManager(void)
 		uint8_t bootStoredInInternalFlash = NO;
 		uint8_t bootImageFoundInFlashStorage = NO;
 		uint8_t loadBootImage = NO;
+		uint8_t loadBootImageValid = NO;
 		char imageFilename[50];
 
 		// Check for existance of the Bootloader within internal flash
@@ -1655,6 +1666,8 @@ void BootLoadManager(void)
 
 				debug("Boot Manager: Renaming Bootloader image file extension <%s>\r\n", default_boot_bak_name);
 				f_rename(g_spareFileName, imageFilename);
+
+				loadBootImageValid = YES;
 			}
 			else
 			{
@@ -1674,57 +1687,65 @@ void BootLoadManager(void)
 				}
 			}
 
-			// Load Bootloader image into internal flash
-			uint16_t pagesToErase = ((readSize / MXC_FLASH_PAGE_SIZE) + 1);
-			uint32_t internalFlashAddr = BOOTLOADER_BASE_ADDRESS;
-
-			debug("Boot Manager: Pages to erase %d\r\n", pagesToErase);
-
-			// Disable interrupts
-			__disable_irq();
-
-			// Disable ICC
-			MXC_ICC_DisableInst(MXC_ICC0);
-
-			while (pagesToErase)
+			if (loadBootImageValid)
 			{
-				//debug("Boot Manager: Page erase at 0x%x\r\n", internalFlashAddr);
-				MXC_FLC_PageErase(internalFlashAddr);
-				internalFlashAddr += MXC_FLASH_PAGE_SIZE;
-				pagesToErase--;
+				// Load Bootloader image into internal flash
+				uint16_t pagesToErase = ((readSize / MXC_FLASH_PAGE_SIZE) + 1);
+				uint32_t internalFlashAddr = BOOTLOADER_BASE_ADDRESS;
+
+				debug("Boot Manager: Pages to erase %d\r\n", pagesToErase);
+
+				// Disable interrupts
+				__disable_irq();
+
+				// Disable ICC
+				MXC_ICC_DisableInst(MXC_ICC0);
+
+				while (pagesToErase)
+				{
+					//debug("Boot Manager: Page erase at 0x%x\r\n", internalFlashAddr);
+					MXC_FLC_PageErase(internalFlashAddr);
+					internalFlashAddr += MXC_FLASH_PAGE_SIZE;
+					pagesToErase--;
+				}
+				debug("Boot Manager: Flash page erase complete\r\n");
+
+				MXC_FLC_Write(BOOTLOADER_BASE_ADDRESS, readSize, (uint32_t*)&g_eventDataBuffer);
+				debug("Boot Manager: Flash write complete\r\n");
+
+				SetupICC();
+
+				// Re-enable interrupts
+				__enable_irq();
+
+				if (bootStoredInInternalFlash == YES) {	OverlayMessage(getLangText(STATUS_TEXT), "BOOT MANAGER: BOOTLOADER UPDATE SUCCESSFUL", (2 * SOFT_SECS)); }
+				else {	OverlayMessage(getLangText(STATUS_TEXT), "BOOT MANAGER: BOOTLOADER INSTALL SUCCESSFUL", (2 * SOFT_SECS)); }
 			}
-			debug("Boot Manager: Flash page erase complete\r\n");
-
-			MXC_FLC_Write(BOOTLOADER_BASE_ADDRESS, readSize, (uint32_t*)&g_eventDataBuffer);
-			debug("Boot Manager: Flash write complete\r\n");
-
-			SetupICC();
-
-			// Disable interrupts
-			__enable_irq();
-
-			if (bootStoredInInternalFlash == YES) {	OverlayMessage(getLangText(STATUS_TEXT), "BOOT MANAGER: BOOTLOADER UPDATE SUCCESSFUL", (2 * SOFT_SECS)); }
-			else {	OverlayMessage(getLangText(STATUS_TEXT), "BOOT MANAGER: BOOTLOADER INSTALL SUCCESSFUL", (2 * SOFT_SECS)); }
 		}
 
 		sprintf(imageFilename, "%s%s", SYSTEM_PATH, default_firmware_name);
 		if (f_stat((const TCHAR*)imageFilename, &fno) != FR_OK)
 		{
 			debugWarn("Boot Manager: Firmware image not found\r\n");
+#if 1 /* Normal */
 			OverlayMessage(getLangText(STATUS_TEXT), "FIRMWARE IMAGE NOT FOUND", (2 * SOFT_SECS));
 			return; // Leave function
+#else /* Test Bootloader cycling without forcing a firmware file present */
+			// No op
+#endif
 		}
 
 		// Ready to jump to the Bootloader
 		debug("Reset Handler at Bootloader address (addr 0x%x): 0x%x\r\n", BOOTLOADER_RESET_HANDLER, *(uint32_t*)BOOTLOADER_RESET_HANDLER);
 		func = (void(*)(void))(*(uint32_t*)BOOTLOADER_RESET_HANDLER);
 
+		// Check if no Bootloader Reset Handler (empty flash)
 		if (func == (void*)0xffffffff)
 		{
 			debugWarn("Boot Manager: Bootloader not found\r\n");
 			return; // Leave function
 		}
-		else
+		else // Bootloader Reset Handler should be valid
 		{
 			// Setup signal for startup detection to bypass special limited charging startup when the Bootlaoder issues an MCU reset
 			ForceExternalRtcIntEnabledForResetDetection();
@@ -2762,6 +2783,14 @@ static uint8_t s_cellModemPowerState = OFF;
 			debugWarn("External Charge Voltage: %s\r\n", ((ecp == YES) ? "Present" : "Removed"));
 		}
 
+#endif
+#if 0 /* Test Bootloader cycling */
+		// Wait for 30 seconds from power up
+		if (g_lifetimeHalfSecondTickCount > 60)
+		{
+			g_quickBootEntryJump = QUICK_BOOT_ENTRY_FROM_MENU;
+			BootLoadManager();
+		}
 #endif
 	}
 	// End of NS9300 Main
