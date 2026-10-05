@@ -193,8 +193,53 @@ void HandleDAI(CMD_BUFFER_STRUCT* inCmd)
 {
 	UNUSED(inCmd);
 
-	debug("HandleDAI:Here\r\n");
+	debug("HandleDAI: Entry\r\n");
 
+#if 1 /* Test options for downloading a Firmware image or Bootloader image */
+	char cmdType = inCmd->msg[HDR_CMD_LEN]; // Grabbing the first character of the command type (starting after command length)
+	CHAR_UPPER_CASE(cmdType);
+
+	if (g_sampleProcessing == ACTIVE_STATE)
+	{
+		sprintf((char*)g_spareBuffer, "DAI commnad: Unable to download or run Bootloader while actively monitoring");
+
+		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
+		ModemPuts((uint8*)&g_spareBuffer, strlen((char*)g_spareBuffer), NO_CONVERSION, inCmd->pipe);
+		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
+
+		// Bail to allow downloading another image type and/or allow prepping for a future firmware update
+		return;
+	}
+
+	// Check if either a Firmware or Bootloader image download was selected
+	if ((cmdType == 'F') | (cmdType == 'B'))
+	{
+		sprintf((char*)g_spareBuffer, "--- Ready to receive image file (inactivity timeout 60 sec to start, 30 sec after data) ---");
+
+		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
+		ModemPuts((uint8*)&g_spareBuffer, strlen((char*)g_spareBuffer), NO_CONVERSION, inCmd->pipe);
+		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
+
+extern uint8_t RemoteImageDownload(char imageType, uint8_t pipe);
+		if (RemoteImageDownload(cmdType, inCmd->pipe) == PASSED)
+		{
+			sprintf((char*)g_spareBuffer, "--- %s image downloaded and saved successfully ---", ((cmdType == 'F') ? "Firmware" : "Bootloader"));
+		}
+		else
+		{
+			sprintf((char*)g_spareBuffer, "--- %s image downloaded encountered an error ---", ((cmdType == 'F') ? "Firmware" : "Bootloader"));
+		}
+
+		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
+		ModemPuts((uint8*)&g_spareBuffer, strlen((char*)g_spareBuffer), NO_CONVERSION, inCmd->pipe);
+		ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
+
+		// Bail to allow downloading another image type and/or allow prepping for a future firmware update
+		return;
+	}
+
+	// If no options/type selected, jump to the Boot Load Manager to check and perform firmware updates
+#endif
 	// If we jump to boot this call will never return, otherwise proceed as if we can't jump
 	g_quickBootEntryJump = QUICK_BOOT_ENTRY_FROM_SERIAL;
 	BootLoadManager();
