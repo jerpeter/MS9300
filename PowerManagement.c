@@ -1380,12 +1380,11 @@ uint8_t GetBattChargerChargeState(void)
 ///----------------------------------------------------------------------------
 void SetBattChargerChargeState(uint8_t state)
 {
-	debug("Battery Charger: Charging control %s\r\n", ((state & 0x01) ? "Enabled" : "Disabled"));
-#if /* New board */ ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PRODUCTION) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_RELEASE))
-	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, (0x3C72 | (state & 0x01)));
-#else /* Older boards ((HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_BETA_RESPIN) || (HARDWARE_BOARD_REVISION == HARDWARE_ID_REV_PROTOTYPE_1)) */
-	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, (0x3C52 | (state & 0x01)));
-#endif
+	uint16_t chargeState = ((state) ? 0x0001 : 0);
+	uint16_t config4 = (ReturnBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4) & ~0x0001); // Get Config4 and strip Charge state bit
+
+	debug("Battery Charger: Charging control %s\r\n", ((state) ? "Enabled" : "Disabled"));
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, (config4 | chargeState));
 }
 
 ///----------------------------------------------------------------------------
@@ -1414,6 +1413,18 @@ void SetBattChargerBgateEnable(uint8_t state)
 
 	debug("Battery Charger: BGate Enable: %s\r\n", ((state & 0x01) ? "On" : "Off"));
 	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_2, config4);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SetBattChargerDCConverterState(uint8_t state)
+{
+	uint16_t dcConverterState = ((state) ? 0x0040 : 0);
+	uint16_t config4 = (ReturnBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4) & ~0x0040); // Get Config4 and strip DC/DC Converter enable bit
+
+	debug("Battery Charger: DC/DC Converter %s\r\n", ((state) ? "Enabled" : "Disabled"));
+	SetBattChargerRegister(BATT_CHARGER_CONFIGURATION_REGISTER_4, (config4 | dcConverterState));
 }
 
 ///----------------------------------------------------------------------------
