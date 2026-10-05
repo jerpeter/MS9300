@@ -2450,7 +2450,11 @@ USER_MENU_STRUCT helpMenu[HELP_MENU_ENTRIES] = {
 #else /* Test 2 */
 {ITEM_7, 0, NULL_TEXT,					ACC_COMPANION_EVENT_TAG, {ACC_COMPANION_EVENT_CHOICE}},
 #endif
+#if 0 /* Original */
 {ITEM_8, 0, NULL_TEXT,					FCC_TEST_ALL_TAG, {FCC_TESTING_CHOICE}},
+#else /* Test USB Firmware Copy */
+{ITEM_8, 0, NULL_TEXT,					USB_FIRMWARE_COPY_TAG, {USB_FIRMWARE_COPY_CHOICE}},
+#endif
 {ITEM_9, 0, NULL_TEXT,					CELL_UART_RESET_TAG, {CELL_UART_RESET_CHOICE}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&HelpMenuHandler}}
 };
@@ -2634,6 +2638,14 @@ extern void USBHostControllerTest(void);
 				// Safe to enter monitor mode
 				SETUP_MENU_WITH_DATA_MSG(MONITOR_MENU, (uint32)g_triggerRecord.opMode);
 			}
+		}
+		else if (helpMenu[newItemIndex].data == USB_FIRMWARE_COPY_CHOICE)
+		{
+			sprintf((char*)g_spareBuffer, "STARTING USB FLASH DRIVE SEARCH FOR FIRMWARE...");
+			OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
+
+extern void USBHostControllerCopyFirmwareFiles(void);
+			USBHostControllerCopyFirmwareFiles();
 		}
 		else if (helpMenu[newItemIndex].data == CELL_UART_RESET_CHOICE)
 		{
