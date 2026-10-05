@@ -38,6 +38,7 @@
 ///----------------------------------------------------------------------------
 ///	Local Scope Globals
 ///----------------------------------------------------------------------------
+uint16_t g_bgFileErrors = 0;
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -55,6 +56,10 @@ void StartNewBargraph(void)
 	g_bargraphBarIntervalsCached = 0;
 	g_bargraphBarIntervalClock = 0;
 	g_blmBarIntervalQueueCount = 0;
+
+#if 1 /* Test */
+	g_bgFileErrors = 0;
+#endif
 
 	// Init flags
 	g_bargraphLiveMonitoringBISendActive = NO;
@@ -105,6 +110,7 @@ void MoveBarIntervalDataToFile(void)
 		if (f_open(&file, (const TCHAR*)g_spareFileName, FA_OPEN_APPEND | FA_WRITE) != FR_OK)
 		{
 			debugErr("Unable to re-open event file for appending BI's: %s\r\n", g_spareFileName);
+			g_bgFileErrors++;
 		}
 		else // File opened, append event info
 		{
@@ -191,6 +197,9 @@ void CompleteSummaryInterval(void)
 	g_barSampleCount = 0;
 
 	g_bargraphSummaryInterval.calcStructEndFlag = 0xEECCCCEE;	// End structure flag
+
+	debug("Bargraph: Summary Interval %d complete @ %02d:%02d:%02d (BI's captured: %d)\r\n", g_summaryCount, g_bargraphSummaryInterval.intervalEnd_Time.hour, g_bargraphSummaryInterval.intervalEnd_Time.min,
+			g_bargraphSummaryInterval.intervalEnd_Time.sec, g_bargraphSummaryInterval.barIntervalsCaptured);
 }
 
 ///----------------------------------------------------------------------------
@@ -200,6 +209,9 @@ void MoveSummaryIntervalDataToFile(void)
 {
 	FIL file;
 	uint32_t bytesWritten;
+	uint16 biTotalWritten;
+	FRESULT result;
+	FSIZE_t startingfileSize;
 
 	CompleteSummaryInterval();
 
@@ -208,9 +220,13 @@ void MoveSummaryIntervalDataToFile(void)
 	if (f_open(&file, (const TCHAR*)g_spareFileName, FA_OPEN_APPEND | FA_WRITE) != FR_OK)
 	{
 		debugErr("Unable to re-open event file for appending SI: %s\r\n", g_spareFileName);
+		g_bgFileErrors++;
 	}
 	else // File opened, append event info
 	{
+		startingfileSize = f_size(&file);
+		debug("Bargraph: %d cached BI's moving to file\r\n", g_bargraphBarIntervalsCached);
+
 		// Write any cached bar intervals before storing the summary interval (may not match with bar interval write threshold)
 		while (g_bargraphBarIntervalsCached)
 		{
@@ -221,14 +237,19 @@ void MoveSummaryIntervalDataToFile(void)
 			// New BI with options
 			if (g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE)
 			{
-				f_write(&file, g_bargraphBarIntervalReadPtr, BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE, (UINT*)&bytesWritten);
+				result = f_write(&file, g_bargraphBarIntervalReadPtr, BAR_INTERVAL_ORIGINAL_DATA_TYPE_SIZE, (UINT*)&bytesWritten); biTotalWritten = bytesWritten;
+				if (result != FR_OK) { debugErr("Bargraph: Write failure for BI\r\n"); g_bgFileErrors++; }
 			}
 			else // New Bar Interval data type option, store A max, then R, V, T max, then A, R, V, T freq (if selected), and finally VS max
 			{
-				f_write(&file, &g_bargraphBarIntervalReadPtr->aMax, sizeof(g_bargraphBarIntervalReadPtr->aMax), (UINT*)&bytesWritten);
-				f_write(&file, &g_bargraphBarIntervalReadPtr->rMax, (sizeof(g_bargraphBarIntervalReadPtr->rMax) * ((g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE) ? 3 : 7)), (UINT*)&bytesWritten);
-				f_write(&file, &g_bargraphBarIntervalReadPtr->vsMax, sizeof(g_bargraphBarIntervalReadPtr->vsMax), (UINT*)&bytesWritten);
+				result = f_write(&file, &g_bargraphBarIntervalReadPtr->aMax, sizeof(g_bargraphBarIntervalReadPtr->aMax), (UINT*)&bytesWritten); biTotalWritten = bytesWritten;
+				result |= f_write(&file, &g_bargraphBarIntervalReadPtr->rMax, (sizeof(g_bargraphBarIntervalReadPtr->rMax) * ((g_pendingBargraphRecord.summary.parameters.barIntervalDataType == BAR_INTERVAL_A_R_V_T_DATA_TYPE_SIZE) ? 3 : 7)), (UINT*)&bytesWritten); biTotalWritten += bytesWritten;
+				result |= f_write(&file, &g_bargraphBarIntervalReadPtr->vsMax, sizeof(g_bargraphBarIntervalReadPtr->vsMax), (UINT*)&bytesWritten); biTotalWritten += bytesWritten;
+				if (result != FR_OK) { debugErr("Bargraph: Write failure for BI\r\n"); g_bgFileErrors++; }
 			}
+
+			if (biTotalWritten != g_pendingBargraphRecord.summary.parameters.barIntervalDataType) { debugErr("Bargraph: Write count incorrect for BI (%d)\r\n", biTotalWritten); g_bgFileErrors++; }
+
 #if ENDIAN_CONVERSION
 			// Swap back to Little Endian for future references before SI ends (possible BLM cached reads?)
 			EndianSwapBarInterval(g_bargraphBarIntervalReadPtr, g_pendingBargraphRecord.summary.parameters.barIntervalDataType);
@@ -246,7 +267,9 @@ void MoveSummaryIntervalDataToFile(void)
 		// Swap Summary Interval to Big Endian for event file
 		EndianSwapCalculatedDataStruct(&g_bargraphSummaryInterval);
 #endif
-		f_write(&file, &g_bargraphSummaryInterval, sizeof(CALCULATED_DATA_STRUCT), (UINT*)&bytesWritten);
+		result = f_write(&file, &g_bargraphSummaryInterval, sizeof(CALCULATED_DATA_STRUCT), (UINT*)&bytesWritten);
+		if (result != FR_OK) { debugErr("Bargraph: Write failure for SI\r\n"); g_bgFileErrors++; }
+		if (bytesWritten != sizeof(CALCULATED_DATA_STRUCT)) { debugErr("Bargraph: Write count incorrect for SI (%d)\r\n", bytesWritten); g_bgFileErrors++; }
 #if ENDIAN_CONVERSION
 		// Swap Summary Interval back to Litte Endian, since cached SI is referenced again
 		EndianSwapCalculatedDataStruct(&g_bargraphSummaryInterval);
@@ -254,11 +277,14 @@ void MoveSummaryIntervalDataToFile(void)
 
 		g_pendingBargraphRecord.header.dataLength += sizeof(CALCULATED_DATA_STRUCT);
 
+		if (startingfileSize == f_size(&file)) { debugErr("Bargraph event file did not increase size when writing BI's and SI\r\n"); g_bgFileErrors++; }
+
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-		f_close(&file);
+		result = f_close(&file);
+		if (result != FR_OK) { debugErr("Bargraph: File close failure for SI update\r\n"); g_bgFileErrors++; }
 		SetFileTimestamp(g_spareFileName);
 
-		debug("%s event file closed\r\n", (g_triggerRecord.opMode == BARGRAPH_MODE) ? "Bargraph" : "Combo - Bargraph");
+		debug("%s event file closed (BI+SI update)\r\n", (g_triggerRecord.opMode == BARGRAPH_MODE) ? "Bargraph" : "Combo - Bargraph");
 	}
 
 	// Update the job totals.
@@ -1134,6 +1160,7 @@ void MoveStartOfBargraphEventRecordToFile(void)
 	if (f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK)
 	{
 		debugErr("Unable to create event file: %s, mode: %s\r\n", g_spareFileName, (g_triggerRecord.opMode == BARGRAPH_MODE) ? "Bargraph" : "Combo - Bargraph");
+		g_bgFileErrors++;
 	}
 	else // File created, write out the event
 	{
@@ -1176,6 +1203,7 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 	uint8 ramCacheSizeForEventDataLargeEnough = NO;
 	FIL file;
 	uint32_t bytesMoved;
+	FRESULT result;
 
 	UNUSED(compressSize); // Depends on debug on/off
 
@@ -1214,6 +1242,7 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 	if (f_open(&file, (const TCHAR*)g_spareFileName, FA_OPEN_APPEND | FA_READ | FA_WRITE) != FR_OK)
 	{
 		debugErr("Unable to re-open event file for overwritting summary: %s\r\n", g_spareFileName);
+		g_bgFileErrors++;
 	}
 	else // File opened, overwrite event summary
 	{
@@ -1225,7 +1254,8 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 		EndianSwapEventRecord(&g_pendingBargraphRecord);
 #endif
 		// Rewrite the event record
-		f_write(&file, &g_pendingBargraphRecord, sizeof(EVT_RECORD), (UINT*)&bytesMoved);
+		result = f_write(&file, &g_pendingBargraphRecord, sizeof(EVT_RECORD), (UINT*)&bytesMoved);
+		if (result != FR_OK) { debugErr("Bargraph: Re-write event record failure\r\n"); g_bgFileErrors++; }
 #if ENDIAN_CONVERSION
 		// Swap event record to Litte Endian for processing
 		EndianSwapEventRecord(&g_pendingBargraphRecord);
@@ -1257,10 +1287,12 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 		}
 
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
-		f_close(&file);
+		result = f_close(&file);
+		if (result != FR_OK) { debugErr("Bargraph: File close failure for event recrod re-write\r\n"); g_bgFileErrors++; }
 		SetFileTimestamp(g_spareFileName);
 
-		debug("%s event file closed\r\n", (g_triggerRecord.opMode == BARGRAPH_MODE) ? "Bargraph" : "Combo - Bargraph");
+		debug("%s event file closed (record update @ %02d:%02d:%02d)\r\n", (g_triggerRecord.opMode == BARGRAPH_MODE) ? "Bargraph" : "Combo - Bargraph", g_pendingBargraphRecord.summary.captured.endTime.hour,
+				g_pendingBargraphRecord.summary.captured.endTime.min, g_pendingBargraphRecord.summary.captured.endTime.sec);
 
 		// Save compressed data file (if Bargraph session is complete)
 		if (status == BARPGRAPH_SESSION_COMPLETE)
@@ -1277,6 +1309,7 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 				if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
 				{
 					debugErr("Unable to create EReventrecord event file: %s\r\n", g_spareFileName);
+					g_bgFileErrors++;
 				}
 				else // File created, write out the event
 				{
@@ -1328,6 +1361,7 @@ void MoveUpdatedBargraphEventRecordToFile(uint8 status)
 				if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK)
 				{
 					debugErr("Unable to create ERdata event file: %s\r\n", g_spareFileName);
+					g_bgFileErrors++;
 				}
 				else // File created, write out the event
 				{
