@@ -506,6 +506,17 @@ extern void SetupSDHCeMMCTest(uint16_t clkDiv);
 							clockDiv--;
 						}
 #endif
+#if 0 /* Test USBC Port Controller mode switch for PD stability */
+extern uint8_t g_usbRole;
+extern void USBCPortControllerSwapToHost(void);
+extern void USBCPortControllerSwapToDevice(void);
+						g_usbRole ^= ON;
+						debug("USB Host Controller: Mode switch: %s\r\n", ((g_usbRole == YES) ? "Host" : "Device"));
+						if (g_usbRole == ON) { USBCPortControllerSwapToHost(); }
+						else { USBCPortControllerSwapToDevice(); }
+						// Clear out the message parameters
+						mn_msg.cmd = 0; mn_msg.length = 0; mn_msg.data[0] = 0;
+#endif
 					}
 					//===================================================
 					// On-Help Combo key
@@ -542,7 +553,7 @@ static uint8_t s_bcChargeState = ON;
 						// Clear out the message parameters
 						mn_msg.cmd = 0; mn_msg.length = 0; mn_msg.data[0] = 0;
 #endif
-#if 1 /* Test */
+#if 0 /* Test */
 extern uint8_t g_usbDebug;
 						g_usbDebug ^= ON;
 						debug("USB Host Controller: Driver debug toggle: %s\r\n", ((g_usbDebug == ON) ? "Enabled" : "Disabled"));
@@ -606,9 +617,19 @@ static uint8_t s_forceBgateCtrlOff = OFF;
 						SetBattChargerForceBgateCtrlOff(s_forceBgateCtrlOff);
 						debug("Charger: Toggle Force BGate Ctrl Off to %s\r\n", ((s_forceBgateCtrlOff == ON) ? "Enabled" : "Disabled"));
 #endif
+#if 0 /* Test */
+extern uint8_t g_usbDebug;
+extern void USBHostControllerSetMuxAndSource(uint8_t state);
+						g_usbDebug ^= ON;
+						debug("USB Host Controller: Mux and Source toggle: %s\r\n", ((g_usbDebug == ON) ? "Enabled" : "Disabled"));
+						if (g_usbDebug == ON) { USBHostControllerSetMuxAndSource(ON); }
+						else { USBHostControllerSetMuxAndSource(OFF); }
+						// Clear out the message parameters
+						mn_msg.cmd = 0; mn_msg.length = 0; mn_msg.data[0] = 0;
+#endif
 					}
 					//===================================================
-					// On-Help Combo key
+					// On-Backlight Combo key
 					//---------------------------------------------------
 					else if (keyPressed == BACKLIGHT_KEY)
 					{
