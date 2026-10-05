@@ -371,8 +371,14 @@ extern void SetupUSBComposite(uint8_t);
 						// Check if at the Summary Interval Results screen
 						else if (g_displayBargraphResultsMode == SUMMARY_INTERVAL_RESULTS)
 						{
-							// Change to the Job Peak Results Screen
+							// Change to the Job Peak Results screen
 							g_displayBargraphResultsMode = JOB_PEAK_RESULTS;
+						}
+						// Check if at the Job Peak results screen and in Combo mode
+						else if ((g_displayBargraphResultsMode == JOB_PEAK_RESULTS) && (g_monitorOperationMode == COMBO_MODE))
+						{
+							// Change to the Combo - Waveform events recorded screen
+							g_displayBargraphResultsMode = COMBO_WAVEFORM_EVENTS_RECORDED_RESULTS;
 						}
 					}
 				break;
@@ -386,13 +392,13 @@ extern void SetupUSBComposite(uint8_t);
 						// Check if at the Job Peak Results screen
 						if (g_displayBargraphResultsMode == JOB_PEAK_RESULTS)
 						{
-							// Change to the Summary Interval Results Screen
+							// Change to the Summary Interval Results screen
 							g_displayBargraphResultsMode = SUMMARY_INTERVAL_RESULTS;
 						}
 						// Check if at the Summary Interval Results screen
 						else if (g_displayBargraphResultsMode == SUMMARY_INTERVAL_RESULTS)
 						{
-							// Change to the Impulse Results Screen
+							// Change to the Impulse Results screen
 							g_displayBargraphResultsMode = IMPULSE_RESULTS;
 							
 							// Check if results mode is Peak Displacement
@@ -401,6 +407,12 @@ extern void SetupUSBComposite(uint8_t);
 								// Change it since Peak Displacement and Peak Acceleration are not valid for Impulse results
 								g_displayAlternateResultState = DEFAULT_RESULTS;
 							}
+						}
+						// Check if at the Combo - Waveform events recorded screen
+						else if (g_displayBargraphResultsMode == COMBO_WAVEFORM_EVENTS_RECORDED_RESULTS)
+						{
+							// Change to the Job Peak Results screen
+							g_displayBargraphResultsMode = JOB_PEAK_RESULTS;
 						}
 					}
 				break;
@@ -574,16 +586,20 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 	if ((g_monitorOperationMode == BARGRAPH_MODE) || (g_monitorOperationMode == COMBO_MODE))
 	{
-		if (g_displayBargraphResultsMode == SUMMARY_INTERVAL_RESULTS)
+		if ((g_displayBargraphResultsMode == SUMMARY_INTERVAL_RESULTS) || ((g_displayBargraphResultsMode == JOB_PEAK_RESULTS) && (g_monitorOperationMode == COMBO_MODE)))
 			arrowChar = BOTH_ARROWS_CHAR;
-		else if (g_displayBargraphResultsMode == JOB_PEAK_RESULTS)
+		else if ((g_displayBargraphResultsMode == JOB_PEAK_RESULTS) || (g_displayBargraphResultsMode == COMBO_WAVEFORM_EVENTS_RECORDED_RESULTS))
 			arrowChar = UP_ARROW_CHAR;
 		else // g_displayBargraphResultsMode == IMPULSE_RESULTS
 			arrowChar = DOWN_ARROW_CHAR;
 				
+#if 0 /* Older unit method to pull a custom created character in the font table */
 		sprintf(buff, "%c", arrowChar);
 		wnd_layout_ptr->curr_col = 120;
 		WndMpWrtString((uint8*)&buff[0], wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+#else /* Todo: Come up with new method to show multiple screens are available to scroll to via up and down buttons */
+		UNUSED(arrowChar);
+#endif
 	}
 
 	// Advance to next row
@@ -705,6 +721,86 @@ void MonitorMenuDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			}
 		}
 #endif
+	}
+	else if ((g_monitorOperationMode == COMBO_MODE) && (g_displayBargraphResultsMode == COMBO_WAVEFORM_EVENTS_RECORDED_RESULTS))
+	{
+		//-----------------------------------------------------------------------
+		// Date and Time (Line 2 of 8)
+		//-----------------------------------------------------------------------
+		memset(&buff[0], 0, sizeof(buff));
+		time = GetCurrentTime();
+
+		ConvertTimeStampToString(buff, &time, REC_DATE_TIME_TYPE);
+		length = (uint8)strlen(buff);
+		wnd_layout_ptr->curr_col = (uint16)(((wnd_layout_ptr->end_col)/2) - ((length * SIX_COL_SIZE)/2));
+
+		WndMpWrtString((uint8*)(&buff[0]),wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+		wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
+
+		//-----------------------------------------------------------------------
+		// Skip Line (Line 3 of 8)
+		//-----------------------------------------------------------------------
+		WndMpWrtString((uint8*)" ", wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+		wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
+
+		//-----------------------------------------------------------------------
+		// Print Result Type Header (Line 4 of 8)
+		//-----------------------------------------------------------------------
+		length = (uint8)sprintf(buff, "COMBO-WAVEFORM EVENTS");
+		wnd_layout_ptr->curr_col = (uint16)(SIX_COL_SIZE);
+		WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+		wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
+
+		// Check if no Combo-Waveform events recorded
+		if ((g_nextEventNumberToUse - (g_pendingBargraphRecord.summary.eventNumber + 1)) == 0)
+		{
+			//-----------------------------------------------------------------------
+			// Skip Line (Line 5 of 8)
+			//-----------------------------------------------------------------------
+			WndMpWrtString((uint8*)" ", wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+			wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
+
+			//-----------------------------------------------------------------------
+			// No Events Line (Line 6 of 8)
+			//-----------------------------------------------------------------------
+			length = (uint8)sprintf(buff, "NO WAVEFORM EVENTS RECORDED");
+			wnd_layout_ptr->curr_col = (uint16)(SIX_COL_SIZE);
+			WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+			wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
+		}
+		else // Combo-Waveform events recorded
+		{
+			//-----------------------------------------------------------------------
+			// Print events recorded (Line 5 of 8)
+			//-----------------------------------------------------------------------
+			length = (uint8)sprintf(buff, "RECORDED: %d", (g_nextEventNumberToUse - (g_pendingBargraphRecord.summary.eventNumber + 1)));
+			wnd_layout_ptr->curr_col = (uint16)(SIX_COL_SIZE);
+			WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+			wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
+
+			//-----------------------------------------------------------------------
+			// Event numbers Line (Line 6 of 8)
+			//-----------------------------------------------------------------------
+			length = (uint8)sprintf(buff, "EVENT #'s: %d-%d", (g_pendingBargraphRecord.summary.eventNumber + 1), (g_nextEventNumberToUse - 1));
+			wnd_layout_ptr->curr_col = (uint16)(SIX_COL_SIZE);
+			WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+			wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
+		}
+
+		//-----------------------------------------------------------------------
+		// Skip Line (Line 7 of 8)
+		//-----------------------------------------------------------------------
+		WndMpWrtString((uint8*)" ", wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+		wnd_layout_ptr->curr_row = wnd_layout_ptr->next_row;
+
+		//-----------------------------------------------------------------------
+		// Start Time (Line 8 of 8)
+		//-----------------------------------------------------------------------
+		time = g_pendingBargraphRecord.summary.captured.eventTime;
+
+		length = (uint8)sprintf(buff, "COMBO START %02d:%02d:%02d", g_pendingBargraphRecord.summary.captured.eventTime.hour, g_pendingBargraphRecord.summary.captured.eventTime.min, g_pendingBargraphRecord.summary.captured.eventTime.sec);
+		wnd_layout_ptr->curr_col = (uint16)(SIX_COL_SIZE);
+		WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 	}
 	else if ((g_monitorOperationMode == BARGRAPH_MODE) || (g_monitorOperationMode == COMBO_MODE))
 	{
