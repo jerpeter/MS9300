@@ -164,7 +164,11 @@ static int tps25750_block_write_raw(struct tps25750 *tps, uint8_t *data, size_t 
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+#if 0 /* Normal */
 static int tps25750_block_read(struct tps25750 *tps, uint8_t reg, void *val, size_t len)
+#else
+int tps25750_block_read(struct tps25750 *tps, uint8_t reg, void *val, size_t len)
+#endif
 {
 	int ret;
 	uint8_t data[TPS_MAX_LEN + 1];
@@ -1434,12 +1438,19 @@ void USBCPortControllerClearIntFlags(void)
 void USBCPortControllerReadAndClearInt(void)
 {
 	struct tps25750 tps;
+	//uint8_t status = 0;
 
 extern uint8_t usbIsrActive;
 	if (usbIsrActive)
 	{
 		usbIsrActive = NO;
 		tps25750_block_read(&tps, TPS_REG_INT_EVENT1, g_debugBuffer, 11); debug("USB Port Controller: Int Event1 Register is 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[0], g_debugBuffer[1], g_debugBuffer[2], g_debugBuffer[3], g_debugBuffer[4], g_debugBuffer[5], g_debugBuffer[6], g_debugBuffer[7], g_debugBuffer[8], g_debugBuffer[9], g_debugBuffer[10]);
+
+#if 0 /* Test reporting more registers already read by ISR first */
+		debug("USB Port Controller: Status Register is 0x%x 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[240], g_debugBuffer[241], g_debugBuffer[242], g_debugBuffer[243], g_debugBuffer[244]);
+		debug("USB Port Controller: Power Status Register is 0x%x 0x%x\r\n", g_debugBuffer[250], g_debugBuffer[251]);
+		debug("USB Port Controller: PD Status Register is 0x%x 0x%x 0x%x 0x%x\r\n", g_debugBuffer[230], g_debugBuffer[231], g_debugBuffer[232], g_debugBuffer[233]);
+#endif
 		memset(g_debugBuffer, 0xFF, 11); tps25750_block_write(&tps, TPS_REG_INT_CLEAR1, g_debugBuffer, 11);
 	}
 }
@@ -4947,10 +4958,14 @@ void USBHostControllerTest(void)
 #endif
 	debug("Fuel Gauge: %s, BC charge current: %u mA\r\n", FuelGaugeDebugString(), GetBattChargerBatteryChargeCurrent());
 
-	// Disable Aux power to prevent fake cahrging
+	// Disable Aux power to prevent fake charging
 	PowerControl(USB_AUX_POWER_ENABLE, OFF);
 
 	SetBattChargerChargeState(OFF);
+#if 1 /* Test disabling as much of the Battery Charger as possible */
+extern void SetBattChargerDCConverterState(uint8_t state);
+	SetBattChargerDCConverterState(DISABLED);
+#endif
 
 	SoftUsecWait(2 * SOFT_SECS);
 	debug("Fuel Gauge: %s, BC charge current: %u mA\r\n", FuelGaugeDebugString(), GetBattChargerBatteryChargeCurrent());
@@ -5402,6 +5417,12 @@ extern FRESULT USB_RecursiveSyncEventsDirectory(char* path);
 	MAX_writeRegister(15, BIT5);
 
 #if 1 /* Test */
+#if 1 /* Test re-enabling the DC/DC Converter */
+extern void SetBattChargerDCConverterState(uint8_t state);
+	SetBattChargerDCConverterState(ENABLED);
+#endif
+
+	// Re-enable Battery Charger charging
 	SetBattChargerChargeState(ON);
 
 	// Re-enable Aux power
@@ -5445,6 +5466,7 @@ extern void UsbMscFlashTestFile(void);
 
 #if 1 /* Test */
 uint8_t g_usbDebug = OFF;
+uint8_t g_usbRole = 0;
 uint8_t g_usbSourceExternalPower = NO;
 #endif
 
@@ -5706,3 +5728,207 @@ extern void UsbMscFlashTestCopyFile(char* sourceFile, char* destFile);
 	return res;
 }
 #endif
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void USBHostControllerCopyFirmwareFiles(void)
+{
+	uint16_t i;
+
+	// Disable Aux power to prevent fake charging
+	PowerControl(USB_AUX_POWER_ENABLE, OFF);
+
+	SetBattChargerChargeState(OFF);
+extern void SetBattChargerDCConverterState(uint8_t state);
+	SetBattChargerDCConverterState(DISABLED);
+
+	SoftUsecWait(2 * SOFT_SECS);
+
+	USBCPortControllerSwapToHost();
+
+	debug("USB Host Controller: Delay for USB Device power to stabilize\r\n");
+	SoftUsecWait(2 * SOFT_SECS);
+
+	MAX_start();
+
+	MAX_checkBusState(YES);
+
+	/* Enable interrupts */
+	MAX_enableInterrupts(MAX_IRQ_CONDET);
+	MAX_clearInterruptStatus(MAX_IRQ_CONDET);
+	MAX_enableInterruptsMaster();
+
+	uint8_t regval = MAX_readRegister(rREVISION);
+	debug("USB Host Controller: Revision: 0x%x\r\n", regval);
+
+	/* Perform a bus reset to reconnect after a power down */
+	if (!peripheralAvailable)
+	{
+		debugWarn("USB Host Controller: Perform a bus reset to reconnect after a power down\r\n");
+		USB_busReset(YES);
+	}
+
+	MAX_processNewDevice(YES);
+
+	if (peripheralAvailable == false) { USBHostControllerShutdown(); return; }
+
+	uint8_t fullConfigLength = 0;
+
+	memset(&g_usbEndpointDataToggle[0], 0, 3);
+
+	usbStallsEncountered = 0;
+
+	//___________________________________________________________________________________________
+	//___Get Device Descriptor
+	USB_getDeviceDescriptor(YES);
+
+	//___________________________________________________________________________________________
+	//___Get Base Config Descriptor
+	USB_getBaseConfigDescriptor(&fullConfigLength, YES);
+
+	//___________________________________________________________________________________________
+	//___Get String Descriptor
+	USB_getStringDescriptor(YES);
+
+	//___________________________________________________________________________________________
+	//___Get Full Config Descriptor
+	if (USB_getFullConfigDescriptor(fullConfigLength, YES) != rslSUCCES) { USBHostControllerShutdown(); return; }
+
+	//___________________________________________________________________________________________
+	//___Set Configuration
+	USB_setConfiguration(YES);
+
+	//___________________________________________________________________________________________
+	//___Get Max LUN
+	USB_getMaxLun(YES);
+
+	//___________________________________________________________________________________________
+	//___Get Status (loop)
+	for (i = 0; i < 8; i++) { USB_getStatus(YES); }
+
+	SoftUsecWait(1 * SOFT_SECS);
+
+	//___________________________________________________________________________________________
+	//___Bulk Transfers
+	USB_mscInquiry(g_spareBuffer, YES);
+	SoftUsecWait(50 * SOFT_MSECS);
+	USB_readCapacity(g_spareBuffer, YES);
+
+	SoftUsecWait(1000 * SOFT_MSECS);
+	USB_readSector(0, &g_spareBuffer[1000], YES);
+	SoftUsecWait(1000 * SOFT_MSECS);
+
+	USB_getStatus(YES);
+	SoftUsecWait(1 * SOFT_SECS);
+
+	USB_testUnitReady(YES);
+	SoftUsecWait(1 * SOFT_SECS);
+
+	USB_mscInquiry(&g_spareBuffer[1000], YES);
+	SoftUsecWait(1 * SOFT_SECS);
+
+	//___________________________________________________________________________________________
+	//___FAT filesystem mounting
+	debug("Calling SetupUsbMscFlashDriveAndFilesystem...\r\n");
+extern void SetupUsbMscFlashDriveAndFilesystem(void);
+	SetupUsbMscFlashDriveAndFilesystem();
+	SoftUsecWait(1 * SOFT_SECS);
+
+extern void UsbMscFlashTestCopyFromUSB(char* sourceFile, char* destFile);
+
+	uint8_t bootFound = 0;
+	uint8_t firmwareFound = 0;
+	if ((f_stat((const TCHAR*)"1:MS9300FU/MS9300_Bootloader.bin", NULL)) == FR_OK)
+	{
+		sprintf((char*)g_spareBuffer, "USB Firmware Update found Bootloader image (default dir), starting copy to unit... (Takes about 45 secs)");
+		//sprintf((char*)g_spareBuffer, "USB Firmware Update found Bootloader image (default dir), starting copy to unit...");
+		OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
+
+		debug("USB Firmware Update: Found Bootloader image in default directory\r\n");
+		UsbMscFlashTestCopyFromUSB("1:MS9300FU/MS9300_Bootloader.bin", SYSTEM_PATH"MS9300_Bootloader.bin");
+		bootFound = 1;
+	}
+	else if ((f_stat((const TCHAR*)"1:MS9300_Bootloader.bin", NULL)) == FR_OK)
+	{
+		sprintf((char*)g_spareBuffer, "USB Firmware Update found Bootloader image (root dir), starting copy to unit... (Takes about 45 secs)");
+		//sprintf((char*)g_spareBuffer, "USB Firmware Update found Bootloader image (root dir), starting copy to unit...");
+		OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
+
+		debug("USB Firmware Update: Found Bootloader image in root dir (after not finding in default dir)\r\n");
+		UsbMscFlashTestCopyFromUSB("1:MS9300_Bootloader.bin", SYSTEM_PATH"MS9300_Bootloader.bin");
+		bootFound = 1;
+	}
+
+	if ((f_stat((const TCHAR*)"1:MS9300FU/MS9300.bin", NULL)) == FR_OK)
+	{
+		sprintf((char*)g_spareBuffer, "USB Firmware Update found Firmware image (default dir), starting copy to unit... (Takes about 2 mins)");
+		//sprintf((char*)g_spareBuffer, "USB Firmware Update found Firmware image (default dir), starting copy to unit...");
+		OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
+
+		debug("USB Firmware Update: Found Firmware image in default directory\r\n");
+		UsbMscFlashTestCopyFromUSB("1:MS9300FU/MS9300.bin", SYSTEM_PATH"MS9300.bin");
+		firmwareFound = 1;
+	}
+	else if ((f_stat((const TCHAR*)"1:MS9300.bin", NULL)) == FR_OK)
+	{
+		sprintf((char*)g_spareBuffer, "USB Firmware Update found Firmware image (root dir), starting copy to unit... (Takes about 2 mins)");
+		//sprintf((char*)g_spareBuffer, "USB Firmware Update found Firmware image (root dir), starting copy to unit...");
+		OverlayMessage(getLangText(STATUS_TEXT), (char*)g_spareBuffer, 0);
+
+		debug("USB Firmware Update: Found Firmware image in root dir (after not finding in default dir)\r\n");
+		UsbMscFlashTestCopyFromUSB("1:MS9300.bin", SYSTEM_PATH"MS9300.bin");
+		firmwareFound = 1;
+	}
+
+	debug("USB Firmware Update: Unmounting USB MSC Flash filesystem\r\n");
+	f_mount(NULL, "1:", 0);
+
+	debug("USB Host Controller: ----------------\r\n");
+	debug("USB Host Controller: Done with access, powering down\r\n");
+	debug("USB Host Controller: ----------------\r\n");
+
+	// Use Power button to start or as escape mechanism, reset here since combo key used for actication
+	ClearSoftTimer(POWER_OFF_TIMER_NUM);
+	g_powerOffAttempted = NO;
+
+	USBCPortControllerSwapToDevice();
+
+	/* Enable the Max reset */
+	MAX_writeRegister(15, BIT5);
+
+extern void SetBattChargerDCConverterState(uint8_t state);
+	SetBattChargerDCConverterState(ENABLED);
+
+	// Re-enable Battery Charger charging
+	SetBattChargerChargeState(ON);
+
+	// Re-enable Aux power
+	PowerControl(USB_AUX_POWER_ENABLE, ON);
+
+	if ((!bootFound) && (!firmwareFound))
+	{
+		sprintf((char*)g_spareBuffer, "USB Firmware Update did not find any images on USB Flash drive");
+		MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK);
+	}
+	else if ((bootFound) && (!firmwareFound))
+	{
+		sprintf((char*)g_spareBuffer, "USB Firmware Update copied Bootloader image. No Firmware image found. Start Bootloader update?");
+		if (MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_YESNO) == MB_FIRST_CHOICE)
+		{
+			// Call to do Boot update
+			g_quickBootEntryJump = QUICK_BOOT_ENTRY_FROM_MENU;
+			BootLoadManager();
+		}
+	}
+	else if (firmwareFound)
+	{
+		sprintf((char*)g_spareBuffer, "USB Firmware Update copied Firmware image%s. Start Firmware update?", ((bootFound) ? " (and Bootloader image)" : ""));
+		if (MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_YESNO) == MB_FIRST_CHOICE)
+		{
+			// Call to do Firmware update
+			g_quickBootEntryJump = QUICK_BOOT_ENTRY_FROM_MENU;
+			BootLoadManager();
+		}
+	}
+}
