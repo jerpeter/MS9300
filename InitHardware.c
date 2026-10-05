@@ -2469,6 +2469,14 @@ void SpiTransaction(uint8_t spiDevice, uint8_t dataBits, uint8_t ssDeassert, uin
 			g_spi2InUseByLCD |= SPI2_ACTIVE;
 		}
 
+#if 0 /* Test reporting any USBC Port Controller interrupt status changes */
+		if (spiDevice == SPI_USBHC)
+		{
+extern void USBCPortControllerReadAndClearInt(void);
+			USBCPortControllerReadAndClearInt();
+		}
+#endif
+
 #if 1 /* Test interrupt isolation */
 		__disable_irq();
 #endif
@@ -3325,7 +3333,7 @@ void USB_IRQHandler(void)
 ///----------------------------------------------------------------------------
 /* static removed while testing MSC only */ int usbReadCallback(void)
 {
-	debugRaw("<U-rc>");
+	//debugRaw("<U-rc>");
 
 	uint16_t numChars = acm_canread();
 	uint8 recieveData;
@@ -4073,7 +4081,8 @@ uint8_t SetupSDHCeMMC(void)
 	cfg.bus_voltage = MXC_SDHC_Bus_Voltage_1_8;
 	cfg.block_gap = 0;
 #if 1 /* Normal */
-	cfg.clk_div = 0x96; // Large divide ratio, setting frequency to 400 kHz during Card Identification phase
+	//cfg.clk_div = 0x96; // Large divide ratio, setting frequency to 400 kHz during Card Identification phase
+	cfg.clk_div = 0x4B; // Large divide ratio, setting frequency to 400 kHz during Card Identification phase
 #elif 0 /* Test full speed init */
 	//cfg.clk_div = 0; // Full speed
 #else /* Test slowest speed */
@@ -4167,12 +4176,15 @@ uint8_t SetupSDHCeMMC(void)
 	{
 		//debug("SD clock ratio (at card/device) is 4:1, %dMHz, (eMMC not to exceed 52 MHz for legacy or high speed modes)\r\n", (SystemCoreClock / 4));
 		//MXC_SDHC_Set_Clock_Config(1);
-		debug("SD clock ratio: Super slow (%dHz)\r\n", (60000000 / (2 * 0x96)));
-		MXC_SDHC_Set_Clock_Config(0x96);
+		//debug("SD clock ratio: Super slow (%dHz)\r\n", (60000000 / (2 * 0x96)));
+		//MXC_SDHC_Set_Clock_Config(0x96);
 		//debug("SD clock ratio: Extermely slow (%dHz)\r\n", (SystemCoreClock / (2 * 0x12C)));
 		//MXC_SDHC_Set_Clock_Config(0x12C);
 		//debug("SDHC: Setting clock divider to %d (0x%x), %d kHz\r\n", 2, 2, (60000000 / (2 * 2)));
 		//MXC_SDHC_Set_Clock_Config(2);
+
+		//debug("SD clock ratio: Super slow (%dHz)\r\n", (60000000 / (2 * 0x4B)));
+		//MXC_SDHC_Set_Clock_Config(0x4B);
 	}
 	else // Use smallest clock divider for fastest clock rate (max 60MHz)
 	{
@@ -4539,6 +4551,33 @@ void UsbMscFlashTestCopyFile(char* sourceFile, char* destFile)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void UsbMscFlashTestCopyFromUSB(char* sourceFile, char* destFile)
+{
+	uint32_t dataSize;
+	uint16_t blockSize;
+	FIL file2;
+
+	if ((err = f_open(&file, sourceFile, FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]); }
+	if ((err = f_open(&file2, destFile, FA_CREATE_ALWAYS | FA_WRITE)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]); }
+	dataSize = f_size(&file);
+
+	while (dataSize)
+	{
+		if (dataSize > 512) { blockSize = 512; }
+		else { blockSize = dataSize; }
+
+		f_read(&file, g_spareBuffer, blockSize, &bytes_read); if (bytes_read != blockSize) { debugErr("Bytes read not correct (%d != %d)\r\n", bytes_read, blockSize); }
+		f_write(&file2, g_spareBuffer, blockSize, &bytes_written); if (bytes_written != blockSize) { debugErr("Bytes written not correct (%d != %d)\r\n", bytes_written, blockSize); }
+		dataSize -= blockSize;
+	}
+
+	if ((err = f_close(&file)) != FR_OK) { debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]); }
+	if ((err = f_close(&file2)) != FR_OK) { debugErr("Unable to close file: %s\r\n", FF_ERRORS[err]); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void UsbMscFlashTestFile(void)
 {
 	//f_open(&file, "1:/Test.txt", FA_READ)) != FR_OK) { debugErr("Unable to open file: %s\r\n", FF_ERRORS[err]); }
@@ -4756,7 +4795,8 @@ void SetupHalfSecondTickTimer(void)
 
 	// Init the compare value
 	//CYCLIC_HALF_SEC_TIMER_NUM->cmp = 7324; // 60MHz clock / 4096 = 14648 counts/sec, 1/2 second count = 7324
-	CYCLIC_HALF_SEC_TIMER_NUM->cmp = 30000000; // Note: For some reason the prescaler peripheral clock divider isn't working as described in the datasheet
+	//CYCLIC_HALF_SEC_TIMER_NUM->cmp = 30000000; // Note: For some reason the prescaler peripheral clock divider isn't working as described in the datasheet
+	CYCLIC_HALF_SEC_TIMER_NUM->cmp = 30078947; // 30M not exact, Trimmed by External RTC periodic second
 
 	// Init the counter
 	CYCLIC_HALF_SEC_TIMER_NUM->cnt = 0x1;
