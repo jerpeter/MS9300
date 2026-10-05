@@ -306,12 +306,13 @@ void KeypadLedUpdateTimerCallBack(void)
 #if 0 /* Test */
 	return;
 #endif
-	static uint8 s_ledState = KEYPAD_LED_STATE_UNKNOWN;
+	static uint8 s_ledState = KEYPAD_LED_STATE_BOTH_OFF;
 	//static uint8 s_repeatCount = 0;
 	uint8 lastLedState;
 #if 0 /* Original check if charging source is present and available, doesn't check actual charging is active */
 	BOOLEAN externalChargePresent = CheckExternalChargeVoltagePresent();
 #else /* Check if the unit is actively charging by looking at the incoming current flow */
+	BOOLEAN externalChargeAvailable = CheckExternalChargeVoltagePresent();
 	BOOLEAN externalChargePresent = ((GetBattChargerBatteryChargeCurrent() > 0) ? YES : NO);
 #endif
 
@@ -373,24 +374,33 @@ void KeypadLedUpdateTimerCallBack(void)
 	if ((g_sampleProcessing == IDLE_STATE) && (externalChargePresent == FALSE))
 	{
 		//debug("Keypad LED: State 1\r\n");
-		s_ledState = KEYPAD_LED_STATE_IDLE_GREEN_ON;
+		if (externalChargeAvailable) { s_ledState = KEYPAD_LED_STATE_BOTH_ON; }
+		else { s_ledState = KEYPAD_LED_STATE_BLUE_ON; }
 	}
 	else if ((g_sampleProcessing == IDLE_STATE) && (externalChargePresent == TRUE))
 	{
 		//debug("Keypad LED: State 2\r\n");
-		s_ledState = KEYPAD_LED_STATE_CHARGE_BLUE_ON;
+		s_ledState = KEYPAD_LED_STATE_GREEN_ON;
 	}
 	else if ((g_sampleProcessing == ACTIVE_STATE) && (externalChargePresent == FALSE))
 	{
 		//debug("Keypad LED: State 3\r\n");
-		if (lastLedState == KEYPAD_LED_STATE_ACTIVE_GREEN_ON) { s_ledState = KEYPAD_LED_STATE_ACTIVE_GREEN_OFF; }
-		else { s_ledState = KEYPAD_LED_STATE_ACTIVE_GREEN_ON; }
+		if (externalChargeAvailable)
+		{
+			if (lastLedState == KEYPAD_LED_STATE_BOTH_ON) { s_ledState = KEYPAD_LED_STATE_BOTH_OFF; }
+			else { s_ledState = KEYPAD_LED_STATE_BOTH_ON; }
+		}
+		else
+		{
+			if (lastLedState == KEYPAD_LED_STATE_BLUE_ON) { s_ledState = KEYPAD_LED_STATE_BOTH_OFF; }
+			else { s_ledState = KEYPAD_LED_STATE_BLUE_ON; }
+		}
 	}
 	else // ((g_sampleProcessing == ACTIVE_STATE) && (externalChargePresent == TRUE))
 	{
 		//debug("Keypad LED: State 4\r\n");
-		if (lastLedState == KEYPAD_LED_STATE_ACTIVE_CHARGE_BLUE_ON) { s_ledState = KEYPAD_LED_STATE_ACTIVE_CHARGE_BLUE_OFF; }
-		else { s_ledState = KEYPAD_LED_STATE_ACTIVE_CHARGE_BLUE_ON; }
+		if (lastLedState == KEYPAD_LED_STATE_GREEN_ON) { s_ledState = KEYPAD_LED_STATE_BOTH_OFF; }
+		else { s_ledState = KEYPAD_LED_STATE_GREEN_ON; }
 	}
 #endif
 
@@ -398,39 +408,19 @@ void KeypadLedUpdateTimerCallBack(void)
 	switch (s_ledState)
 	{
 		case KEYPAD_LED_STATE_BOTH_OFF:
-		case KEYPAD_LED_STATE_ACTIVE_GREEN_OFF:
-		case KEYPAD_LED_STATE_ACTIVE_CHARGE_BLUE_OFF:
 			PowerControl(LED_1, OFF); PowerControl(LED_2, OFF);
 			break;
 
-		case KEYPAD_LED_STATE_IDLE_GREEN_ON:
-		case KEYPAD_LED_STATE_ACTIVE_GREEN_ON:
+		case KEYPAD_LED_STATE_BLUE_ON:
 			PowerControl(LED_1, ON); PowerControl(LED_2, OFF);
 			break;
 
-		case KEYPAD_LED_STATE_CHARGE_BLUE_ON:
-		case KEYPAD_LED_STATE_ACTIVE_CHARGE_BLUE_ON:
+		case KEYPAD_LED_STATE_GREEN_ON:
 			PowerControl(LED_1, OFF); PowerControl(LED_2, ON);
 			break;
 
-		case KEYPAD_LED_STATE_PULSE_GREEN_SLOW_ON:
-		case KEYPAD_LED_STATE_PULSE_GREEN_FAST_ON:
-			PowerControl(LED_1, OFF); PowerControl(LED_2, ON);
-			break;
-
-		case KEYPAD_LED_STATE_PULSE_GREEN_SLOW_OFF:
-		case KEYPAD_LED_STATE_PULSE_GREEN_FAST_OFF:
-			PowerControl(LED_1, OFF); PowerControl(LED_2, OFF);
-			break;
-
-		case KEYPAD_LED_STATE_PULSE_BLUE_SLOW_ON:
-		case KEYPAD_LED_STATE_PULSE_BLUE_FAST_ON:
-			PowerControl(LED_1, ON); PowerControl(LED_2, OFF);
-			break;
-
-		case KEYPAD_LED_STATE_PULSE_BLUE_SLOW_OFF:
-		case KEYPAD_LED_STATE_PULSE_BLUE_FAST_OFF:
-			PowerControl(LED_1, OFF); PowerControl(LED_2, OFF);
+		case KEYPAD_LED_STATE_BOTH_ON:
+			PowerControl(LED_1, ON); PowerControl(LED_2, ON);
 			break;
 	}
 
