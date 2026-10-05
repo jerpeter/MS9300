@@ -173,6 +173,18 @@ void ResultsMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 					{
 						if (g_summaryListMenuActive == YES)
 						{
+#if 1 /* Test */
+							if (CheckEventFileSizeMatchOnDisk(g_summaryList.cachedEntry.eventNumber) == YES)
+							{
+								sprintf((char*)g_spareBuffer, "EVENT %d FILE SIZE MATCHES STORED SIZE", g_summaryList.cachedEntry.eventNumber);
+								MessageBox(getLangText(STATUS_TEXT), (char*)g_spareBuffer, MB_OK);
+							}
+							else
+							{
+								sprintf((char*)g_spareBuffer, "EVENT %d SIZE MISMATCH! FILE SIZE DOES NOT MATCH STORED SIZE", g_summaryList.cachedEntry.eventNumber);
+								MessageBox(getLangText(WARNING_TEXT), (char*)g_spareBuffer, MB_OK);
+							}
+#endif
 							SETUP_MENU_MSG(SUMMARY_MENU); msg.data[0] = ESC_KEY;
 						}
 						else
@@ -503,9 +515,13 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 
 			if (s_monitorSessionFirstEvent != s_monitorSessionLastEvent)
 			{
+#if 0 /* Older unit method to pull a custom created character in the font table */
 				sprintf(buff, "%c", arrowChar);
 				wnd_layout_ptr->curr_col = 120;
 				WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+#else /* Todo: Come up with new method to show multiple screens are available to scroll to via up and down buttons */
+				UNUSED(arrowChar);
+#endif
 			}
 		}
 	}
@@ -513,9 +529,13 @@ void ResultsMenuDisplay(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 	{
 		if (g_summaryListMenuActive == YES)
 		{
+#if 0 /* Older unit method to pull a custom created character in the font table */
 			sprintf(buff, "%c", g_summaryListArrowChar);
 			wnd_layout_ptr->curr_col = 120;
 			WndMpWrtString((uint8*)(&buff[0]), wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+#else /* Todo: Come up with new method to show multiple screens are available to scroll to via up and down buttons */
+			UNUSED(arrowChar);
+#endif
 		}
 	}
 
