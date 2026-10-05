@@ -414,7 +414,14 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 		sprintf(debugInfo, "Temperature: %dF", FuelGaugeGetTemperature());
 		ft81x_stream_start(); ft81x_cmd_text(550, 80, 28, 0, debugInfo); ft81x_stream_stop();
 
+#if 1 /* Original */
 		sprintf(debugInfo, "Avg Current: %.0fmA", (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount));
+#else /* Show BG file errors */
+extern uint16_t g_bgFileErrors;
+		if ((g_sampleProcessing == IDLE_STATE) || (g_triggerRecord.opMode == WAVEFORM_MODE)) { sprintf(debugInfo, "Avg Current: %.0fmA", (double)(((float)testLifetimeCurrentAvg) / (float)testLifetimeCurrentAvgCount)); }
+		else if (g_bgFileErrors) { sprintf(debugInfo, "BG file errors: %d", g_bgFileErrors); }
+		else { sprintf(debugInfo, "No Bargraph file errors"); }
+#endif
 		ft81x_stream_start(); ft81x_cmd_text(550, 120, 28, 0, debugInfo); ft81x_stream_stop();
 
 		uint32_t runTime = g_lifetimeHalfSecondTickCount >> 1;
