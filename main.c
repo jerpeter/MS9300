@@ -480,6 +480,28 @@ extern uint8_t seismicSensorDetectChange;
 #endif
 
 	//___________________________________________________________________________________________
+	if (g_hwSensorDetectChange)
+	{
+		if (g_hwSensorDetectChange & SENSOR_GROUP_A_1) { debugWarn("Sensor Detect Group A/1: %s\r\n", ((MXC_GPIO_InGet(GPIO_SENSOR_DETECT_1_PORT, GPIO_SENSOR_DETECT_1_PIN) == 0) ? "Added" : "Removed")); }
+		if (g_hwSensorDetectChange & SENSOR_GROUP_B_2) { debugWarn("Sensor Detect Group B/2: %s\r\n", ((MXC_GPIO_InGet(GPIO_SENSOR_DETECT_2_PORT, GPIO_SENSOR_DETECT_2_PIN) == 0) ? "Added" : "Removed")); }
+
+		if (((g_hwSensorDetectChange & SENSOR_GROUP_A_1) && MXC_GPIO_InGet(GPIO_SENSOR_DETECT_1_PORT, GPIO_SENSOR_DETECT_1_PIN)) ||
+			((g_hwSensorDetectChange & SENSOR_GROUP_B_2) && MXC_GPIO_InGet(GPIO_SENSOR_DETECT_2_PORT, GPIO_SENSOR_DETECT_2_PIN)))
+		{
+			if (g_sampleProcessing == ACTIVE_STATE)
+			{
+				CacheSensorCheckResults(SENSOR_CHECK_FAILED);
+
+				// Check if AutoDialout is enabled and signal the system if necessary to alert that a sensor was removed
+				debug("Hardware sensor detect: Attempting ADO to signal loss of a sensor during monitoring");
+				CheckAutoDialoutStatusAndFlagIfAvailable();
+			}
+		}
+
+		g_hwSensorDetectChange = NO;
+	}
+
+	//___________________________________________________________________________________________
 	if (getSystemEventState(CYCLE_CHANGE_EVENT))
 	{
 		debug("Cycle Change Event (24 Hour cycle end)\r\n");
