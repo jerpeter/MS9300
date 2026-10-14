@@ -55,7 +55,7 @@ void HandleSDA(CMD_BUFFER_STRUCT* inCmd);
 void HandleZRO(CMD_BUFFER_STRUCT* inCmd);
 
 // Function: handleTTO - Toggle test mode on/off.
-void handleTTO(CMD_BUFFER_STRUCT* inCmd);
+void HandleTTO(CMD_BUFFER_STRUCT* inCmd);
 
 // Function: HandleCAL - Calibrate sensors with cal pulse.
 void HandleCAL(CMD_BUFFER_STRUCT* inCmd);

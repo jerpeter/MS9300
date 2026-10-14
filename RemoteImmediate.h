@@ -21,7 +21,7 @@
 void HandleUNL(CMD_BUFFER_STRUCT* inCmd);
 
 // Function: handleRST - Reset the unit.
-void handleRST(CMD_BUFFER_STRUCT* inCmd);
+void HandleRST(CMD_BUFFER_STRUCT* inCmd);
 
 // Function: HandleDDP - Toggle debug printing.
 void HandleDDP(CMD_BUFFER_STRUCT* inCmd);
@@ -31,16 +31,16 @@ void HandleDAI(CMD_BUFFER_STRUCT* inCmd);
 
 
 // Function: handleESM - Erase summary memory.
-void handleESM(CMD_BUFFER_STRUCT* inCmd);
+void HandleESM(CMD_BUFFER_STRUCT* inCmd);
 
 // Function: handleEEM - Erase event memory.
-void handleEEM(CMD_BUFFER_STRUCT* inCmd);
+void HandleEEM(CMD_BUFFER_STRUCT* inCmd);
 
 // Function: handleECM - Erase configuration memory.
-void handleECM(CMD_BUFFER_STRUCT* inCmd);
+void HandleECM(CMD_BUFFER_STRUCT* inCmd);
 
 // Function: handleECM - Start a Trigger.
-void handleTRG(CMD_BUFFER_STRUCT* inCmd);
+void HandleTRG(CMD_BUFFER_STRUCT* inCmd);
 
 // Function: HandleVML - View Monitor Log
 void HandleVML(CMD_BUFFER_STRUCT* inCmd);
@@ -50,10 +50,13 @@ void sendVMLData(void);
 void HandleUDE(CMD_BUFFER_STRUCT* inCmd);
 
 // Function: handleGAD - Get Auto-dialout/Download information
-void handleGAD(CMD_BUFFER_STRUCT* inCmd);
+void HandleGAD(CMD_BUFFER_STRUCT* inCmd);
 
 // Function: handleGFS - Get flash stats
-void handleGFS(CMD_BUFFER_STRUCT* inCmd);
+void HandleGFS(CMD_BUFFER_STRUCT* inCmd);
+
+// Function: HandleGSS - Get Sensor status
+void HandleGSS(CMD_BUFFER_STRUCT* inCmd);
 
 // Function: HandleDQS - Download Quick Summary Memory.
 void HandleDQM(CMD_BUFFER_STRUCT* inCmd);
@@ -79,9 +82,9 @@ void HandleCAN(CMD_BUFFER_STRUCT* inCmd);
 void HandleESC(CMD_BUFFER_STRUCT* inCmd);
 
 // Function: handleGMN - Start Monitoring waveform/bargraph/combo.
-void handleGMN(CMD_BUFFER_STRUCT* inCmd);
+void HandleGMN(CMD_BUFFER_STRUCT* inCmd);
 // Function: handleHLP - Halt Monitoring waveform/bargraph/combo.
-void handleHLT(CMD_BUFFER_STRUCT* inCmd);
+void HandleHLT(CMD_BUFFER_STRUCT* inCmd);
 
 // Function: handleGLM - Start Bar Live Monitoring
 void HandleGLM(CMD_BUFFER_STRUCT* inCmd);

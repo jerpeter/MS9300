@@ -993,7 +993,7 @@ void AutoDialoutStateMachine(void)
 				// Send out GAD command (includes serial number and auto dialout parameters)
 				debug("ADO: Sending GAD...\r\n");
 				msg.pipe = CRAFT_COM_PORT; // Need to set the serial pipe since the GAD is sent without request
-				handleGAD(&msg);
+				HandleGAD(&msg);
 
 				// Update timer to current tick count
 				timer = g_lifetimeHalfSecondTickCount;
@@ -1030,7 +1030,7 @@ void AutoDialoutStateMachine(void)
 				// Send out GAD command again
 				debug("ADO: Sending GAD...\r\n");
 				msg.pipe = CRAFT_COM_PORT; // Need to set the serial pipe since the GAD is sent without request
-				handleGAD(&msg);
+				HandleGAD(&msg);
 
 				// Update timer to current tick count
 				timer = g_lifetimeHalfSecondTickCount;

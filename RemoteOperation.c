@@ -1797,7 +1797,7 @@ void HandleZRO(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void handleTTO(CMD_BUFFER_STRUCT* inCmd)
+void HandleTTO(CMD_BUFFER_STRUCT* inCmd)
 {
 	UNUSED(inCmd);
 	return;
@@ -1813,8 +1813,10 @@ void HandleCAL(CMD_BUFFER_STRUCT* inCmd)
 	uint8 calHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
 	uint8 msgTypeStr[HDR_TYPE_LEN+2];
 	uint8 msgResults[8];
+#if 0 /* Original method */
 	float div;
 	float normalizedMaxPeak;
+#endif
 	uint8 calResults = PASSED;
 
 	// Check if idle or actively monitoring in Waveform mode and not busy processing an event
@@ -1825,6 +1827,7 @@ void HandleCAL(CMD_BUFFER_STRUCT* inCmd)
 		{
 			HandleManualCalibration();
 
+#if 0 /* Original based off of Manual Cal pulse event creation */
 			// Calculate the divider used for converting stored A/D peak counts to units of measure
 			if ((g_factorySetupRecord.seismicSensorType == SENSOR_ACC_832M1_0200) || (g_factorySetupRecord.seismicSensorType == SENSOR_ACC_832M1_0500))
 			{
@@ -1835,6 +1838,11 @@ void HandleCAL(CMD_BUFFER_STRUCT* inCmd)
 			normalizedMaxPeak = (float)g_summaryList.cachedEntry.channelSummary.r.peak / (float)div; if ((normalizedMaxPeak < 0.375) || (normalizedMaxPeak > 0.625)) { calResults = FAILED; }
 			normalizedMaxPeak = (float)g_summaryList.cachedEntry.channelSummary.v.peak / (float)div; if ((normalizedMaxPeak < 0.375) || (normalizedMaxPeak > 0.625)) { calResults = FAILED; }
 			normalizedMaxPeak = (float)g_summaryList.cachedEntry.channelSummary.t.peak / (float)div; if ((normalizedMaxPeak < 0.375) || (normalizedMaxPeak > 0.625)) { calResults = FAILED; }
+#else
+			// Pulling freshly cached Sensor check state for reporting pass/fail
+			if (g_lastSensorCheck.state == SENSOR_CHECK_PASSED) { calResults = PASSED; }
+			else { calResults = FAILED; }
+#endif
 		}
 	}
 	else // Unable to perform a manual Cal

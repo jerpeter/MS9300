@@ -140,7 +140,7 @@ void HandleUNL(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void handleRST(CMD_BUFFER_STRUCT* inCmd)
+void HandleRST(CMD_BUFFER_STRUCT* inCmd)
 {
 	UNUSED(inCmd);
 
@@ -426,7 +426,7 @@ void HandleDLM(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void handleESM(CMD_BUFFER_STRUCT* inCmd)
+void HandleESM(CMD_BUFFER_STRUCT* inCmd)
 {
 	UNUSED(inCmd);
 	return;
@@ -435,7 +435,7 @@ void handleESM(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void handleEEM(CMD_BUFFER_STRUCT* inCmd)
+void HandleEEM(CMD_BUFFER_STRUCT* inCmd)
 {
 	uint8 eemHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
 	uint8 msgTypeStr[HDR_TYPE_LEN+1];
@@ -482,7 +482,7 @@ void handleEEM(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void handleECM(CMD_BUFFER_STRUCT* inCmd)
+void HandleECM(CMD_BUFFER_STRUCT* inCmd)
 {
 	UNUSED(inCmd);
 	return;
@@ -491,7 +491,7 @@ void handleECM(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void handleTRG(CMD_BUFFER_STRUCT* inCmd)
+void HandleTRG(CMD_BUFFER_STRUCT* inCmd)
 {
 	UNUSED(inCmd);
 	return;
@@ -715,7 +715,7 @@ void HandleUDE(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void handleGAD(CMD_BUFFER_STRUCT* inCmd)
+void HandleGAD(CMD_BUFFER_STRUCT* inCmd)
 {
 	uint32 dataLength;
 	uint8 msgTypeStr[HDR_TYPE_LEN+2];
@@ -727,6 +727,11 @@ void handleGAD(CMD_BUFFER_STRUCT* inCmd)
 
 	memset(&serialNumber[0], 0, sizeof(serialNumber));
 	strcpy((char*)&serialNumber[0], g_factorySetupRecord.unitSerialNumber);
+
+#if 1 /* Add in new Sensor status code */
+	// Pulling cached Sensor Check state
+	tempAutoDialout.sensorCheckStatus = g_lastSensorCheck.state;
+#endif
 
 	// Transmit a carrige return line feed
 	if (ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe) == MODEM_SEND_FAILED)
@@ -811,7 +816,7 @@ void handleGAD(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void handleGFS(CMD_BUFFER_STRUCT* inCmd)
+void HandleGFS(CMD_BUFFER_STRUCT* inCmd)
 {
 	uint32 dataLength;
 	uint8 msgTypeStr[HDR_TYPE_LEN+2];
@@ -874,6 +879,83 @@ void handleGFS(CMD_BUFFER_STRUCT* inCmd)
 
 	// Send the data out the modem
 	if (ModemPuts((uint8*)&tempUsageStats, sizeof(FLASH_USAGE_STRUCT), g_binaryXferFlag, inCmd->pipe) == MODEM_SEND_FAILED)
+	{
+		// There was an error, so reset all global transfer and status fields
+		g_modemStatus.xferMutex = NO;
+		g_modemStatus.xferState = NOP_CMD;
+		g_transferCount = 0;
+
+		return;
+	}
+
+#if ENDIAN_CONVERSION
+	g_transmitCRC = __builtin_bswap32(g_transmitCRC);
+#endif
+	ModemPuts((uint8*)&g_transmitCRC, 4, NO_CONVERSION, inCmd->pipe);
+	ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe);
+
+	// Done with the command, reset all global transfer and status fields
+	g_modemStatus.xferState = NOP_CMD;
+	g_modemStatus.xferMutex = NO;
+	g_transferCount = 0;
+
+	return;
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void HandleGSS(CMD_BUFFER_STRUCT* inCmd)
+{
+	uint32 dataLength;
+	uint8 msgTypeStr[HDR_TYPE_LEN+2];
+	uint8 gssHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
+	SENSOR_CHECK_STATUS_STRUCT tempSensorCheckStatus = g_lastSensorCheck;
+
+	UNUSED(inCmd);
+
+	// Transmit a carrige return line feed
+	if (ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe) == MODEM_SEND_FAILED)
+	{
+		// There was an error, so reset all global transfer and status fields
+		g_modemStatus.xferMutex = NO;
+		g_modemStatus.xferState = NOP_CMD;
+		g_transferCount = 0;
+
+		return;
+	}
+
+	// Get the data length
+	dataLength = sizeof(SENSOR_CHECK_STATUS_STRUCT);
+
+	// Signal a message response in the message type string
+	sprintf((char*)msgTypeStr, "%02d", MSGTYPE_RESPONSE);
+
+	// Build the outgoing message header
+	BuildOutgoingSimpleHeaderBuffer((uint8*)&(gssHdr), (uint8*)"GSSx", (uint8*)msgTypeStr, (MESSAGE_SIMPLE_TOTAL_LENGTH + dataLength), COMPRESS_NONE, CRC_32BIT);
+
+	// Calculate the CRC on the header
+	g_transmitCRC = CalcCCITT32((uint8*)&(gssHdr), MESSAGE_HEADER_SIMPLE_LENGTH, SEED_32);
+
+	// Send the header out the modem
+	if (ModemPuts((uint8*)&(gssHdr), MESSAGE_HEADER_SIMPLE_LENGTH, g_binaryXferFlag, inCmd->pipe) == MODEM_SEND_FAILED)
+	{
+		// There was an error, so reset all global transfer and status fields
+		g_modemStatus.xferMutex = NO;
+		g_modemStatus.xferState = NOP_CMD;
+		g_transferCount = 0;
+
+		return;
+	}
+
+#if ENDIAN_CONVERSION
+	// No Endian conversion needed for structure (currently all single byte storage)
+#endif
+	// Calculate the CRC on the data
+	g_transmitCRC = CalcCCITT32((uint8*)&tempSensorCheckStatus, sizeof(SENSOR_CHECK_STATUS_STRUCT), g_transmitCRC);
+
+	// Send the data out the modem
+	if (ModemPuts((uint8*)&tempSensorCheckStatus, sizeof(SENSOR_CHECK_STATUS_STRUCT), g_binaryXferFlag, inCmd->pipe) == MODEM_SEND_FAILED)
 	{
 		// There was an error, so reset all global transfer and status fields
 		g_modemStatus.xferMutex = NO;
@@ -2647,7 +2729,7 @@ void HandleDET(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void handleGMN(CMD_BUFFER_STRUCT* inCmd)
+void HandleGMN(CMD_BUFFER_STRUCT* inCmd)
 {
 	INPUT_MSG_STRUCT mn_msg;
 	uint8 gmnHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
@@ -2728,7 +2810,7 @@ void handleGMN(CMD_BUFFER_STRUCT* inCmd)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void handleHLT(CMD_BUFFER_STRUCT* inCmd)
+void HandleHLT(CMD_BUFFER_STRUCT* inCmd)
 {
 	INPUT_MSG_STRUCT mn_msg;
 	uint8 hltHdr[MESSAGE_HEADER_SIMPLE_LENGTH];

@@ -65,13 +65,13 @@ static const COMMAND_MESSAGE_STRUCT s_cmdMessageTable[ TOTAL_COMMAND_MESSAGES ] 
 
 	// Immediate commands
 	{ 'U', 'N', 'L', HandleUNL },		// Unlock unit.
-	{ 'R', 'S', 'T', handleRST },		// Reset the unit.
+	{ 'R', 'S', 'T', HandleRST },		// Reset the unit.
 	{ 'D', 'D', 'P', HandleDDP },		// Disable Debug printing.
 	{ 'D', 'A', 'I', HandleDAI },		// Download App Image.
 
 #if 0
 	{ 'Z', 'R', 'O', HandleZRO },		// Zero sensors.
-	{ 'T', 'T', 'O', handleTTO },		// Toggle test mode on/off.
+	{ 'T', 'T', 'O', HandleTTO },		// Toggle test mode on/off.
 #endif
 	{ 'C', 'A', 'L', HandleCAL },		// Calibrate sensors with cal pulse.
 #if 0
@@ -79,9 +79,9 @@ static const COMMAND_MESSAGE_STRUCT s_cmdMessageTable[ TOTAL_COMMAND_MESSAGES ] 
 	{ 'V', 'C', 'G', HandleVCG },		// View command log.
 	{ 'V', 'S', 'L', HandleVSL },		// View summary log.
 	{ 'V', 'E', 'L', HandleVEL },		// View event log.
-	{ 'E', 'S', 'M', handleESM },		// Erase summary memory.
-	{ 'E', 'C', 'M', handleECM },		// Erase configuration memory.
-	{ 'T', 'R', 'G', handleTRG },		// Trigger an event.
+	{ 'E', 'S', 'M', HandleESM },		// Erase summary memory.
+	{ 'E', 'C', 'M', HandleECM },		// Erase configuration memory.
+	{ 'T', 'R', 'G', HandleTRG },		// Trigger an event.
 #endif
 
 	{ 'V', 'M', 'L', HandleVML },		// View Monitor log
@@ -89,20 +89,21 @@ static const COMMAND_MESSAGE_STRUCT s_cmdMessageTable[ TOTAL_COMMAND_MESSAGES ] 
 	{ 'D', 'S', 'M', HandleDSM },		// Download summary memory.
 	{ 'D', 'E', 'M', HandleDEM },		// Download event memory.
 	{ 'D', 'E', 'T', HandleDET },		// Download event CSV text
-	{ 'E', 'E', 'M', handleEEM },		// Erase event memory.
+	{ 'E', 'E', 'M', HandleEEM },		// Erase event memory.
 	{ 'D', 'C', 'M', HandleDCM },		// Download configuration memory.
 	{ 'U', 'C', 'M', HandleUCM },		// Upload configuration memory.
 	{ 'D', 'M', 'M', HandleDMM },		// Download modem configuration memory.
 	{ 'U', 'M', 'M', HandleUMM },		// Upload modem configuration memory.
-	{ 'G', 'M', 'N', handleGMN },		// Start Monitoring waveform/bargraph/combo.
-	{ 'H', 'L', 'T', handleHLT },		// Halt Monitoring waveform/bargraph/combo.
+	{ 'G', 'M', 'N', HandleGMN },		// Start Monitoring waveform/bargraph/combo.
+	{ 'H', 'L', 'T', HandleHLT },		// Halt Monitoring waveform/bargraph/combo.
 	{ 'G', 'L', 'M', HandleGLM },		// Get/Start Bar Live Monitoring
 	{ 'H', 'L', 'M', HandleHLM },		// Halt Bar Live Monitoring
 	{ 'D', 'L', 'M', HandleDLM },		// Download Bar Live Monitoring pending event record
 	{ 'U', 'D', 'E', HandleUDE },		// Update last Downloaded Event number
-	{ 'G', 'A', 'D', handleGAD },		// Get Auto-Dialout/Download information
-	{ 'G', 'F', 'S', handleGFS },		// Get Flash Stats
-	{ 'V', 'F', 'V', HandleVFV },		// Get Flash Stats
+	{ 'G', 'A', 'D', HandleGAD },		// Get Auto-Dialout/Download information
+	{ 'G', 'F', 'S', HandleGFS },		// Get Flash Stats
+	{ 'G', 'S', 'S', HandleGSS },		// Get Sensor Status
+	{ 'V', 'F', 'V', HandleVFV },		// View Firmware version
 
 	{ 'A', 'C', 'K', HandleACK },		// Acknowledge
 	{ 'N', 'A', 'K', HandleNAK },		// Nack

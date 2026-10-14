@@ -42,9 +42,15 @@
 #define RING_CMD_STRING			"RING"
 #define SUPER_STATUS_STRING		"NOMIS SUPERGRAPH"
 #define MINI_STATUS_STRING		"NOMIS MINIGRAPH"
+#if 0 /* Original used on prior models */
 #define UNL_USER_RESP_STRING	"UNLx81"
 #define UNL_ADMIN_RESP_STRING	"UNLx82"
 #define UNL_PROG_RESP_STRING	"UNLx83"
+#else /* Updated for the 9300 */
+#define UNL_USER_RESP_STRING	"UNLx93"
+#define UNL_ADMIN_RESP_STRING	"UNLx92"
+#define UNL_PROG_RESP_STRING	"UNLx91"
+#endif
 #define DAI_ERR_RESP_STRING		"DAIx0101"
 
 #define AT_CMD_GET_SYSTEMMODE	"AT%XSYSTEMMODE?"
@@ -684,8 +690,9 @@ enum CMD_MESSAGE_INDEX {
 	DLM,		// Download Bar Live Monitoring pending event record
 	UDE,		// Update last Download Event number
 	GAD,		// Get Auto-Dialout/Download information
-	GFS,		// Get flash stats
-	VFV,		// View firmware version
+	GFS,		// Get Flash Stats
+	GSS,		// Get Sensor Status
+	VFV,		// View Firmware Version
 	ACK,		// Acknowledge
 	NAK,		// Nack
 	CAN,		// Cancel
