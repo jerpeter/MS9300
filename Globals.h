@@ -311,12 +311,14 @@ extern uint32 g_calSampleSource;
 #endif
 #if 1 /* Test */
 extern uint8 g_saveAccelerometerCompanionEvent;
+extern uint8 g_hwSensorDetectChange;
 extern uint16 g_accEventBufferIndex;
 extern uint16* g_accStartOfPretriggerBuff;
 extern uint16* g_accTailOfPretriggerBuff;
 extern uint16* g_accEndOfPretriggerBuff;
 extern EVT_RECORD g_pendingAccEventRecord;
 extern ACC_DATA_STRUCT g_accSampleData;
+extern SENSOR_CHECK_STATUS_STRUCT g_lastSensorCheck;
 //extern uint8 g_postIsrSampleDataProcessing;
 #endif
 #if 1 /* Test */

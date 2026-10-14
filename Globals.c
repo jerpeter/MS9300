@@ -385,12 +385,14 @@ uint32 g_calSampleSource = 0;
 #endif
 #if 1 /* Test */
 uint8 g_saveAccelerometerCompanionEvent = NO;
+uint8 g_hwSensorDetectChange = NO;
 uint16 g_accEventBufferIndex;
 uint16* g_accStartOfPretriggerBuff;
 uint16* g_accTailOfPretriggerBuff;
 uint16* g_accEndOfPretriggerBuff;
 EVT_RECORD g_pendingAccEventRecord;
 ACC_DATA_STRUCT g_accSampleData;
+SENSOR_CHECK_STATUS_STRUCT g_lastSensorCheck;
 //uint8 g_postIsrSampleDataProcessing = NO;
 #endif
 #if 1 /* Test */
