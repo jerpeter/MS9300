@@ -389,7 +389,8 @@ typedef struct
 	uint16				lastDownloadedEvent;
 	DATE_TIME_STRUCT	lastConnectTime;
 	uint16				currentCycleConnects;
-	uint16				unused;
+	uint8				sensorCheckStatus;
+	uint8				unused;
 } AUTODIALOUT_STRUCT;
 
 typedef struct
