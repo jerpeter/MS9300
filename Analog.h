@@ -27,6 +27,9 @@
 #define CAL_SAMPLE_COUNT_THIRD_TRANSITION_HIGH	77 // ~12ms, 2x period finished, was 65
 #define CAL_SAMPLE_COUNT_FOURTH_TRANSITION_OFF	71 // ~6ms, 1x period finished, was 55
 
+#define SENSOR_CHECK_LOW_THRESHOLD		655 // Counts, equates to 1% of total range (P2P), 2% of sensor limit if not correctly biased at zero
+#define SENSOR_CHECK_HIGH_THRESHOLD		16384 // Counts, equates to 25% of total range (P2P), 50% of sensor limit if not correctly biased at zero
+
 #define GAIN_SELECT_x2	0x01
 #define GAIN_SELECT_x4	0x00
 
