@@ -63,9 +63,16 @@ void MoveManualCalToFile(void)
 	FIL file;
 	uint32_t bytesWritten;
 
-	UNUSED(compressSize); // Depends on debug on/off
+	uint8 calResults = SENSOR_CHECK_PASSED;
 
-	debug("Processing Manual Cal to be saved\r\n");
+	UNUSED(compressSize); // Depends on debug on/off
+#if 1 /* New method to process Sensor Check for results */
+	UNUSED(file);
+	UNUSED(bytesWritten);
+#endif
+
+	//debug("Processing Manual Cal to be saved\r\n");
+	debug("Processing Sensor Check operation for sensor status\r\n");
 
 	if (g_freeEventBuffers < g_maxEventBuffers)
 	{
@@ -79,8 +86,11 @@ void MoveManualCalToFile(void)
 		
 		for (i = (uint16)g_samplesInCal; i != 0; i--)
 		{
+#if 0 /* Original */
 			if (g_bitShiftForAccuracy) AdjustSampleForBitAccuracy();
-
+#else /* New method to evaluate Sensor check at 16-bit*/
+			// Handle at 16-bit
+#endif
 			//=========================================================
 			// First channel - A
 			sample = *(g_currentEventSamplePtr + A_CHAN_OFFSET);
@@ -88,8 +98,11 @@ void MoveManualCalToFile(void)
 			if (sample > hiA) hiA = sample;
 			if (sample < lowA) lowA = sample;
 
+#if 0 /* Original */
 			normalizedData = FixDataToZero(sample);
-
+#else /* New method to evaluate Sensor check at 16-bit */
+			normalizedData = FixDataToZero16Bit(sample);
+#endif
 			if (normalizedData > g_pendingEventRecord.summary.calculated.a.peak)
 			{
 				g_pendingEventRecord.summary.calculated.a.peak = normalizedData;
@@ -103,8 +116,11 @@ void MoveManualCalToFile(void)
 			if (sample > hiR) hiR = sample;
 			if (sample < lowR) lowR = sample;
 
+#if 0 /* Original */
 			normalizedData = FixDataToZero(sample);
-
+#else /* New method to evaluate Sensor check at 16-bit */
+			normalizedData = FixDataToZero16Bit(sample);
+#endif
 			if (normalizedData > g_pendingEventRecord.summary.calculated.r.peak)
 			{
 				g_pendingEventRecord.summary.calculated.r.peak = normalizedData;
@@ -118,8 +134,11 @@ void MoveManualCalToFile(void)
 			if (sample > hiV) hiV = sample;
 			if (sample < lowV) lowV = sample;
 
+#if 0 /* Original */
 			normalizedData = FixDataToZero(sample);
-
+#else /* New method to evaluate Sensor check at 16-bit */
+			normalizedData = FixDataToZero16Bit(sample);
+#endif
 			if (normalizedData > g_pendingEventRecord.summary.calculated.v.peak)
 			{
 				g_pendingEventRecord.summary.calculated.v.peak = normalizedData;
@@ -133,8 +152,11 @@ void MoveManualCalToFile(void)
 			if (sample > hiT) hiT = sample;
 			if (sample < lowT) lowT = sample;
 
+#if 0 /* Original */
 			normalizedData = FixDataToZero(sample);
-
+#else /* New method to evaluate Sensor check at 16-bit */
+			normalizedData = FixDataToZero16Bit(sample);
+#endif
 			if (normalizedData > g_pendingEventRecord.summary.calculated.t.peak)
 			{
 				g_pendingEventRecord.summary.calculated.t.peak = normalizedData;
@@ -154,6 +176,42 @@ void MoveManualCalToFile(void)
 		g_pendingEventRecord.summary.calculated.v.frequency = CalcSumFreq(vManualCalPeakPtr, SAMPLE_RATE_1K, startOfEventPtr, endOfEventDataPtr);
 		g_pendingEventRecord.summary.calculated.t.frequency = CalcSumFreq(tManualCalPeakPtr, SAMPLE_RATE_1K, startOfEventPtr, endOfEventDataPtr);
 
+#if 1 /* New method to process Sensor Check for results */
+		debug("Sensor Check peaks (P2P): a:%04x r:%04x v:%04x t:%04x\r\n", g_pendingEventRecord.summary.calculated.a.peak, g_pendingEventRecord.summary.calculated.r.peak,
+				g_pendingEventRecord.summary.calculated.v.peak,	g_pendingEventRecord.summary.calculated.t.peak);
+
+		debug("Sensor Check freq: a:%d r:%d v:%d t:%d\r\n", g_pendingEventRecord.summary.calculated.a.frequency, g_pendingEventRecord.summary.calculated.r.frequency,
+				g_pendingEventRecord.summary.calculated.v.frequency, g_pendingEventRecord.summary.calculated.t.frequency);
+
+		if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR) || CheckIfSmartSensorPresent(ACOUSTIC_SENSOR_2))
+		{
+			if ((g_pendingEventRecord.summary.calculated.a.peak < SENSOR_CHECK_LOW_THRESHOLD) || (g_pendingEventRecord.summary.calculated.a.peak > SENSOR_CHECK_HIGH_THRESHOLD)) { calResults = SENSOR_CHECK_FAILED; }
+		}
+
+		if (CheckIfSmartSensorPresent(SEISMIC_SENSOR) || CheckIfSmartSensorPresent(SEISMIC_SENSOR_2))
+		{
+			if ((g_pendingEventRecord.summary.calculated.r.peak < SENSOR_CHECK_LOW_THRESHOLD) || (g_pendingEventRecord.summary.calculated.r.peak > SENSOR_CHECK_HIGH_THRESHOLD)) { calResults = SENSOR_CHECK_FAILED; }
+			if ((g_pendingEventRecord.summary.calculated.v.peak < SENSOR_CHECK_LOW_THRESHOLD) || (g_pendingEventRecord.summary.calculated.v.peak > SENSOR_CHECK_HIGH_THRESHOLD)) { calResults = SENSOR_CHECK_FAILED; }
+			if ((g_pendingEventRecord.summary.calculated.t.peak < SENSOR_CHECK_LOW_THRESHOLD) || (g_pendingEventRecord.summary.calculated.t.peak > SENSOR_CHECK_HIGH_THRESHOLD)) { calResults = SENSOR_CHECK_FAILED; }
+		}
+
+		if (CheckIfNoSmartSensorsPresent())
+		{
+			calResults = SENSOR_CHECK_FAILED;
+
+			// Todo: Determine how to handle Sensor Check passing even if no Smart Sensor is active
+			if ((g_pendingEventRecord.summary.calculated.a.peak > SENSOR_CHECK_LOW_THRESHOLD) && (g_pendingEventRecord.summary.calculated.a.peak < SENSOR_CHECK_HIGH_THRESHOLD)) { calResults = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR; }
+
+			if (((g_pendingEventRecord.summary.calculated.r.peak > SENSOR_CHECK_LOW_THRESHOLD) && (g_pendingEventRecord.summary.calculated.r.peak < SENSOR_CHECK_HIGH_THRESHOLD)) &&
+				((g_pendingEventRecord.summary.calculated.v.peak > SENSOR_CHECK_LOW_THRESHOLD) && (g_pendingEventRecord.summary.calculated.v.peak < SENSOR_CHECK_HIGH_THRESHOLD)) &&
+				((g_pendingEventRecord.summary.calculated.t.peak > SENSOR_CHECK_LOW_THRESHOLD) && (g_pendingEventRecord.summary.calculated.t.peak < SENSOR_CHECK_HIGH_THRESHOLD))) { calResults = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR; }
+
+		}
+
+		CacheSensorCheckResults(calResults);
+		// Todo: Log Sensor check results and data
+
+#else /* Original */
 		CompleteRamEventSummary();
 
 		CacheResultsEventInfo((EVT_RECORD*)&g_pendingEventRecord);
@@ -298,7 +356,7 @@ void MoveManualCalToFile(void)
 			// Now store the updated event number in the universal ram storage.
 			g_pendingEventRecord.summary.eventNumber = g_nextEventNumberToUse;
 		}
-
+#endif
 		if (++g_eventBufferReadIndex == g_maxEventBuffers)
 		{
 			g_eventBufferReadIndex = 0;
@@ -311,18 +369,22 @@ void MoveManualCalToFile(void)
 
 		clearSystemEventFlag(MANUAL_CAL_EVENT);
 
+#if 0 /* Original */
 		// Set flag to display calibration results if not monitoring or monitoring in waveform
 		if ((g_sampleProcessing == IDLE_STATE) || ((g_sampleProcessing == ACTIVE_STATE) && (g_triggerRecord.opMode == WAVEFORM_MODE)))
 		{
 			// Set printout mode to allow the results menu processing to know this is a manual cal pulse
 			raiseMenuEventFlag(RESULTS_MENU_EVENT);
 		}
-
+#else /* Display status */
+		// Todo: Show Sensor Check status on LCD screen
+#endif
 		g_freeEventBuffers++;
 	}
 	else
 	{
-		debugWarn("Manual Cal: No free buffers\r\n");
+		//debugWarn("Manual Cal: No free buffers\r\n");
+		debug("Sensor Check: No free buffers for operation\r\n");
 
 		clearSystemEventFlag(MANUAL_CAL_EVENT);
 	}
