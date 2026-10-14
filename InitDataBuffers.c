@@ -393,6 +393,19 @@ uint16 FixDataToZero(uint16 data_)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+uint16 FixDataToZero16Bit(uint16 data_)
+{
+	if (data_ > ACCURACY_16_BIT_MIDPOINT)
+		data_ = (uint16)(data_ - ACCURACY_16_BIT_MIDPOINT);
+	else
+		data_ = (uint16)(ACCURACY_16_BIT_MIDPOINT - data_);
+
+	return (data_);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 uint16_t GetChannelPeak(uint16_t* dataPtr, uint32_t dataLength)
 {
 	uint16_t* samplePtr = dataPtr;
