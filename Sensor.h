@@ -130,6 +130,49 @@ typedef struct {
 	uint8 crc;
 } SMART_SENSOR_ROM;
 
+typedef struct {
+	uint8_t valid;
+	uint8_t state;
+	DATE_TIME_STRUCT timestamp;
+	uint8_t seismicSmartSensorSerial[SENSOR_SERIAL_NUMBER_SIZE];
+	uint8_t seismic2SmartSensorSerial[SENSOR_SERIAL_NUMBER_SIZE];
+	uint8_t acousticSmartSensorSerial[SENSOR_SERIAL_NUMBER_SIZE];
+	uint8_t acoustic2SmartSensorSerial[SENSOR_SERIAL_NUMBER_SIZE];
+} SENSOR_CHECK_STATUS_STRUCT;
+
+typedef enum {
+	SENSOR_CHECK_PASSED = 1,
+	SENSOR_CHECK_FAILED,
+	SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR,
+} SENSOR_CHECK_STATES;
+
+typedef struct {
+	uint16_t logId;
+	uint8_t valid;
+	uint8_t state;
+	DATE_TIME_STRUCT timestamp;
+	uint8_t seismicSmartSensorSerial[SENSOR_SERIAL_NUMBER_SIZE];
+	uint8_t seismic2SmartSensorSerial[SENSOR_SERIAL_NUMBER_SIZE];
+	uint8_t acousticSmartSensorSerial[SENSOR_SERIAL_NUMBER_SIZE];
+	uint8_t acoustic2SmartSensorSerial[SENSOR_SERIAL_NUMBER_SIZE];
+	uint16_t geo1peakR;
+	uint16_t geo1peakT;
+	uint16_t geo1peakV;
+	uint16_t aop1peakA;
+	uint16_t geo2peakR;
+	uint16_t geo2peakT;
+	uint16_t geo2peakV;
+	uint16_t aop2peakA;
+	uint16_t geo1freqR;
+	uint16_t geo1freqT;
+	uint16_t geo1freqV;
+	uint16_t aop1freqA;
+	uint16_t geo2freqR;
+	uint16_t geo2freqT;
+	uint16_t geo2freqV;
+	uint16_t aop2freqA;
+} SENSOR_CHECK_STATUS_LOG_STRUCT;
+
 ///----------------------------------------------------------------------------
 ///	Prototypes
 ///----------------------------------------------------------------------------
@@ -159,6 +202,7 @@ uint8 CheckIfSmartSensorPresent(SMART_SENSOR_TYPE sensor);
 uint8 CheckIfBothSmartSensorsPresent(void);
 uint8 CheckIfNoSmartSensorsPresent(void);
 uint8 CheckIfAcousticSensorTypeValid(uint8 airSensorType);
+void CacheSensorCheckResults(uint8_t sensorCheckState);
 void UpdateWorkingCalibrationDate(void);
 uint8_t SmartSensorMuxSelectAndDriverEnable(SMART_SENSOR_TYPE sensor);
 void SmartSensorDisableMuxAndDriver(void);

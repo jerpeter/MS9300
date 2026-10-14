@@ -1176,6 +1176,28 @@ uint8 CheckIfAcousticSensorTypeValid(uint8 airSensorType)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void CacheSensorCheckResults(uint8_t sensorCheckState)
+{
+	g_lastSensorCheck.valid = YES;
+	g_lastSensorCheck.state = sensorCheckState;
+	g_lastSensorCheck.timestamp = GetCurrentTime();
+	if (CheckIfSmartSensorPresent(SEISMIC_SENSOR)) { memcpy(g_lastSensorCheck.seismicSmartSensorSerial, g_seismicSmartSensorMemory.serialNumber, SENSOR_SERIAL_NUMBER_SIZE); };
+	if (CheckIfSmartSensorPresent(SEISMIC_SENSOR_2)) { memcpy(g_lastSensorCheck.seismic2SmartSensorSerial, g_seismic2SmartSensorMemory.serialNumber, SENSOR_SERIAL_NUMBER_SIZE); };
+	if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR)) { memcpy(g_lastSensorCheck.acousticSmartSensorSerial, g_acousticSmartSensorMemory.serialNumber, SENSOR_SERIAL_NUMBER_SIZE); };
+	if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR_2)) { memcpy(g_lastSensorCheck.acoustic2SmartSensorSerial, g_acoustic2SmartSensorMemory.serialNumber, SENSOR_SERIAL_NUMBER_SIZE); };
+
+	switch (g_lastSensorCheck.state)
+	{
+		case SENSOR_CHECK_PASSED: debug("Sensor check state update: Good/SS present\r\n"); break;
+		case SENSOR_CHECK_FAILED: debugWarn("Sensor check state update: Bad/Issue\r\n"); break;
+		case SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR: debugWarn("Sensor check state update: No SS present but active sensor\r\n"); break;
+		default: break;
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void UpdateWorkingCalibrationDate(void)
 {
 	// By default use the Unit Calibration date
