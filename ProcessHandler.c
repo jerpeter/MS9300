@@ -34,6 +34,7 @@
 #include "spi.h"
 #include "enumerate.h"
 #include "msc.h"
+#include "usb.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -498,15 +499,9 @@ void StopMonitoring(uint8 mode, uint8 operation)
 #if 1 /* FCC testing option */
 	ClearSoftTimer(AUTO_EVENT_GENERATION_NUM);
 #endif
-#if 0 /* Test */
-extern volatile int g_usbConfigured;
-extern void SetupUSBComposite(uint8_t);
-	if (g_usbConfigured & USB_CDC_ACM_OPTION_FLAG)
-	{
-		OverlayMessage(getLangText(STATUS_TEXT), "RE-ENABLING USB MASS SOTARGE (MSC)...", (1 * SOFT_SECS));
-		SetupUSBComposite(USB_COMPOSITE_OPTION_FLAG);
-	}
-#endif
+
+	// Re-enable the USB device driver after monitoring
+	MXC_USB_Connect();
 
 	// Check if Auto Monitor is active and not in monitor mode
 	if ((g_unitConfig.autoMonitorMode != AUTO_NO_TIMEOUT) && (operation == EVENT_PROCESSING))
@@ -727,7 +722,7 @@ void HandleManualCalibration(void)
 #endif
 
 				// Perform Cal while in monitor mode
-				OverlayMessage(getLangText(STATUS_TEXT), getLangText(PERFORMING_CALIBRATION_TEXT), 0);
+				OverlayMessage(getLangText(STATUS_TEXT), getLangText(PERFORMING_SENSOR_CHECK_TEXT), 0);
 
 				GetManualCalibration();
 
@@ -783,7 +778,7 @@ void HandleManualCalibration(void)
 			g_summaryListMenuActive = NO;
 
 			// Perform calibration (outside of active monitoring)
-			OverlayMessage(getLangText(STATUS_TEXT), getLangText(PERFORMING_CALIBRATION_TEXT), 0);
+			OverlayMessage(getLangText(STATUS_TEXT), getLangText(PERFORMING_SENSOR_CHECK_TEXT), 0);
 
 			GetManualCalibration();
 		}
@@ -799,7 +794,7 @@ void ForcedCalibration(void)
 	
 	g_forcedCalibration = YES;
 
-	OverlayMessage(getLangText(STATUS_TEXT), getLangText(PERFORMING_CALIBRATION_TEXT), 0);
+	OverlayMessage(getLangText(STATUS_TEXT), getLangText(PERFORMING_SENSOR_CHECK_TEXT), 0);
 
 	GetManualCalibration();
 
@@ -873,7 +868,7 @@ void HandleCycleChangeEvent(void)
 	if ((g_autoDialoutState == AUTO_DIAL_IDLE) && (__autoDialoutTbl.currentCycleConnects == 0))
 	{
 		// Attempt an ADO for once a day status in case of no events
-		if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_ONLY)
+		if (g_allModemSetupRecord.ext.dialOutType == AUTODIALOUT_EVENTS_ONLY)
 		{
 			if (CheckAutoDialoutStatusAndFlagIfAvailable() == YES)
 			{
