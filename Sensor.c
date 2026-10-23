@@ -1176,6 +1176,109 @@ uint8 CheckIfAcousticSensorTypeValid(uint8 airSensorType)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void SensorCheckChannelPeaks(uint16_t rPeak, uint16_t vPeak, uint16_t tPeak, uint16_t aPeak, uint8_t *calResults, uint8_t *ss1status, uint8_t *ss2status, uint8_t *as1status, uint8_t *as2status)
+{
+	debug("Sensor Check peaks: R %d, T %d, V %d, A %d (low %d, high %d)\r\n", rPeak, tPeak, vPeak, aPeak, SENSOR_CHECK_LOW_THRESHOLD, SENSOR_CHECK_HIGH_THRESHOLD);
+	// Check seismic channels
+	if (CheckIfSmartSensorPresent(SEISMIC_SENSOR))
+	{
+		if ((rPeak < SENSOR_CHECK_LOW_THRESHOLD) || (rPeak > SENSOR_CHECK_HIGH_THRESHOLD) ||
+			(vPeak < SENSOR_CHECK_LOW_THRESHOLD) || (vPeak > SENSOR_CHECK_HIGH_THRESHOLD) ||
+			(tPeak < SENSOR_CHECK_LOW_THRESHOLD) || (tPeak > SENSOR_CHECK_HIGH_THRESHOLD)) { *calResults = SENSOR_CHECK_FAILED; *ss1status = SENSOR_CHECK_FAILED; }
+		else { *ss1status = SENSOR_CHECK_PASSED; }
+	}
+
+	if (CheckIfSmartSensorPresent(SEISMIC_SENSOR_2))
+	{
+		if ((rPeak < SENSOR_CHECK_LOW_THRESHOLD) || (rPeak > SENSOR_CHECK_HIGH_THRESHOLD) ||
+			(vPeak < SENSOR_CHECK_LOW_THRESHOLD) || (vPeak > SENSOR_CHECK_HIGH_THRESHOLD) ||
+			(tPeak < SENSOR_CHECK_LOW_THRESHOLD) || (tPeak > SENSOR_CHECK_HIGH_THRESHOLD)) { *calResults = SENSOR_CHECK_FAILED; *ss2status = SENSOR_CHECK_FAILED; }
+		else { *ss2status = SENSOR_CHECK_PASSED; }
+	}
+
+	if ((*ss1status != SENSOR_CHECK_PASSED) && (*ss2status != SENSOR_CHECK_PASSED))
+	{
+		if ((rPeak > SENSOR_CHECK_LOW_THRESHOLD) && (rPeak < SENSOR_CHECK_HIGH_THRESHOLD) &&
+			(vPeak > SENSOR_CHECK_LOW_THRESHOLD) && (vPeak < SENSOR_CHECK_HIGH_THRESHOLD) &&
+			(tPeak > SENSOR_CHECK_LOW_THRESHOLD) && (tPeak < SENSOR_CHECK_HIGH_THRESHOLD))
+		{
+			if (g_currentSensorGroup == SENSOR_GROUP_A_1) { *ss1status = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR; }
+			else { *ss2status = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR; }
+		}
+	}
+
+	// Check acoustic channels
+	if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR))
+	{
+		if ((aPeak < SENSOR_CHECK_LOW_THRESHOLD) || (aPeak > SENSOR_CHECK_HIGH_THRESHOLD)) { *calResults = SENSOR_CHECK_FAILED; *as1status = SENSOR_CHECK_FAILED; }
+		else { *as1status = SENSOR_CHECK_PASSED; }
+	}
+
+	if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR_2))
+	{
+		if ((aPeak < SENSOR_CHECK_LOW_THRESHOLD) || (aPeak > SENSOR_CHECK_HIGH_THRESHOLD)) { *calResults = SENSOR_CHECK_FAILED; *as2status = SENSOR_CHECK_FAILED; }
+		else { *as2status = SENSOR_CHECK_PASSED; }
+	}
+
+	if ((*as1status != SENSOR_CHECK_PASSED) && (*as2status != SENSOR_CHECK_PASSED))
+	{
+		if ((aPeak > SENSOR_CHECK_LOW_THRESHOLD) && (aPeak < SENSOR_CHECK_HIGH_THRESHOLD))
+		{
+			if (g_currentSensorGroup == SENSOR_GROUP_A_1) { *as2status = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR; }
+			else { *as1status = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR; }
+		}
+	}
+
+	// Check active channels without Smart Sensor detection
+	if (CheckIfNoSmartSensorsPresent())
+	{
+		*calResults = SENSOR_CHECK_FAILED;
+
+#if 0 /* Duplicate logic */
+		if (((rPeak > SENSOR_CHECK_LOW_THRESHOLD) && (rPeak < SENSOR_CHECK_HIGH_THRESHOLD)) &&
+			((vPeak > SENSOR_CHECK_LOW_THRESHOLD) && (vPeak < SENSOR_CHECK_HIGH_THRESHOLD)) &&
+			((tPeak > SENSOR_CHECK_LOW_THRESHOLD) && (tPeak < SENSOR_CHECK_HIGH_THRESHOLD)))
+		{
+			*calResults = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR;
+
+			if (g_currentSensorGroup == SENSOR_GROUP_A_1) { *ss1status = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR; }
+			else { *ss2status = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR; }
+		}
+
+		if ((aPeak > SENSOR_CHECK_LOW_THRESHOLD) && (aPeak < SENSOR_CHECK_HIGH_THRESHOLD))
+		{
+			*calResults = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR;
+
+			if (g_currentSensorGroup == SENSOR_GROUP_A_1) { *as2status = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR; }
+			else { *as1status = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR; }
+		}
+#else
+		// Check if an active sensor passed the test that didn't identify as a Smart senor
+		if ((*ss1status == SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR) || (*ss2status == SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR) ||
+			(*as1status == SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR) || (*as2status == SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR))
+		{
+			*calResults = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR;
+		}
+#endif
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void CacheSensorCheckIndividualSensorResults(uint8_t ss1status, uint8_t ss2status, uint8_t as1status, uint8_t as2status)
+{
+	g_lastSensorCheck.seismicSensorStatus = ss1status;
+	g_lastSensorCheck.seismic2SensorStatus = ss2status;
+	g_lastSensorCheck.acousticSensorStatus = as1status;
+	g_lastSensorCheck.acoustic2SensorStatus = as2status;
+
+	debug("Sensor check individual sensor state: SS1: %d, SS2: %d, AS1: %d, AS2: %d\r\n", ss1status, ss2status, as1status, as2status);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void CacheSensorCheckResults(uint8_t sensorCheckState)
 {
 	g_lastSensorCheck.valid = YES;

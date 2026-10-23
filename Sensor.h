@@ -130,24 +130,14 @@ typedef struct {
 	uint8 crc;
 } SMART_SENSOR_ROM;
 
-typedef struct {
-	uint8_t valid;
-	uint8_t state;
-	DATE_TIME_STRUCT timestamp;
-	uint8_t seismicSmartSensorSerial[SENSOR_SERIAL_NUMBER_SIZE];
-	uint8_t seismic2SmartSensorSerial[SENSOR_SERIAL_NUMBER_SIZE];
-	uint8_t acousticSmartSensorSerial[SENSOR_SERIAL_NUMBER_SIZE];
-	uint8_t acoustic2SmartSensorSerial[SENSOR_SERIAL_NUMBER_SIZE];
-} SENSOR_CHECK_STATUS_STRUCT;
-
 typedef enum {
+	SENSOR_CHECK_NOT_AVAILABLE = 0,
 	SENSOR_CHECK_PASSED = 1,
 	SENSOR_CHECK_FAILED,
 	SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR,
 } SENSOR_CHECK_STATES;
 
 typedef struct {
-	uint16_t logId;
 	uint8_t valid;
 	uint8_t state;
 	DATE_TIME_STRUCT timestamp;
@@ -155,23 +145,29 @@ typedef struct {
 	uint8_t seismic2SmartSensorSerial[SENSOR_SERIAL_NUMBER_SIZE];
 	uint8_t acousticSmartSensorSerial[SENSOR_SERIAL_NUMBER_SIZE];
 	uint8_t acoustic2SmartSensorSerial[SENSOR_SERIAL_NUMBER_SIZE];
-	uint16_t geo1peakR;
-	uint16_t geo1peakT;
-	uint16_t geo1peakV;
-	uint16_t aop1peakA;
-	uint16_t geo2peakR;
-	uint16_t geo2peakT;
-	uint16_t geo2peakV;
-	uint16_t aop2peakA;
-	uint16_t geo1freqR;
-	uint16_t geo1freqT;
-	uint16_t geo1freqV;
-	uint16_t aop1freqA;
-	uint16_t geo2freqR;
-	uint16_t geo2freqT;
-	uint16_t geo2freqV;
-	uint16_t aop2freqA;
-} SENSOR_CHECK_STATUS_LOG_STRUCT;
+	uint8_t seismicSensorStatus;
+	uint8_t seismic2SensorStatus;
+	uint8_t acousticSensorStatus;
+	uint8_t acoustic2SensorStatus;
+} SENSOR_CHECK_STATUS_STRUCT;
+
+typedef struct {
+	uint16_t peak;
+	uint16_t freq;
+} SENSOR_CHECK_CHANNEL_RESULTS_STRUCT;
+
+typedef struct {
+	uint16_t logId;
+	SENSOR_CHECK_STATUS_STRUCT sensorStatus;
+	SENSOR_CHECK_CHANNEL_RESULTS_STRUCT geo1R;
+	SENSOR_CHECK_CHANNEL_RESULTS_STRUCT geo1T;
+	SENSOR_CHECK_CHANNEL_RESULTS_STRUCT geo1V;
+	SENSOR_CHECK_CHANNEL_RESULTS_STRUCT air1A;
+	SENSOR_CHECK_CHANNEL_RESULTS_STRUCT geo2R;
+	SENSOR_CHECK_CHANNEL_RESULTS_STRUCT geo2T;
+	SENSOR_CHECK_CHANNEL_RESULTS_STRUCT geo2V;
+	SENSOR_CHECK_CHANNEL_RESULTS_STRUCT air2A;
+} SENSOR_CHECK_LOG_ENTRY_STRUCT;
 
 ///----------------------------------------------------------------------------
 ///	Prototypes
@@ -202,6 +198,8 @@ uint8 CheckIfSmartSensorPresent(SMART_SENSOR_TYPE sensor);
 uint8 CheckIfBothSmartSensorsPresent(void);
 uint8 CheckIfNoSmartSensorsPresent(void);
 uint8 CheckIfAcousticSensorTypeValid(uint8 airSensorType);
+void SensorCheckChannelPeaks(uint16_t rPeak, uint16_t vPeak, uint16_t tPeak, uint16_t aPeak, uint8_t *calResults, uint8_t *ss1status, uint8_t *ss2status, uint8_t *as1status, uint8_t *as2status);
+void CacheSensorCheckIndividualSensorResults(uint8_t ss1status, uint8_t ss2status, uint8_t as1status, uint8_t as2status);
 void CacheSensorCheckResults(uint8_t sensorCheckState);
 void UpdateWorkingCalibrationDate(void);
 uint8_t SmartSensorMuxSelectAndDriverEnable(SMART_SENSOR_TYPE sensor);
