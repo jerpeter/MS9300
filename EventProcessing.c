@@ -3060,7 +3060,19 @@ void WriteDebugCacheToFile(uint8_t flush)
 	DATE_TIME_STRUCT currDateTime;
 	char monthString[5];
 
-	if ((g_debugCacheCount > 25000) || ((flush && g_debugCacheCount)))
+	// Check if USB MSC is active
+extern volatile int g_usbConfigured;
+	if (g_usbConfigured & USB_MSC_OPTION_FLAG)
+	{
+		// Prevent writing out to the Flash which may conflict with PC access by skipping write out for now
+
+		// Consider caching to pretrigger buffer in the meantime
+		// Use pretrigger buffer offset
+		// If any cached debug, offload to pretrigger buffer
+		// Keep count and flag debug cached
+		// On USB disconnect, check alt debug cache flag for data to dump to debug log
+	}
+	else if ((g_debugCacheCount > 25000) || ((flush && g_debugCacheCount)))
 	{
 		currDateTime = GetExternalRtcTime();
 		GetDateString(monthString, currDateTime.month, sizeof(monthString));
