@@ -81,6 +81,7 @@ void CheckSoftTimers(void);
 void ProcessTimerMode(void);
 BOOLEAN TimerModeActiveCheck(void);
 uint8 IsSoftTimerActive(uint16);
+uint32 SoftTimerRemainingTime(uint16 timerNum);
 void ResetTimeOfDayAlarm(void);
 void SetTimeOfDayAlarmNearFuture(uint8 secondsInFuture);
 void HandleUserPowerOffDuringTimerMode(void);
