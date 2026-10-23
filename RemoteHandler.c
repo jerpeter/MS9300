@@ -359,7 +359,7 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 						PowerControl(LTE_RESET, ON);
 						PowerControl(CELL_ENABLE, OFF);
 
-						if (g_cellModemSetupRecord.tcpServer == YES)
+						if (g_allModemSetupRecord.cell.tcpServer == YES)
 						{
 							g_tcpServerStartStage = TCP_SERVER_INIT;
 							AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_SEC), TcpServerStartCallback);
@@ -382,7 +382,7 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 						debug("RCMH: TCP Server stopped\r\n");
 
 						// Check if the TCP Server stopped on it's own (and not from ADO starting and not 24 hour cycle change)
-						if ((g_cellModemSetupRecord.tcpServer == YES) && (g_autoDialoutState == AUTO_DIAL_IDLE) && (!getSystemEventState(CYCLE_CHANGE_EVENT)))
+						if ((g_allModemSetupRecord.cell.tcpServer == YES) && (g_autoDialoutState == AUTO_DIAL_IDLE) && (!getSystemEventState(CYCLE_CHANGE_EVENT)))
 						{
 							ShutdownPdnAndCellModem();
 							PowerControl(LTE_RESET, ON);
@@ -407,10 +407,10 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 					{
 #if 1 /* Test */
 						// Delay entering Data mode until the remote conneciton is active due to the rare occasion where the cell modem seems to drop data mode without notificaiton
-						int status, strLen;
 
 						// Issue command to enter Data mode immediately before status to minimize any chance of data loss if the remote sends immediately after conneciton
-						sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+						sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n");
+						SendCommandToCellModem((char*)g_spareBuffer);
 						debug("AT#XTCPSEND...\r\n");
 #endif
 						char* loc = strstr((char*)&cmdMsg->msg[0], "connected");
@@ -451,7 +451,7 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 					PowerControl(LTE_RESET, ON);
 					PowerControl(CELL_ENABLE, OFF);
 
-					if (g_cellModemSetupRecord.tcpServer == YES)
+					if (g_allModemSetupRecord.cell.tcpServer == YES)
 					{
 						g_tcpServerStartStage = TCP_SERVER_INIT;
 						AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_SEC), TcpServerStartCallback);
@@ -472,17 +472,17 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 					// Reset ADO state
 					g_autoDialoutState = AUTO_DIAL_IDLE;
 
-					if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
+					if (g_allModemSetupRecord.ext.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
 					{
-						AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_modemSetupRecord.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
-						debug("ADO: restart timer (%d mins) (%s)\r\n", g_modemSetupRecord.dialOutCycleTime, ((IsSoftTimerActive(AUTO_DIAL_OUT_CYCLE_TIMER_NUM) == YES) ? "Active" : "Inactive"));
+						AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_allModemSetupRecord.ext.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
+						debug("ADO: restart timer (%d mins) (%s)\r\n", g_allModemSetupRecord.ext.dialOutCycleTime, ((IsSoftTimerActive(AUTO_DIAL_OUT_CYCLE_TIMER_NUM) == YES) ? "Active" : "Inactive"));
 					}
 					else // ADO Events only
 					{
 						ClearSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM);
 					}
 
-					if (g_cellModemSetupRecord.tcpServer == YES)
+					if (g_allModemSetupRecord.cell.tcpServer == YES)
 					{
 						g_tcpServerStartStage = TCP_SERVER_INIT;
 						AssignSoftTimer(TCP_SERVER_START_NUM, (5 * TICKS_PER_SEC), TcpServerStartCallback);
@@ -582,6 +582,68 @@ uint8 RemoteCmdMessageHandler(CMD_BUFFER_STRUCT* cmdMsg)
 					debug("RCMH: Ping response, %s\r\n", (char*)&cmdMsg->msg[0]);
 					OverlayMessage(getLangText(STATUS_TEXT), (char*)&cmdMsg->msg[0], (1 * SOFT_SECS));
 					s_pingResponseCount++;
+				}
+				//-----------------------------------------------------------------------------------------
+				// Ping request response
+				//-----------------------------------------------------------------------------------------
+				else if (strncmp(AT_CMD_CONEVAL, (char*)&cmdMsg->msg[0], 9) == 0)
+				{
+					// Example: %CONEVAL: 0,0,7,39,17,28,"0C86410F","310410",216,5110,12,0,0,1,1,1,119
+					// Example: %CONEVAL: 0,0,6,32,11,22,"0C86410F","310410",303,5110,12,0,0,9,1,1,1270d
+					// First parameter is result, need to verify results are good with a value of 0
+					// Second parameter is RRC, 0 = idle, 1 = connected/active transfer
+					// Third parameter is energy estimate, 5-9, Bad, Poor, Normal, Good, Excellent
+					// Fourth parameter is RSRP (power), equation: RSRP < 0, dBm = RSRP - 140 | RSRP > 0, dBm = RSRP - 141, 0 not used
+					// Fifth parameter is RSRQ (quality), equation: RSRQ < 0, dB = (rsrq - 39) / 2 | RSRQ < 34, dB = (rsrq - 40) / 2 | RSRQ >= 35, dB = (rsrq - 41) / 2
+					// Sixth paramter is SNR, equation: dB = snr - 25
+
+					int conResult, conRRC, conEnergy, conRSRP, conRSRQ, conSNR;
+					char energyState[15];
+					sscanf((char*)&cmdMsg->msg[10], "%d,%d,%d,%d,%d,%d", &conResult, &conRRC, &conEnergy, &conRSRP, &conRSRQ, &conSNR);
+
+					if (conResult == 0)
+					{
+						debug("RCMH: Coneval response, evaluation success, Energy %d, RSRP %d, RSRQ %d, SNR %d\r\n", conEnergy, conRSRP, conRSRQ, conSNR);
+
+						switch (conEnergy)
+						{
+							case CON_EVAL_ENERGY_BAD: g_cellSignal.energy = CELL_SIGNAL_BAD; strcpy(energyState, "Bad"); break;
+							case CON_EVAL_ENERGY_POOR: g_cellSignal.energy = CELL_SIGNAL_POOR; strcpy(energyState, "Poor"); break;
+							case CON_EVAL_ENERGY_NORMAL: g_cellSignal.energy = CELL_SIGNAL_NORMAL_FAIR; strcpy(energyState, "Normal"); break;
+							case CON_EVAL_ENERGY_GOOD: g_cellSignal.energy = CELL_SIGNAL_GOOD; strcpy(energyState, "Good"); break;
+							case CON_EVAL_ENERGY_EXCELLENT: g_cellSignal.energy = CELL_SIGNAL_EXCELLENT; strcpy(energyState, "Excellent"); break;
+							default: g_cellSignal.energy = CELL_SIGNAL_NONE; strcpy(energyState, "NONE"); break;
+						}
+						debug("RCMH: Coneval, Energy state: %s\r\n", energyState);
+
+						if (conRSRP < 0) { conRSRP -= 140; }
+						else { conRSRP -= 141; }
+						// RSRP/Power: Excellent > -80, Good -90 to -80, Fair -100 to -90, Poor < -100
+						if (conRSRP > -80) { g_cellSignal.power = CELL_SIGNAL_EXCELLENT; }
+						else if (conRSRP >= -90) { g_cellSignal.power = CELL_SIGNAL_GOOD; }
+						else if (conRSRP >= -100) { g_cellSignal.power = CELL_SIGNAL_NORMAL_FAIR; }
+						else { g_cellSignal.power = CELL_SIGNAL_POOR; }
+						debug("RCMH: Coneval, Power level: %d dBm\r\n", conRSRP);
+
+						if (conRSRQ < 0) { conRSRQ = ((conRSRQ - 39) / 2); }
+						else if (conRSRQ < 34) { conRSRQ = ((conRSRQ - 40) / 2); }
+						else { conRSRQ = ((conRSRQ - 41) / 2); }
+						// RSRQ/Quality: Excellent > -10, Good -15 to -10, Fair -20 to -15, Poor < -20
+						if (conRSRQ > -10) { g_cellSignal.quality = CELL_SIGNAL_EXCELLENT; }
+						else if (conRSRQ >= -15) { g_cellSignal.quality = CELL_SIGNAL_GOOD; }
+						else if (conRSRQ >= -20) { g_cellSignal.quality = CELL_SIGNAL_NORMAL_FAIR; }
+						else { g_cellSignal.quality = CELL_SIGNAL_POOR; }
+						debug("RCMH: Coneval, Quality level: %d dB\r\n", conRSRQ);
+
+						conSNR -= 25;
+						// SNR: Excellent > 20, Good 13 to 20, Fair 0 to 13, Poor < 0
+						if (conSNR > 20) { g_cellSignal.snr = CELL_SIGNAL_EXCELLENT; }
+						else if (conSNR >= 13) { g_cellSignal.snr = CELL_SIGNAL_GOOD; }
+						else if (conSNR >= 0) { g_cellSignal.snr = CELL_SIGNAL_NORMAL_FAIR; }
+						else { g_cellSignal.snr = CELL_SIGNAL_POOR; }
+						debug("RCMH: Coneval, SNR level: %d dB\r\n", conSNR);
+					}
+					else { debugWarn("RCMH: Coneval response, evaluation failed\r\n"); }
 				}
 				//-----------------------------------------------------------------------------------------
 				// Unknown response
@@ -1010,7 +1072,7 @@ void CraftInitStatusFlags(void)
 	g_modemStatus.connectionState = NOP_CMD;	// State flag to indicate which modem command to handle.
 
 	// Check if the Modem setup record is valid and Modem status is yes
-	if ((!g_modemSetupRecord.invalid) && (g_modemSetupRecord.modemStatus == YES))
+	if ((!g_allModemSetupRecord.ext.invalid) && (g_allModemSetupRecord.ext.modemStatus == YES))
 	{
 #if 0 /* Original - External modem */
 		g_modemStatus.modemAvailable = NO;
@@ -1039,13 +1101,13 @@ void CraftInitStatusFlags(void)
 	g_modemStatus.spare = 0;
 
 #if 0 /* Test */
-	debugWarn("Test: Cell APN: %s\r\n", (char*)g_cellModemSetupRecord.pdnApn);
+	debugWarn("Test: Cell APN: %s\r\n", (char*)g_allModemSetupRecord.cell.pdnApn);
 #endif
 
 	memset(&g_cellConnectStats, 0, sizeof(g_cellConnectStats));
 
 #if 0 /* Test */
-	debugWarn("Test: Cell APN: %s\r\n", (char*)g_cellModemSetupRecord.pdnApn);
+	debugWarn("Test: Cell APN: %s\r\n", (char*)g_allModemSetupRecord.cell.pdnApn);
 #endif
 #if 0 /* Test */
 	//debugWarn("Test: size of Cell connect stats: %d, size of Cell connect struct: %d\r\n", sizeof(g_cellConnectStats), sizeof(CELL_CONNECT_STATS_STRUCT));
@@ -1071,7 +1133,7 @@ void RemoteSystemLock(uint8_t lockState)
 		g_modemStatus.systemIsLockedFlag = NO;
 
 		// Check if Modem Setup is enabled, need a idle re-lock timer to make sure Auto Dialout can operate
-		if (g_modemSetupRecord.modemStatus == YES)
+		if (g_allModemSetupRecord.ext.modemStatus == YES)
 		{
 			AssignSoftTimer(SYSTEM_LOCK_TIMER_NUM, REMOTE_SYSTEM_LOCK_TIMEOUT, SystemLockTimerCallback);
 		}
@@ -1173,14 +1235,13 @@ uint8_t CheckforModemReady(uint16_t timeoutHalfSeconds)
 		g_modemStatus.modemAvailable = NO;
 		debugWarn("Cell Modem: Not ready\r\n");
 #else /* Test New ability to check for Uart comms to cell module */
-		int strLen, status;
-
 		g_cellConnectStats.CellNotReadyCount++;
 		debugWarn("Cell Modem: Ready not found from cell module (Total count: %d), trying another command\r\n", g_cellConnectStats.CellNotReadyCount);
 
 		g_modemStatus.spare = 0;
-		debug("AT...\r\n"); sprintf((char*)g_spareBuffer, "AT\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }		
-		{ SoftUsecWait(1 * SOFT_SECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		debug("AT...\r\n"); sprintf((char*)g_spareBuffer, "AT\r\n");
+		SendCommandToCellModem((char*)g_spareBuffer);
+		CheckAndHandleRemoteResponseWithDelay((1 * SOFT_SECS));
 
 		if (g_modemStatus.spare == OK_RESPONSE)
 		{
@@ -1198,8 +1259,9 @@ uint8_t CheckforModemReady(uint16_t timeoutHalfSeconds)
 			SetupCellModuleTxUART();
 
 			g_modemStatus.spare = 0;
-			debug("AT...\r\n"); sprintf((char*)g_spareBuffer, "AT\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }		
-			{ SoftUsecWait(1 * SOFT_SECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+			debug("AT...\r\n"); sprintf((char*)g_spareBuffer, "AT\r\n");
+			SendCommandToCellModem((char*)g_spareBuffer);
+			CheckAndHandleRemoteResponseWithDelay((1 * SOFT_SECS));
 
 			if (g_modemStatus.spare == OK_RESPONSE)
 			{
@@ -1229,21 +1291,21 @@ uint8_t CheckforModemReady(uint16_t timeoutHalfSeconds)
 		if (strlen(g_cellConnectStats.slmVersion) == 0)
 		{
 			debug("AT#XSLMVER...\r\n"); sprintf((char*)g_spareBuffer, "AT#XSLMVER\r\n"); strLen = (int)strlen((char*)g_spareBuffer); MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen);
-			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+			CheckAndHandleRemoteResponseWithDelay((500 * SOFT_MSECS));
 		}
 
 		// Check if the SLM version string is empty
 		if (strlen(g_cellConnectStats.cellModemFwVersion) == 0)
 		{
 			debug("AT%%SHORTSWVER...\r\n"); sprintf((char*)g_spareBuffer, "AT%%SHORTSWVER\r\n"); strLen = (int)strlen((char*)g_spareBuffer); MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen);
-			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+			CheckAndHandleRemoteResponseWithDelay((500 * SOFT_MSECS));
 		}
 
 		// Check if the SLM version string is empty
 		if (strlen(g_cellConnectStats.cellModemImei) == 0)
 		{
 			debug("AT+CGSN=1...\r\n"); sprintf((char*)g_spareBuffer, "AT+CGSN=1\r\n"); strLen = (int)strlen((char*)g_spareBuffer); MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen);
-			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+			CheckAndHandleRemoteResponseWithDelay((500 * SOFT_MSECS));
 		}
 	}
 
@@ -1257,4 +1319,26 @@ uint8_t CheckforModemReady(uint16_t timeoutHalfSeconds)
 	}
 
 	return (modemFound);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void CheckAndHandleRemoteResponseWithDelay(uint32_t delayTime)
+{
+	SoftUsecWait(delayTime);
+
+	ProcessCraftData();
+	if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); }
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void SendCommandToCellModem(char* commandString)
+{
+	int strLen = (int)strlen(commandString);
+
+	int status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen);
+	if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (Code: %d)\r\n", status); }
 }
