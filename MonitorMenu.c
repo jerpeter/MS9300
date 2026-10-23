@@ -31,6 +31,7 @@
 //#include "usb_drv.h"
 #include "enumerate.h"
 #include "msc.h"
+#include "usb.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -109,7 +110,7 @@ void MonitorMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 			}
 #endif
 			// Special call before Monitoring to disable USB processing
-			UsbDeviceManager();
+			MXC_USB_Disconnect();
 
 			if (recheckSpaceRemaining)
 			{
