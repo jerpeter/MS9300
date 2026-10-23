@@ -50,6 +50,7 @@
 #define UNL_USER_RESP_STRING	"UNLx93"
 #define UNL_ADMIN_RESP_STRING	"UNLx92"
 #define UNL_PROG_RESP_STRING	"UNLx91"
+#define UNL_USER_RESP_STRING_MIMIC_8100	"UNLx81"
 #endif
 #define DAI_ERR_RESP_STRING		"DAIx0101"
 
@@ -67,13 +68,20 @@
 #define AT_CMD_XMODEM			"#XMODEM:"
 #define AT_CMD_XPING			"#XPING:"
 #define AT_CMD_XPING_AVERAGE	"#XPING: average"
+#define AT_CMD_CONEVAL			"%CONEVAL:"
 
-#define MODEM_PDP_CONTEXT		"+CGDCONT: 0,"
+#define MODEM_PDP_CONTEXT				"+CGDCONT: 0,"
 #define MODEM_HOME_NETWORK				"+CEREG: 0,1"
 #define MODEM_NOT_REGISTERED_NETWORK	"+CEREG: 0,2"
 #define MODEM_UNKNOWN_NETWORK			"+CEREG: 0,4"
 #define MODEM_ROAMING_NETWORK			"+CEREG: 0,5"
 #define MODEM_UICC_ERROR				"+CEREG: 0,90"
+
+#define CON_EVAL_ENERGY_BAD			5
+#define CON_EVAL_ENERGY_POOR		6
+#define CON_EVAL_ENERGY_NORMAL		7
+#define CON_EVAL_ENERGY_GOOD		8
+#define CON_EVAL_ENERGY_EXCELLENT	9
 
 #define CMD_MSG_NO_ERR				0x00
 #define CMD_MSG_FULLBUFFER_ERR		0x01
@@ -367,7 +375,7 @@ enum {
 #define CELL_NETWORK_CONNECT_TIMEOUT	(600) // In seconds
 #define TCP_SERVER_START_TIMEOUT		(60) // In seconds
 
-#define CELL_PACKET_DELAY_DEFAULT_VALUE		35
+#define CELL_PACKET_DELAY_DEFAULT_VALUE		0
 #define CELL_PACKET_DELAY_MIN_VALUE			0
 #define CELL_PACKET_DELAY_MAX_VALUE			5000
 
@@ -392,6 +400,23 @@ typedef struct
 	char cellModemImei[20];
 	char cellNetworkTime[28];
 } CELL_CONNECT_STATS_STRUCT;
+
+enum {
+	CELL_SIGNAL_NONE = 0,
+	CELL_SIGNAL_BAD,
+	CELL_SIGNAL_POOR,
+	CELL_SIGNAL_NORMAL_FAIR,
+	CELL_SIGNAL_GOOD,
+	CELL_SIGNAL_EXCELLENT,
+};
+
+typedef struct
+{
+	uint8_t energy;
+	uint8_t quality;
+	uint8_t power;
+	uint8_t snr;
+} CELL_SIGNAL_STRUCT;
 
 typedef struct
 {
