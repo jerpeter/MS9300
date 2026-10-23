@@ -212,19 +212,8 @@ void LoadRecordMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr,
 					break;
 
 				case (LEFT_ARROW_KEY):
-					debug("Expansion Loop Write test...\r\n");
-					MessageBox(getLangText(STATUS_TEXT), "EXPANSION LOOP WRITE ('U' every 5ms) UNTIL KEYPRESS", MB_OK);
-					SoftUsecWait(25 * SOFT_MSECS);
-					while (ScanKeypad() == KEY_NONE)
-					{
-						Expansion_UART_WriteCharacter(0x55);
-						SoftUsecWait(5 * SOFT_MSECS);
-					}
-					OverlayMessage(getLangText(STATUS_TEXT), "EXPANSION LOOP WRITE TEST DONE", (1 * SOFT_SECS));
-
+					break;
 				case (RIGHT_ARROW_KEY):
-					debug("Expansion Write U char test\r\n");
-					Expansion_UART_WriteCharacter(0x55);
 					break;
 
 				default:
