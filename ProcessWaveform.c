@@ -75,12 +75,8 @@ void MoveWaveformEventToFile(void)
 	uint16 hiA = 0, hiR = 0, hiV = 0, hiT = 0;
 	uint16 lowA = 0xFFFF, lowR = 0xFFFF, lowV = 0xFFFF, lowT = 0xFFFF;
 	uint16 scPeakA = 0, scPeakR = 0, scPeakV = 0, scPeakT = 0;
-	uint16 scFreqA = 0, scFreqR = 0, scFreqV = 0, scFreqT = 0;
-	uint16* scPeakAPtr = NULL;
-	uint16* scPeakRPtr = NULL;
-	uint16* scPeakVPtr = NULL;
-	uint16* scPeakTPtr = NULL;
 	uint8 calResults = SENSOR_CHECK_PASSED;
+	uint8 ss1status = 0, ss2status = 0, as1status = 0, as2status = 0;
 
 	UNUSED(compressSize); // Depends on debug on/off
 
@@ -230,36 +226,46 @@ void MoveWaveformEventToFile(void)
 					//=========================================================
 					// First channel - A
 					sample = *(g_currentEventSamplePtr + A_CHAN_OFFSET);
-					if (sample > hiA) { hiA = sample; } if (sample < lowA) { lowA = sample; } // Grab hi or low peak
-					normalizedData = FixDataToZero16Bit(sample);
-					if (normalizedData > scPeakA) { scPeakA = normalizedData; scPeakAPtr = (g_currentEventSamplePtr + A_CHAN_OFFSET); }
+					if (sample > hiA) { hiA = sample; }
+					if (sample < lowA) { lowA = sample; }
 
 					//=========================================================
 					// Second channel - R
 					sample = *(g_currentEventSamplePtr + R_CHAN_OFFSET);
-					if (sample > hiR) { hiR = sample; } if (sample < lowR) { lowR = sample; } // Grab hi or low peak
-					normalizedData = FixDataToZero16Bit(sample);
-					if (normalizedData > scPeakR) { scPeakR = normalizedData; scPeakRPtr = (g_currentEventSamplePtr + R_CHAN_OFFSET); }
+					if (sample > hiR) { hiR = sample; }
+					if (sample < lowR) { lowR = sample; }
 
 					//=========================================================
 					// Third channel - V
 					sample = *(g_currentEventSamplePtr + V_CHAN_OFFSET);
-					if (sample > hiV) { hiV = sample; } if (sample < lowV) { lowV = sample; } // Grab hi or low peak
-					normalizedData = FixDataToZero(sample);
-					if (normalizedData > scPeakV) { scPeakV = normalizedData; scPeakVPtr = (g_currentEventSamplePtr + V_CHAN_OFFSET); }
+					if (sample > hiV) { hiV = sample; }
+					 if (sample < lowV) { lowV = sample; }
 
 					//=========================================================
 					// Fourth channel - T
 					sample = *(g_currentEventSamplePtr + T_CHAN_OFFSET);
-					if (sample > hiT) { hiT = sample; } if (sample < lowT) { lowT = sample; } // Grab hi or low peak
-					normalizedData = FixDataToZero(sample);
-					if (normalizedData > scPeakT) { scPeakT = normalizedData; scPeakTPtr = (g_currentEventSamplePtr + T_CHAN_OFFSET); }
+					if (sample > hiT) { hiT = sample; }
+					if (sample < lowT) { lowT = sample; }
 #endif
 					if (g_bitShiftForAccuracy) AdjustSampleForBitAccuracy();
 					
 					g_currentEventSamplePtr += NUMBER_OF_CHANNELS_DEFAULT;
+
+					//debug("Wave SC: R: %d/%d, T: %d/%d, V: %d/%d, A: %d/%d\r\n", lowR, hiR, lowT, hiT, lowV, hiV, lowA, hiA);
 				}
 
+#if 1 /* New method to cache results of Sensor check, performed at 16-bit before bit accuracy adjustment */
+				//debug("Wave SC Final: R: %d/%d, T: %d/%d, V: %d/%d, A: %d/%d\r\n", lowR, hiR, lowT, hiT, lowV, hiV, lowA, hiA);
+				scPeakA = (uint16)(hiA - lowA + 1);
+				scPeakR = (uint16)(hiR - lowR + 1);
+				scPeakV = (uint16)(hiV - lowV + 1);
+				scPeakT = (uint16)(hiT - lowT + 1);
+				//debug("Wave SC Final: R: %d, T: %d, V: %d, A: %d\r\n", scPeakR, scPeakV, scPeakT, scPeakA);
+
+				SensorCheckChannelPeaks(scPeakR, scPeakV, scPeakT, scPeakA, &calResults, &ss1status, &ss2status, &as1status, &as2status);
+				CacheSensorCheckIndividualSensorResults(ss1status, ss2status, as1status, as2status);
+				CacheSensorCheckResults(calResults);
+#endif
 				waveformProcessingState = WAVE_CALCULATE;
 				break;
 
@@ -272,51 +278,6 @@ void MoveWaveformEventToFile(void)
 				g_pendingEventRecord.summary.calculated.v.frequency = CalcSumFreq(vWaveformPeakPtr, g_triggerRecord.trec.sample_rate, startOfEventPtr, endOfEventDataPtr);
 				g_pendingEventRecord.summary.calculated.t.frequency = CalcSumFreq(tWaveformPeakPtr, g_triggerRecord.trec.sample_rate, startOfEventPtr, endOfEventDataPtr);
 
-#if 1 /* New method to cache results of Sensor check, performed at 16-bit before bit accuracy adjustment */
-				scPeakA = (uint16)(hiA - lowA + 1);
-				scPeakR = (uint16)(hiR - lowR + 1);
-				scPeakV = (uint16)(hiV - lowV + 1);
-				scPeakT = (uint16)(hiT - lowT + 1);
-
-				scFreqA = CalcSumFreq(scPeakAPtr, SAMPLE_RATE_1K, endOfEventDataPtr, (endOfEventDataPtr + g_wordSizeInCal));
-				scFreqR = CalcSumFreq(scPeakRPtr, SAMPLE_RATE_1K, endOfEventDataPtr, (endOfEventDataPtr + g_wordSizeInCal));
-				scFreqV = CalcSumFreq(scPeakVPtr, SAMPLE_RATE_1K, endOfEventDataPtr, (endOfEventDataPtr + g_wordSizeInCal));
-				scFreqT = CalcSumFreq(scPeakTPtr, SAMPLE_RATE_1K, endOfEventDataPtr, (endOfEventDataPtr + g_wordSizeInCal));
-
-				// Todo: Check if Smart Sensor is active
-
-				if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR) || CheckIfSmartSensorPresent(ACOUSTIC_SENSOR_2))
-				{
-					if ((scPeakA < SENSOR_CHECK_LOW_THRESHOLD) || (scPeakA > SENSOR_CHECK_HIGH_THRESHOLD)) { calResults = SENSOR_CHECK_FAILED; }
-				}
-
-				if (CheckIfSmartSensorPresent(SEISMIC_SENSOR) || CheckIfSmartSensorPresent(SEISMIC_SENSOR_2))
-				{
-					if ((scPeakR < SENSOR_CHECK_LOW_THRESHOLD) || (scPeakR > SENSOR_CHECK_HIGH_THRESHOLD)) { calResults = SENSOR_CHECK_FAILED; }
-					if ((scPeakV < SENSOR_CHECK_LOW_THRESHOLD) || (scPeakV > SENSOR_CHECK_HIGH_THRESHOLD)) { calResults = SENSOR_CHECK_FAILED; }
-					if ((scPeakT < SENSOR_CHECK_LOW_THRESHOLD) || (scPeakT > SENSOR_CHECK_HIGH_THRESHOLD)) { calResults = SENSOR_CHECK_FAILED; }
-				}
-
-				if (CheckIfNoSmartSensorsPresent())
-				{
-					calResults = SENSOR_CHECK_FAILED;
-
-					// Todo: Determine how to handle Sensor Check passing even if no Smart Sensor is active
-					if ((scPeakA > SENSOR_CHECK_LOW_THRESHOLD) && (scPeakA < SENSOR_CHECK_HIGH_THRESHOLD)) { calResults = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR; }
-
-					if (((scPeakR > SENSOR_CHECK_LOW_THRESHOLD) && (scPeakR < SENSOR_CHECK_HIGH_THRESHOLD)) &&
-						((scPeakV > SENSOR_CHECK_LOW_THRESHOLD) && (scPeakV < SENSOR_CHECK_HIGH_THRESHOLD)) &&
-						((scPeakT > SENSOR_CHECK_LOW_THRESHOLD) && (scPeakT < SENSOR_CHECK_HIGH_THRESHOLD))) { calResults = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR; }
-				}
-
-				CacheSensorCheckResults(calResults);
-
-				// Todo: Log Sensor check results and data
-				UNUSED(scFreqA);
-				UNUSED(scFreqR);
-				UNUSED(scFreqV);
-				UNUSED(scFreqT);
-#endif
 				CompleteRamEventSummary();
 
 				CacheResultsEventInfo((EVT_RECORD*)&g_pendingEventRecord);
