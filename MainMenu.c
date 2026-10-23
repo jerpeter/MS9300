@@ -145,9 +145,6 @@ void MainMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN_LA
 				input = ENTER_KEY;
 			}
 
-#if 1 /* Test USB HC */
-extern void USBHostControllerTest(void);
-#endif
 			switch (input)
 			{
 				case (ENTER_KEY):
@@ -182,7 +179,7 @@ extern void USBHostControllerTest(void);
 							SETUP_MENU_MSG(LOAD_REC_MENU);
 							JUMP_TO_ACTIVE_MENU();
 							break;
-#if 1 /* Test sohrtcut to Cal Setup menu */
+#if 1 /* Test shortcut to Cal Setup menu */
 						case (DEFAULT_ROW_7): // Load Saved Record
 							ClearSoftTimer(MENU_UPDATE_TIMER_NUM);
 							g_keypadTable[SOFT_KEY_1] = KB_SK_1;
@@ -201,84 +198,15 @@ extern void USBHostControllerTest(void);
 					MainMenuScroll(DOWN, SELECT_MN_WND_LNS, mn_layout_ptr);
 					break;
 				case (UP_ARROW_KEY):
-#if 1 /* Original */
 					MainMenuScroll(UP, SELECT_MN_WND_LNS, mn_layout_ptr);
-#else /* Test */
-					USBCPortControllerSwapToHost();
-#endif
 					break;
 				case (LEFT_ARROW_KEY):
-#if 1 /* Original */
 					AdjustLcdContrast(DARKER);
-#elif 0 /* Test */
-					//debug("USB: Manually disconnecting (resource)...\r\n");
-					//MXC_USB_Disconnect();
-					if (GetPowerOnButtonState() == OFF)
-					{
-						debug("USB: Manually disconnecting and shutting down\r\n");
-						MXC_USB_Disconnect();
-						MXC_USB_Shutdown();
-
-						// Disable power blocks
-						debug("Power blocks: ADC, LCD, 12V, Cell, Expansion disabled\r\n");
-						PowerControl(ADC_RESET, ON);
-						PowerControl(LCD_POWER_ENABLE, OFF); g_lcdPowerFlag = DISABLED;
-						PowerControl(ENABLE_12V, OFF);
-						PowerControl(CELL_ENABLE, OFF);
-						PowerControl(EXPANSION_ENABLE, OFF);
-					}
-					else
-					{
-						g_led1State ^= ON;
-						debug("LED1: Toggling %s\r\n", ((g_led1State == ON) ? "On" : "Off"));
-						PowerControl(LED_1, g_led1State);
-					}
-#else /* Test */
-					debug("Calling SetupUsbMscFlashDriveAndFilesystem...\r\n");
-					SetupUsbMscFlashDriveAndFilesystem();
-					SoftUsecWait(1 * SOFT_SECS);
-					UsbMscFlashTestFile();
-#endif
 					break;
 				case (RIGHT_ARROW_KEY):
-#if 1 /* Original */
 					AdjustLcdContrast(LIGHTER);
-#elif 0 /* Test */
-					//debug("USB: Manually connecting (resource)...\r\n");
-					//MXC_USB_Connect();
-					if (GetPowerOnButtonState() == OFF)
-					{
-						PowerControl(EXPANSION_RESET, ON);
-						PowerControl(EXPANSION_ENABLE, OFF);
-						debug("Expansion: Sleep activated\r\n");
-						SetSmartSensorSleepState(ON);
-						debug("Smart sensor: Sleep activated\r\n");
-						PowerControl(LED_1, OFF);
-						PowerControl(LED_2, OFF);
-						debug("Keypad LEDs: Off\r\n");
-					}
-					else
-					{
-						g_led2State ^= ON;
-						debug("LED2: Toggling %s\r\n", ((g_led2State == ON) ? "On" : "Off"));
-						PowerControl(LED_2, g_led2State);
-					}
-#else /* Test USB HC */
-//extern void USBHostControllerTest(void);
-					debug("Calling USBHostControllerTest...\r\n");
-					OverlayMessage(getLangText(STATUS_TEXT), "CHECKING...", 0);
-					USBHostControllerTest();
-#endif
 					break;
 				case (ESC_KEY):
-#if 0 /* Test */
-					if (GetPowerOnButtonState() == ON)
-					{
-						g_mscDelayState ^= ON;
-						debug("USB: Toggling MSC delay (%s)\r\n", ((g_mscDelayState == ON) ? "On" : "Off"));
-					}
-					else
-#endif
 					// Reset the current line to tbe the top line	
 					mn_layout_ptr->curr_ln = 3;
 					break;
