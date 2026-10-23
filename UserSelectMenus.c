@@ -1534,8 +1534,8 @@ void BitAccuracyMenuHandler(uint8 keyPressed, void* data)
 USER_MENU_STRUCT cellTcpServerMenu[CELL_TCP_SERVER_MENU_ENTRIES] = {
 {LISTEN_FOR_REMOTE_CONNECT_TAG, 0, NULL_TEXT, NO_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, CELL_TCP_SERVER_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
-{ITEM_1, 0, NULL_TEXT, NO_AUTO_DIALOUT_ONLY_TAG, {NO}},
-{ITEM_2, 0, NULL_TEXT, YES_KEEP_MODEM_ONLINE_TAG, {YES}},
+{ITEM_1, 0, NULL_TEXT, YES_KEEP_MODEM_ONLINE_TAG, {YES}},
+{ITEM_2, 0, NULL_TEXT, NO_AUTO_DIALOUT_ONLY_TAG, {NO}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&CellTcpServerMenuHandler}}
 };
 
@@ -1549,34 +1549,34 @@ void CellTcpServerMenuHandler(uint8 keyPressed, void* data)
 
 	if (keyPressed == ENTER_KEY)
 	{
-		g_cellModemSetupRecord.tcpServer = (uint8)cellTcpServerMenu[newItemIndex].data;
+		g_allModemSetupRecord.cell.tcpServer = (uint8)cellTcpServerMenu[newItemIndex].data;
 
 #if 0 /* Original */
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_allModemSetupRecord.ext.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
 #else
-		if (g_cellModemSetupRecord.tcpServer == YES)
+		if (g_allModemSetupRecord.cell.tcpServer == YES)
 		{
-			SETUP_USER_MENU_FOR_INTEGERS_MSG(&tcpServerListenPortMenu, &g_cellModemSetupRecord.tcpServerListenPort, TCP_SERVER_LISTEN_PORT_DEFAULT_VALUE, TCP_SERVER_LISTEN_PORT_MIN_VALUE, TCP_SERVER_LISTEN_PORT_MAX_VALUE);
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&tcpServerListenPortMenu, &g_allModemSetupRecord.cell.tcpServerListenPort, TCP_SERVER_LISTEN_PORT_DEFAULT_VALUE, TCP_SERVER_LISTEN_PORT_MIN_VALUE, TCP_SERVER_LISTEN_PORT_MAX_VALUE);
 		}
 		else
 		{
 #if 0 /* Original */
-			SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_allModemSetupRecord.ext.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
 #else /* New Cell Packet Delay */
-			SETUP_USER_MENU_FOR_INTEGERS_MSG(&cellPacketDelayMenu, &g_cellModemSetupRecord.packetDelay, CELL_PACKET_DELAY_DEFAULT_VALUE, CELL_PACKET_DELAY_MIN_VALUE, CELL_PACKET_DELAY_MAX_VALUE);
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&cellPacketDelayMenu, &g_allModemSetupRecord.cell.packetDelay, CELL_PACKET_DELAY_DEFAULT_VALUE, CELL_PACKET_DELAY_MIN_VALUE, CELL_PACKET_DELAY_MAX_VALUE);
 #endif
 		}
 #endif
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		if (g_cellModemSetupRecord.pdnAuthProtocol == AUTH_NONE)
+		if (g_allModemSetupRecord.cell.pdnAuthProtocol == AUTH_NONE)
 		{
-			SETUP_USER_MENU_MSG(&pdnAuthProtocolMenu, g_cellModemSetupRecord.pdnAuthProtocol);
+			SETUP_USER_MENU_MSG(&pdnAuthProtocolMenu, g_allModemSetupRecord.cell.pdnAuthProtocol);
 		}
 		else
 		{
-			SETUP_USER_MENU_MSG(&pdnPasswordMenu, &g_cellModemSetupRecord.pdnPassword);
+			SETUP_USER_MENU_MSG(&pdnPasswordMenu, &g_allModemSetupRecord.cell.pdnPassword);
 		}
 	}
 
@@ -1588,7 +1588,7 @@ void CellTcpServerMenuHandler(uint8 keyPressed, void* data)
 // Config Menu
 //=============================================================================
 //*****************************************************************************
-#define CONFIG_MENU_ENTRIES 39
+#define CONFIG_MENU_ENTRIES 38
 USER_MENU_STRUCT configMenu[CONFIG_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, CONFIG_OPTIONS_MENU_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, CONFIG_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
@@ -1600,7 +1600,9 @@ USER_MENU_STRUCT configMenu[CONFIG_MENU_ENTRIES] = {
 {NO_TAG, 0, BAR_LIVE_MONITOR_TEXT,		NO_TAG, {BAR_LIVE_MONITOR}},
 {NO_TAG, 0, BATTERY_TEXT,				NO_TAG, {BATTERY}},
 {NO_TAG, 0, NULL_TEXT,			BATTERY_LOG_TAG, {BATTERY_LOG_TIMER}},
+#if 0 /* Used for Expansion baud change */
 {NO_TAG, 0, BAUD_RATE_TEXT,				NO_TAG, {BAUD_RATE}},
+#endif
 {NO_TAG, 0, CALIBRATION_DATE_TEXT,		NO_TAG, {CALIBRATION_DATE}},
 #if 1 /* Rename of Modem Setup */
 {NO_TAG, 0, NULL_TEXT,		CELL_MODEM_SETUP_TAG, {MODEM_SETUP}},
@@ -1788,7 +1790,7 @@ void ConfigMenuHandler(uint8 keyPressed, void* data)
 					}
 				}
 
-				SETUP_USER_MENU_MSG(&modemSetupMenu, g_modemSetupRecord.modemStatus);
+				SETUP_USER_MENU_MSG(&modemSetupMenu, g_allModemSetupRecord.ext.modemStatus);
 			break;
 
 			case (MONITOR_LOG):
@@ -2133,10 +2135,10 @@ void EraseSettingsMenuHandler(uint8 keyPressed, void* data)
 			SaveRecordData(&g_unitConfig, DEFAULT_RECORD, REC_UNIT_CONFIG_TYPE);
 
 			// Clear out modem setup and save
-			memset(&g_modemSetupRecord, 0, sizeof(g_modemSetupRecord));
-			g_modemSetupRecord.modemStatus = NO;
+			memset(&g_allModemSetupRecord.ext, 0, sizeof(g_allModemSetupRecord.ext));
+			g_allModemSetupRecord.ext.modemStatus = NO;
 			ClearSoftTimer(SYSTEM_LOCK_TIMER_NUM);
-			SaveRecordData(&g_modemSetupRecord, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
+			SaveRecordData(&g_allModemSetupRecord.ext, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
 
 			// Clear out Monitor Log unique ID
 			memset(&monitorLogRecord, 0, sizeof(monitorLogRecord));
@@ -2558,22 +2560,24 @@ extern void USBHostControllerTest(void);
 			USBHostControllerTest();
 #endif
 		}
+#if 0 /* No longer have hardware for eSIM */
 		else if (helpMenu[newItemIndex].data == CELL_LTE_ESIM_SELECT)
 		{
 			sprintf(buildString, "SELECT eSIM AS CELL SIM SOUIRCE? NOTE: PHYSICAL SIM MUST BE REMOVED FOR eSIM to WORK");
 			if (MessageBox(getLangText(SELECT_TEXT), buildString, MB_YESNO) == MB_FIRST_CHOICE)
 			{
-				g_cellModemSetupRecord.eSimSelect = YES;
+				g_allModemSetupRecord.cell.eSimSelect = YES;
 				debug("CELL/LTE: eSIM selected\r\n");
-				SaveRecordData(&g_cellModemSetupRecord, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
+				SaveRecordData(&g_allModemSetupRecord.cell, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
 			}
 			else
 			{
-				g_cellModemSetupRecord.eSimSelect = NO;
+				g_allModemSetupRecord.cell.eSimSelect = NO;
 				debug("CELL/LTE: Physical SIM selected\r\n");
-				SaveRecordData(&g_cellModemSetupRecord, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
+				SaveRecordData(&g_allModemSetupRecord.cell, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
 			}
 		}
+#endif
 		else if (helpMenu[newItemIndex].data == ACC_COMPANION_EVENT_CHOICE)
 		{
 #if 1 /* Test Acc companion event */
@@ -2669,7 +2673,7 @@ extern void USBHostControllerCopyFirmwareFiles(void);
 				while (GetPowerOnButtonState() == OFF)
 				{
 					debug("AT...\r\n"); sprintf((char*)g_spareBuffer, "AT\r\n"); strLen = (int)strlen((char*)g_spareBuffer); MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen);
-					{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+					CheckAndHandleRemoteResponseWithDelay((500 * SOFT_MSECS));
 				}
 
 				OverlayMessage(getLangText(STATUS_TEXT), "CELL MODEM TEST STOPPED", (3 * SOFT_SECS));
@@ -2953,27 +2957,27 @@ void ModemDialOutTypeMenuHandler(uint8 keyPressed, void* data)
 
 	if (keyPressed == ENTER_KEY)
 	{
-		g_modemSetupRecord.dialOutType = (uint16)(modemDialOutTypeMenu[newItemIndex].data);
+		g_allModemSetupRecord.ext.dialOutType = (uint16)(modemDialOutTypeMenu[newItemIndex].data);
 
-		if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
+		if (g_allModemSetupRecord.ext.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
 		{
-			SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemDialOutCycleTimeMenu, &g_modemSetupRecord.dialOutCycleTime, MODEM_DIAL_OUT_TIMER_DEFAULT_VALUE, MODEM_DIAL_OUT_TIMER_MIN_VALUE, MODEM_DIAL_OUT_TIMER_MAX_VALUE);
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemDialOutCycleTimeMenu, &g_allModemSetupRecord.ext.dialOutCycleTime, MODEM_DIAL_OUT_TIMER_DEFAULT_VALUE, MODEM_DIAL_OUT_TIMER_MIN_VALUE, MODEM_DIAL_OUT_TIMER_MAX_VALUE);
 		}
 		else
 		{
 #if 0 /* Original */
-			SETUP_USER_MENU_MSG(&modemResetMenu, &g_modemSetupRecord.reset);
+			SETUP_USER_MENU_MSG(&modemResetMenu, &g_allModemSetupRecord.ext.reset);
 #else
-			SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryMenu, &g_modemSetupRecord.retries, MODEM_RETRY_DEFAULT_VALUE, MODEM_RETRY_MIN_VALUE, MODEM_RETRY_MAX_VALUE);
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryMenu, &g_allModemSetupRecord.ext.retries, MODEM_RETRY_DEFAULT_VALUE, MODEM_RETRY_MIN_VALUE, MODEM_RETRY_MAX_VALUE);
 #endif
 		}
 	}
 	else if (keyPressed == ESC_KEY)
 	{
 #if 0 /* Original */
-		SETUP_USER_MENU_MSG(&modemDialMenu, &g_modemSetupRecord.dial);
+		SETUP_USER_MENU_MSG(&modemDialMenu, &g_allModemSetupRecord.ext.dial);
 #else
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&adoServerPortMenu, &g_cellModemSetupRecord.serverPort, ADO_SERVER_PORT_DEFAULT_VALUE, ADO_SERVER_PORT_MIN_VALUE, ADO_SERVER_PORT_MAX_VALUE);
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&adoServerPortMenu, &g_allModemSetupRecord.cell.serverPort, ADO_SERVER_PORT_DEFAULT_VALUE, ADO_SERVER_PORT_MIN_VALUE, ADO_SERVER_PORT_MAX_VALUE);
 #endif
 	}
 
@@ -3006,24 +3010,24 @@ void ModemSetupMenuHandler(uint8 keyPressed, void* data)
 {
 	INPUT_MSG_STRUCT mn_msg = {0, 0, {}};
 	uint16 newItemIndex = *((uint16*)data);
-	uint8_t previousModemStatus = g_modemSetupRecord.modemStatus;
+	uint8_t previousModemStatus = g_allModemSetupRecord.ext.modemStatus;
 
 	if (keyPressed == ENTER_KEY)
 	{
-		g_modemSetupRecord.modemStatus = (uint16)(modemSetupMenu[newItemIndex].data);
+		g_allModemSetupRecord.ext.modemStatus = (uint16)(modemSetupMenu[newItemIndex].data);
 
 #if 0 /* Test - USB CDC/ACM serial tunneling to Cell/LTE module */
 		OverlayMessage(getLangText(WARNING_TEXT), "MODEM SETUP DISABLED FOR SERIAL TUNNEL TESTING", (2 * SOFT_SECS));
 		debugWarn("Modem setup: Disabled for testing\r\n");
-		g_modemSetupRecord.modemStatus = NO;
+		g_allModemSetupRecord.ext.modemStatus = NO;
 #endif
 
-		if (g_modemSetupRecord.modemStatus == YES)
+		if (g_allModemSetupRecord.ext.modemStatus == YES)
 		{
 #if 0 /* Original */
-			SETUP_USER_MENU_MSG(&modemInitMenu, &g_modemSetupRecord.init);
+			SETUP_USER_MENU_MSG(&modemInitMenu, &g_allModemSetupRecord.ext.init);
 #else
-			SETUP_USER_MENU_MSG(&adoServerMenu, &g_cellModemSetupRecord.server);
+			SETUP_USER_MENU_MSG(&adoServerMenu, &g_allModemSetupRecord.cell.server);
 #endif
 			if (g_modemStatus.systemIsLockedFlag == NO) { AssignSoftTimer(SYSTEM_LOCK_TIMER_NUM, REMOTE_SYSTEM_LOCK_TIMEOUT, SystemLockTimerCallback); }
 		}
@@ -3058,10 +3062,10 @@ void ModemSetupMenuHandler(uint8 keyPressed, void* data)
 				PowerControl(CELL_ENABLE, OFF);
 			}
 
-			g_cellModemSetupRecord.tcpServer = NO;
+			g_allModemSetupRecord.cell.tcpServer = NO;
 
-			SaveRecordData(&g_modemSetupRecord, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
-			SaveRecordData(&g_cellModemSetupRecord, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
+			SaveRecordData(&g_allModemSetupRecord.ext, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
+			SaveRecordData(&g_allModemSetupRecord.cell, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
 			SETUP_USER_MENU_MSG(&configMenu, DEFAULT_ITEM_1);
 		}
 	}
@@ -3145,21 +3149,21 @@ void PdnAuthProtocolMenuHandler(uint8 keyPressed, void* data)
 
 	if (keyPressed == ENTER_KEY)
 	{
-		g_cellModemSetupRecord.pdnAuthProtocol = (uint8)pdnAuthProtocolMenu[newItemIndex].data;
-		debug("PDN Auth Protocol: %d\r\n", g_cellModemSetupRecord.pdnAuthProtocol);
+		g_allModemSetupRecord.cell.pdnAuthProtocol = (uint8)pdnAuthProtocolMenu[newItemIndex].data;
+		debug("PDN Auth Protocol: %d\r\n", g_allModemSetupRecord.cell.pdnAuthProtocol);
 
-		if (g_cellModemSetupRecord.pdnAuthProtocol == AUTH_NONE)
+		if (g_allModemSetupRecord.cell.pdnAuthProtocol == AUTH_NONE)
 		{
-			SETUP_USER_MENU_MSG(&cellTcpServerMenu, g_cellModemSetupRecord.tcpServer);
+			SETUP_USER_MENU_MSG(&cellTcpServerMenu, g_allModemSetupRecord.cell.tcpServer);
 		}
 		else // Setup Username and Password
 		{
-			SETUP_USER_MENU_MSG(&pdnUsernameMenu, &g_cellModemSetupRecord.pdnUsername);
+			SETUP_USER_MENU_MSG(&pdnUsernameMenu, &g_allModemSetupRecord.cell.pdnUsername);
 		}
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_MSG(&accessPointNameMenu, &g_cellModemSetupRecord.pdnApn);
+		SETUP_USER_MENU_MSG(&accessPointNameMenu, &g_allModemSetupRecord.cell.pdnApn);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
