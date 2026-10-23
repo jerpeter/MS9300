@@ -1260,6 +1260,9 @@ void CopyDataToMenu(MN_LAYOUT_STRUCT* menu_layout)
 				{
 					// Copy the rest of the chars to the current row
 					strcpy(g_userMenuCachePtr[tempRow].text, (char*)&(g_userMenuCacheData.text[(tempRow - 2) * 20]));
+#if 1 /* Test adding in a end marker */
+					strcat(g_userMenuCachePtr[tempRow].text, "<end>");
+#endif
 				}
 
 				// Set the current line and sub line (column)
