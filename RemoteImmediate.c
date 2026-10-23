@@ -43,6 +43,9 @@
 ///	Local Scope Globals
 ///----------------------------------------------------------------------------
 static VMLx_XFER_STRUCT s_vmlXferStruct;
+#if 1 /* Add option to allow mimicking 8100 unit with unlock code */
+uint8_t g_remoteMimic8100 = NO;
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -64,17 +67,27 @@ void HandleUNL(CMD_BUFFER_STRUCT* inCmd)
 
 	memset(&tempStr[0], 0, sizeof(tempStr));
 
-	sprintf(unlStr,"%04d", g_modemSetupRecord.unlockCode);
+	sprintf(unlStr,"%04d", g_allModemSetupRecord.ext.unlockCode);
 
 	if (0 == strncmp((const char*)(unlStr), (const char*)dataStart, UNLOCK_CODE_SIZE))
 	{
 		matchFlag = YES;
+#if 0 /* Original */
 		strcpy(tempStr, (char*)UNL_USER_RESP_STRING);
+#else
+		if (g_remoteMimic8100 == YES) { strcpy(tempStr, (char*)UNL_USER_RESP_STRING_MIMIC_8100); }
+		else { strcpy(tempStr, (char*)UNL_USER_RESP_STRING); }
+#endif
 	}
 	else if (0 == strncmp((const char*)UNLOCK_CODE_DEFAULT, (const char*)dataStart, UNLOCK_CODE_SIZE))
 	{
 		matchFlag = YES;
+#if 0 /* Original */
 		strcpy(tempStr, (char*)UNL_USER_RESP_STRING);
+#else
+		if (g_remoteMimic8100 == YES) { strcpy(tempStr, (char*)UNL_USER_RESP_STRING_MIMIC_8100); }
+		else { strcpy(tempStr, (char*)UNL_USER_RESP_STRING); }
+#endif
 	}
 	else if (0 == strncmp((const char*)UNLOCK_CODE_ADMIN, (const char*)dataStart, UNLOCK_CODE_SIZE))
 	{
@@ -732,7 +745,10 @@ void HandleGAD(CMD_BUFFER_STRUCT* inCmd)
 	// Pulling cached Sensor Check state
 	tempAutoDialout.sensorCheckStatus = g_lastSensorCheck.state;
 #endif
-
+#if 1 /* Add in new Low Battery status */
+	if (g_lowBatteryState == YES) { tempAutoDialout.lowBatteryStatus = YES; }
+	else { tempAutoDialout.lowBatteryStatus = NO; }
+#endif
 	// Transmit a carrige return line feed
 	if (ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe) == MODEM_SEND_FAILED)
 	{
@@ -910,9 +926,11 @@ void HandleGSS(CMD_BUFFER_STRUCT* inCmd)
 	uint32 dataLength;
 	uint8 msgTypeStr[HDR_TYPE_LEN+2];
 	uint8 gssHdr[MESSAGE_HEADER_SIMPLE_LENGTH];
-	SENSOR_CHECK_STATUS_STRUCT tempSensorCheckStatus = g_lastSensorCheck;
+	SENSOR_CHECK_STATUS_STRUCT tempSCS = g_lastSensorCheck;
 
 	UNUSED(inCmd);
+
+	debug("GSS: Sensor check status: %d, individual sensor state: SS1: %d, SS2: %d, AS1: %d, AS2: %d\r\n", tempSCS.state, tempSCS.seismicSensorStatus, tempSCS.seismic2SensorStatus, tempSCS.acousticSensorStatus, tempSCS.acoustic2SensorStatus);
 
 	// Transmit a carrige return line feed
 	if (ModemPuts((uint8*)&g_CRLF, 2, NO_CONVERSION, inCmd->pipe) == MODEM_SEND_FAILED)
@@ -952,10 +970,10 @@ void HandleGSS(CMD_BUFFER_STRUCT* inCmd)
 	// No Endian conversion needed for structure (currently all single byte storage)
 #endif
 	// Calculate the CRC on the data
-	g_transmitCRC = CalcCCITT32((uint8*)&tempSensorCheckStatus, sizeof(SENSOR_CHECK_STATUS_STRUCT), g_transmitCRC);
+	g_transmitCRC = CalcCCITT32((uint8*)&tempSCS, sizeof(SENSOR_CHECK_STATUS_STRUCT), g_transmitCRC);
 
 	// Send the data out the modem
-	if (ModemPuts((uint8*)&tempSensorCheckStatus, sizeof(SENSOR_CHECK_STATUS_STRUCT), g_binaryXferFlag, inCmd->pipe) == MODEM_SEND_FAILED)
+	if (ModemPuts((uint8*)&tempSCS, sizeof(SENSOR_CHECK_STATUS_STRUCT), g_binaryXferFlag, inCmd->pipe) == MODEM_SEND_FAILED)
 	{
 		// There was an error, so reset all global transfer and status fields
 		g_modemStatus.xferMutex = NO;
@@ -1503,7 +1521,7 @@ void HandleESC(CMD_BUFFER_STRUCT* inCmd)
 
 	debug("Remote Handler: Escape sequence found\r\n");
 
-	if (g_cellModemSetupRecord.tcpServer == YES)
+	if (g_allModemSetupRecord.cell.tcpServer == YES)
 	{
 		// Need to relock the system
 		RemoteSystemLock(SET);
@@ -1513,15 +1531,16 @@ void HandleESC(CMD_BUFFER_STRUCT* inCmd)
 
 #if 0 /* Original */
 		// Need to re-enter datamode for the TCP server
-		int strLen, status;
 		SoftUsecWait(1 * SOFT_SECS);
-		debug("<Escape sequence>...\r\n"); sprintf((char*)g_spareBuffer, "+++---\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+		debug("<Escape sequence>...\r\n"); sprintf((char*)g_spareBuffer, "+++---\r\n");
+		SendCommandToCellModem((char*)g_spareBuffer);
 		SoftUsecWait(1 * SOFT_SECS);
-		debug("AT#XTCPSEND\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+		debug("AT#XTCPSEND\r\n"); sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n");
+		SendCommandToCellModem((char*)g_spareBuffer);
 #else /* Test */
 		// Delay entering Data mode until the remote conneciton is active due to the rare occasion where the cell modem seems to drop data mode without notificaiton
-		int strLen, status;
-		debug("<Escape sequence>...\r\n"); sprintf((char*)g_spareBuffer, "+++---\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+		debug("<Escape sequence>...\r\n"); sprintf((char*)g_spareBuffer, "+++---\r\n");
+		SendCommandToCellModem((char*)g_spareBuffer);
 #endif
 	}
 
@@ -2072,12 +2091,12 @@ void HandleDEM(CMD_BUFFER_STRUCT* inCmd)
 		g_demXferStructPtr->errorStatus = MODEM_SEND_SUCCESS;
 
 		// Reset flag to always attempt compression
-#if 0 /* Normal operation */
+#if 0 /* Original operation to force compression */
 		g_demXferStructPtr->downloadMethod = COMPRESS_MINILZO;
 #elif 0 /* Temp disable compression */
 		// Todo: Update MiniLZO compression to work directly from stored event before reversing logic
 		g_demXferStructPtr->downloadMethod = COMPRESS_NONE;
-#else
+#else /* Check if remote rquested plain or compressed */
 		// Check if no compression requested
 		if ((g_inCmdHeaderPtr->compressCrcFlags[0] - 0x30) == COMPRESS_NONE)
 		{
@@ -2307,9 +2326,9 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 					debug("<DEM HSE>\r\n");
 
 #if 1 /* Test small delay in between packets for cell transfers */
-					if ((GetPowerControlState(CELL_ENABLE) == ON) && (g_cellModemSetupRecord.packetDelay > CELL_PACKET_DELAY_MIN_VALUE) && (g_cellModemSetupRecord.packetDelay < CELL_PACKET_DELAY_MAX_VALUE))
+					if ((GetPowerControlState(CELL_ENABLE) == ON) && (g_allModemSetupRecord.cell.packetDelay > CELL_PACKET_DELAY_MIN_VALUE) && (g_allModemSetupRecord.cell.packetDelay < CELL_PACKET_DELAY_MAX_VALUE))
 					{
-						SoftUsecWait(g_cellModemSetupRecord.packetDelay * SOFT_MSECS);
+						SoftUsecWait(g_allModemSetupRecord.cell.packetDelay * SOFT_MSECS);
 					}
 #endif
 				}
@@ -2419,9 +2438,9 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 					debug("<DEM HSE>\r\n");
 
 #if 1 /* Test small delay in between packets for cell transfers */
-					if ((GetPowerControlState(CELL_ENABLE) == ON) && (g_cellModemSetupRecord.packetDelay > CELL_PACKET_DELAY_MIN_VALUE) && (g_cellModemSetupRecord.packetDelay < CELL_PACKET_DELAY_MAX_VALUE))
+					if ((GetPowerControlState(CELL_ENABLE) == ON) && (g_allModemSetupRecord.cell.packetDelay > CELL_PACKET_DELAY_MIN_VALUE) && (g_allModemSetupRecord.cell.packetDelay < CELL_PACKET_DELAY_MAX_VALUE))
 					{
-						SoftUsecWait(g_cellModemSetupRecord.packetDelay * SOFT_MSECS);
+						SoftUsecWait(g_allModemSetupRecord.cell.packetDelay * SOFT_MSECS);
 					}
 #endif
 				}
@@ -2490,6 +2509,8 @@ void prepareDEMDataToSend(COMMAND_MESSAGE_HEADER* inCmdHeaderPtr)
 	//----------------------------------------------------
 	// Send data lengths, CRC and end of transmission
 	//----------------------------------------------------
+	debug("DEM: Event Record Xfer len: %d, Event Data Xfer len: %d\r\n", eventRecordXferLength, eventDataXferLength);
+
 	dataLength = sizeof(uint32);
 	// send the compressed size of the event record; sizeof(uint32) = 4.
 #if ENDIAN_CONVERSION
