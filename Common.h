@@ -34,12 +34,14 @@
 #define EVT_FILE		"Evt"
 #define EVTS_SUB_DIR	"Evts"
 
-#define SUMMARY_LIST_FILE			"SummaryList.bin"
-#define MONITOR_LOG_BIN_FILE		"MonitorLog.ns8"
-#define MONITOR_LOG_READABLE_FILE	"MonitorLogReadable.txt"
-#define ON_OFF_READABLE_FILE		"OnOffLogReadable.txt"
-#define EXCEPTION_REPORT_FILE		"ExceptionReport.txt"
-#define BATTERY_LOG_FILE			"BatteryLogReadable.txt"
+#define SUMMARY_LIST_FILE				"SummaryList.bin"
+#define MONITOR_LOG_BIN_FILE			"MonitorLog.ns8"
+#define MONITOR_LOG_READABLE_FILE		"MonitorLogReadable.txt"
+#define ON_OFF_READABLE_FILE			"OnOffLogReadable.txt"
+#define EXCEPTION_REPORT_FILE			"ExceptionReport.txt"
+#define BATTERY_LOG_FILE				"BatteryLogReadable.txt"
+#define SENSOR_CHECK_LOG_FILE			"SensorCheckLog.bin"
+#define SENSOR_CHECK_LOG_READABLE_FILE	"SensorCheckLogReadable.txt"
 
 #define MAX_FILE_NAME_CHARS		255
 #define MAX_TEXT_LINE_CHARS		255
@@ -1091,9 +1093,12 @@ uint8_t GetPowerGood5vState(void);
 uint8_t GetPowerGoodBatteryChargerState(void);
 uint8_t GetPowerOnButtonState(void);
 uint8_t GetLteOtaState(void);
-void CellModemSimSelector(uint8_t eSimSelect);
 uint8_t GetSmartSensorMuxEnableState(void);
 uint8_t GetCalMuxPreADSelectState(void);
+
+#if 0 /* No longer have hardware for eSIM */
+void CellModemSimSelector(uint8_t eSimSelect);
+#endif
 
 // GPIO Control extensions
 void SetSmartSensorSleepState(uint8_t state);
@@ -1169,7 +1174,7 @@ void Battery_charger_irq(void);
 void Expansion_irq(void);
 void Usbc_port_controller_i2c_irq(void);
 void Power_good_battery_charger_irq(void);
-#if 1 /* Test */
+#if 0 /* Test hardware mod for Sensor detect concept */
 void Sensor_detect_using_lte_ota_mod_irq(void);
 #endif
 void Sensor_detect_1_irq(void);
@@ -1259,5 +1264,9 @@ void SetupCellModuleRxUART(void);
 void SetupCellModuleTxUART(void);
 void ShutdownCellModuleRxUART(void);
 void ShutdownCellModuleTxUART(void);
+
+// Debug/Logging
+void WriteDebugCacheToFile(uint8_t flush);
+void StartBatteryLog(void);
 
 #endif // _COMMON_H_
