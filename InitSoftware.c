@@ -171,7 +171,7 @@ void LoadUnitConfig(void)
 		}
 #endif
 
-#if 1 /* Enable only when using the Expansion RS232 */
+#if 0 /* Enable only when using the Expansion RS232 */
 		ExpansionBridgeChangeBaud(g_unitConfig.baudRate);
 #endif
 
@@ -187,10 +187,10 @@ void LoadUnitConfig(void)
 ///----------------------------------------------------------------------------
 void LoadModemSetupRecord(void)
 {
-	GetRecordData(&g_modemSetupRecord, 0, REC_MODEM_SETUP_TYPE);
+	GetRecordData(&g_allModemSetupRecord.ext, 0, REC_MODEM_SETUP_TYPE);
 
 	// Check if the Modem Setup Record is invalid
-	if (g_modemSetupRecord.invalid)
+	if (g_allModemSetupRecord.ext.invalid)
 	{
 		// Warn the user
 		debugWarn("Modem setup record not found.\r\n");
@@ -199,7 +199,7 @@ void LoadModemSetupRecord(void)
 		LoadModemSetupRecordDefaults();
 
 		// Save the Modem Setup Record
-		SaveRecordData(&g_modemSetupRecord, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
+		SaveRecordData(&g_allModemSetupRecord.ext, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
 	}
 	else
 	{
@@ -215,10 +215,10 @@ void LoadModemSetupRecord(void)
 ///----------------------------------------------------------------------------
 void LoadCellModemSetupRecord(void)
 {
-	GetRecordData(&g_cellModemSetupRecord, 0, REC_CELL_MODEM_SETUP_TYPE);
+	GetRecordData(&g_allModemSetupRecord.cell, 0, REC_CELL_MODEM_SETUP_TYPE);
 
 	// Check if the Cell Modem Setup Record is invalid
-	if (g_cellModemSetupRecord.invalid)
+	if (g_allModemSetupRecord.cell.invalid)
 	{
 		// Warn the user
 		debugWarn("Cell Modem setup record not found.\r\n");
@@ -227,7 +227,7 @@ void LoadCellModemSetupRecord(void)
 		LoadCellModemSetupRecordDefaults();
 
 		// Save the Cell Modem Setup Record
-		SaveRecordData(&g_cellModemSetupRecord, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
+		SaveRecordData(&g_allModemSetupRecord.cell, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
 	}
 	else
 	{
@@ -497,7 +497,6 @@ void InitSoftwareSettings_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Create Battery log
 	//-------------------------------------------------------------------------
-extern void StartBatteryLog(void);
 	StartBatteryLog();
 
 	//-------------------------------------------------------------------------
