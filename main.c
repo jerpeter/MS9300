@@ -196,6 +196,13 @@ void SystemEventManager(void)
 					(double)(GetExternalVoltageLevelAveraged(BATTERY_VOLTAGE)), getLangText(PLEASE_CHARGE_BATTERY_TEXT));
 			OverlayMessage(getLangText(WARNING_TEXT), (char*)g_spareBuffer, (1 * SOFT_SECS));
 
+#if 1 /* Attempt ADO to alert for low battery */
+			if (g_lowBatteryState == NO)
+			{
+				// Check if AutoDialout is enabled and signal the server if able
+				CheckAutoDialoutStatusAndFlagIfAvailable();
+			}
+#endif
 			g_lowBatteryState = YES;
 		}
 	}
@@ -352,7 +359,6 @@ uint8_t* tps25750_get_rx_sink_cap(void);
 		CheckForCycleChange();
 
 #if 1 /* Test */
-extern void WriteDebugCacheToFile(uint8_t flush);
 		WriteDebugCacheToFile(0);
 #endif
 	}
@@ -493,7 +499,7 @@ extern uint8_t seismicSensorDetectChange;
 				CacheSensorCheckResults(SENSOR_CHECK_FAILED);
 
 				// Check if AutoDialout is enabled and signal the system if necessary to alert that a sensor was removed
-				debug("Hardware sensor detect: Attempting ADO to signal loss of a sensor during monitoring");
+				debug("Hardware sensor detect: Attempting ADO to signal loss of a sensor during monitoring\r\n");
 				CheckAutoDialoutStatusAndFlagIfAvailable();
 			}
 		}
@@ -707,7 +713,7 @@ void CraftManager(void)
 	}
 	else
 	{
-		if ((YES == g_modemSetupRecord.modemStatus) && (CONNECTED == g_modemStatus.connectionState))
+		if ((YES == g_allModemSetupRecord.ext.modemStatus) && (CONNECTED == g_modemStatus.connectionState))
 		{
 			g_modemStatus.connectionState = NOP_CMD;
 			RemoteSystemLock(SET);
