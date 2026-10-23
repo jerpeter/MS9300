@@ -395,8 +395,8 @@ void WriteMapToLcd(uint8 (*g_mmap_ptr)[128])
 	// Swap back to default blue text
 	ft81x_stream_start(); ft81x_color_rgb32(0x0000ff); ft81x_stream_stop();
 
-#if 1 /* Test display of Battery information */
-	if (g_promtForLeavingMonitorMode != TRUE)
+#if 1 /* Test display of Battery and extra information */
+	if ((g_promtForLeavingMonitorMode != TRUE) && (g_activeMenu != CAL_SETUP_MENU))
 	{
 		char debugInfo[128];
 		sprintf(debugInfo, "Battery: %0.3fV", (double)((float)FuelGaugeGetVoltage() / 1000));
@@ -431,19 +431,41 @@ extern uint16_t g_bgFileErrors;
 		ft81x_stream_start(); ft81x_cmd_text(550, 140, 28, 0, debugInfo); ft81x_stream_stop();
 
 		// Check if the Cell Modem is actvie (and only display when the LCD screen is being updated or monitoring)
-		if ((g_modemSetupRecord.modemStatus == YES) && ((IsSoftTimerActive(MENU_UPDATE_TIMER_NUM)) || (g_sampleProcessing == ACTIVE_STATE)))
+		if ((g_allModemSetupRecord.ext.modemStatus == YES) && ((IsSoftTimerActive(MENU_UPDATE_TIMER_NUM)) || (g_sampleProcessing == ACTIVE_STATE)))
 		{
+			// Cell Signal
+			if (g_cellSignal.energy == 0)
+			{
+				sprintf(debugInfo, "Cell Signal: Unknown/Off");
+				ft81x_stream_start(); ft81x_cmd_text(550, 180, 28, 0, debugInfo); ft81x_stream_stop();
+			}
+			else
+			{
+				char signalText[15];
+				switch (g_cellSignal.energy)
+				{
+					case CELL_SIGNAL_EXCELLENT: strcpy(signalText, "Excellent"); break;
+					case CELL_SIGNAL_GOOD: strcpy(signalText, "Good"); break;
+					case CELL_SIGNAL_NORMAL_FAIR: strcpy(signalText, "Normal"); break;
+					case CELL_SIGNAL_POOR: strcpy(signalText, "Poor"); break;
+					case CELL_SIGNAL_BAD: strcpy(signalText, "Bad"); break;
+					default: strcpy(signalText, "Unknown/Off"); break;
+				}
+				sprintf(debugInfo, "Cell Signal: %s", signalText);
+				ft81x_stream_start(); ft81x_cmd_text(550, 180, 28, 0, debugInfo); ft81x_stream_stop();
+			}
+
 			// Cell Config: ADO Events/ADO Evts/Config/Status + Server
 			sprintf(debugInfo, "Cell Modem Config:");
 			ft81x_stream_start(); ft81x_cmd_text(550, 200, 28, 0, debugInfo); ft81x_stream_stop();
 
-			if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
+			if (g_allModemSetupRecord.ext.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
 			{
-				sprintf(debugInfo, "    Evts/Cfg/Stat%s", ((g_cellModemSetupRecord.tcpServer == YES) ? " + Svr" : ""));
+				sprintf(debugInfo, "    Evts/Cfg/Stat%s", ((g_allModemSetupRecord.cell.tcpServer == YES) ? " + Svr" : ""));
 			}
 			else
 			{
-				sprintf(debugInfo, "    Events only%s", ((g_cellModemSetupRecord.tcpServer == YES) ? " + Svr" : ""));
+				sprintf(debugInfo, "    Events only%s", ((g_allModemSetupRecord.cell.tcpServer == YES) ? " + Svr" : ""));
 			}
 			ft81x_stream_start(); ft81x_cmd_text(550, 220, 28, 0, debugInfo); ft81x_stream_stop();
 
@@ -463,7 +485,7 @@ extern uint16_t g_bgFileErrors;
 			ft81x_stream_start(); ft81x_cmd_text(550, 240, 28, 0, debugInfo); ft81x_stream_stop();
 
 			// Current mode: ADO/Server
-			if ((g_cellModemSetupRecord.tcpServer == YES) && (g_autoDialoutState == AUTO_DIAL_IDLE))
+			if ((g_allModemSetupRecord.cell.tcpServer == YES) && (g_autoDialoutState == AUTO_DIAL_IDLE))
 			{
 				sprintf(debugInfo, "Curr Mode: TCP Listen Svr");
 			}
@@ -474,7 +496,7 @@ extern uint16_t g_bgFileErrors;
 			ft81x_stream_start(); ft81x_cmd_text(550, 260, 28, 0, debugInfo); ft81x_stream_stop();
 
 			// Current state: <state>
-			if ((g_cellModemSetupRecord.tcpServer == YES) && (g_autoDialoutState == AUTO_DIAL_IDLE))
+			if ((g_allModemSetupRecord.cell.tcpServer == YES) && (g_autoDialoutState == AUTO_DIAL_IDLE))
 			{
 #if 0 /* Original */
 				if (g_tcpServerStartStage == TCP_SERVER_ACTIVE_DATA_MODE)
@@ -551,7 +573,6 @@ extern uint16_t g_bgFileErrors;
 				sprintf(debugInfo, "NR: %d, UR: %d, CF: %d", g_cellConnectStats.CellNotReadyCount, g_cellConnectStats.CellUartResetCount, g_cellConnectStats.CellFailedCommsCheck);
 				ft81x_stream_start(); ft81x_cmd_text(550, 380, 28, 0, debugInfo); ft81x_stream_stop();
 			}
-
 		}
 		else if (g_usbConfigured)
 		{
@@ -585,7 +606,7 @@ extern uint16_t g_bgFileErrors;
 			}
 		}
 
-#if 1 /* Test showing comms timeout counts if populated */
+#if 0 /* Test showing comms timeout counts if populated */
 		{
 			if ((g_spiTimeoutCount == 0) && (g_i2cTimeoutCount == 0) && (g_uart1TimeoutCount == 0) && (g_uart2TimeoutCount == 0))
 			{
@@ -597,6 +618,19 @@ extern uint16_t g_bgFileErrors;
 				sprintf(debugInfo, "S:%d, I:%d, U1:%d, U2:%d", g_spiTimeoutCount, g_i2cTimeoutCount, g_uart1TimeoutCount, g_uart2TimeoutCount);
 				ft81x_stream_start(); ft81x_cmd_text(550, 0, 28, 0, debugInfo); ft81x_stream_stop();
 			}
+		}
+#else /* Test showing Auto Monitor status */
+		if (g_unitConfig.autoMonitorMode)
+		{
+			uint32_t remainingTime = SoftTimerRemainingTime(AUTO_MONITOR_TIMER_NUM);
+			if (remainingTime) { sprintf(debugInfo, "Auto Monitor: %d secs", remainingTime); }
+			else { sprintf(debugInfo, "Auto Monitor: Active"); }
+			ft81x_stream_start(); ft81x_cmd_text(550, 0, 28, 0, debugInfo); ft81x_stream_stop();
+		}
+		else
+		{
+			sprintf(debugInfo, "Auto Monitor: Off");
+			ft81x_stream_start(); ft81x_cmd_text(550, 0, 28, 0, debugInfo); ft81x_stream_stop();
 		}
 #endif
 	}
@@ -610,8 +644,7 @@ extern uint16_t g_bgFileErrors;
 	ft81x_stream_stop(); // Finish streaming to command buffer
 
 	ft81x_wait_finish(); // Wait till the GPU is finished? (or delay at start of next display interaction?)
-#if 0 /* Test */
-	// Add delay to allow LCD Controller more time
+#if 0 /* Test adding delay to allow LCD Controller more time */
 	SoftUsecWait(10 * SOFT_MSECS);
 #endif
 #endif
@@ -622,7 +655,7 @@ extern uint16_t g_bgFileErrors;
 	PowerControl(LCD_POWER_DOWN, ON);
 #endif
 
-#if 0 /* Test */
+#if 0 /* Test a dummy read of the part per datasheet recommendation */
 	if (g_spi2State & SPI2_ACC_ON)
 	{
 		// Test dummy read per datasheet
