@@ -27,6 +27,7 @@
 
 #include "lcd.h"
 #include "mxc_errors.h"
+#include "RemoteHandler.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -369,6 +370,11 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 					//---------------------------------------------------
 					else if (keyPressed == ESC_KEY)
 					{
+#if 1 /* Test */
+extern uint8_t g_remoteMimic8100;
+						g_remoteMimic8100 ^= ON;
+						debug("Remote: Mimic 8100 unlock toggled %s\r\n", ((g_remoteMimic8100 == YES) ? "on" : "off"));
+#endif
 #if 0 /* Test */
 						if (g_sampleProcessing == IDLE_STATE)
 						{
@@ -405,17 +411,6 @@ BOOLEAN KeypadProcessing(uint8 keySource)
 							PowerControl(CELL_ENABLE, ON);
 							SoftUsecWait(1 * SOFT_SECS); // Small charge up delay
 							PowerControl(LTE_RESET, OFF);
-
-							if (g_cellModemSetupRecord.eSimSelect == YES)
-							{
-								MXC_GPIO_OutSet(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN);
-								debug("CELL/LTE: eSIM selected (LTE_OTA pin state: %d)\r\n", ((MXC_GPIO_OutGet(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN) == 0) ? 0 : 1));
-							}
-							else // Physical SIM selected
-							{
-								MXC_GPIO_OutClr(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN);
-								debug("CELL/LTE: Physical SIM selected (LTE_OTA pin state: %d)\r\n", ((MXC_GPIO_OutGet(GPIO_LTE_OTA_PORT, GPIO_LTE_OTA_PIN) == 0) ? 0 : 1));
-							}
 						}
 #endif
 #if 0 /* Test */
@@ -523,13 +518,28 @@ extern void USBCPortControllerSwapToDevice(void);
 					//---------------------------------------------------
 					else if (keyPressed == HELP_KEY)
 					{
+#if 0 /* Test Cell conneciton evaluation */
+						if ((g_tcpServerStartStage == TCP_SERVER_ACTIVE) && (g_modemStatus.remoteConnectionActive == NO))
+						{
+							debug("AT%%CONEVAL...\r\n"); sprintf((char*)g_spareBuffer, "AT%%CONEVAL\r\n");
+							SendCommandToCellModem((char*)g_spareBuffer);
+							//CheckAndHandleRemoteResponseWithDelay((500 * SOFT_MSECS));
+						}
+						else
+						{
+							OverlayMessage(getLangText(WARNING_TEXT), "(CELL MODEM) UNABLE TO SEND CONEVAL, TCP SERVER IS NOT ACTIVE OR IDLE", (2 * SOFT_SECS));
+						}
+
+						// Clear out the message parameters
+						mn_msg.cmd = 0; mn_msg.length = 0; mn_msg.data[0] = 0;
+#endif
 #if 0 /* Test */
 						// Cell modem Ping command and parameters, AT#XPING="<IP_ADDRESS>",<PACKETS>,<PACKET_SIZE>,<RETRIES>,<TIMEOUT>
 						if ((g_tcpServerStartStage == TCP_SERVER_ACTIVE) && (g_modemStatus.remoteConnectionActive == NO))
 						{
-							int strLen, status;
-							debug("AT#XPING=\"8.8.8.8\",45,5000,5,1000...\r\n"); sprintf((char*)g_spareBuffer, "AT#XPING=\"8.8.8.8\",45,5000,5,1000\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-							//{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+							debug("AT#XPING=\"8.8.8.8\",45,5000,5,1000...\r\n"); sprintf((char*)g_spareBuffer, "AT#XPING=\"8.8.8.8\",45,5000,5,1000\r\n");
+							SendCommandToCellModem((char*)g_spareBuffer);
+							//CheckAndHandleRemoteResponseWithDelay((500 * SOFT_MSECS));
 						}
 						else
 						{
@@ -801,7 +811,7 @@ uint16 GetKeypadKey(uint8 mode)
 			// Process USB core routines (do not call UsbDeviceManager since it's not designed to be re-entrant)
 			ProcessUsbCoreHandling();
 #if 1 /* Test special method to redirect from serial */
-			ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); }
+			CheckAndHandleRemoteResponseWithDelay(0);
 #endif
 #endif
 			keyPressed = ScanKeypad();
@@ -817,7 +827,7 @@ uint16 GetKeypadKey(uint8 mode)
 			// Process USB core routines (do not call UsbDeviceManager since it's not designed to be re-entrant)
 			ProcessUsbCoreHandling();
 #if 1 /* Test special method to redirect from serial */
-			ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); }
+			CheckAndHandleRemoteResponseWithDelay(0);
 #endif
 #endif
 			keyPressed = ScanKeypad();
@@ -843,7 +853,7 @@ uint16 GetKeypadKey(uint8 mode)
 			// Process USB core routines (do not call UsbDeviceManager since it's not designed to be re-entrant)
 			ProcessUsbCoreHandling();
 #if 1 /* Test special method to redirect from serial */
-			ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); }
+			CheckAndHandleRemoteResponseWithDelay(0);
 #endif
 #endif
 		}
@@ -852,7 +862,7 @@ uint16 GetKeypadKey(uint8 mode)
 	{
 		// Check once if there is a key depressed
 #if 1 /* Test special method to redirect from serial */
-		ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); }
+		CheckAndHandleRemoteResponseWithDelay(0);
 #endif
 		keyPressed = ScanKeypad();
 
