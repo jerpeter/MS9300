@@ -1575,7 +1575,7 @@ extern uint8_t g_expansionIrqActive;
 	g_expansionIrqActive = 0;
 #endif
 
-#if 0 /* Turn off Expansion */
+#if 1 /* Turn off Expansion */
 	PowerControl(EXPANSION_RESET, ON);
 	PowerControl(EXPANSION_ENABLE, OFF);
 #endif
