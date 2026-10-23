@@ -113,14 +113,14 @@ void AccessPointNameMenuHandler(uint8 keyPressed, void* data)
 
 	if (keyPressed == ENTER_KEY)
 	{
-		strcpy((char*)(&g_cellModemSetupRecord.pdnApn), (char*)data);
-		debug("Access Point Name: <%s>, Length: %d\r\n", g_cellModemSetupRecord.pdnApn, strlen((char*)g_cellModemSetupRecord.pdnApn));
+		strcpy((char*)(&g_allModemSetupRecord.cell.pdnApn), (char*)data);
+		debug("Access Point Name: <%s>, Length: %d\r\n", g_allModemSetupRecord.cell.pdnApn, strlen((char*)g_allModemSetupRecord.cell.pdnApn));
 
-		SETUP_USER_MENU_MSG(&pdnAuthProtocolMenu, g_cellModemSetupRecord.pdnAuthProtocol);
+		SETUP_USER_MENU_MSG(&pdnAuthProtocolMenu, g_allModemSetupRecord.cell.pdnAuthProtocol);
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryTimeMenu, &g_modemSetupRecord.retryTime,
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryTimeMenu, &g_allModemSetupRecord.ext.retryTime,
 			MODEM_RETRY_TIME_DEFAULT_VALUE, MODEM_RETRY_TIME_MIN_VALUE, MODEM_RETRY_TIME_MAX_VALUE);
 	}
 
@@ -133,7 +133,7 @@ void AccessPointNameMenuHandler(uint8 keyPressed, void* data)
 //=============================================================================
 //*****************************************************************************
 #define ADO_SERVER_MENU_ENTRIES 5
-#define MAX_ADO_SERVER_CHARS 32
+#define MAX_ADO_SERVER_CHARS 64
 USER_MENU_STRUCT adoServerMenu[ADO_SERVER_MENU_ENTRIES] = {
 {DIAL_OUT_SERVER_TAG, 0, NULL_TEXT, NO_TAG,
 	{INSERT_USER_MENU_INFO(STRING_TYPE, ADO_SERVER_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ROW_2)}},
@@ -152,21 +152,21 @@ void AdoServerMenuHandler(uint8 keyPressed, void* data)
 
 	if (keyPressed == ENTER_KEY)
 	{
-		strcpy((char*)(&g_cellModemSetupRecord.server), (char*)data);
-		debug("ADO Server: <%s>, Length: %d\r\n", g_cellModemSetupRecord.server, strlen((char*)g_cellModemSetupRecord.server));
+		strcpy((char*)(&g_allModemSetupRecord.cell.server), (char*)data);
+		debug("ADO Server: <%s>, Length: %d\r\n", g_allModemSetupRecord.cell.server, strlen((char*)g_allModemSetupRecord.cell.server));
 
-		if (strlen((char*)g_cellModemSetupRecord.server))
+		if (strlen((char*)g_allModemSetupRecord.cell.server))
 		{
-			SETUP_USER_MENU_FOR_INTEGERS_MSG(&adoServerPortMenu, &g_cellModemSetupRecord.serverPort, ADO_SERVER_PORT_DEFAULT_VALUE, ADO_SERVER_PORT_MIN_VALUE, ADO_SERVER_PORT_MAX_VALUE);
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&adoServerPortMenu, &g_allModemSetupRecord.cell.serverPort, ADO_SERVER_PORT_DEFAULT_VALUE, ADO_SERVER_PORT_MIN_VALUE, ADO_SERVER_PORT_MAX_VALUE);
 		}
 		else
 		{
-			SETUP_USER_MENU_MSG(&accessPointNameMenu, &g_cellModemSetupRecord.pdnApn);
+			SETUP_USER_MENU_MSG(&accessPointNameMenu, &g_allModemSetupRecord.cell.pdnApn);
 		}
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_MSG(&modemSetupMenu, g_modemSetupRecord.modemStatus);
+		SETUP_USER_MENU_MSG(&modemSetupMenu, g_allModemSetupRecord.ext.modemStatus);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
@@ -195,14 +195,14 @@ void AdoServerPortMenuHandler(uint8 keyPressed, void* data)
 
 	if (keyPressed == ENTER_KEY)
 	{
-		g_cellModemSetupRecord.serverPort = *((uint16*)data);
-		debug("ADO Server Port: %d\r\n", g_cellModemSetupRecord.serverPort);
+		g_allModemSetupRecord.cell.serverPort = *((uint16*)data);
+		debug("ADO Server Port: %d\r\n", g_allModemSetupRecord.cell.serverPort);
 
-		SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, g_modemSetupRecord.dialOutType);
+		SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, g_allModemSetupRecord.ext.dialOutType);
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_MSG(&adoServerMenu, &g_cellModemSetupRecord.server);
+		SETUP_USER_MENU_MSG(&adoServerMenu, &g_allModemSetupRecord.cell.server);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
@@ -686,32 +686,32 @@ void CellPacketDelayMenuHandler(uint8 keyPressed, void* data)
 
 	if (keyPressed == ENTER_KEY)
 	{
-		g_cellModemSetupRecord.packetDelay = *((uint16_t*)data);
+		g_allModemSetupRecord.cell.packetDelay = *((uint16_t*)data);
 
-		debug("Cell Packet Delay (ms): %d\r\n", g_cellModemSetupRecord.packetDelay);
+		debug("Cell Packet Delay (ms): %d\r\n", g_allModemSetupRecord.cell.packetDelay);
 
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_allModemSetupRecord.ext.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		if (strlen(g_cellModemSetupRecord.pdnApn))
+		if (strlen(g_allModemSetupRecord.cell.pdnApn))
 		{
-			if (g_cellModemSetupRecord.tcpServer == YES)
+			if (g_allModemSetupRecord.cell.tcpServer == YES)
 			{
-				SETUP_USER_MENU_FOR_INTEGERS_MSG(&tcpServerListenPortMenu, &g_cellModemSetupRecord.tcpServerListenPort, TCP_SERVER_LISTEN_PORT_DEFAULT_VALUE, TCP_SERVER_LISTEN_PORT_MIN_VALUE, TCP_SERVER_LISTEN_PORT_MAX_VALUE);
+				SETUP_USER_MENU_FOR_INTEGERS_MSG(&tcpServerListenPortMenu, &g_allModemSetupRecord.cell.tcpServerListenPort, TCP_SERVER_LISTEN_PORT_DEFAULT_VALUE, TCP_SERVER_LISTEN_PORT_MIN_VALUE, TCP_SERVER_LISTEN_PORT_MAX_VALUE);
 			}
 			else
 			{
-				SETUP_USER_MENU_MSG(&cellTcpServerMenu, g_cellModemSetupRecord.tcpServer);
+				SETUP_USER_MENU_MSG(&cellTcpServerMenu, g_allModemSetupRecord.cell.tcpServer);
 			}
 		}
-		else if (g_cellModemSetupRecord.pdnAuthProtocol == AUTH_NONE)
+		else if (g_allModemSetupRecord.cell.pdnAuthProtocol == AUTH_NONE)
 		{
-			SETUP_USER_MENU_MSG(&pdnAuthProtocolMenu, g_cellModemSetupRecord.pdnAuthProtocol);
+			SETUP_USER_MENU_MSG(&pdnAuthProtocolMenu, g_allModemSetupRecord.cell.pdnAuthProtocol);
 		}
 		else
 		{
-			SETUP_USER_MENU_MSG(&pdnPasswordMenu, &g_cellModemSetupRecord.pdnPassword);
+			SETUP_USER_MENU_MSG(&pdnPasswordMenu, &g_allModemSetupRecord.cell.pdnPassword);
 		}
 	}
 
@@ -1097,25 +1097,25 @@ void ModemDialMenuHandler(uint8 keyPressed, void* data)
 	
 	if (keyPressed == ENTER_KEY)
 	{
-		strcpy((char*)(&g_modemSetupRecord.dial), (char*)data);
-		debug("Modem Dial: <%s>, Length: %d\r\n", g_modemSetupRecord.dial, strlen((char*)g_modemSetupRecord.dial));
+		strcpy((char*)(&g_allModemSetupRecord.ext.dial), (char*)data);
+		debug("Modem Dial: <%s>, Length: %d\r\n", g_allModemSetupRecord.ext.dial, strlen((char*)g_allModemSetupRecord.ext.dial));
 
 #if 0 /* Original */
-		SETUP_USER_MENU_MSG(&modemResetMenu, &g_modemSetupRecord.reset);
+		SETUP_USER_MENU_MSG(&modemResetMenu, &g_allModemSetupRecord.ext.reset);
 #else /* New AutoDialOut for Config/Status */
-		if (strlen((char*)g_modemSetupRecord.dial))
+		if (strlen((char*)g_allModemSetupRecord.ext.dial))
 		{
-			SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, g_modemSetupRecord.dialOutType);
+			SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, g_allModemSetupRecord.ext.dialOutType);
 		}
 		else
 		{
-			SETUP_USER_MENU_MSG(&modemResetMenu, &g_modemSetupRecord.reset);
+			SETUP_USER_MENU_MSG(&modemResetMenu, &g_allModemSetupRecord.ext.reset);
 		}
 #endif
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_MSG(&modemInitMenu, &g_modemSetupRecord.init);
+		SETUP_USER_MENU_MSG(&modemInitMenu, &g_allModemSetupRecord.ext.init);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
@@ -1144,17 +1144,17 @@ void ModemDialOutCycleTimeMenuHandler(uint8 keyPressed, void* data)
 
 	if (keyPressed == ENTER_KEY)
 	{
-		g_modemSetupRecord.dialOutCycleTime = *((uint16*)data);
+		g_allModemSetupRecord.ext.dialOutCycleTime = *((uint16*)data);
 
 #if 0 /* Original */
-		SETUP_USER_MENU_MSG(&modemResetMenu, &g_modemSetupRecord.reset);
+		SETUP_USER_MENU_MSG(&modemResetMenu, &g_allModemSetupRecord.ext.reset);
 #else
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryMenu, &g_modemSetupRecord.retries, MODEM_RETRY_DEFAULT_VALUE, MODEM_RETRY_MIN_VALUE, MODEM_RETRY_MAX_VALUE);
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryMenu, &g_allModemSetupRecord.ext.retries, MODEM_RETRY_DEFAULT_VALUE, MODEM_RETRY_MIN_VALUE, MODEM_RETRY_MAX_VALUE);
 #endif
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, g_modemSetupRecord.dialOutType);
+		SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, g_allModemSetupRecord.ext.dialOutType);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
@@ -1186,14 +1186,14 @@ void ModemInitMenuHandler(uint8 keyPressed, void* data)
 	
 	if (keyPressed == ENTER_KEY)
 	{
-		strcpy((char*)(&g_modemSetupRecord.init), (char*)data);
-		debug("Modem Init: <%s>, Length: %d\r\n", g_modemSetupRecord.init, strlen((char*)g_modemSetupRecord.init));
+		strcpy((char*)(&g_allModemSetupRecord.ext.init), (char*)data);
+		debug("Modem Init: <%s>, Length: %d\r\n", g_allModemSetupRecord.ext.init, strlen((char*)g_allModemSetupRecord.ext.init));
 
-		SETUP_USER_MENU_MSG(&modemDialMenu, &g_modemSetupRecord.dial);
+		SETUP_USER_MENU_MSG(&modemDialMenu, &g_allModemSetupRecord.ext.dial);
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_MSG(&modemSetupMenu, g_modemSetupRecord.modemStatus);
+		SETUP_USER_MENU_MSG(&modemSetupMenu, g_allModemSetupRecord.ext.modemStatus);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
@@ -1223,27 +1223,27 @@ void ModemResetMenuHandler(uint8 keyPressed, void* data)
 	
 	if (keyPressed == ENTER_KEY)
 	{
-		strcpy((char*)(&g_modemSetupRecord.reset), (char*)data);
-		debug("Modem Reset: <%s>, Length: %d\r\n", g_modemSetupRecord.reset, strlen((char*)g_modemSetupRecord.reset));
+		strcpy((char*)(&g_allModemSetupRecord.ext.reset), (char*)data);
+		debug("Modem Reset: <%s>, Length: %d\r\n", g_allModemSetupRecord.ext.reset, strlen((char*)g_allModemSetupRecord.ext.reset));
 
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryMenu, &g_modemSetupRecord.retries, MODEM_RETRY_DEFAULT_VALUE, MODEM_RETRY_MIN_VALUE, MODEM_RETRY_MAX_VALUE);
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryMenu, &g_allModemSetupRecord.ext.retries, MODEM_RETRY_DEFAULT_VALUE, MODEM_RETRY_MIN_VALUE, MODEM_RETRY_MAX_VALUE);
 	}
 	else if (keyPressed == ESC_KEY)
 	{
 #if 0 /* Original */
-		SETUP_USER_MENU_MSG(&modemDialMenu, &g_modemSetupRecord.dial);
+		SETUP_USER_MENU_MSG(&modemDialMenu, &g_allModemSetupRecord.ext.dial);
 #else /* New ADO feature */
-		if (strlen((char*)g_modemSetupRecord.dial) == 0)
+		if (strlen((char*)g_allModemSetupRecord.ext.dial) == 0)
 		{
-			SETUP_USER_MENU_MSG(&modemDialMenu, &g_modemSetupRecord.dial);
+			SETUP_USER_MENU_MSG(&modemDialMenu, &g_allModemSetupRecord.ext.dial);
 		}
-		else if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
+		else if (g_allModemSetupRecord.ext.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
 		{
-			SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemDialOutCycleTimeMenu, &g_modemSetupRecord.dialOutCycleTime, MODEM_DIAL_OUT_TIMER_DEFAULT_VALUE, MODEM_DIAL_OUT_TIMER_MIN_VALUE, MODEM_DIAL_OUT_TIMER_MAX_VALUE);
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemDialOutCycleTimeMenu, &g_allModemSetupRecord.ext.dialOutCycleTime, MODEM_DIAL_OUT_TIMER_DEFAULT_VALUE, MODEM_DIAL_OUT_TIMER_MIN_VALUE, MODEM_DIAL_OUT_TIMER_MAX_VALUE);
 		}
 		else
 		{
-			SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, g_modemSetupRecord.dialOutType);
+			SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, g_allModemSetupRecord.ext.dialOutType);
 		}
 #endif
 	}
@@ -1274,23 +1274,23 @@ void ModemRetryMenuHandler(uint8 keyPressed, void* data)
 	
 	if (keyPressed == ENTER_KEY)
 	{
-		g_modemSetupRecord.retries = *((uint8*)data);
-		debug("Modem Retries: %d\r\n", g_modemSetupRecord.retries);
+		g_allModemSetupRecord.ext.retries = *((uint8*)data);
+		debug("Modem Retries: %d\r\n", g_allModemSetupRecord.ext.retries);
 		
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryTimeMenu, &g_modemSetupRecord.retryTime, MODEM_RETRY_TIME_DEFAULT_VALUE, MODEM_RETRY_TIME_MIN_VALUE, MODEM_RETRY_TIME_MAX_VALUE);
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryTimeMenu, &g_allModemSetupRecord.ext.retryTime, MODEM_RETRY_TIME_DEFAULT_VALUE, MODEM_RETRY_TIME_MIN_VALUE, MODEM_RETRY_TIME_MAX_VALUE);
 	}
 	else if (keyPressed == ESC_KEY)
 	{
 #if 0 /* Original */
-		SETUP_USER_MENU_MSG(&modemResetMenu, &g_modemSetupRecord.reset);
+		SETUP_USER_MENU_MSG(&modemResetMenu, &g_allModemSetupRecord.ext.reset);
 #else
-		if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
+		if (g_allModemSetupRecord.ext.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
 		{
-			SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemDialOutCycleTimeMenu, &g_modemSetupRecord.dialOutCycleTime, MODEM_DIAL_OUT_TIMER_DEFAULT_VALUE, MODEM_DIAL_OUT_TIMER_MIN_VALUE, MODEM_DIAL_OUT_TIMER_MAX_VALUE);
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemDialOutCycleTimeMenu, &g_allModemSetupRecord.ext.dialOutCycleTime, MODEM_DIAL_OUT_TIMER_DEFAULT_VALUE, MODEM_DIAL_OUT_TIMER_MIN_VALUE, MODEM_DIAL_OUT_TIMER_MAX_VALUE);
 		}
 		else
 		{
-			SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, g_modemSetupRecord.dialOutType);
+			SETUP_USER_MENU_MSG(&modemDialOutTypeMenu, g_allModemSetupRecord.ext.dialOutType);
 		}
 #endif
 	}
@@ -1321,18 +1321,18 @@ void ModemRetryTimeMenuHandler(uint8 keyPressed, void* data)
 	
 	if (keyPressed == ENTER_KEY)
 	{
-		g_modemSetupRecord.retryTime = *((uint8*)data);
-		debug("Modem Retry Time: %d\r\n", g_modemSetupRecord.retryTime);
+		g_allModemSetupRecord.ext.retryTime = *((uint8*)data);
+		debug("Modem Retry Time: %d\r\n", g_allModemSetupRecord.ext.retryTime);
 		
 #if 0 /* Original */
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_allModemSetupRecord.ext.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
 #else /* Add in Cell Modem setup */
-		SETUP_USER_MENU_MSG(&accessPointNameMenu, &g_cellModemSetupRecord.pdnApn);
+		SETUP_USER_MENU_MSG(&accessPointNameMenu, &g_allModemSetupRecord.cell.pdnApn);
 #endif
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryMenu, &g_modemSetupRecord.retries, MODEM_RETRY_DEFAULT_VALUE, MODEM_RETRY_MIN_VALUE, MODEM_RETRY_MAX_VALUE);
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&modemRetryMenu, &g_allModemSetupRecord.ext.retries, MODEM_RETRY_DEFAULT_VALUE, MODEM_RETRY_MIN_VALUE, MODEM_RETRY_MAX_VALUE);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
@@ -1485,14 +1485,14 @@ void PdnUsernameMenuHandler(uint8 keyPressed, void* data)
 
 	if (keyPressed == ENTER_KEY)
 	{
-		strcpy((char*)(&g_cellModemSetupRecord.pdnUsername), (char*)data);
-		debug("PDN Username: <%s>, Length: %d\r\n", g_cellModemSetupRecord.pdnUsername, strlen((char*)g_cellModemSetupRecord.pdnUsername));
+		strcpy((char*)(&g_allModemSetupRecord.cell.pdnUsername), (char*)data);
+		debug("PDN Username: <%s>, Length: %d\r\n", g_allModemSetupRecord.cell.pdnUsername, strlen((char*)g_allModemSetupRecord.cell.pdnUsername));
 
-		SETUP_USER_MENU_MSG(&pdnPasswordMenu, &g_cellModemSetupRecord.pdnPassword);
+		SETUP_USER_MENU_MSG(&pdnPasswordMenu, &g_allModemSetupRecord.cell.pdnPassword);
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_MSG(&pdnAuthProtocolMenu, g_cellModemSetupRecord.pdnAuthProtocol);
+		SETUP_USER_MENU_MSG(&pdnAuthProtocolMenu, g_allModemSetupRecord.cell.pdnAuthProtocol);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
@@ -1523,25 +1523,25 @@ void PdnPasswordMenuHandler(uint8 keyPressed, void* data)
 
 	if (keyPressed == ENTER_KEY)
 	{
-		strcpy((char*)(&g_cellModemSetupRecord.pdnPassword), (char*)data);
-		debug("PDN Password: <%s>, Length: %d\r\n", g_cellModemSetupRecord.pdnPassword, strlen((char*)g_cellModemSetupRecord.pdnPassword));
+		strcpy((char*)(&g_allModemSetupRecord.cell.pdnPassword), (char*)data);
+		debug("PDN Password: <%s>, Length: %d\r\n", g_allModemSetupRecord.cell.pdnPassword, strlen((char*)g_allModemSetupRecord.cell.pdnPassword));
 
-		if (strlen(g_cellModemSetupRecord.pdnApn))
+		if (strlen(g_allModemSetupRecord.cell.pdnApn))
 		{
-			SETUP_USER_MENU_MSG(&cellTcpServerMenu, g_cellModemSetupRecord.tcpServer);
+			SETUP_USER_MENU_MSG(&cellTcpServerMenu, g_allModemSetupRecord.cell.tcpServer);
 		}
 		else
 		{
 #if 0 /* Original */
-			SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_allModemSetupRecord.ext.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
 #else /* New Cell Packet Delay */
-			SETUP_USER_MENU_FOR_INTEGERS_MSG(&cellPacketDelayMenu, &g_cellModemSetupRecord.packetDelay, CELL_PACKET_DELAY_DEFAULT_VALUE, CELL_PACKET_DELAY_MIN_VALUE, CELL_PACKET_DELAY_MAX_VALUE);
+			SETUP_USER_MENU_FOR_INTEGERS_MSG(&cellPacketDelayMenu, &g_allModemSetupRecord.cell.packetDelay, CELL_PACKET_DELAY_DEFAULT_VALUE, CELL_PACKET_DELAY_MIN_VALUE, CELL_PACKET_DELAY_MAX_VALUE);
 #endif
 		}
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_MSG(&pdnUsernameMenu, &g_cellModemSetupRecord.pdnUsername);
+		SETUP_USER_MENU_MSG(&pdnUsernameMenu, &g_allModemSetupRecord.cell.pdnUsername);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
@@ -1998,18 +1998,18 @@ void TcpServerListenPortMenuHandler(uint8 keyPressed, void* data)
 
 	if (keyPressed == ENTER_KEY)
 	{
-		g_cellModemSetupRecord.tcpServerListenPort = *((uint16*)data);
-		debug("TCP Server Listen Port: %d\r\n", g_cellModemSetupRecord.tcpServerListenPort);
+		g_allModemSetupRecord.cell.tcpServerListenPort = *((uint16*)data);
+		debug("TCP Server Listen Port: %d\r\n", g_allModemSetupRecord.cell.tcpServerListenPort);
 
 #if 0 /* Original */
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_modemSetupRecord.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&unlockCodeMenu, &g_allModemSetupRecord.ext.unlockCode, UNLOCK_CODE_DEFAULT_VALUE, UNLOCK_CODE_MIN_VALUE, UNLOCK_CODE_MAX_VALUE);
 #else /* New Cell Packet Delay */
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&cellPacketDelayMenu, &g_cellModemSetupRecord.packetDelay, CELL_PACKET_DELAY_DEFAULT_VALUE, CELL_PACKET_DELAY_MIN_VALUE, CELL_PACKET_DELAY_MAX_VALUE);
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&cellPacketDelayMenu, &g_allModemSetupRecord.cell.packetDelay, CELL_PACKET_DELAY_DEFAULT_VALUE, CELL_PACKET_DELAY_MIN_VALUE, CELL_PACKET_DELAY_MAX_VALUE);
 #endif
 	}
 	else if (keyPressed == ESC_KEY)
 	{
-		SETUP_USER_MENU_MSG(&cellTcpServerMenu, g_cellModemSetupRecord.tcpServer);
+		SETUP_USER_MENU_MSG(&cellTcpServerMenu, g_allModemSetupRecord.cell.tcpServer);
 	}
 
 	JUMP_TO_ACTIVE_MENU();
@@ -2080,12 +2080,12 @@ void UnlockCodeMenuHandler(uint8 keyPressed, void* data)
 	
 	if (keyPressed == ENTER_KEY)
 	{
-		g_modemSetupRecord.unlockCode = *((uint16*)data);
+		g_allModemSetupRecord.ext.unlockCode = *((uint16*)data);
 
-		debug("Modem Unlock Code: %4d\r\n", g_modemSetupRecord.unlockCode);
+		debug("Modem Unlock Code: %4d\r\n", g_allModemSetupRecord.ext.unlockCode);
 
-		SaveRecordData(&g_modemSetupRecord, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
-		SaveRecordData(&g_cellModemSetupRecord, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
+		SaveRecordData(&g_allModemSetupRecord.ext, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
+		SaveRecordData(&g_allModemSetupRecord.cell, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
 
 #if 0 /* Original */
 		if (READ_DCD == NO_CONNECTION)
@@ -2106,16 +2106,16 @@ void UnlockCodeMenuHandler(uint8 keyPressed, void* data)
 			if (MessageBox(getLangText(STATUS_TEXT), "MODEM FOUND.", MB_OK) == MB_SPECIAL_ACTION)
 			{
 				sprintf((char*)g_spareBuffer, "TEST OPTION TO FORCE DATA MODE AFTER CONNECT IS ");
-				if (g_modemSetupRecord.init[59] == ENABLED)
+				if (g_allModemSetupRecord.ext.init[59] == ENABLED)
 				{
-					g_modemSetupRecord.init[58] = 0; // Force null
-					g_modemSetupRecord.init[59] = DISABLED;
+					g_allModemSetupRecord.ext.init[58] = 0; // Force null
+					g_allModemSetupRecord.ext.init[59] = DISABLED;
 					strcat((char*)g_spareBuffer, getLangText(DISABLED_TEXT));
 				}
 				else // DISABLED
 				{
-					g_modemSetupRecord.init[58] = 0; // Force null
-					g_modemSetupRecord.init[59] = ENABLED;
+					g_allModemSetupRecord.ext.init[58] = 0; // Force null
+					g_allModemSetupRecord.ext.init[59] = ENABLED;
 					strcat((char*)g_spareBuffer, getLangText(ENABLED_TEXT));
 				}
 
@@ -2153,7 +2153,7 @@ void UnlockCodeMenuHandler(uint8 keyPressed, void* data)
 			MessageBox(getLangText(STATUS_TEXT), "MODEM NOT FOUND. PLEASE CONNECT OR RESET IT.", MB_OK);
 		}
 
-		if (g_cellModemSetupRecord.tcpServer == YES)
+		if (g_allModemSetupRecord.cell.tcpServer == YES)
 		{
 			//OverlayMessage(getLangText(STATUS_TEXT), "CELL MODEM STARTNG LISTEN SERVER. PLEASE WAIT A MOMENT", (0 * SOFT_SECS));
 
@@ -2171,10 +2171,10 @@ void UnlockCodeMenuHandler(uint8 keyPressed, void* data)
 		// Reset ADO state
 		g_autoDialoutState = IDLE_STATE;
 
-		if (g_modemSetupRecord.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
+		if (g_allModemSetupRecord.ext.dialOutType == AUTODIALOUT_EVENTS_CONFIG_STATUS)
 		{
-			debug("Auto Dialout: Events/Config/Status selected, starting timer (set for %d minutes)\r\n", g_modemSetupRecord.dialOutCycleTime);
-			AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_modemSetupRecord.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
+			debug("Auto Dialout: Events/Config/Status selected, starting timer (set for %d minutes)\r\n", g_allModemSetupRecord.ext.dialOutCycleTime);
+			AssignSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM, (uint32)(g_allModemSetupRecord.ext.dialOutCycleTime * TICKS_PER_MIN), AutoDialOutCycleTimerCallBack);
 		}
 		else // ADO Events only
 		{
@@ -2186,27 +2186,27 @@ void UnlockCodeMenuHandler(uint8 keyPressed, void* data)
 	else if (keyPressed == ESC_KEY)
 	{
 #if 0 /* Original */
-		if (strlen(g_cellModemSetupRecord.pdnApn))
+		if (strlen(g_allModemSetupRecord.cell.pdnApn))
 		{
-			if (g_cellModemSetupRecord.tcpServer == YES)
+			if (g_allModemSetupRecord.cell.tcpServer == YES)
 			{
-				SETUP_USER_MENU_FOR_INTEGERS_MSG(&tcpServerListenPortMenu, &g_cellModemSetupRecord.tcpServerListenPort, TCP_SERVER_LISTEN_PORT_DEFAULT_VALUE, TCP_SERVER_LISTEN_PORT_MIN_VALUE, TCP_SERVER_LISTEN_PORT_MAX_VALUE);
+				SETUP_USER_MENU_FOR_INTEGERS_MSG(&tcpServerListenPortMenu, &g_allModemSetupRecord.cell.tcpServerListenPort, TCP_SERVER_LISTEN_PORT_DEFAULT_VALUE, TCP_SERVER_LISTEN_PORT_MIN_VALUE, TCP_SERVER_LISTEN_PORT_MAX_VALUE);
 			}
 			else
 			{
-				SETUP_USER_MENU_MSG(&cellTcpServerMenu, g_cellModemSetupRecord.tcpServer);
+				SETUP_USER_MENU_MSG(&cellTcpServerMenu, g_allModemSetupRecord.cell.tcpServer);
 			}
 		}
-		else if (g_cellModemSetupRecord.pdnAuthProtocol == AUTH_NONE)
+		else if (g_allModemSetupRecord.cell.pdnAuthProtocol == AUTH_NONE)
 		{
-			SETUP_USER_MENU_MSG(&pdnAuthProtocolMenu, g_cellModemSetupRecord.pdnAuthProtocol);
+			SETUP_USER_MENU_MSG(&pdnAuthProtocolMenu, g_allModemSetupRecord.cell.pdnAuthProtocol);
 		}
 		else
 		{
-			SETUP_USER_MENU_MSG(&pdnPasswordMenu, &g_cellModemSetupRecord.pdnPassword);
+			SETUP_USER_MENU_MSG(&pdnPasswordMenu, &g_allModemSetupRecord.cell.pdnPassword);
 		}
 #else /* New Cell Packet Delay */
-		SETUP_USER_MENU_FOR_INTEGERS_MSG(&cellPacketDelayMenu, &g_cellModemSetupRecord.packetDelay, CELL_PACKET_DELAY_DEFAULT_VALUE, CELL_PACKET_DELAY_MIN_VALUE, CELL_PACKET_DELAY_MAX_VALUE);
+		SETUP_USER_MENU_FOR_INTEGERS_MSG(&cellPacketDelayMenu, &g_allModemSetupRecord.cell.packetDelay, CELL_PACKET_DELAY_DEFAULT_VALUE, CELL_PACKET_DELAY_MIN_VALUE, CELL_PACKET_DELAY_MAX_VALUE);
 #endif
 	}
 
