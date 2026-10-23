@@ -4937,7 +4937,7 @@ extern void SetupUSBComposite(uint8_t);
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
-void USBHostControllerTest(void)
+void USBHostController(void)
 {
 	uint16_t i;
 

@@ -2554,10 +2554,10 @@ extern void DumpBatteryLog(void);
 			SmartSensorTest();
 #endif
 #else /* Test 2 */
-extern void USBHostControllerTest(void);
-			debug("Calling USBHostControllerTest...\r\n");
+extern void USBHostController(void);
+			debug("Calling USBHostController...\r\n");
 			OverlayMessage(getLangText(STATUS_TEXT), "USB Flash drive sync...", 0);
-			USBHostControllerTest();
+			USBHostController();
 #endif
 		}
 #if 0 /* No longer have hardware for eSIM */

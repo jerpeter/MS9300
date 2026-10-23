@@ -593,9 +593,9 @@ static uint8_t s_lteOTA = OFF;
 						debug("LTE OTA pin toggle: %s\r\n", ((s_lteOTA == ON) ? "High" : "Low"));
 #endif
 #if 0 /* Test */
-extern void USBHostControllerTest(void);
-						debug("Calling USBHostControllerTest...\r\n");
-						USBHostControllerTest();
+extern void USBHostController(void);
+						debug("Calling USBHostController...\r\n");
+						USBHostController();
 #endif
 #if 0 /* Test */
 						if (g_testCounter == OFF)
