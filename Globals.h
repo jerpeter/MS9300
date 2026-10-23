@@ -118,8 +118,9 @@ extern uint8 g_activeMenu;
 extern MN_EVENT_STRUCT g_menuEventFlags;
 extern MN_TIMER_STRUCT g_timerEventFlags;
 extern SYS_EVENT_STRUCT g_systemEventFlags;
-extern MODEM_SETUP_STRUCT g_modemSetupRecord;
-extern CELL_MODEM_SETUP_STRUCT g_cellModemSetupRecord;
+//extern MODEM_SETUP_STRUCT g_modemSetupRecord;
+//extern CELL_MODEM_SETUP_STRUCT g_cellModemSetupRecord;
+extern ALL_MODEM_SETUP_STRUCT g_allModemSetupRecord;
 extern MODEM_STATUS_STRUCT g_modemStatus;
 extern CMD_BUFFER_STRUCT g_isrMessageBufferStruct;
 extern CMD_BUFFER_STRUCT* g_isrMessageBufferPtr;
@@ -226,7 +227,7 @@ extern uint8 g_lcdContrastChanged;
 #if 0 /* Original */
 extern EVT_RECORD g_resultsEventCache[50];
 extern uint16 g_resultsCacheIndex;
-#else /* Test */
+#else /* Test debug cache for logging */
 extern uint8 g_debugCache[DEBUG_BUFFER_SIZE];
 extern uint16 g_debugCacheWriteIndex;
 extern uint16 g_debugCacheReadIndex;
@@ -305,11 +306,12 @@ extern uint32 g_testTimeSinceLastFSWrite;
 extern uint32 g_testTimeSinceLastTrigger;
 extern uint32 g_testTimeSinceLastCycleChange;
 extern uint32 g_testTimeSinceLastCalPulse;
-#if 1 /* Test */
+extern CELL_SIGNAL_STRUCT g_cellSignal;
+#if 1 /* Test cal sample details */
 extern uint32 g_calSampleRate;
 extern uint32 g_calSampleSource;
 #endif
-#if 1 /* Test */
+#if 1 /* Test Accelerometer compansion event details */
 extern uint8 g_saveAccelerometerCompanionEvent;
 extern uint8 g_hwSensorDetectChange;
 extern uint16 g_accEventBufferIndex;
@@ -321,11 +323,11 @@ extern ACC_DATA_STRUCT g_accSampleData;
 extern SENSOR_CHECK_STATUS_STRUCT g_lastSensorCheck;
 //extern uint8 g_postIsrSampleDataProcessing;
 #endif
-#if 1 /* Test */
+#if 1 /* Test USB MSC read and write details */
 extern uint32 g_mscFlashMemReadCount;
 extern uint32 g_mscFlashMemWriteCount;
 #endif
-#if 1 /* Test */
+#if 1 /* Test framework driver timeouts */
 extern uint16_t g_spiTimeoutCount;
 extern uint16_t g_i2cTimeoutCount;
 extern uint16_t g_uart1TimeoutCount;

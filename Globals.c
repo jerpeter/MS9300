@@ -129,7 +129,7 @@ EVT_RECORD g_pendingBargraphRecord;
 #if 0 /* Original */
 EVT_RECORD g_resultsEventCache[50]; // ~34K
 uint16 g_resultsCacheIndex = 0;
-#else /* Test */
+#else /* Test debug cache for logging */
 uint8 g_debugCache[DEBUG_BUFFER_SIZE];
 uint16 g_debugCacheWriteIndex = 0;
 uint16 g_debugCacheReadIndex = 0;
@@ -143,8 +143,9 @@ uint8 g_activeMenu;
 MN_EVENT_STRUCT g_menuEventFlags = {0};
 MN_TIMER_STRUCT g_timerEventFlags = {0};
 SYS_EVENT_STRUCT g_systemEventFlags = {0};
-MODEM_SETUP_STRUCT g_modemSetupRecord;
-CELL_MODEM_SETUP_STRUCT g_cellModemSetupRecord;
+//MODEM_SETUP_STRUCT g_modemSetupRecord;
+//CELL_MODEM_SETUP_STRUCT g_cellModemSetupRecord;
+ALL_MODEM_SETUP_STRUCT g_allModemSetupRecord;
 MODEM_STATUS_STRUCT g_modemStatus;
 CMD_BUFFER_STRUCT g_isrMessageBufferStruct;
 CMD_BUFFER_STRUCT* g_isrMessageBufferPtr = &g_isrMessageBufferStruct;
@@ -379,11 +380,12 @@ uint32 g_testTimeSinceLastFSWrite = 0xffffffff;
 uint32 g_testTimeSinceLastTrigger = 0xffffffff;
 uint32 g_testTimeSinceLastCycleChange = 0xffffffff;
 uint32 g_testTimeSinceLastCalPulse = 0xffffffff;
-#if 1 /* Test */
+CELL_SIGNAL_STRUCT g_cellSignal = {0, 0, 0, 0};
+#if 1 /* Test cal sample details */
 uint32 g_calSampleRate = 1024;
 uint32 g_calSampleSource = 0;
 #endif
-#if 1 /* Test */
+#if 1 /* Test Accelerometer companion event details */
 uint8 g_saveAccelerometerCompanionEvent = NO;
 uint8 g_hwSensorDetectChange = NO;
 uint16 g_accEventBufferIndex;
@@ -395,11 +397,11 @@ ACC_DATA_STRUCT g_accSampleData;
 SENSOR_CHECK_STATUS_STRUCT g_lastSensorCheck;
 //uint8 g_postIsrSampleDataProcessing = NO;
 #endif
-#if 1 /* Test */
+#if 1 /* Test USB MSC read and write details */
 uint32 g_mscFlashMemReadCount = 0;
 uint32 g_mscFlashMemWriteCount = 0;
 #endif
-#if 1 /* Test */
+#if 1 /* Test framework driver timeouts */
 uint16_t g_spiTimeoutCount = 0;
 uint16_t g_i2cTimeoutCount = 0;
 uint16_t g_uart1TimeoutCount = 0;
