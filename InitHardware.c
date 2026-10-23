@@ -86,9 +86,7 @@
 //#include "navigation.h"
 #include "Analog.h"
 
-#if 1 /* Test */
 #include "math.h"
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -141,7 +139,7 @@ void InitExternalKeypad(void)
 		debugWarn("Keypad button being pressed (likely a bug), Key: %x\r\n", keyScan);
 	}
 
-#if 0 /* Test */
+#if 0 /* Test keypad by reporting keys, On key used for canceling */
 	debug("Keypad: Looking for keys... (Press Power key to stop)\r\n");
 	while (1)
 	{
@@ -161,7 +159,7 @@ void InitExternalKeypad(void)
 
 		MXC_TMR_Delay(MXC_TMR0, MXC_DELAY_MSEC(5));
 
-		if (GetPowerOnButtonState() == ON) { debug("Keypad: Loop break\r\n");break; }
+		if (GetPowerOnButtonState() == ON) { debug("Keypad: Loop break\r\n"); break; }
 	}
 #endif
 
@@ -203,7 +201,7 @@ void InitExternalADC(void)
 	AD4695_EnterConversionMode(((g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP) ? ENABLE_ADC_CHANNEL_VERIFICATION : NO_ADC_CHANNEL_VERIFICATION));
 #endif
 
-#if 0 /* Test loop */
+#if 0 /* Test loop reading ADC data, power and temps */
 extern uint16_t dataTemperature;
 	SAMPLE_DATA_STRUCT tempData;
 	uint32_t i = 0;
@@ -251,7 +249,7 @@ extern uint16_t dataTemperature;
 	debug("Fuel Gauge: %s\r\n", FuelGaugeDebugString());
 #endif
 
-#if 0 /* Test loop */
+#if 0 /* Test loop for finding channel offsets */
 	while (1)
 	{
 		GetChannelOffsets(SAMPLE_RATE_DEFAULT);
@@ -356,77 +354,86 @@ void InitCellLTE(void)
 #if 1 /* Test TCP Server */
 #if 0 /* Test removal */
 		// Temp disable Auto Dialout
-		g_modemSetupRecord.modemStatus = NO;
+		g_allModemSetupRecord.ext.modemStatus = NO;
 		ClearSoftTimer(AUTO_DIAL_OUT_CYCLE_TIMER_NUM);
 #endif
 
-		int strLen, status;
 #if 0 /* Test */
 		// System mode setting
-		//debug("AT%%XSYSTEMMODE...\r\n"); sprintf((char*)g_spareBuffer, "AT%%XSYSTEMMODE=0,1,0,0\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
+		//debug("AT%%XSYSTEMMODE...\r\n"); sprintf((char*)g_spareBuffer, "AT%%XSYSTEMMODE=0,1,0,0\r\n");
+		SendCommandToCellModem((char*)g_spareBuffer);
 
 #if 0 /* Test verify */
-		SoftUsecWait(3 * SOFT_SECS);
-		{ ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		CheckAndHandleRemoteResponseWithDelay((3 * SOFT_SECS));
 
-		debug("AT%%XSYSTEMMODE?...\r\n"); sprintf((char*)g_spareBuffer, "AT%%XSYSTEMMODE?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-		SoftUsecWait(3 * SOFT_SECS);
-		{ ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		debug("AT%%XSYSTEMMODE?...\r\n"); sprintf((char*)g_spareBuffer, "AT%%XSYSTEMMODE?\r\n");
+		SendCommandToCellModem((char*)g_spareBuffer);
+		CheckAndHandleRemoteResponseWithDelay((3 * SOFT_SECS));
 #endif
 #endif
-		CellModemSimSelector(g_cellModemSetupRecord.eSimSelect);
-
-		if (strlen(g_cellModemSetupRecord.pdnApn))
+#if 0 /* No longer have hardware for eSIM */
+		CellModemSimSelector(g_allModemSetupRecord.cell.eSimSelect);
+#endif
+		if (strlen(g_allModemSetupRecord.cell.pdnApn))
 		{
 			// PDN/APN setting, AT+CGDCONT=0,"IP","psmtneofin"
-			debug("AT+CGDCONT=0,\"IP\",\"%s\"...\r\n", g_cellModemSetupRecord.pdnApn); sprintf((char*)g_spareBuffer, "AT+CGDCONT=0,\"IP\",\"%s\"\r\n", g_cellModemSetupRecord.pdnApn); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+			debug("AT+CGDCONT=0,\"IP\",\"%s\"...\r\n", g_allModemSetupRecord.cell.pdnApn); sprintf((char*)g_spareBuffer, "AT+CGDCONT=0,\"IP\",\"%s\"\r\n", g_allModemSetupRecord.cell.pdnApn);
+			SendCommandToCellModem((char*)g_spareBuffer);
+			CheckAndHandleRemoteResponseWithDelay((500 * SOFT_MSECS));
 		}
 
-		if (g_cellModemSetupRecord.pdnAuthProtocol != AUTH_NONE)
+		if (g_allModemSetupRecord.cell.pdnAuthProtocol != AUTH_NONE)
 		{
-			debug("AT+CGAUTH=0,%d,\"%s\",\"%s\"...\r\n", g_cellModemSetupRecord.pdnAuthProtocol, g_cellModemSetupRecord.pdnUsername, g_cellModemSetupRecord.pdnPassword);
-			sprintf((char*)g_spareBuffer, "AT+CGAUTH=0,%d,\"%s\",\"%s\"\r\n", g_cellModemSetupRecord.pdnAuthProtocol, g_cellModemSetupRecord.pdnUsername, g_cellModemSetupRecord.pdnPassword);
-			strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+			debug("AT+CGAUTH=0,%d,\"%s\",\"%s\"...\r\n", g_allModemSetupRecord.cell.pdnAuthProtocol, g_allModemSetupRecord.cell.pdnUsername, g_allModemSetupRecord.cell.pdnPassword);
+			sprintf((char*)g_spareBuffer, "AT+CGAUTH=0,%d,\"%s\",\"%s\"\r\n", g_allModemSetupRecord.cell.pdnAuthProtocol, g_allModemSetupRecord.cell.pdnUsername, g_allModemSetupRecord.cell.pdnPassword);
+			SendCommandToCellModem((char*)g_spareBuffer);
+			CheckAndHandleRemoteResponseWithDelay((500 * SOFT_MSECS));
 		}
 
 #if 0 /* Test verify */
-		debug("AT+CGDCONT?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CGDCONT?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-		{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		debug("AT+CGDCONT?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CGDCONT?\r\n");
+		SendCommandToCellModem((char*)g_spareBuffer);
+		CheckAndHandleRemoteResponseWithDelay((500 * SOFT_MSECS));
 #endif
-		debug("AT+CFUN=1...\r\n"); sprintf((char*)g_spareBuffer, "AT+CFUN=1\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-		{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		debug("AT+CFUN=1...\r\n"); sprintf((char*)g_spareBuffer, "AT+CFUN=1\r\n");
+		SendCommandToCellModem((char*)g_spareBuffer);
+		CheckAndHandleRemoteResponseWithDelay((500 * SOFT_MSECS));
 
-#if 1 /* Test check for eSIM details */
-		if (g_cellModemSetupRecord.eSimSelect == YES)
+#if 0 /* No longer have hardware for eSIM */
+		if (g_allModemSetupRecord.cell.eSimSelect == YES)
 		{
-			debug("AT%%XICCID...\r\n"); sprintf((char*)g_spareBuffer, "AT%%XICCID\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+			debug("AT%%XICCID...\r\n"); sprintf((char*)g_spareBuffer, "AT%%XICCID\r\n");
+			SendCommandToCellModem((char*)g_spareBuffer);
+			CheckAndHandleRemoteResponseWithDelay((500 * SOFT_MSECS));
 
-			debug("AT+CIMI...\r\n"); sprintf((char*)g_spareBuffer, "AT+CIMI\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+			debug("AT+CIMI...\r\n"); sprintf((char*)g_spareBuffer, "AT+CIMI\r\n");
+			SendCommandToCellModem((char*)g_spareBuffer);
+			CheckAndHandleRemoteResponseWithDelay((500 * SOFT_MSECS));
 		}
 #endif
 		while (g_modemStatus.remoteResponse != MODEM_CELL_NETWORK_REGISTERED)
 		{
-			debug("AT+CEREG?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CEREG?\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-			{ SoftUsecWait(1000 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+			debug("AT+CEREG?...\r\n"); sprintf((char*)g_spareBuffer, "AT+CEREG?\r\n");
+			SendCommandToCellModem((char*)g_spareBuffer);
+			CheckAndHandleRemoteResponseWithDelay((1000 * SOFT_MSECS));
 		}
 
-		debug("AT#XTCPSVR=1,%d...\r\n", g_cellModemSetupRecord.tcpServerListenPort); sprintf((char*)g_spareBuffer, "AT#XTCPSVR=1,%d\r\n", g_cellModemSetupRecord.tcpServerListenPort); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-		{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		debug("AT#XTCPSVR=1,%d...\r\n", g_allModemSetupRecord.cell.tcpServerListenPort); sprintf((char*)g_spareBuffer, "AT#XTCPSVR=1,%d\r\n", g_allModemSetupRecord.cell.tcpServerListenPort);
+		SendCommandToCellModem((char*)g_spareBuffer);
+		CheckAndHandleRemoteResponseWithDelay((500 * SOFT_MSECS));
 
 		while ((g_modemStatus.remoteResponse == TCP_SERVER_NOT_STARTED) || (g_modemStatus.remoteResponse == ERROR_RESPONSE))
 		{
 			SoftUsecWait(5 * SOFT_SECS);
-			debug("AT#XTCPSVR=1,%d...\r\n", g_cellModemSetupRecord.tcpServerListenPort); sprintf((char*)g_spareBuffer, "AT#XTCPSVR=1,%d\r\n", g_cellModemSetupRecord.tcpServerListenPort); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-			{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+			debug("AT#XTCPSVR=1,%d...\r\n", g_allModemSetupRecord.cell.tcpServerListenPort); sprintf((char*)g_spareBuffer, "AT#XTCPSVR=1,%d\r\n", g_allModemSetupRecord.cell.tcpServerListenPort);
+			SendCommandToCellModem((char*)g_spareBuffer);
+			CheckAndHandleRemoteResponseWithDelay((500 * SOFT_MSECS));
 		}
 
 #if 0 /* Original */
-		debug("AT#XTCPSEND"); sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n"); strLen = (int)strlen((char*)g_spareBuffer); status = MXC_UART_Write(MXC_UART1, g_spareBuffer, &strLen); if (status != E_SUCCESS) { debugErr("Cell/LTE Uart write failure (%d)\r\n", status); }
-		{ SoftUsecWait(500 * SOFT_MSECS); ProcessCraftData(); if (getSystemEventState(CRAFT_PORT_EVENT)) { clearSystemEventFlag(CRAFT_PORT_EVENT); RemoteCmdMessageProcessing(); } }
+		debug("AT#XTCPSEND"); sprintf((char*)g_spareBuffer, "AT#XTCPSEND\r\n");
+		SendCommandToCellModem((char*)g_spareBuffer);
+		CheckAndHandleRemoteResponseWithDelay((500 * SOFT_MSECS));
 #else /* Test */
 		// Delay entering Data mode until the remote conneciton is active due to the rare occasion where the cell modem seems to drop data mode without notificaiton
 #endif
@@ -2956,6 +2963,7 @@ int setconfigCallback_Composite(MXC_USB_SetupPkt *sud, void *cbdata)
 #if 0 /* Test */
 		debugRaw("<msc/%d/%d,acm/%d/%d/%d>", msc_cfg.out_maxpacket, msc_cfg.in_maxpacket, acm_cfg.out_maxpacket, acm_cfg.in_maxpacket, acm_cfg.notify_maxpacket);
 #endif
+		OverlayMessage(getLangText(STATUS_TEXT), "USB CONNECTING...", 0);
 
 		if (g_mscDelayState == ON) { SoftUsecWait(1 * SOFT_SECS); }
 		//debugRaw("<MSC>");
@@ -3113,10 +3121,6 @@ static void usbAppWakeup(void)
 
 	// Todo: Any power up code to place here?
 }
-
-#if 1 /* Test */
-void WriteDebugCacheToFile(uint8_t flush);
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -3443,7 +3447,6 @@ void UsbReportEvents(void)
 			MXC_CLRBIT(&g_usbEventFlags, MAXUSB_EVENT_BRSTDN);
 			debug("USB: Bus Reset Done: %s speed\r\n", (MXC_USB_GetStatus() & MAXUSB_STATUS_HIGH_SPEED) ? "High" : "Full");
 
-void WriteDebugCacheToFile(uint8_t flush);
 			WriteDebugCacheToFile(1);
 		}
 #endif
