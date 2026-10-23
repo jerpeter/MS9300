@@ -63,7 +63,10 @@ void MoveManualCalToFile(void)
 	FIL file;
 	uint32_t bytesWritten;
 
+	uint16 scPeakA = 0, scPeakR = 0, scPeakV = 0, scPeakT = 0;
+	uint16 scFreqA = 0, scFreqR = 0, scFreqV = 0, scFreqT = 0;
 	uint8 calResults = SENSOR_CHECK_PASSED;
+	uint8 ss1status = 0, ss2status = 0, as1status = 0, as2status = 0;
 
 	UNUSED(compressSize); // Depends on debug on/off
 #if 1 /* New method to process Sensor Check for results */
@@ -166,50 +169,43 @@ void MoveManualCalToFile(void)
 			g_currentEventSamplePtr += NUMBER_OF_CHANNELS_DEFAULT;
 		}
 
-		g_pendingEventRecord.summary.calculated.a.peak = (uint16)(hiA - lowA + 1);
-		g_pendingEventRecord.summary.calculated.r.peak = (uint16)(hiR - lowR + 1);
-		g_pendingEventRecord.summary.calculated.v.peak = (uint16)(hiV - lowV + 1);
-		g_pendingEventRecord.summary.calculated.t.peak = (uint16)(hiT - lowT + 1);
+		scPeakA = g_pendingEventRecord.summary.calculated.a.peak = (uint16)(hiA - lowA + 1);
+		scPeakR = g_pendingEventRecord.summary.calculated.r.peak = (uint16)(hiR - lowR + 1);
+		scPeakV = g_pendingEventRecord.summary.calculated.v.peak = (uint16)(hiV - lowV + 1);
+		scPeakT = g_pendingEventRecord.summary.calculated.t.peak = (uint16)(hiT - lowT + 1);
 
-		g_pendingEventRecord.summary.calculated.a.frequency = CalcSumFreq(aManualCalPeakPtr, SAMPLE_RATE_1K, startOfEventPtr, endOfEventDataPtr);
-		g_pendingEventRecord.summary.calculated.r.frequency = CalcSumFreq(rManualCalPeakPtr, SAMPLE_RATE_1K, startOfEventPtr, endOfEventDataPtr);
-		g_pendingEventRecord.summary.calculated.v.frequency = CalcSumFreq(vManualCalPeakPtr, SAMPLE_RATE_1K, startOfEventPtr, endOfEventDataPtr);
-		g_pendingEventRecord.summary.calculated.t.frequency = CalcSumFreq(tManualCalPeakPtr, SAMPLE_RATE_1K, startOfEventPtr, endOfEventDataPtr);
+		scFreqA = g_pendingEventRecord.summary.calculated.a.frequency = CalcSumFreq(aManualCalPeakPtr, SAMPLE_RATE_1K, startOfEventPtr, endOfEventDataPtr);
+		scFreqR = g_pendingEventRecord.summary.calculated.r.frequency = CalcSumFreq(rManualCalPeakPtr, SAMPLE_RATE_1K, startOfEventPtr, endOfEventDataPtr);
+		scFreqV = g_pendingEventRecord.summary.calculated.v.frequency = CalcSumFreq(vManualCalPeakPtr, SAMPLE_RATE_1K, startOfEventPtr, endOfEventDataPtr);
+		scFreqT = g_pendingEventRecord.summary.calculated.t.frequency = CalcSumFreq(tManualCalPeakPtr, SAMPLE_RATE_1K, startOfEventPtr, endOfEventDataPtr);
 
 #if 1 /* New method to process Sensor Check for results */
-		debug("Sensor Check peaks (P2P): a:%04x r:%04x v:%04x t:%04x\r\n", g_pendingEventRecord.summary.calculated.a.peak, g_pendingEventRecord.summary.calculated.r.peak,
-				g_pendingEventRecord.summary.calculated.v.peak,	g_pendingEventRecord.summary.calculated.t.peak);
+		debug("Sensor Check peaks (P2P): r:%04x v:%04x t:%04x a:%04x\r\n", scPeakR, scPeakV, scPeakT, scPeakA);
+		debug("Sensor Check freq: r:%d v:%d t:%d a:%d \r\n", scFreqR, scFreqV, scFreqT, scFreqA);
 
-		debug("Sensor Check freq: a:%d r:%d v:%d t:%d\r\n", g_pendingEventRecord.summary.calculated.a.frequency, g_pendingEventRecord.summary.calculated.r.frequency,
-				g_pendingEventRecord.summary.calculated.v.frequency, g_pendingEventRecord.summary.calculated.t.frequency);
-
-		if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR) || CheckIfSmartSensorPresent(ACOUSTIC_SENSOR_2))
-		{
-			if ((g_pendingEventRecord.summary.calculated.a.peak < SENSOR_CHECK_LOW_THRESHOLD) || (g_pendingEventRecord.summary.calculated.a.peak > SENSOR_CHECK_HIGH_THRESHOLD)) { calResults = SENSOR_CHECK_FAILED; }
-		}
-
-		if (CheckIfSmartSensorPresent(SEISMIC_SENSOR) || CheckIfSmartSensorPresent(SEISMIC_SENSOR_2))
-		{
-			if ((g_pendingEventRecord.summary.calculated.r.peak < SENSOR_CHECK_LOW_THRESHOLD) || (g_pendingEventRecord.summary.calculated.r.peak > SENSOR_CHECK_HIGH_THRESHOLD)) { calResults = SENSOR_CHECK_FAILED; }
-			if ((g_pendingEventRecord.summary.calculated.v.peak < SENSOR_CHECK_LOW_THRESHOLD) || (g_pendingEventRecord.summary.calculated.v.peak > SENSOR_CHECK_HIGH_THRESHOLD)) { calResults = SENSOR_CHECK_FAILED; }
-			if ((g_pendingEventRecord.summary.calculated.t.peak < SENSOR_CHECK_LOW_THRESHOLD) || (g_pendingEventRecord.summary.calculated.t.peak > SENSOR_CHECK_HIGH_THRESHOLD)) { calResults = SENSOR_CHECK_FAILED; }
-		}
-
-		if (CheckIfNoSmartSensorsPresent())
-		{
-			calResults = SENSOR_CHECK_FAILED;
-
-			// Todo: Determine how to handle Sensor Check passing even if no Smart Sensor is active
-			if ((g_pendingEventRecord.summary.calculated.a.peak > SENSOR_CHECK_LOW_THRESHOLD) && (g_pendingEventRecord.summary.calculated.a.peak < SENSOR_CHECK_HIGH_THRESHOLD)) { calResults = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR; }
-
-			if (((g_pendingEventRecord.summary.calculated.r.peak > SENSOR_CHECK_LOW_THRESHOLD) && (g_pendingEventRecord.summary.calculated.r.peak < SENSOR_CHECK_HIGH_THRESHOLD)) &&
-				((g_pendingEventRecord.summary.calculated.v.peak > SENSOR_CHECK_LOW_THRESHOLD) && (g_pendingEventRecord.summary.calculated.v.peak < SENSOR_CHECK_HIGH_THRESHOLD)) &&
-				((g_pendingEventRecord.summary.calculated.t.peak > SENSOR_CHECK_LOW_THRESHOLD) && (g_pendingEventRecord.summary.calculated.t.peak < SENSOR_CHECK_HIGH_THRESHOLD))) { calResults = SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR; }
-
-		}
-
+		SensorCheckChannelPeaks(scPeakR, scPeakV, scPeakT, scPeakA, &calResults, &ss1status, &ss2status, &as1status, &as2status);
+		CacheSensorCheckIndividualSensorResults(ss1status, ss2status, as1status, as2status);
 		CacheSensorCheckResults(calResults);
-		// Todo: Log Sensor check results and data
+
+		// Log Sensor check results and data
+		SENSOR_CHECK_LOG_ENTRY_STRUCT scLog;
+		memset(&scLog, 0, sizeof(scLog));
+		scLog.sensorStatus = g_lastSensorCheck;
+		if (g_currentSensorGroup == SENSOR_GROUP_A_1)
+		{
+			scLog.geo1R.peak = scPeakR; scLog.geo1R.freq = scFreqA;
+			scLog.geo1T.peak = scPeakT; scLog.geo1T.freq = scFreqT;
+			scLog.geo1V.peak = scPeakV; scLog.geo1V.freq = scFreqV;
+			scLog.air2A.peak = scPeakA; scLog.air2A.freq = scFreqA;
+		}
+		else // (g_currentSensorGroup == SENSOR_GROUP_B_2)
+		{
+			scLog.geo2R.peak = scPeakR; scLog.geo2R.freq = scFreqA;
+			scLog.geo2T.peak = scPeakT; scLog.geo2T.freq = scFreqT;
+			scLog.geo2V.peak = scPeakV; scLog.geo2V.freq = scFreqV;
+			scLog.air1A.peak = scPeakA; scLog.air1A.freq = scFreqA;
+		}
+		AppendSensorCheckResultsLogFile(&scLog);
 
 #else /* Original */
 		CompleteRamEventSummary();
