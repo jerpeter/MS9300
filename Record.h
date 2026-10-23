@@ -13,6 +13,7 @@
 ///----------------------------------------------------------------------------
 #include "Common.h"
 #include "ff.h"
+#include "Sensor.h"
 
 ///----------------------------------------------------------------------------
 ///	Defines
@@ -351,18 +352,24 @@ typedef struct
 typedef struct
 {
 	uint16 invalid;
-	char pdnApn[33]; // 32 + 1
+	char pdnApn[33]; // 32 + 1 // Max 100
 	char pdnUsername[33]; // 32 + 1
 	char pdnPassword[33]; // 32 + 1
-	char server[33]; // 32 + 1
+	char server[65]; // 64 + 1 // Max 63 per label, Max 253
 	uint16 serverPort;
 	uint16 tcpServerListenPort;
 	uint8 pdnAuthProtocol;
 	uint8 tcpServer;
 	uint16 packetDelay;
-	uint8 eSimSelect;
-	uint8 spare;
+	uint8 spare1;
+	uint8 spare2;
 } CELL_MODEM_SETUP_STRUCT;
+
+typedef struct
+{
+	MODEM_SETUP_STRUCT ext;
+	CELL_MODEM_SETUP_STRUCT cell;
+} ALL_MODEM_SETUP_STRUCT;
 
 typedef struct
 {
@@ -390,7 +397,7 @@ typedef struct
 	DATE_TIME_STRUCT	lastConnectTime;
 	uint16				currentCycleConnects;
 	uint8				sensorCheckStatus;
-	uint8				unused;
+	uint8				lowBatteryStatus;
 } AUTODIALOUT_STRUCT;
 
 typedef struct
@@ -422,7 +429,7 @@ void LoadCellModemSetupRecordDefaults(void);
 void ValidateModemSetupParameters(void);
 void ValidateCellModemSetupParameters(void);
 
-// Monitor Log prototypes
+// Log prototypes
 void InitMonitorLog(void);
 void AdvanceMonitorLogIndex(void);
 uint16 GetStartingMonitorLogTableIndex(void);
@@ -442,6 +449,7 @@ void AddOnOffLogTimestamp(uint8 onOffState);
 void FillInAdditionalExceptionReportInfo(FIL file);
 void WriteDebugBufferToFile(void);
 void SwitchDebugLogFile(void);
+void AppendSensorCheckResultsLogFile(SENSOR_CHECK_LOG_ENTRY_STRUCT* scLog);
 
 // Parameter Memory
 void GetParameterMemory(uint8* dest, uint16 address, uint16 size);

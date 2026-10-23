@@ -567,23 +567,29 @@ void ActivateUnitConfigOptions(void)
 void LoadModemSetupRecordDefaults()
 {
 	// Initialize the Unit Config
-	memset(&g_modemSetupRecord, 0, sizeof(g_modemSetupRecord));
+	memset(&g_allModemSetupRecord.ext, 0, sizeof(g_allModemSetupRecord.ext));
 
-	g_modemSetupRecord.modemStatus = NO;
-	g_modemSetupRecord.retries = MODEM_RETRY_DEFAULT_VALUE;
-	g_modemSetupRecord.retryTime = MODEM_RETRY_TIME_DEFAULT_VALUE;
-	g_modemSetupRecord.dialOutCycleTime = MODEM_DIAL_OUT_TIMER_DEFAULT_VALUE;
+	g_allModemSetupRecord.ext.modemStatus = NO;
+	g_allModemSetupRecord.ext.retries = MODEM_RETRY_DEFAULT_VALUE;
+	g_allModemSetupRecord.ext.retryTime = MODEM_RETRY_TIME_DEFAULT_VALUE;
+	g_allModemSetupRecord.ext.dialOutCycleTime = MODEM_DIAL_OUT_TIMER_DEFAULT_VALUE;
 
 	// No need to set these since the memset to zero satisifies initialization
-	//g_modemSetupRecord.unlockCode
-	//g_modemSetupRecord.init
-	//g_modemSetupRecord.dial
-	//g_modemSetupRecord.reset
+	//g_allModemSetupRecord.ext.unlockCode
+	//g_allModemSetupRecord.ext.init
+	//g_allModemSetupRecord.ext.dial
+	//g_allModemSetupRecord.ext.reset
 
 	// New request to set the init string to point to Nomis servers
-	strcpy(g_modemSetupRecord.dial, "ATDTONLINE.NOMIS.COM/8005");
+#if 0 /* Original Nomis */
+	strcpy(g_allModemSetupRecord.ext.dial, "ATDTONLINE.NOMIS.COM/8005");
+#else /* Now Access */
+	// LB02- Public- 51.8.242.254
+	// LB01- Private- 10.0.1.105
+	strcpy(g_allModemSetupRecord.ext.dial, "ATDT51.8.242.254/20003");
+#endif
 
-	g_modemSetupRecord.dialOutType = AUTODIALOUT_EVENTS_CONFIG_STATUS;
+	g_allModemSetupRecord.ext.dialOutType = AUTODIALOUT_EVENTS_CONFIG_STATUS;
 
 	ClearSoftTimer(SYSTEM_LOCK_TIMER_NUM);
 }
@@ -594,20 +600,28 @@ void LoadModemSetupRecordDefaults()
 void LoadCellModemSetupRecordDefaults()
 {
 	// Initialize the Unit Config
-	memset(&g_cellModemSetupRecord, 0, sizeof(g_cellModemSetupRecord));
+	memset(&g_allModemSetupRecord.cell, 0, sizeof(g_allModemSetupRecord.cell));
 
 	// No need to set these since the memset to zero satisfies initialization
-	//g_cellModemSetupRecord.pdnApn
-	//g_cellModemSetupRecord.pdnAuthProtocol
-	//g_cellModemSetupRecord.pdnUsername
-	//g_cellModemSetupRecord.pdnPassword
+	//g_allModemSetupRecord.cell.pdnApn
+	//g_allModemSetupRecord.cell.pdnAuthProtocol
+	//g_allModemSetupRecord.cell.pdnUsername
+	//g_allModemSetupRecord.cell.pdnPassword
 
-	strcpy(g_cellModemSetupRecord.server, "ONLINE.NOMIS.COM");
-	g_cellModemSetupRecord.serverPort = 8005;
-	g_cellModemSetupRecord.tcpServerListenPort = 8005;
-	g_cellModemSetupRecord.packetDelay = CELL_PACKET_DELAY_DEFAULT_VALUE;
+#if 0 /* Original Nomis */
+	strcpy(g_allModemSetupRecord.cell.server, "ONLINE.NOMIS.COM");
+#else /* Now Access */
+	// LB02- Public- 51.8.242.254
+	// LB01- Private- 10.0.1.105
+	strcpy(g_allModemSetupRecord.cell.server, "51.8.242.254");
+#endif
+	g_allModemSetupRecord.cell.serverPort = 20003;
+	g_allModemSetupRecord.cell.tcpServerListenPort = 20003;
+	g_allModemSetupRecord.cell.packetDelay = CELL_PACKET_DELAY_DEFAULT_VALUE;
 
-	g_cellModemSetupRecord.eSimSelect = NO;
+#if 0 /* No longer have hardware for eSIM */
+	g_allModemSetupRecord.cell.eSimSelect = NO;
+#endif
 }
 
 ///----------------------------------------------------------------------------
@@ -617,29 +631,35 @@ void ValidateModemSetupParameters(void)
 {
 	uint8 updated = NO;
 
-	if ((g_modemSetupRecord.retries < MODEM_RETRY_MIN_VALUE) || (g_modemSetupRecord.retries > MODEM_RETRY_MAX_VALUE))
+	if ((g_allModemSetupRecord.ext.retries < MODEM_RETRY_MIN_VALUE) || (g_allModemSetupRecord.ext.retries > MODEM_RETRY_MAX_VALUE))
 	{
-		g_modemSetupRecord.retries = MODEM_RETRY_DEFAULT_VALUE;
+		g_allModemSetupRecord.ext.retries = MODEM_RETRY_DEFAULT_VALUE;
 		updated = YES;
 	}
 
-	if ((g_modemSetupRecord.retryTime < MODEM_RETRY_TIME_MIN_VALUE) || (g_modemSetupRecord.retryTime > MODEM_RETRY_TIME_MAX_VALUE))
+	if ((g_allModemSetupRecord.ext.retryTime < MODEM_RETRY_TIME_MIN_VALUE) || (g_allModemSetupRecord.ext.retryTime > MODEM_RETRY_TIME_MAX_VALUE))
 	{
-		g_modemSetupRecord.retryTime = MODEM_RETRY_TIME_DEFAULT_VALUE;
+		g_allModemSetupRecord.ext.retryTime = MODEM_RETRY_TIME_DEFAULT_VALUE;
 		updated = YES;
 	}
 
 	// Check if the current status is disabled and the dial string is null or empty
-	if ((g_modemSetupRecord.modemStatus == NO) && ((g_modemSetupRecord.dial[0] == '\0') || (g_modemSetupRecord.dial[0] == ' ')))
+	if ((g_allModemSetupRecord.ext.modemStatus == NO) && ((g_allModemSetupRecord.ext.dial[0] == '\0') || (g_allModemSetupRecord.ext.dial[0] == ' ')))
 	{
 		// New request to set the init string to point to Nomis servers
-		strcpy(g_modemSetupRecord.dial, "ATDTONLINE.NOMIS.COM/8005");
+#if 0 /* Original Nomis */
+		strcpy(g_allModemSetupRecord.ext.dial, "ATDTONLINE.NOMIS.COM/8005");
+#else /* Now Access */
+		// LB02- Public- 51.8.242.254
+		// LB01- Private- 10.0.1.105
+		strcpy(g_allModemSetupRecord.ext.dial, "ATDT51.8.242.254/20003");
+#endif
 		updated = YES;
 	}
 
-	if ((g_modemSetupRecord.dialOutCycleTime == 0) || (g_modemSetupRecord.dialOutCycleTime > MODEM_DIAL_OUT_TIMER_MAX_VALUE))
+	if ((g_allModemSetupRecord.ext.dialOutCycleTime == 0) || (g_allModemSetupRecord.ext.dialOutCycleTime > MODEM_DIAL_OUT_TIMER_MAX_VALUE))
 	{
-		g_modemSetupRecord.dialOutCycleTime = MODEM_DIAL_OUT_TIMER_DEFAULT_VALUE;
+		g_allModemSetupRecord.ext.dialOutCycleTime = MODEM_DIAL_OUT_TIMER_DEFAULT_VALUE;
 		updated = YES;
 	}
 
@@ -647,7 +667,7 @@ void ValidateModemSetupParameters(void)
 	{
 		// Save the Modem Setup Record
 		debug("Modem Setup record needed updating\r\n");
-		SaveRecordData(&g_modemSetupRecord, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
+		SaveRecordData(&g_allModemSetupRecord.ext, DEFAULT_RECORD, REC_MODEM_SETUP_TYPE);
 	}
 }
 
@@ -658,36 +678,44 @@ void ValidateCellModemSetupParameters(void)
 {
 	uint8 updated = NO;
 
-	if ((g_cellModemSetupRecord.server[0] == '\0') || (g_cellModemSetupRecord.server[0] == 0xFF))
+	if ((g_allModemSetupRecord.cell.server[0] == '\0') || (g_allModemSetupRecord.cell.server[0] == 0xFF))
 	{
-		strcpy(g_cellModemSetupRecord.server, "ONLINE.NOMIS.COM");
+#if 0 /* Original Nomis */
+		strcpy(g_allModemSetupRecord.cell.server, "ONLINE.NOMIS.COM");
+#else /* Now Access */
+		// LB02- Public- 51.8.242.254
+		// LB01- Private- 10.0.1.105
+		strcpy(g_allModemSetupRecord.cell.server, "51.8.242.254");
+#endif
 		updated = YES;
 	}
 
-	if (g_cellModemSetupRecord.serverPort == 0xFFFF)
+	if (g_allModemSetupRecord.cell.serverPort == 0xFFFF)
 	{
-		g_cellModemSetupRecord.serverPort = ADO_SERVER_PORT_DEFAULT_VALUE;
+		g_allModemSetupRecord.cell.serverPort = ADO_SERVER_PORT_DEFAULT_VALUE;
 		updated = YES;
 	}
 
-	if (g_cellModemSetupRecord.tcpServerListenPort == 0xFFFF)
+	if (g_allModemSetupRecord.cell.tcpServerListenPort == 0xFFFF)
 	{
-		g_cellModemSetupRecord.tcpServerListenPort = TCP_SERVER_LISTEN_PORT_DEFAULT_VALUE;
+		g_allModemSetupRecord.cell.tcpServerListenPort = TCP_SERVER_LISTEN_PORT_DEFAULT_VALUE;
 		updated = YES;
 	}
 
+#if 0 /* No longer have hardware for eSIM */
 	// Check if eSIM Select is not 0 or 1
-	if (g_cellModemSetupRecord.eSimSelect > YES)
+	if (g_allModemSetupRecord.cell.eSimSelect > YES)
 	{
-		g_cellModemSetupRecord.eSimSelect = NO;
+		g_allModemSetupRecord.cell.eSimSelect = NO;
 		updated = YES;
 	}
+#endif
 
 	if (updated)
 	{
 		// Save the Modem Setup Record
 		debug("Cell Modem Setup record needed updating\r\n");
-		SaveRecordData(&g_cellModemSetupRecord, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
+		SaveRecordData(&g_allModemSetupRecord.cell, DEFAULT_RECORD, REC_CELL_MODEM_SETUP_TYPE);
 	}
 }
 
