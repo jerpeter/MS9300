@@ -41,6 +41,8 @@ void CheckAndProcessModemData(uint16_t timeoutHalfSeconds);
 uint8_t CheckforModem(uint16_t timeoutHalfSeconds);
 void CheckAndProcessCellModemData(uint16_t timeoutHalfSeconds);
 uint8_t CheckforModemReady(uint16_t timeoutHalfSeconds);
+void CheckAndHandleRemoteResponseWithDelay(uint32_t delayTime);
+void SendCommandToCellModem(char* commandString);
 
 #endif // _REMOTE_COMMON_H_
 
