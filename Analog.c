@@ -99,7 +99,7 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr, SAMPLE_DATA_STRUCT* data2Ptr)
 	uint8_t chanDataRaw[3];
 	uint8_t configError = NO;
 
-#if 1 /* Test 8 channels */
+	//_____________________________________________________________________________________
 	if (g_adChannelConfig == EIGHT_AD_CHANNELS_WITH_READBACK_WITH_TEMP)
 	{
 		// Chan 0 - Geo1/R
@@ -152,6 +152,7 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr, SAMPLE_DATA_STRUCT* data2Ptr)
 			debugErr("AD Channel config error! Channel data is not in sync\r\n");
 		}
 	}
+	//_____________________________________________________________________________________
 	else if (g_adChannelConfig == EIGHT_AD_CHANNELS_NO_READBACK_WITH_TEMP)
 	{
 		// Dynaimc channels
@@ -168,6 +169,7 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr, SAMPLE_DATA_STRUCT* data2Ptr)
 		AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE);
 		dataTemperature = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 	}
+	//_____________________________________________________________________________________
 	else if (g_adChannelConfig == EIGHT_AD_CHANNELS_NO_READBACK_NO_TEMP)
 	{
 		// Dynaimc channels
@@ -180,9 +182,8 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr, SAMPLE_DATA_STRUCT* data2Ptr)
 		if (chanActive[6]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); data2Ptr->v = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 6 - Geo2/V
 		if (chanActive[7]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE); data2Ptr->a = ((chanDataRaw[0] << 8) | chanDataRaw[1]); } // Chan 7 - AOP2/A
 	}
-	else
-#endif
-	if (g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP)
+	//_____________________________________________________________________________________
+	else if (g_adChannelConfig == FOUR_AD_CHANNELS_WITH_READBACK_WITH_TEMP)
 	{
 		// Chan 0 - Geo1/R
 		if (chanActive[0]) { AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE_PLUS_STATUS);
@@ -234,6 +235,7 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr, SAMPLE_DATA_STRUCT* data2Ptr)
 			debugErr("AD Channel config error! Channel data is not in sync\r\n");
 		}
 	}
+	//_____________________________________________________________________________________
 	else if (g_adChannelConfig == FOUR_AD_CHANNELS_NO_READBACK_WITH_TEMP)
 	{
 		// Dynaimc channels
@@ -250,6 +252,7 @@ void ReadAnalogData(SAMPLE_DATA_STRUCT* dataPtr, SAMPLE_DATA_STRUCT* data2Ptr)
 		AD4695_ReadChannel(chanDataRaw, AD4695_CHANNEL_DATA_READ_SIZE);
 		dataTemperature = ((chanDataRaw[0] << 8) | chanDataRaw[1]);
 	}
+	//_____________________________________________________________________________________
 	else // FOUR_AD_CHANNELS_NO_READBACK_NO_TEMP
 	{
 		// Dynaimc channels
@@ -625,7 +628,7 @@ void GetChannelOffsets(uint32 sampleRate)
 	uint32 timeDelay = (977 / (sampleRate / 1024));
 	uint8 powerAnalogDown = NO;
 
-#if 0 /* Test Accelerometer */
+#if 0 /* Test Accelerometer only */
 	if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
 	{
 		debug("Get Chan Offsets: Using Accelerometer\r\n");
@@ -649,7 +652,7 @@ void GetChannelOffsets(uint32 sampleRate)
 	// Read and pitch samples
 	for (i = 0; i < (sampleRate * 1); i++)
 	{
-#if 0 /* Test Accelerometer */
+#if 0 /* Test Accelerometer only */
 		if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
 		{
 			ACC_DATA_STRUCT accData;
@@ -660,8 +663,8 @@ void GetChannelOffsets(uint32 sampleRate)
 #else
 		ReadAnalogData(&s_tempData, &s_tempData2);
 #endif
-#if 1 /* Test Accelerometer companion event */
-		if (g_saveAccelerometerCompanionEvent)
+#if 1 /* Test Accelerometer companion event or normal 4 channels with added Acc */
+		if ((g_saveAccelerometerCompanionEvent) || (g_currentSensorGroup != SENSOR_GROUP_BOTH))
 		{
 			GetAccelerometerChannelData(&s_tempAccData);
 		}
@@ -679,7 +682,7 @@ void GetChannelOffsets(uint32 sampleRate)
 	// Read and sum samples
 	for (i = 0; i < (sampleRate * 1); i++)
 	{
-#if 0 /* Test Accelerometer */
+#if 0 /* Test Accelerometer only */
 		if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
 		{
 			ACC_DATA_STRUCT accData;
@@ -690,8 +693,8 @@ void GetChannelOffsets(uint32 sampleRate)
 #else
 		ReadAnalogData(&s_tempData, &s_tempData2);
 #endif
-#if 1 /* Test Accelerometer companion event */
-		if (g_saveAccelerometerCompanionEvent)
+#if 1 /* Test Accelerometer companion event or normal 4 channels with added Acc */
+		if ((g_saveAccelerometerCompanionEvent) || (g_currentSensorGroup != SENSOR_GROUP_BOTH))
 		{
 			GetAccelerometerChannelData(&s_tempAccData);
 		}
@@ -711,8 +714,8 @@ void GetChannelOffsets(uint32 sampleRate)
 			s_workingChannelOffset.a2Total += s_tempData2.a;
 		}
 
-#if 1 /* Test Accelerometer companion event */
-		if (g_saveAccelerometerCompanionEvent)
+#if 1 /* Test Accelerometer companion event or normal 4 channels with added Acc */
+		if ((g_saveAccelerometerCompanionEvent) || (g_currentSensorGroup != SENSOR_GROUP_BOTH))
 		{
 			s_workingChannelOffset.xTotal += s_tempAccData.x;
 			s_workingChannelOffset.yTotal += s_tempAccData.y;
@@ -738,8 +741,8 @@ void GetChannelOffsets(uint32 sampleRate)
 		s_workingChannelOffset.a2Total /= (sampleRate * 1);
 	}
 
-#if 1 /* Test Accelerometer companion event */
-	if (g_saveAccelerometerCompanionEvent)
+#if 1 /* Test Accelerometer companion event or normal 4 channels with added Acc */
+	if ((g_saveAccelerometerCompanionEvent) || (g_currentSensorGroup != SENSOR_GROUP_BOTH))
 	{
 		s_workingChannelOffset.xTotal /= (sampleRate * 1);
 		s_workingChannelOffset.yTotal /= (sampleRate * 1);
@@ -761,8 +764,8 @@ void GetChannelOffsets(uint32 sampleRate)
 		g_channelOffset.a2_offset = (int16)(s_workingChannelOffset.a2Total - ACCURACY_16_BIT_MIDPOINT);
 	}
 
-#if 1 /* Test Accelerometer companion event */
-	if (g_saveAccelerometerCompanionEvent)
+#if 1 /* Test Accelerometer companion event or normal 4 channels with added Acc */
+	if ((g_saveAccelerometerCompanionEvent) || (g_currentSensorGroup != SENSOR_GROUP_BOTH))
 	{
 		g_channelOffset.x_offset = (int16)(s_workingChannelOffset.xTotal - ACCURACY_16_BIT_MIDPOINT);
 		g_channelOffset.y_offset = (int16)(s_workingChannelOffset.yTotal - ACCURACY_16_BIT_MIDPOINT);
@@ -784,8 +787,8 @@ void GetChannelOffsets(uint32 sampleRate)
 		debug("A/D Channel First Pass channel offsets: %d, %d, %d, %d\r\n", g_channelOffset.r_offset, g_channelOffset.v_offset, g_channelOffset.t_offset, g_channelOffset.a_offset);
 	}
 
-#if 1 /* Test Accelerometer companion event */
-	if (g_saveAccelerometerCompanionEvent)
+#if 1 /* Test Accelerometer companion event or normal 4 channels with added Acc */
+	if ((g_saveAccelerometerCompanionEvent) || (g_currentSensorGroup != SENSOR_GROUP_BOTH))
 	{
 		debug("(Acc) A/D Channel First Pass channel average: 0x%x, 0x%x, 0x%x\r\n", s_workingChannelOffset.xTotal, s_workingChannelOffset.yTotal, s_workingChannelOffset.zTotal);
 		debug("(Acc) A/D Channel First Pass channel offsets: %d, %d, %d\r\n", g_channelOffset.x_offset, g_channelOffset.y_offset, g_channelOffset.z_offset);
@@ -799,7 +802,7 @@ void GetChannelOffsets(uint32 sampleRate)
 	// Read and sum samples
 	for (i = 0; i < (sampleRate * 1); i++)
 	{
-#if 0 /* Test Accelerometer */
+#if 0 /* Test Accelerometer only */
 		if (g_adChannelConfig == THREE_ACC_CHANNELS_NO_AIR)
 		{
 			ACC_DATA_STRUCT accData;
@@ -810,8 +813,8 @@ void GetChannelOffsets(uint32 sampleRate)
 #else
 		ReadAnalogData(&s_tempData, &s_tempData2);
 #endif
-#if 1 /* Test Accelerometer companion event */
-	if (g_saveAccelerometerCompanionEvent)
+#if 1 /* Test Accelerometer companion event or normal 4 channels with added Acc */
+	if ((g_saveAccelerometerCompanionEvent) || (g_currentSensorGroup != SENSOR_GROUP_BOTH))
 	{
 		GetAccelerometerChannelData(&s_tempAccData);
 	}
@@ -869,8 +872,8 @@ void GetChannelOffsets(uint32 sampleRate)
 			}
 		}
 
-#if 1 /* Test Accelerometer companion event */
-		if (g_saveAccelerometerCompanionEvent)
+#if 1 /* Test Accelerometer companion event or normal 4 channels with added Acc */
+		if ((g_saveAccelerometerCompanionEvent) || (g_currentSensorGroup != SENSOR_GROUP_BOTH))
 		{
 			if (((s_tempAccData.x - g_channelOffset.x_offset) > (ACCURACY_16_BIT_MIDPOINT - SEISMIC_TRIGGER_MIN_VALUE)) && (((s_tempAccData.x - g_channelOffset.x_offset) < (ACCURACY_16_BIT_MIDPOINT + SEISMIC_TRIGGER_MIN_VALUE))))
 			{
@@ -907,8 +910,8 @@ void GetChannelOffsets(uint32 sampleRate)
 		if (s_workingChannelCounts.a2Count) { s_workingChannelOffset.a2Total /= s_workingChannelCounts.a2Count; g_channelOffset.a2_offset = (int16)(s_workingChannelOffset.a2Total - ACCURACY_16_BIT_MIDPOINT); }
 	}
 
-#if 1 /* Test Accelerometer companion event */
-	if (g_saveAccelerometerCompanionEvent)
+#if 1 /* Test Accelerometer companion event or normal 4 channels with added Acc */
+	if ((g_saveAccelerometerCompanionEvent) || (g_currentSensorGroup != SENSOR_GROUP_BOTH))
 	{
 		if (s_workingChannelCounts.xCount) { s_workingChannelOffset.xTotal /= s_workingChannelCounts.xCount; g_channelOffset.x_offset = (int16)(s_workingChannelOffset.xTotal - ACCURACY_16_BIT_MIDPOINT); }
 		if (s_workingChannelCounts.yCount) { s_workingChannelOffset.yTotal /= s_workingChannelCounts.yCount; g_channelOffset.y_offset = (int16)(s_workingChannelOffset.yTotal - ACCURACY_16_BIT_MIDPOINT); }
@@ -930,8 +933,8 @@ void GetChannelOffsets(uint32 sampleRate)
 		debug("A/D Channel Second Pass channel offsets: %d, %d, %d, %d\r\n", g_channelOffset.r_offset, g_channelOffset.v_offset, g_channelOffset.t_offset, g_channelOffset.a_offset);
 	}
 
-#if 1 /* Test Accelerometer companion event */
-	if (g_saveAccelerometerCompanionEvent)
+#if 1 /* Test Accelerometer companion event or normal 4 channels with added Acc */
+	if ((g_saveAccelerometerCompanionEvent) || (g_currentSensorGroup != SENSOR_GROUP_BOTH))
 	{
 		debug("(Acc) A/D Channel Second Pass channel average: 0x%x, 0x%x, 0x%x\r\n", s_workingChannelOffset.xTotal, s_workingChannelOffset.yTotal, s_workingChannelOffset.zTotal);
 		debug("(Acc) A/D Channel Second Pass channel offsets: %d, %d, %d\r\n", g_channelOffset.x_offset, g_channelOffset.y_offset, g_channelOffset.z_offset);
@@ -1154,9 +1157,8 @@ void ZeroingSensorCalibration(void)
 		}
 	}
 
-#if 1 /* Test */
+	// Check and report if Zero Sensors was unable to find a stable offset
 	if (g_lifetimeHalfSecondTickCount >= (startZeroSensorTime + (ZERO_SENSOR_MAX_TIME_IN_SECONDS * 2))) { debugWarn("Zero Sensors: Timed out finding stable offset\r\n"); }
-#endif
 
 	StopADDataCollectionForCalibration();
 
@@ -1449,7 +1451,8 @@ void AD4695_Init()
 {
 	uint8_t testData;
 	debug("External ADC: Init\r\n");
-#if 1 /* Test */
+
+#if 1 /* Test SPI access and checking part by reading vendor ID and working scratch pad */
 	AD4695_SpiReadRegister(AD4695_REG_VENDOR_L, &testData);
 	if (testData != 0x56) { debug("External ADC: Vendor ID verification low byte failed (0x%x not 0x56)\r\n", testData); }
 	else
