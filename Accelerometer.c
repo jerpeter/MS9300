@@ -523,7 +523,7 @@ void AccelerometerInit(void)
 	}
 #endif
 
-#if 0 /* Test */
+#if 0 /* Test loop reading static Manufacturer ID and part number */
 	//while (1)
 	{
 		VerifyAccManuIDAndPartID();
@@ -531,7 +531,7 @@ void AccelerometerInit(void)
 	}
 #endif
 
-#if 0 /* Test */
+#if 0 /* Test reading static Manufacturer ID and part number for different SPI modes */
 	uint8_t manuIDAndPartID[6];
 	uint8_t registerAddress = ACC_MAN_ID_REGISTER;
 	//uint8_t status = FAILED;
@@ -580,8 +580,7 @@ void AccelerometerInit(void)
 		// Put the Acc in standby mode to allow changing control register values
 		SetAccRegister(ACC_CONTROL_1_REGISTER, 0x00);
 
-#if 0 /* Test */
-		// Reset interrupt controls
+#if 0 /* Test resetting interrupt controls */
 		SetAccRegister(ACC_INTERRUPT_CONTROL_1_REGISTER, 0x10);
 		SetAccRegister(ACC_INTERRUPT_CONTROL_5_REGISTER, 0x10);
 #endif
@@ -710,8 +709,7 @@ extern volatile uint8_t testAccInt;
 		}
 #endif
 
-#if 0 /* Test */
-		// Reset interrupt controls
+#if 0 /* Test resetting interrupt controls */
 		SetAccRegister(ACC_INTERRUPT_CONTROL_1_REGISTER, 0x10);
 		SetAccRegister(ACC_INTERRUPT_CONTROL_5_REGISTER, 0x10);
 #endif
