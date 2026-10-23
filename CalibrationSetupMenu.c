@@ -68,8 +68,14 @@ typedef struct {
 	uint16 chan[4];
 } CALIBRATION_DATA;
 
-#if 1 /* Test */
+#if 1 /* Test maintaining the Cal Mux state */
 static uint8_t cmState = OFF;
+#endif
+
+#if 1 /* Test maintaining the Analog Cutoff, Gain and Path states */
+static uint8_t aCutoffState = ANALOG_CUTOFF_FREQ_500;
+static uint8_t gainState = SEISMIC_GAIN_NORMAL;
+static uint8_t pathState = ACOUSTIC_PATH_AOP;
 #endif
 
 ///----------------------------------------------------------------------------
@@ -78,12 +84,6 @@ static uint8_t cmState = OFF;
 void CalSetupMn(INPUT_MSG_STRUCT);
 void CalSetupMnDsply(WND_LAYOUT_STRUCT*);
 void CalSetupMnProc(INPUT_MSG_STRUCT, WND_LAYOUT_STRUCT*, MN_LAYOUT_STRUCT*);
-
-#if 1 /* Test */
-static uint8_t aCutoffState = ANALOG_CUTOFF_FREQ_500;
-static uint8_t gainState = SEISMIC_GAIN_NORMAL;
-static uint8_t pathState = ACOUSTIC_PATH_AOP;
-#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
@@ -101,6 +101,7 @@ void CalSetupMn(INPUT_MSG_STRUCT msg)
 	DATE_TIME_STRUCT tempTime;
 	uint8 previousMode = g_triggerRecord.opMode;
 	uint8 clearedFSRecord = NO;
+	char filterText[16];
 	uint8 choice = MessageBox(getLangText(VERIFY_TEXT), getLangText(START_CALIBRATION_DIAGNOSTICS_Q_TEXT), MB_YESNO);
 
 	if (choice == MB_FIRST_CHOICE)
@@ -119,9 +120,7 @@ void CalSetupMn(INPUT_MSG_STRUCT msg)
 				{
 					// Update the current time since we never leave the loop
 					UpdateCurrentTime();
-
-#if 1 /* Test */
-extern void WriteDebugCacheToFile(uint8_t flush);
+#if 1 /* Test dumping any cached debug */
 					WriteDebugCacheToFile(0);
 #endif
 					// Create the Cal Setup menu
@@ -142,37 +141,40 @@ extern uint32_t testLifetimeCurrentAvgCount;
 					}
 #endif
 
-#if 0 /* Test to see A/D output with Accelerometer */
+					// Output the A/D to the debug every second
 					if (g_lifetimeHalfSecondTickCount & 0x1)
 					{
-						//debug("CS A/D: R:%+5ld/%+5ld V:%+5ld/%+5ld T:%+5ld/%+5ld A:%+5ld/%+5ld\r\n", g_sensorCalChanMin[1], g_sensorCalChanMax[1], g_sensorCalChanMin[2], g_sensorCalChanMax[2], g_sensorCalChanMin[3], g_sensorCalChanMax[3], g_sensorCalChanMin[0], g_sensorCalChanMax[0]);
-						float rCalc, tCalc, vCalc, xCalc, yCalc, zCalc, aCalc;
-						rCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[1]) > g_sensorCalChanMax[1] ? abs(g_sensorCalChanMin[1]) : g_sensorCalChanMax[1]);
-						tCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3]);
-						vCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2]);
-						aCalc = (float)5.120 / (float)32768 * (float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]);
-						xCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[4]) > g_sensorCalChanMax[4] ? abs(g_sensorCalChanMin[4]) : g_sensorCalChanMax[4]);
-						yCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[5]) > g_sensorCalChanMax[5] ? abs(g_sensorCalChanMin[5]) : g_sensorCalChanMax[5]);
-						zCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[6]) > g_sensorCalChanMax[6] ? abs(g_sensorCalChanMin[6]) : g_sensorCalChanMax[6]);
-						debug("CS A/D: R %2.3f T %2.3f V %2.3f (IPS), A %1.3f (mB), X %1.4f Y %1.4f Z %1.4f (G)\r\n", (double)(rCalc), (double)(tCalc), (double)(vCalc), (double)(aCalc), (double)(xCalc), (double)(yCalc), (double)(zCalc));
-					}
-#else /* Test 8 channels */
-					if (g_lifetimeHalfSecondTickCount & 0x1)
-					{
-						//debug("CS A/D: R:%+5ld/%+5ld V:%+5ld/%+5ld T:%+5ld/%+5ld A:%+5ld/%+5ld\r\n", g_sensorCalChanMin[1], g_sensorCalChanMax[1], g_sensorCalChanMin[2], g_sensorCalChanMax[2], g_sensorCalChanMin[3], g_sensorCalChanMax[3], g_sensorCalChanMin[0], g_sensorCalChanMax[0]);
-						float rCalc, tCalc, vCalc, aCalc;
-						float r2Calc, t2Calc, v2Calc, a2Calc;
-						rCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[1]) > g_sensorCalChanMax[1] ? abs(g_sensorCalChanMin[1]) : g_sensorCalChanMax[1]);
-						tCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3]);
-						vCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2]);
-						aCalc = (float)5.120 / (float)32768 * (float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]);
-						r2Calc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[1+4]) > g_sensorCalChanMax[1+4] ? abs(g_sensorCalChanMin[1+4]) : g_sensorCalChanMax[1+4]);
-						t2Calc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[3+4]) > g_sensorCalChanMax[3+4] ? abs(g_sensorCalChanMin[3+4]) : g_sensorCalChanMax[3+4]);
-						v2Calc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[2+4]) > g_sensorCalChanMax[2+4] ? abs(g_sensorCalChanMin[2+4]) : g_sensorCalChanMax[2+4]);
-						a2Calc = (float)5.120 / (float)32768 * (float)(abs(g_sensorCalChanMin[0+4]) > g_sensorCalChanMax[0+4] ? abs(g_sensorCalChanMin[0+4]) : g_sensorCalChanMax[0+4]);
-						debug("CS A/D: R %2.3f T %2.3f V %2.3f, A %1.3f, R2 %2.3f T2 %2.3f V2 %2.3f, A2 %1.3f\r\n",
-								(double)(rCalc), (double)(tCalc), (double)(vCalc), (double)(aCalc),
-								(double)(r2Calc), (double)(t2Calc), (double)(v2Calc), (double)(a2Calc));
+#if 0 /* Original */
+						debug("CS A/D: R:%+5ld/%+5ld V:%+5ld/%+5ld T:%+5ld/%+5ld A:%+5ld/%+5ld\r\n", g_sensorCalChanMin[1], g_sensorCalChanMax[1], g_sensorCalChanMin[2], g_sensorCalChanMax[2], g_sensorCalChanMin[3], g_sensorCalChanMax[3], g_sensorCalChanMin[0], g_sensorCalChanMax[0]);
+#else /* Test to see A/D output with Accelerometer or all 8 channels */
+						if (g_currentSensorGroup != SENSOR_GROUP_BOTH)
+						{
+							float rCalc, tCalc, vCalc, xCalc, yCalc, zCalc, aCalc;
+							rCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[1]) > g_sensorCalChanMax[1] ? abs(g_sensorCalChanMin[1]) : g_sensorCalChanMax[1]);
+							tCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3]);
+							vCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2]);
+							aCalc = (float)5.120 / (float)32768 * (float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]);
+							xCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[4]) > g_sensorCalChanMax[4] ? abs(g_sensorCalChanMin[4]) : g_sensorCalChanMax[4]);
+							yCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[5]) > g_sensorCalChanMax[5] ? abs(g_sensorCalChanMin[5]) : g_sensorCalChanMax[5]);
+							zCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[6]) > g_sensorCalChanMax[6] ? abs(g_sensorCalChanMin[6]) : g_sensorCalChanMax[6]);
+							debug("CS A/D: R %2.3f T %2.3f V %2.3f (IPS), A %1.3f (mB), X %1.4f Y %1.4f Z %1.4f (G)\r\n", (double)(rCalc), (double)(tCalc), (double)(vCalc), (double)(aCalc), (double)(xCalc), (double)(yCalc), (double)(zCalc));
+						}
+						else /* (g_currentSensorGroup == SENSOR_GROUP_BOTH) */
+						{
+							float rCalc, tCalc, vCalc, aCalc;
+							float r2Calc, t2Calc, v2Calc, a2Calc;
+							rCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[1]) > g_sensorCalChanMax[1] ? abs(g_sensorCalChanMin[1]) : g_sensorCalChanMax[1]);
+							tCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3]);
+							vCalc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2]);
+							aCalc = (float)5.120 / (float)32768 * (float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]);
+							r2Calc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[1+4]) > g_sensorCalChanMax[1+4] ? abs(g_sensorCalChanMin[1+4]) : g_sensorCalChanMax[1+4]);
+							t2Calc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[3+4]) > g_sensorCalChanMax[3+4] ? abs(g_sensorCalChanMin[3+4]) : g_sensorCalChanMax[3+4]);
+							v2Calc = (float)10.24 / (float)32768 * (float)(abs(g_sensorCalChanMin[2+4]) > g_sensorCalChanMax[2+4] ? abs(g_sensorCalChanMin[2+4]) : g_sensorCalChanMax[2+4]);
+							a2Calc = (float)5.120 / (float)32768 * (float)(abs(g_sensorCalChanMin[0+4]) > g_sensorCalChanMax[0+4] ? abs(g_sensorCalChanMin[0+4]) : g_sensorCalChanMax[0+4]);
+							debug("CS A/D: R %2.3f T %2.3f V %2.3f, A %1.3f, R2 %2.3f T2 %2.3f V2 %2.3f, A2 %1.3f\r\n",
+									(double)(rCalc), (double)(tCalc), (double)(vCalc), (double)(aCalc),
+									(double)(r2Calc), (double)(t2Calc), (double)(v2Calc), (double)(a2Calc));
+						}
 					}
 #endif
 					WriteMapToLcd(g_mmap);
@@ -189,13 +191,9 @@ extern uint32_t testLifetimeCurrentAvgCount;
 				if (key == KEY_NONE) { SoftUsecWait(1 * SOFT_MSECS); } // Delay 1ms between key checks
 				else /* Key press found */ { SoftUsecWait(250 * SOFT_MSECS); } // Generic delay to prevent processing the same key twice
 
-#if 1 /* Test */
+#if 1 /* Test absorbing key if the LCD power was off */
 				// Check if the LCD Power was turned off
 				if ((key != KEY_NONE) && (g_lcdPowerFlag == DISABLED)) { KeypressEventMgr(); key = KEY_NONE; }
-#endif
-
-#if 1 /* Test */
-				char filterText[16];
 #endif
 				switch (key)
 				{
@@ -234,7 +232,7 @@ extern uint32_t testLifetimeCurrentAvgCount;
 						}
 
 						key = 0;
-#else /* Test */
+#else /* Test Sensor Check toggling */
 						if (scEnable == ON) { scEnable = OFF; } else { scEnable = ON; }
 						if (scEnable) { PowerControl(SENSOR_CHECK_ENABLE, ON); sprintf((char*)g_debugBuffer, "Cal Setup: Sensor Check Enabled"); }
 						else{ PowerControl(SENSOR_CHECK_ENABLE, OFF); sprintf((char*)g_debugBuffer, "Cal Setup: Sensor Check Disabled"); }
@@ -292,7 +290,7 @@ extern uint32_t testLifetimeCurrentAvgCount;
 						}
 
 						key = 0;
-#else /* Test */
+#else /* Test Sensor Check state changing */
 						if (scState == ON) { scState = OFF; } else { scState = ON; }
 						if (scState) { SetSensorCheckState(ON); sprintf((char*)g_debugBuffer, "Cal Setup: Sensor Check state High"); }
 						else { SetSensorCheckState(OFF); sprintf((char*)g_debugBuffer, "Cal Setup: Sensor Check state Low"); }
@@ -432,7 +430,7 @@ extern uint32_t testLifetimeCurrentAvgCount;
 						break;
 
 					case KB_SK_1:
-#if 1 /* Test */
+#if 1 /* Test ability to turn off the LCD screen */
 						if (GetPowerOnButtonState() == ON)
 						{
 							LcdPwTimerCallBack();
@@ -440,7 +438,7 @@ extern uint32_t testLifetimeCurrentAvgCount;
 							break;
 						}
 #endif
-#if 1 /* Test */
+#if 1 /* Test ability to change the nyquist filter frequency */
 						if (aCutoffState == ANALOG_CUTOFF_FREQ_500) { aCutoffState = ANALOG_CUTOFF_FREQ_1K; strcpy(filterText, "1K"); }
 						else if (aCutoffState == ANALOG_CUTOFF_FREQ_1K) { aCutoffState = ANALOG_CUTOFF_FREQ_2K; strcpy(filterText, "2K"); }
 						else if (aCutoffState == ANALOG_CUTOFF_FREQ_2K) { aCutoffState = ANALOG_CUTOFF_FREQ_4K; strcpy(filterText, "4K"); }
@@ -454,7 +452,7 @@ extern uint32_t testLifetimeCurrentAvgCount;
 #endif
 						break;
 					case KB_SK_2:
-#if 1 /* Test */
+#if 1 /* Test ability to change the air pathing or the seismic gain */
 						if (GetPowerOnButtonState() == ON)
 						{
 							if (gainState == SEISMIC_GAIN_NORMAL) { gainState = SEISMIC_GAIN_HIGH; } else { gainState = SEISMIC_GAIN_NORMAL; }
@@ -525,7 +523,7 @@ extern uint32_t testLifetimeCurrentAvgCount;
 #endif
 
 					case KB_SK_4:
-#if 1 /* Test */
+#if 1 /* Test ability to toggle the backlight */
 						if (GetPowerOnButtonState() == ON)
 						{
 							if (g_lcdBacklightFlag == ENABLED)
@@ -620,7 +618,7 @@ extern uint32_t testLifetimeCurrentAvgCount;
 			}
 
 			StopADDataCollectionForCalibration();
-#if 1 /* Test */
+#if 1 /* Test Accelerometer data collection */
 			StopAccelerometerAquisition();
 #endif
 			// Reset the current sensor group selection to the default
@@ -761,11 +759,25 @@ void CalSetupMnProc(INPUT_MSG_STRUCT msg,
 			if (mbChoice == MB_FIRST_CHOICE) { g_currentSensorGroup = SENSOR_GROUP_A_1; }
 			else if (mbChoice == MB_SECOND_CHOICE) { g_currentSensorGroup = SENSOR_GROUP_B_2; }
 			else /* (mbChoice == MB_SPECIAL_ACTION) */ { g_currentSensorGroup = SENSOR_GROUP_BOTH; }
-#endif
-#if 1 /* Test 8 channels */
+#elif 0 /* Test 8 channels */
 			g_currentSensorGroup = SENSOR_GROUP_BOTH;
 			g_adChannelConfig = EIGHT_AD_CHANNELS_WITH_READBACK_WITH_TEMP;
 			OverlayMessage(getLangText(STATUS_TEXT), "Eight Channels with Readback and Temp", (2 * SOFT_SECS));
+#else /* Check for any Smart Sensors for automatic assignment, otherwise prompt for choice */
+			if (CheckIfSmartSensorPresent(SEISMIC_SENSOR) == YES) { g_currentSensorGroup = SENSOR_GROUP_A_1; } // S1 A2
+			else if (CheckIfSmartSensorPresent(SEISMIC_SENSOR_2) == YES) { g_currentSensorGroup = SENSOR_GROUP_B_2; } // A1 S2
+			else if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR) == YES) { g_currentSensorGroup = SENSOR_GROUP_B_2; } // A1 S2
+			else if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR_2) == YES) { g_currentSensorGroup = SENSOR_GROUP_A_1; } // S1 A2
+			else // No Snart Sensors found
+			{
+				mbChoice = MessageBox(getLangText(SELECT_TEXT), "NO SMART SENSORS FOUND. CHECK SENSOR GROUP A/1? SELECT NO WILL SWAP TO SENSOR GROUP B/2", MB_YESNO);
+				if (mbChoice == MB_FIRST_CHOICE) { g_currentSensorGroup = SENSOR_GROUP_A_1; }
+				else if (mbChoice == MB_SECOND_CHOICE) { g_currentSensorGroup = SENSOR_GROUP_B_2; }
+				else /* (mbChoice == MB_SPECIAL_ACTION) */ { g_currentSensorGroup = SENSOR_GROUP_BOTH; g_adChannelConfig = EIGHT_AD_CHANNELS_WITH_READBACK_WITH_TEMP; }
+			}
+			if (g_currentSensorGroup == SENSOR_GROUP_A_1) { OverlayMessage(getLangText(STATUS_TEXT), "SENSOR GROUP A/1 SELECTED", (2 * SOFT_SECS)); }
+			else if (g_currentSensorGroup == SENSOR_GROUP_B_2) { OverlayMessage(getLangText(STATUS_TEXT), "SENSOR GROUP B/2 SELECTED", (2 * SOFT_SECS)); }
+			else /* SENSOR_GROUP_BOTH */ { OverlayMessage(getLangText(STATUS_TEXT), "BOTH SENSOR GROUPS SELECTED", (2 * SOFT_SECS)); }
 #endif
 			OverlayMessage(getLangText(STATUS_TEXT), getLangText(PLEASE_BE_PATIENT_TEXT), 0);
 
@@ -775,11 +787,12 @@ void CalSetupMnProc(INPUT_MSG_STRUCT msg,
 			// Set the sample rate to a fixed 1K
 			g_triggerRecord.trec.sample_rate = SAMPLE_RATE_1K;
 
-#if 0 /* Test starting the Accelerometer */
-			StartAccelerometerAquisition();
-#endif
-#if 1 /* Test needing Acc online for zero offset calibration */
-			if (g_saveAccelerometerCompanionEvent)
+#if 1 /* Test starting the Accelerometer or if needing Acc online for zero offset calibration */
+			if (g_currentSensorGroup != SENSOR_GROUP_BOTH)
+			{
+				StartAccelerometerAquisition();
+			}
+			else if (g_saveAccelerometerCompanionEvent)
 			{
 				StartAccelerometerAquisition();
 			}
@@ -793,11 +806,11 @@ void CalSetupMnProc(INPUT_MSG_STRUCT msg,
 			// Hand setup A/D data collection and start the data clock
 #if 1 /* Normal */
 			StartADDataCollectionForCalibration(CALIBRATION_FIXED_SAMPLE_RATE);
-#else /* Test */
+#else /* Test using a different sample rate */
 			StartADDataCollectionForCalibration(SAMPLE_RATE_8K);
 #endif
 
-#if 1 /* Test addition */
+#if 1 /* Test addition to set initial states */
 			// Reset static state on for re-entry
 			aCutoffState = ANALOG_CUTOFF_FREQ_500;
 			gainState = SEISMIC_GAIN_NORMAL;
@@ -945,7 +958,7 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 		wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_ONE;
 		WndMpWrtString(buff,wnd_layout_ptr, SIX_BY_EIGHT_FONT,REG_LN);
 
-#if 1 /* Test addition */
+#if 1 /* Test addition to display Nyquist filter frequency and aair weighting */
 		char filterText[8];
 		char weightText[8];
 		if (aCutoffState == ANALOG_CUTOFF_FREQ_500) { strcpy(filterText, "5H"); }
@@ -1342,82 +1355,83 @@ void CalSetupMnDsply(WND_LAYOUT_STRUCT *wnd_layout_ptr)
 			sprintf((char*)buff, "T|%+5ld|%+5ld|%+5ld|", g_sensorCalChanMin[3], g_sensorCalChanMax[3], g_sensorCalChanAvg[3]);
 			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SIX;
 			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
-#elif 0 /* Test adding in Acc results */
-			float rCalc, tCalc, vCalc, xCalc, yCalc, zCalc, aCalc;
-			rCalc = (float)((float)((abs(g_sensorCalChanMin[1]) > g_sensorCalChanMax[1] ? abs(g_sensorCalChanMin[1]) : g_sensorCalChanMax[1])) / (float)div);
-			tCalc = (float)((float)((abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3])) / (float)div);
-			vCalc = (float)((float)((abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2])) / (float)div);
-			aCalc = (float)HexToMB((float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType);
-			xCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[4]) > g_sensorCalChanMax[4] ? abs(g_sensorCalChanMin[4]) : g_sensorCalChanMax[4]);
-			yCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[5]) > g_sensorCalChanMax[5] ? abs(g_sensorCalChanMin[5]) : g_sensorCalChanMax[5]);
-			zCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[6]) > g_sensorCalChanMax[6] ? abs(g_sensorCalChanMin[6]) : g_sensorCalChanMax[6]);
-			sprintf((char*)buff, "(R) %+5ld  %+5ld   (R) %2.3f IPS   (X) %1.4f G", g_sensorCalChanMin[1], g_sensorCalChanMax[1], (double)rCalc, (double)xCalc);
-/* 			sprintf((char*)buff, "R|%+1.4f|%+1.4f|%+5ld| X|%+1.4f|%+1.4f|%+5ld|",
-					(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMin[1]),
-					(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMax[1]),
-					g_sensorCalChanAvg[1],
-					(double)((float)8 / (float)32768 * (float)g_sensorCalChanMin[4]),
-					(double)((float)8 / (float)32768 * (float)g_sensorCalChanMax[4]),
-					g_sensorCalChanAvg[4]);
- */
-			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FOUR;
-			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+#elif 1 /* Test adding in Acc results */
+			float rCalc, tCalc, vCalc, aCalc;
+			float xCalc, yCalc, zCalc;
+			float r2Calc, t2Calc, v2Calc, a2Calc;
 
-			memset(&buff[0], 0, sizeof(buff));
-			sprintf((char*)buff, "(T) %+5ld  %+5ld   (T) %2.3f IPS   (Y) %1.4f G", g_sensorCalChanMin[3], g_sensorCalChanMax[3], (double)tCalc, (double)yCalc);
-/* 			sprintf((char*)buff, "V|%+1.4f|%+1.4f|%+5ld| Z|%+1.4f|%+1.4f|%+5ld|",
-					(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMin[2]),
-					(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMax[2]),
-					g_sensorCalChanAvg[2],
-					(double)((float)8 / (float)32768 * (float)g_sensorCalChanMin[6]),
-					(double)((float)8 / (float)32768 * (float)g_sensorCalChanMax[6]),
-					g_sensorCalChanAvg[6]);
- */
-			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FIVE;
-			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+			if (g_currentSensorGroup != SENSOR_GROUP_BOTH)
+			{
+				rCalc = (float)((float)((abs(g_sensorCalChanMin[1]) > g_sensorCalChanMax[1] ? abs(g_sensorCalChanMin[1]) : g_sensorCalChanMax[1])) / (float)div);
+				tCalc = (float)((float)((abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3])) / (float)div);
+				vCalc = (float)((float)((abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2])) / (float)div);
+				aCalc = (float)HexToMB((float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType);
+				xCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[4]) > g_sensorCalChanMax[4] ? abs(g_sensorCalChanMin[4]) : g_sensorCalChanMax[4]);
+				yCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[5]) > g_sensorCalChanMax[5] ? abs(g_sensorCalChanMin[5]) : g_sensorCalChanMax[5]);
+				zCalc = (float)ACC_SCALE_IN_G / (float)32768 * (float)(abs(g_sensorCalChanMin[6]) > g_sensorCalChanMax[6] ? abs(g_sensorCalChanMin[6]) : g_sensorCalChanMax[6]);
+				sprintf((char*)buff, "(R) %+5ld  %+5ld   (R) %2.3f IPS   (X) %1.4f G", g_sensorCalChanMin[1], g_sensorCalChanMax[1], (double)rCalc, (double)xCalc);
+	/* 			sprintf((char*)buff, "R|%+1.4f|%+1.4f|%+5ld| X|%+1.4f|%+1.4f|%+5ld|",
+						(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMin[1]), (double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMax[1]), g_sensorCalChanAvg[1],
+						(double)((float)8 / (float)32768 * (float)g_sensorCalChanMin[4]), (double)((float)8 / (float)32768 * (float)g_sensorCalChanMax[4]), g_sensorCalChanAvg[4]);
+	*/
+				wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FOUR;
+				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 
-			memset(&buff[0], 0, sizeof(buff));
-			sprintf((char*)buff, "(V) %+5ld  %+5ld   (V) %2.3f IPS   (Z) %1.4f G", g_sensorCalChanMin[2], g_sensorCalChanMax[2], (double)vCalc, (double)zCalc);
-/* 			sprintf((char*)buff, "T|%+1.4f|%+1.4f|%+5ld| Y|%+1.4f|%+1.4f|%+5ld|",
-					(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMin[3]),
-					(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMax[3]),
-					g_sensorCalChanAvg[3],
-					(double)((float)8 / (float)32768 * (float)g_sensorCalChanMin[5]),
-					(double)((float)8 / (float)32768 * (float)g_sensorCalChanMax[5]),
-					g_sensorCalChanAvg[5]);
- */
-			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SIX;
-			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
-#else /* Test 8 channels */
-			float rCalc, tCalc, vCalc, aCalc, r2Calc, t2Calc, v2Calc, a2Calc;
-			rCalc = (float)((float)((abs(g_sensorCalChanMin[1]) > g_sensorCalChanMax[1] ? abs(g_sensorCalChanMin[1]) : g_sensorCalChanMax[1])) / (float)div);
-			tCalc = (float)((float)((abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3])) / (float)div);
-			vCalc = (float)((float)((abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2])) / (float)div);
-			aCalc = (float)HexToMB((float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType);
+				memset(&buff[0], 0, sizeof(buff));
+				sprintf((char*)buff, "(T) %+5ld  %+5ld   (T) %2.3f IPS   (Y) %1.4f G", g_sensorCalChanMin[3], g_sensorCalChanMax[3], (double)tCalc, (double)yCalc);
+	/* 			sprintf((char*)buff, "V|%+1.4f|%+1.4f|%+5ld| Z|%+1.4f|%+1.4f|%+5ld|",
+						(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMin[2]), (double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMax[2]), g_sensorCalChanAvg[2],
+						(double)((float)8 / (float)32768 * (float)g_sensorCalChanMin[6]), (double)((float)8 / (float)32768 * (float)g_sensorCalChanMax[6]), g_sensorCalChanAvg[6]);
+	*/
+				wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FIVE;
+				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 
-			r2Calc = (float)((float)((abs(g_sensorCalChanMin[1+4]) > g_sensorCalChanMax[1+4] ? abs(g_sensorCalChanMin[1+4]) : g_sensorCalChanMax[1+4])) / (float)div);
-			t2Calc = (float)((float)((abs(g_sensorCalChanMin[3+4]) > g_sensorCalChanMax[3+4] ? abs(g_sensorCalChanMin[3+4]) : g_sensorCalChanMax[3+4])) / (float)div);
-			v2Calc = (float)((float)((abs(g_sensorCalChanMin[2+4]) > g_sensorCalChanMax[2+4] ? abs(g_sensorCalChanMin[2+4]) : g_sensorCalChanMax[2+4])) / (float)div);
-			a2Calc = (float)HexToMB((float)(abs(g_sensorCalChanMin[0+4]) > g_sensorCalChanMax[0+4] ? abs(g_sensorCalChanMin[0+4]) : g_sensorCalChanMax[0+4]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType);
+				memset(&buff[0], 0, sizeof(buff));
+				sprintf((char*)buff, "(V) %+5ld  %+5ld   (V) %2.3f IPS   (Z) %1.4f G", g_sensorCalChanMin[2], g_sensorCalChanMax[2], (double)vCalc, (double)zCalc);
+	/* 			sprintf((char*)buff, "T|%+1.4f|%+1.4f|%+5ld| Y|%+1.4f|%+1.4f|%+5ld|",
+						(double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMin[3]), (double)((float)10.24 / (float)32768 * (float)g_sensorCalChanMax[3]), g_sensorCalChanAvg[3],
+						(double)((float)8 / (float)32768 * (float)g_sensorCalChanMin[5]), (double)((float)8 / (float)32768 * (float)g_sensorCalChanMax[5]), g_sensorCalChanAvg[5]);
+	*/
+				wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SIX;
+				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 
-			sprintf((char*)buff, "(R) %+5ld  %+5ld  %2.3f   (R2) %+5ld  %+5ld  %2.3f", g_sensorCalChanMin[1], g_sensorCalChanMax[1], (double)rCalc, g_sensorCalChanMin[1+4], g_sensorCalChanMax[1+4], (double)r2Calc);
-			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FOUR;
-			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+				memset(&buff[0], 0, sizeof(buff));
+				sprintf((char*)buff, "(A) %+5ld  %+5ld  %1.3f mb", g_sensorCalChanMin[0], g_sensorCalChanMax[0], (double)aCalc);
+				wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SEVEN;
+				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+			}
+			else // (g_currentSensorGroup == SENSOR_GROUP_BOTH) // Test 8 channels
+			{
+				rCalc = (float)((float)((abs(g_sensorCalChanMin[1]) > g_sensorCalChanMax[1] ? abs(g_sensorCalChanMin[1]) : g_sensorCalChanMax[1])) / (float)div);
+				tCalc = (float)((float)((abs(g_sensorCalChanMin[3]) > g_sensorCalChanMax[3] ? abs(g_sensorCalChanMin[3]) : g_sensorCalChanMax[3])) / (float)div);
+				vCalc = (float)((float)((abs(g_sensorCalChanMin[2]) > g_sensorCalChanMax[2] ? abs(g_sensorCalChanMin[2]) : g_sensorCalChanMax[2])) / (float)div);
+				aCalc = (float)HexToMB((float)(abs(g_sensorCalChanMin[0]) > g_sensorCalChanMax[0] ? abs(g_sensorCalChanMin[0]) : g_sensorCalChanMax[0]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType);
 
-			memset(&buff[0], 0, sizeof(buff));
-			sprintf((char*)buff, "(T) %+5ld  %+5ld  %2.3f   (T2) %+5ld  %+5ld  %2.3f", g_sensorCalChanMin[3], g_sensorCalChanMax[3], (double)tCalc, g_sensorCalChanMin[3+4], g_sensorCalChanMax[3+4], (double)t2Calc);
-			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FIVE;
-			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+				r2Calc = (float)((float)((abs(g_sensorCalChanMin[1+4]) > g_sensorCalChanMax[1+4] ? abs(g_sensorCalChanMin[1+4]) : g_sensorCalChanMax[1+4])) / (float)div);
+				t2Calc = (float)((float)((abs(g_sensorCalChanMin[3+4]) > g_sensorCalChanMax[3+4] ? abs(g_sensorCalChanMin[3+4]) : g_sensorCalChanMax[3+4])) / (float)div);
+				v2Calc = (float)((float)((abs(g_sensorCalChanMin[2+4]) > g_sensorCalChanMax[2+4] ? abs(g_sensorCalChanMin[2+4]) : g_sensorCalChanMax[2+4])) / (float)div);
+				a2Calc = (float)HexToMB((float)(abs(g_sensorCalChanMin[0+4]) > g_sensorCalChanMax[0+4] ? abs(g_sensorCalChanMin[0+4]) : g_sensorCalChanMax[0+4]), DATA_NORMALIZED, ACCURACY_16_BIT_MIDPOINT, acousticSensorType);
 
-			memset(&buff[0], 0, sizeof(buff));
-			sprintf((char*)buff, "(V) %+5ld  %+5ld  %2.3f   (V2) %+5ld  %+5ld  %2.3f", g_sensorCalChanMin[2], g_sensorCalChanMax[2], (double)vCalc, g_sensorCalChanMin[2+4], g_sensorCalChanMax[2+4], (double)v2Calc);
-			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SIX;
-			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+				sprintf((char*)buff, "(R) %+5ld  %+5ld  %2.3f   (R2) %+5ld  %+5ld  %2.3f", g_sensorCalChanMin[1], g_sensorCalChanMax[1], (double)rCalc, g_sensorCalChanMin[1+4], g_sensorCalChanMax[1+4], (double)r2Calc);
+				wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FOUR;
+				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+
+				memset(&buff[0], 0, sizeof(buff));
+				sprintf((char*)buff, "(T) %+5ld  %+5ld  %2.3f   (T2) %+5ld  %+5ld  %2.3f", g_sensorCalChanMin[3], g_sensorCalChanMax[3], (double)tCalc, g_sensorCalChanMin[3+4], g_sensorCalChanMax[3+4], (double)t2Calc);
+				wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_FIVE;
+				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+
+				memset(&buff[0], 0, sizeof(buff));
+				sprintf((char*)buff, "(V) %+5ld  %+5ld  %2.3f   (V2) %+5ld  %+5ld  %2.3f", g_sensorCalChanMin[2], g_sensorCalChanMax[2], (double)vCalc, g_sensorCalChanMin[2+4], g_sensorCalChanMax[2+4], (double)v2Calc);
+				wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SIX;
+				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+
+				memset(&buff[0], 0, sizeof(buff));
+				sprintf((char*)buff, "(A) %+5ld  %+5ld  %1.3f   (A2) %+5ld  %+5ld  %1.3f", g_sensorCalChanMin[0], g_sensorCalChanMax[0], (double)aCalc, g_sensorCalChanMin[0+4], g_sensorCalChanMax[0+4], (double)a2Calc);
+				wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SEVEN;
+				WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
+			}
 #endif
-			memset(&buff[0], 0, sizeof(buff));
-			sprintf((char*)buff, "(A) %+5ld  %+5ld  %1.3f   (A2) %+5ld  %+5ld  %1.3f", g_sensorCalChanMin[0], g_sensorCalChanMax[0], (double)aCalc, g_sensorCalChanMin[0+4], g_sensorCalChanMax[0+4], (double)a2Calc);
-			wnd_layout_ptr->curr_row = DEFAULT_MENU_ROW_SEVEN;
-			WndMpWrtString(buff, wnd_layout_ptr, SIX_BY_EIGHT_FONT, REG_LN);
 		}
 	}
 	else // s_calDisplayScreen == CAL_MENU_CALIBRATED_CHAN_NOISE_PERCENT_DISPLAY
