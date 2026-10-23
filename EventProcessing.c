@@ -263,17 +263,9 @@ char* GetEventFilenameAndPath(uint16 eventNumber, uint8 eventType)
 	DIR dir;
 	FILINFO fno;
 
-#if 0 /* Test */
-	uint16 length;
-#endif
-
 	// Check if the last search matches the cached results
 	if ((s_lastSearchValid) && (s_lastEventNumber == eventNumber) && (s_lastEventType == eventType))
 	{
-#if 0 /* Test */
-		length = sprintf((char*)g_debugBuffer, "Returning Event file cached result\r\n");
-		ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-#endif
 		return (&g_eventPathAndFilename[0]);
 	}
 
@@ -305,10 +297,6 @@ char* GetEventFilenameAndPath(uint16 eventNumber, uint8 eventType)
 	// Check if Primary location is valid
 	if ((f_stat((const TCHAR*)g_eventPathAndFilename, NULL)) == FR_OK)
 	{
-#if 0 /* Test */
-		length = sprintf((char*)g_debugBuffer, "Get Path and File: Primary location found for Event(%d): %s\r\n", eventNumber, g_eventPathAndFilename);
-		ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-#endif
 		// Found file
 		s_lastSearchValid = YES;
 		return (&g_eventPathAndFilename[0]);
@@ -324,10 +312,6 @@ char* GetEventFilenameAndPath(uint16 eventNumber, uint8 eventType)
 	// Check if Secondary location is valid
 	if ((f_stat((const TCHAR*)g_eventPathAndFilename, NULL)) == FR_OK)
 	{
-#if 0 /* Test */
-		length = sprintf((char*)g_debugBuffer, "Get Path and File: Secondary location found for Event(%d): %s\r\n", eventNumber, g_eventPathAndFilename);
-		ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-#endif
 		// Found file
 		s_lastSearchValid = YES;
 		return (&g_eventPathAndFilename[0]);
@@ -359,10 +343,6 @@ char* GetEventFilenameAndPath(uint16 eventNumber, uint8 eventType)
 				{
 					// Found file
 					strcat(g_eventPathAndFilename, (char*)g_spareFileName);
-#if 0 /* Test */
-					length = sprintf((char*)g_debugBuffer, "Get Path and File: Primary directory found for Event(%d): %s\r\n", eventNumber, g_eventPathAndFilename);
-					ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-#endif
 					s_lastSearchValid = YES;
 					return (&g_eventPathAndFilename[0]);
 				}
@@ -398,10 +378,6 @@ char* GetEventFilenameAndPath(uint16 eventNumber, uint8 eventType)
 				{
 					// Found file
 					strcat(g_eventPathAndFilename, (char*)g_spareFileName);
-#if 0 /* Test */
-					length = sprintf((char*)g_debugBuffer, "Get Path and File: Primary directory found for Event(%d): %s\r\n", eventNumber, g_eventPathAndFilename);
-					ModemPuts(g_debugBuffer, length, NO_CONVERSION);
-#endif
 					s_lastSearchValid = YES;
 					return (&g_eventPathAndFilename[0]);
 				}
@@ -2398,7 +2374,7 @@ void SaveRemoteEventDownloadStreamToFile(uint16 eventNumber)
 {
 #if 1
 	UNUSED(eventNumber);
-#else /* Test */
+#else /* Test initial logic */
 	int fileHandle;
 	uint32 remainingDataLength;
 	uint32 bytesWritten = 0;
@@ -2848,6 +2824,30 @@ void EndianSwapMonitorLogStruct(MONITOR_LOG_ENTRY_STRUCT* mlData)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void EndianSwapSensorCheckLogStruct(SENSOR_CHECK_LOG_ENTRY_STRUCT* scLog)
+{
+	scLog->logId = __builtin_bswap16(scLog->logId);
+	scLog->geo1R.peak = __builtin_bswap16(scLog->geo1R.peak);
+	scLog->geo1R.freq = __builtin_bswap16(scLog->geo1R.freq);
+	scLog->geo1T.peak = __builtin_bswap16(scLog->geo1T.peak);
+	scLog->geo1T.freq = __builtin_bswap16(scLog->geo1T.freq);
+	scLog->geo1V.peak = __builtin_bswap16(scLog->geo1V.peak);
+	scLog->geo1V.freq = __builtin_bswap16(scLog->geo1V.freq);
+	scLog->air1A.peak = __builtin_bswap16(scLog->air1A.peak);
+	scLog->air1A.freq = __builtin_bswap16(scLog->air1A.freq);
+	scLog->geo2R.peak = __builtin_bswap16(scLog->geo2R.peak);
+	scLog->geo2R.freq = __builtin_bswap16(scLog->geo2R.freq);
+	scLog->geo2T.peak = __builtin_bswap16(scLog->geo2T.peak);
+	scLog->geo2T.freq = __builtin_bswap16(scLog->geo2T.freq);
+	scLog->geo2V.peak = __builtin_bswap16(scLog->geo2V.peak);
+	scLog->geo2V.freq = __builtin_bswap16(scLog->geo2V.freq);
+	scLog->air2A.peak = __builtin_bswap16(scLog->air2A.peak);
+	scLog->air2A.freq = __builtin_bswap16(scLog->air2A.freq);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void EndianSwapSummaryListStruct(SUMMARY_LIST_ENTRY_STRUCT* slData)
 {
 	slData->eventNumber = __builtin_bswap16(slData->eventNumber);
@@ -2887,12 +2887,28 @@ void EndianSwapModemSetupStruct(MODEM_SETUP_STRUCT* msData)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+void EndianSwapAllModemSetupStruct(ALL_MODEM_SETUP_STRUCT* amsData)
+{
+	amsData->ext.invalid = __builtin_bswap16(amsData->ext.invalid);
+	amsData->ext.modemStatus = __builtin_bswap16(amsData->ext.modemStatus);
+	amsData->ext.unlockCode = __builtin_bswap16(amsData->ext.unlockCode);
+	amsData->ext.dialOutType = __builtin_bswap16(amsData->ext.dialOutType);
+	amsData->ext.dialOutCycleTime = __builtin_bswap16(amsData->ext.dialOutCycleTime);
+
+	amsData->cell.invalid = __builtin_bswap16(amsData->cell.invalid);
+	amsData->cell.serverPort = __builtin_bswap16(amsData->cell.serverPort);
+	amsData->cell.tcpServerListenPort = __builtin_bswap16(amsData->cell.tcpServerListenPort);
+	amsData->cell.packetDelay = __builtin_bswap16(amsData->cell.packetDelay);
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void EndianSwapAutoDialoutStruct(AUTODIALOUT_STRUCT* adData)
 {
 	adData->lastStoredEvent = __builtin_bswap16(adData->lastStoredEvent);
 	adData->lastDownloadedEvent = __builtin_bswap16(adData->lastDownloadedEvent);
 	adData->currentCycleConnects = __builtin_bswap16(adData->currentCycleConnects);
-	adData->unused = __builtin_bswap16(adData->unused);
 }
 
 ///----------------------------------------------------------------------------
