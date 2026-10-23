@@ -4623,8 +4623,8 @@ void UsbMscFlashTestFile(void)
 	}
 	else { debug("UsbMscFlashTestFile: USB MSC Flash filesystem not mounted, can't write a test file...\r\n"); }
 
-extern void USBHostControllerTestShutdown(void);
-	USBHostControllerTestShutdown();
+extern void USBHostControllerShutdown(void);
+	USBHostControllerShutdown();
 }
 
 ///----------------------------------------------------------------------------
