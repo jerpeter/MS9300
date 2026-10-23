@@ -172,7 +172,7 @@ __attribute__((aligned(4))) struct __attribute__((packed)) {
 		0x24, /*  bDescriptorType				 */
 		0x01, /*  bDescriptorSubtype			  */
 		0x03, /*  bmCapabilities = Device handles call management itself (0x01), management over data class (0x02) */
-		0x01, /*  bmDataInterface				 */
+		0x02, /*  bmDataInterface				 */
 	},
 	{
 		/*  Abstract Control Management Functional Descriptor */
@@ -186,8 +186,8 @@ __attribute__((aligned(4))) struct __attribute__((packed)) {
 		0x05, /*  bFunctionalLength = 5		   */
 		0x24, /*  bDescriptorType				 */
 		0x06, /*  bDescriptorSubtype			  */
-		0x00, /*  bmMasterInterface			   */
-		0x01, /*  bmSlaveInterface0			   */
+		0x01, /*  bmMasterInterface			   */
+		0x02, /*  bmSlaveInterface0			   */
 	},
 	{
 		/*  IN Endpoint 3 (Descriptor #1) */
@@ -328,7 +328,7 @@ __attribute__((aligned(4))) struct __attribute__((packed)) {
 		0x24, /*  bDescriptorType				 */
 		0x01, /*  bDescriptorSubtype			  */
 		0x03, /*  bmCapabilities = Device handles call management itself (0x01), management over data class (0x02) */
-		0x01, /*  bmDataInterface				 */
+		0x02, /*  bmDataInterface				 */
 	},
 	{
 		/*  Abstract Control Management Functional Descriptor */
@@ -342,8 +342,8 @@ __attribute__((aligned(4))) struct __attribute__((packed)) {
 		0x05, /*  bFunctionalLength = 5		   */
 		0x24, /*  bDescriptorType				 */
 		0x06, /*  bDescriptorSubtype			  */
-		0x00, /*  bmMasterInterface			   */
-		0x01, /*  bmSlaveInterface0			   */
+		0x01, /*  bmMasterInterface			   */
+		0x02, /*  bmSlaveInterface0			   */
 	},
 	{
 		/*  IN Endpoint 3 (Descriptor #1) */
@@ -351,8 +351,8 @@ __attribute__((aligned(4))) struct __attribute__((packed)) {
 		0x05, /*  bDescriptorType (Endpoint)	   */
 		0x84, /*  bEndpointAddress (EP3-IN)		*/
 		0x03, /*  bmAttributes (interrupt)		 */
-		0x0200, /*  wMaxPacketSize				   */
-		0xff, /*  bInterval (milliseconds)		 */
+		0x0040, /*  wMaxPacketSize				   */
+		0x09, /*  bInterval (high-speed exponent)  */
 	},
 	{
 		/*  Second Interface Descriptor For Data Interface */
@@ -678,8 +678,8 @@ __attribute__((aligned(4))) struct __attribute__((packed)) {
 		0x05, /*  bDescriptorType (Endpoint)	   */
 		0x84, /*  bEndpointAddress (EP3-IN)		*/
 		0x03, /*  bmAttributes (interrupt)		 */
-		0x0200, /*  wMaxPacketSize				   */
-		0xff, /*  bInterval (milliseconds)		 */
+		0x0040, /*  wMaxPacketSize				   */
+		0x09, /*  bInterval (high-speed exponent)  */
 	},
 	{
 		/*  Second Interface Descriptor For Data Interface */
