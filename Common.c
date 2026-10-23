@@ -1158,7 +1158,7 @@ uint8_t GetLteOtaState(void)
 	else return (OFF);
 }
 
-
+#if 0 /* No longer have hardware for eSIM */
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
@@ -1177,6 +1177,7 @@ void CellModemSimSelector(uint8_t eSimSelect)
 	}
 #endif
 }
+#endif
 
 ///----------------------------------------------------------------------------
 ///	Function Break
