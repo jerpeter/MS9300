@@ -423,6 +423,8 @@ void CellPowerGpioSetup(uint8_t mode)
 	{
 
 	}
+
+	memset(&g_cellSignal, 0, sizeof(g_cellSignal));
 }
 
 ///----------------------------------------------------------------------------
@@ -543,7 +545,6 @@ void PowerUnitOff(uint8 powerOffMode)
 #if 1 /* Test */
 	debug("Debug Cache: Flush before turning off\r\n");
 
-extern void WriteDebugCacheToFile(uint8_t flush);
 	WriteDebugCacheToFile(1);
 #endif
 
