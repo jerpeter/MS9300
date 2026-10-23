@@ -434,7 +434,8 @@ enum {
 enum {
 	AUTH_NONE = 0,
 	AUTH_PAP = 1,
-	AUTH_CHAP = 2
+	AUTH_CHAP = 2,
+	PDN_AUTH_TOTAL
 };
 
 // Modem Retries stuff
