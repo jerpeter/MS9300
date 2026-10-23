@@ -883,10 +883,6 @@ void ProcessGpsMessage(void)
 
 		if (messageValidated == YES)
 		{
-#if 0 /* Test */
-			messageLength = sprintf((char*)g_spareBuffer, "%s\r\n", (char*)&g_gpsQueue.message[g_gpsQueue.readIndex].data[0]);
-			ModemPuts(g_spareBuffer, messageLength, NO_CONVERSION, SERIAL_PIPE_DEBUG);
-#endif
 			CHAR_UPPER_CASE(g_gpsQueue.message[g_gpsQueue.readIndex].data[2]);
 			CHAR_UPPER_CASE(g_gpsQueue.message[g_gpsQueue.readIndex].data[3]);
 			CHAR_UPPER_CASE(g_gpsQueue.message[g_gpsQueue.readIndex].data[4]);
