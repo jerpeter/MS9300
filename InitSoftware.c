@@ -420,6 +420,7 @@ void InitSoftwareSettings_MS9300(void)
 	// Display Smart Sensor information if found
 	//-------------------------------------------------------------------------
 	DisplaySmartSensorInfo(INFO_ON_INIT);
+	DetermineCurrentSensorGroupBySmartSensor();
 
 	//-------------------------------------------------------------------------
 	// Bootloader entry check
