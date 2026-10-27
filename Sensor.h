@@ -198,6 +198,8 @@ uint8 CheckIfSmartSensorPresent(SMART_SENSOR_TYPE sensor);
 uint8 CheckIfBothSmartSensorsPresent(void);
 uint8 CheckIfNoSmartSensorsPresent(void);
 uint8 CheckIfAcousticSensorTypeValid(uint8 airSensorType);
+int ConvertSmartSensorSerialArrayToNumber(uint8_t* smartSensorSerialArray);
+void DetermineCurrentSensorGroupBySmartSensor(void);
 void SensorCheckChannelPeaks(uint16_t rPeak, uint16_t vPeak, uint16_t tPeak, uint16_t aPeak, uint8_t *calResults, uint8_t *ss1status, uint8_t *ss2status, uint8_t *as1status, uint8_t *as2status);
 void CacheSensorCheckIndividualSensorResults(uint8_t ss1status, uint8_t ss2status, uint8_t as1status, uint8_t as2status);
 void CacheSensorCheckResults(uint8_t sensorCheckState);

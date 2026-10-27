@@ -873,6 +873,11 @@ void SmartSensorReadRomAndMemory(SMART_SENSOR_TYPE sensor)
 
 				status = PASSED;
 				debug("Smart Sensor: Discovered %s\r\n", sensorName);
+#if 1 /* Show serial number */
+				debug("Smart Sesnor serial number: %d (%x %x %x %x %x %x)\r\n", ConvertSmartSensorSerialArrayToNumber(smartSensorData->serialNumber),
+						smartSensorData->serialNumber[0], smartSensorData->serialNumber[1], smartSensorData->serialNumber[2],
+						smartSensorData->serialNumber[3], smartSensorData->serialNumber[4], smartSensorData->serialNumber[5]);
+#endif
 			}
 			else
 			{
@@ -897,6 +902,7 @@ void SmartSensorReadRomAndMemory(SMART_SENSOR_TYPE sensor)
 	{
 		memset(smartSensorData, 0x0, sizeof(SMART_SENSOR_STRUCT));
 		memset(smartSensorRom, 0x0, sizeof(SMART_SENSOR_ROM));
+		//debug("Smart Sensor: Clearing sensor cache\r\n", sensorName);
 	}
 
 	SmartSensorDisableMuxAndDriver();
@@ -1176,9 +1182,44 @@ uint8 CheckIfAcousticSensorTypeValid(uint8 airSensorType)
 ///----------------------------------------------------------------------------
 ///	Function Break
 ///----------------------------------------------------------------------------
+int ConvertSmartSensorSerialArrayToNumber(uint8_t* smartSensorSerialArray)
+{
+	// Smart Sensor serial is stored as long number across 3 (of 6 total) bytes that represents a 6 digit number
+	// Logic is top most populated byte number value multiplied by 65536 added to middle byte number value multiplied by 256 added to last byte number value
+	return (((smartSensorSerialArray[3] * 65536) + (smartSensorSerialArray[4] * 256) + smartSensorSerialArray[5]));
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
+void DetermineCurrentSensorGroupBySmartSensor(void)
+{
+	// Check if Seismic in left port or Acoustic in right port
+	if (CheckIfSmartSensorPresent(SEISMIC_SENSOR) || CheckIfSmartSensorPresent(ACOUSTIC_SENSOR_2))
+	{
+		g_currentSensorGroup = SENSOR_GROUP_A_1;
+	}
+	// Check if Seismic in right port or Acoustic in left port
+	else if (CheckIfSmartSensorPresent(SEISMIC_SENSOR_2) || CheckIfSmartSensorPresent(ACOUSTIC_SENSOR))
+	{
+		g_currentSensorGroup = SENSOR_GROUP_B_2;
+	}
+	else // No smart sensors found
+	{
+		// Assume a default in case monitoring is set to auto or remote user started
+		g_currentSensorGroup = SENSOR_GROUP_A_1;
+	}
+}
+
+///----------------------------------------------------------------------------
+///	Function Break
+///----------------------------------------------------------------------------
 void SensorCheckChannelPeaks(uint16_t rPeak, uint16_t vPeak, uint16_t tPeak, uint16_t aPeak, uint8_t *calResults, uint8_t *ss1status, uint8_t *ss2status, uint8_t *as1status, uint8_t *as2status)
 {
 	debug("Sensor Check peaks: R %d, T %d, V %d, A %d (low %d, high %d)\r\n", rPeak, tPeak, vPeak, aPeak, SENSOR_CHECK_LOW_THRESHOLD, SENSOR_CHECK_HIGH_THRESHOLD);
+
+	*calResults = SENSOR_CHECK_PASSED;
+
 	// Check seismic channels
 	if (CheckIfSmartSensorPresent(SEISMIC_SENSOR))
 	{
@@ -1284,10 +1325,14 @@ void CacheSensorCheckResults(uint8_t sensorCheckState)
 	g_lastSensorCheck.valid = YES;
 	g_lastSensorCheck.state = sensorCheckState;
 	g_lastSensorCheck.timestamp = GetCurrentTime();
-	if (CheckIfSmartSensorPresent(SEISMIC_SENSOR)) { memcpy(g_lastSensorCheck.seismicSmartSensorSerial, g_seismicSmartSensorMemory.serialNumber, SENSOR_SERIAL_NUMBER_SIZE); };
-	if (CheckIfSmartSensorPresent(SEISMIC_SENSOR_2)) { memcpy(g_lastSensorCheck.seismic2SmartSensorSerial, g_seismic2SmartSensorMemory.serialNumber, SENSOR_SERIAL_NUMBER_SIZE); };
-	if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR)) { memcpy(g_lastSensorCheck.acousticSmartSensorSerial, g_acousticSmartSensorMemory.serialNumber, SENSOR_SERIAL_NUMBER_SIZE); };
-	if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR_2)) { memcpy(g_lastSensorCheck.acoustic2SmartSensorSerial, g_acoustic2SmartSensorMemory.serialNumber, SENSOR_SERIAL_NUMBER_SIZE); };
+	if (CheckIfSmartSensorPresent(SEISMIC_SENSOR)) { memcpy(g_lastSensorCheck.seismicSmartSensorSerial, g_seismicSmartSensorMemory.serialNumber, SENSOR_SERIAL_NUMBER_SIZE); }
+	else { memset(g_lastSensorCheck.seismicSmartSensorSerial, 0, SENSOR_SERIAL_NUMBER_SIZE); }
+	if (CheckIfSmartSensorPresent(SEISMIC_SENSOR_2)) { memcpy(g_lastSensorCheck.seismic2SmartSensorSerial, g_seismic2SmartSensorMemory.serialNumber, SENSOR_SERIAL_NUMBER_SIZE); }
+	else { memset(g_lastSensorCheck.seismic2SmartSensorSerial, 0, SENSOR_SERIAL_NUMBER_SIZE); }
+	if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR)) { memcpy(g_lastSensorCheck.acousticSmartSensorSerial, g_acousticSmartSensorMemory.serialNumber, SENSOR_SERIAL_NUMBER_SIZE); }
+	else { memset(g_lastSensorCheck.acousticSmartSensorSerial, 0, SENSOR_SERIAL_NUMBER_SIZE); }
+	if (CheckIfSmartSensorPresent(ACOUSTIC_SENSOR_2)) { memcpy(g_lastSensorCheck.acoustic2SmartSensorSerial, g_acoustic2SmartSensorMemory.serialNumber, SENSOR_SERIAL_NUMBER_SIZE); }
+	else { memset(g_lastSensorCheck.acoustic2SmartSensorSerial, 0, SENSOR_SERIAL_NUMBER_SIZE); }
 
 	switch (g_lastSensorCheck.state)
 	{
