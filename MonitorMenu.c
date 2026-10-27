@@ -149,21 +149,7 @@ void MonitorMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 			SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR_2);
 
 			// Determine which sensor grouping is active
-			// Check if Seismic in left port or Acoustic in right port
-			if (CheckIfSmartSensorPresent(SEISMIC_SENSOR) || CheckIfSmartSensorPresent(ACOUSTIC_SENSOR_2))
-			{
-				g_currentSensorGroup = SENSOR_GROUP_A_1;
-			}
-			// Check if Seismic in right port or Acoustic in left port
-			else if (CheckIfSmartSensorPresent(SEISMIC_SENSOR_2) || CheckIfSmartSensorPresent(ACOUSTIC_SENSOR))
-			{
-				g_currentSensorGroup = SENSOR_GROUP_B_2;
-			}
-			else // No smart sensors found
-			{
-				// Assume a default in case monitoring is set to auto or remote user started
-				g_currentSensorGroup = SENSOR_GROUP_A_1;
-			}
+			DetermineCurrentSensorGroupBySmartSensor();
 			UpdateUnitSensorsWithSmartSensorTypes();
 
 			UpdateWorkingCalibrationDate();
