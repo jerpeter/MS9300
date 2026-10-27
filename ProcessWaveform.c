@@ -75,7 +75,7 @@ void MoveWaveformEventToFile(void)
 	uint16 hiA = 0, hiR = 0, hiV = 0, hiT = 0;
 	uint16 lowA = 0xFFFF, lowR = 0xFFFF, lowV = 0xFFFF, lowT = 0xFFFF;
 	uint16 scPeakA = 0, scPeakR = 0, scPeakV = 0, scPeakT = 0;
-	uint8 calResults = SENSOR_CHECK_PASSED;
+	uint8 calResults = 0;
 	uint8 ss1status = 0, ss2status = 0, as1status = 0, as2status = 0;
 
 	UNUSED(compressSize); // Depends on debug on/off
