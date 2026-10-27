@@ -65,7 +65,7 @@ void MoveManualCalToFile(void)
 
 	uint16 scPeakA = 0, scPeakR = 0, scPeakV = 0, scPeakT = 0;
 	uint16 scFreqA = 0, scFreqR = 0, scFreqV = 0, scFreqT = 0;
-	uint8 calResults = SENSOR_CHECK_PASSED;
+	uint8 calResults = 0;
 	uint8 ss1status = 0, ss2status = 0, as1status = 0, as2status = 0;
 
 	UNUSED(compressSize); // Depends on debug on/off
@@ -191,14 +191,16 @@ void MoveManualCalToFile(void)
 		SENSOR_CHECK_LOG_ENTRY_STRUCT scLog;
 		memset(&scLog, 0, sizeof(scLog));
 		scLog.sensorStatus = g_lastSensorCheck;
-		if (g_currentSensorGroup == SENSOR_GROUP_A_1)
+		// Store group A/1 results, if selected or both groups
+		if ((g_currentSensorGroup == SENSOR_GROUP_A_1) || (g_currentSensorGroup == SENSOR_GROUP_BOTH))
 		{
 			scLog.geo1R.peak = scPeakR; scLog.geo1R.freq = scFreqA;
 			scLog.geo1T.peak = scPeakT; scLog.geo1T.freq = scFreqT;
 			scLog.geo1V.peak = scPeakV; scLog.geo1V.freq = scFreqV;
 			scLog.air2A.peak = scPeakA; scLog.air2A.freq = scFreqA;
 		}
-		else // (g_currentSensorGroup == SENSOR_GROUP_B_2)
+		// Store group B/2 results, if selected or both groups
+		if ((g_currentSensorGroup == SENSOR_GROUP_B_2) || (g_currentSensorGroup == SENSOR_GROUP_BOTH))
 		{
 			scLog.geo2R.peak = scPeakR; scLog.geo2R.freq = scFreqA;
 			scLog.geo2T.peak = scPeakT; scLog.geo2T.freq = scFreqT;
