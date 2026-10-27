@@ -621,9 +621,10 @@ extern uint32_t testLifetimeCurrentAvgCount;
 #if 1 /* Test Accelerometer data collection */
 			StopAccelerometerAquisition();
 #endif
+#if 0 /* No longer need to reset the current sensor group, follows smart sensor detection */
 			// Reset the current sensor group selection to the default
 			g_currentSensorGroup = SENSOR_GROUP_A_1;
-
+#endif
 			// Reestablish the previously stored sample rate
 			g_triggerRecord.trec.sample_rate = s_calSavedSampleRate;
 
