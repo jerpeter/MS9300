@@ -518,6 +518,32 @@ extern void USBCPortControllerSwapToDevice(void);
 					//---------------------------------------------------
 					else if (keyPressed == HELP_KEY)
 					{
+#if 0 /* Test Sensor Check logging */
+						uint8_t calResults = 0, ss1status = 0, ss2status = 0, as1status = 0, as2status = 0;
+						SensorCheckChannelPeaks(1600, 1600, 1600, 1600, &calResults, &ss1status, &ss2status, &as1status, &as2status);
+						CacheSensorCheckIndividualSensorResults(ss1status, ss2status, as1status, as2status);
+						CacheSensorCheckResults(calResults);
+
+						// Log Sensor check results and data
+						SENSOR_CHECK_LOG_ENTRY_STRUCT scLog;
+						memset(&scLog, 0, sizeof(scLog));
+						scLog.sensorStatus = g_lastSensorCheck;
+						if (g_currentSensorGroup == SENSOR_GROUP_A_1)
+						{
+							scLog.geo1R.peak = 1600; scLog.geo1R.freq = 1600;
+							scLog.geo1T.peak = 1600; scLog.geo1T.freq = 1600;
+							scLog.geo1V.peak = 1600; scLog.geo1V.freq = 1600;
+							scLog.air2A.peak = 1600; scLog.air2A.freq = 1600;
+						}
+						else // (g_currentSensorGroup == SENSOR_GROUP_B_2)
+						{
+							scLog.geo2R.peak = 1600; scLog.geo2R.freq = 1600;
+							scLog.geo2T.peak = 1600; scLog.geo2T.freq = 1600;
+							scLog.geo2V.peak = 1600; scLog.geo2V.freq = 1600;
+							scLog.air1A.peak = 1600; scLog.air1A.freq = 1600;
+						}
+						AppendSensorCheckResultsLogFile(&scLog);
+#endif
 #if 0 /* Test Cell conneciton evaluation */
 						if ((g_tcpServerStartStage == TCP_SERVER_ACTIVE) && (g_modemStatus.remoteConnectionActive == NO))
 						{
