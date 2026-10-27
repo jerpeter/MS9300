@@ -854,10 +854,6 @@ void AppendSensorCheckResultsLogFile(SENSOR_CHECK_LOG_ENTRY_STRUCT* scLog)
 {
 	uint16_t logEntry = 0;
 	char timeString[20];
-	char ss1Serial[10];
-	char ss2Serial[10];
-	char as1Serial[10];
-	char as2Serial[10];
 	char ss1Status[20];
 	char ss2Status[20];
 	char as1Status[20];
@@ -915,21 +911,6 @@ void AppendSensorCheckResultsLogFile(SENSOR_CHECK_LOG_ENTRY_STRUCT* scLog)
 		sprintf((char*)&timeString, "%02d-%02d-%02d %02d:%02d:%02d", scLog->sensorStatus.timestamp.day, scLog->sensorStatus.timestamp.month, scLog->sensorStatus.timestamp.year,
 				scLog->sensorStatus.timestamp.hour, scLog->sensorStatus.timestamp.min, scLog->sensorStatus.timestamp.sec);
 
-		// Clear strings and append nulls
-		memset(ss1Serial, 0, sizeof(ss1Serial));
-		memset(ss2Serial, 0, sizeof(ss2Serial));
-		memset(as1Serial, 0, sizeof(as1Serial));
-		memset(as2Serial, 0, sizeof(as2Serial));
-
-		// Convert individual serial number number to ascii
-		for (uint8_t i = 0; i < 6; i++)
-		{
-			ss1Serial[i] = (scLog->sensorStatus.seismicSmartSensorSerial[i] + 0x30);
-			ss2Serial[i] = (scLog->sensorStatus.seismic2SmartSensorSerial[i] + 0x30);
-			as1Serial[i] = (scLog->sensorStatus.acousticSmartSensorSerial[i] + 0x30);
-			as2Serial[i] = (scLog->sensorStatus.acoustic2SmartSensorSerial[i] + 0x30);
-		}
-
 		switch (scLog->sensorStatus.seismicSensorStatus)
 		{
 			case SENSOR_CHECK_NOT_AVAILABLE: strcpy(ss1Status, "N/A"); break;
@@ -966,11 +947,19 @@ void AppendSensorCheckResultsLogFile(SENSOR_CHECK_LOG_ENTRY_STRUCT* scLog)
 			default: strcpy(as2Status, "Unknown"); break;
 		}
 
-		sprintf((char*)g_spareBuffer, "Log ID: %03d --> Status: %d, Timestamp: %s, SS1: %s, SS2: %s, AS1: %s, AS2:%s,\r\n"\
+		sprintf((char*)g_spareBuffer, "Log ID: %03d --> Sensor Check status: %d, Timestamp: %s,\r\n"\
+				"\tSS1: %06d, SS2: %06d, AS1: %06d, AS2:%06d,\r\n"\
 				"\tSS1 State: %s, SS2 State: %s, AS1 State: %s, AS2 State: %s,\r\n"\
-				"\tGeo1 R Peak: %d, T Peak: %d, V Peak: %d, Air1 A Peak: %d, Geo1 R Freq: %0.1f, T Freq: %0.1f, V Freq: %0.1f, Air1 A Freq: %0.1f, \r\n"\
-				"\tGeo2 R Peak: %d, T Peak: %d, V Peak: %d, Air2 A Peak: %d, Geo2 R Freq: %0.1f, T Freq: %0.1f, V Freq: %0.1f, Air2 A Freq: %0.1f\r\n\n",
-				scLog->logId, scLog->sensorStatus.state, (char*)timeString, (char*)ss1Serial, (char*)ss2Serial, (char*)as1Serial, (char*)as2Serial, (char*)ss1Status, (char*)ss2Status, (char*)as1Status, (char*)as2Status,
+				"\tGeo1 R Peak: %d, T Peak: %d, V Peak: %d, Air1 A Peak: %d,\r\n"\
+				"\tGeo1 R Freq: %0.1f, T Freq: %0.1f, V Freq: %0.1f, Air1 A Freq: %0.1f,\r\n"\
+				"\tGeo2 R Peak: %d, T Peak: %d, V Peak: %d, Air2 A Peak: %d,\r\n"\
+				"\tGeo2 R Freq: %0.1f, T Freq: %0.1f, V Freq: %0.1f, Air2 A Freq: %0.1f\r\n\n",
+				scLog->logId, scLog->sensorStatus.state, (char*)timeString,
+				ConvertSmartSensorSerialArrayToNumber(scLog->sensorStatus.seismicSmartSensorSerial),
+				ConvertSmartSensorSerialArrayToNumber(scLog->sensorStatus.seismic2SmartSensorSerial),
+				ConvertSmartSensorSerialArrayToNumber(scLog->sensorStatus.acousticSmartSensorSerial),
+				ConvertSmartSensorSerialArrayToNumber(scLog->sensorStatus.acoustic2SmartSensorSerial),
+				(char*)ss1Status, (char*)ss2Status, (char*)as1Status, (char*)as2Status,
 				scLog->geo1R.peak, scLog->geo1T.peak, scLog->geo1V.peak, scLog->air1A.peak, (double)((float)scLog->geo1R.freq / 10), (double)((float)scLog->geo1T.freq / 10), (double)((float)scLog->geo1V.freq / 10), (double)((float)scLog->air1A.freq / 10),
 				scLog->geo2R.peak, scLog->geo2T.peak, scLog->geo2V.peak, scLog->air2A.peak, (double)((float)scLog->geo2R.freq / 10), (double)((float)scLog->geo2T.freq / 10), (double)((float)scLog->geo2V.freq / 10), (double)((float)scLog->air2A.freq / 10));
 
@@ -982,5 +971,8 @@ void AppendSensorCheckResultsLogFile(SENSOR_CHECK_LOG_ENTRY_STRUCT* scLog)
 		SetFileTimestamp(LOGS_PATH SENSOR_CHECK_LOG_READABLE_FILE);
 
 		debug("Sensor Check log readable entry appended to log file\r\n");
+#if 1 /* Test */
+		debug((char*)g_spareBuffer);
+#endif
 	}
 }
