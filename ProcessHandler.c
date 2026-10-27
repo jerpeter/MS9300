@@ -642,6 +642,16 @@ void GetManualCalibration(void)
 	g_manualCalFlag = TRUE;
 	g_manualCalSampleCount = MAX_CAL_SAMPLES;
 
+	// Re-read and cache Smart Sensor data (in case physical sensors were changed at any point)
+	SmartSensorReadRomAndMemory(SEISMIC_SENSOR);
+	SmartSensorReadRomAndMemory(SEISMIC_SENSOR_2);
+	SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR);
+	SmartSensorReadRomAndMemory(ACOUSTIC_SENSOR_2);
+
+	// Find the current sensor group based on detected sensors
+	DetermineCurrentSensorGroupBySmartSensor();
+	UpdateUnitSensorsWithSmartSensorTypes();
+
 	// Set the analog cutoff for low (for fixed Cal 1K sample rate)
 	SetAnalogCutoffFrequency(ANALOG_CUTOFF_FREQ_500);
 
@@ -682,6 +692,13 @@ void GetManualCalibration(void)
 		debug("Manual Cal Pulse Event (Monitoring)\r\n");
 		MoveManualCalToFile();
 	}
+
+	char statusText[100];
+	if (g_lastSensorCheck.state == SENSOR_CHECK_PASSED) { strcpy(statusText, "SENSOR CHECK PASSED"); }
+	else if (g_lastSensorCheck.state == SENSOR_CHECK_FAILED) { strcpy(statusText, "SENSOR CHECK FAILED"); }
+	else if (g_lastSensorCheck.state == SENSOR_CHECK_NO_SMART_SENSOR_BUT_ACTIVE_SENSOR) { strcpy(statusText, "SENSOR CHECK PASSED (NO ACTIVE SMART SENSOR)"); }
+	else { strcpy(statusText, "SENSOR CHECK NOT AVAILABLE"); }
+	OverlayMessage(getLangText(STATUS_TEXT), statusText, ((g_forcedCalibration == YES) ? 0 : (1 * SOFT_SECS)));
 }
 
 ///----------------------------------------------------------------------------
@@ -781,6 +798,9 @@ void HandleManualCalibration(void)
 			OverlayMessage(getLangText(STATUS_TEXT), getLangText(PERFORMING_SENSOR_CHECK_TEXT), 0);
 
 			GetManualCalibration();
+
+			SETUP_MENU_MSG(MAIN_MENU);
+			JUMP_TO_ACTIVE_MENU();
 		}
 	}
 }
