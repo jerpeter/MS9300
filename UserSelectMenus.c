@@ -2395,7 +2395,7 @@ void FreqPlotStandardMenuHandler(uint8 keyPressed, void* data)
 USER_MENU_STRUCT hardwareIDMenu[HARDWARE_ID_MENU_ENTRIES] = {
 {TITLE_PRE_TAG, 0, HARDWARE_ID_TEXT, TITLE_POST_TAG,
 	{INSERT_USER_MENU_INFO(SELECT_TYPE, HARDWARE_ID_MENU_ENTRIES, TITLE_CENTERED, DEFAULT_ITEM_1)}},
-{ITEM_1, 0, NULL_TEXT,			PROTOTYPE_1_TAG, {HARDWARE_ID_REV_PROTOTYPE_1}},
+{ITEM_1, 0, NULL_TEXT,			REV_RELEASE_TAG, {HARDWARE_ID_REV_RELEASE}},
 {END_OF_MENU, (uint16_t)BACKLIGHT_KEY, (uint16_t)HELP_KEY, (uint16_t)ESC_KEY, {(uint32)&HardwareIDMenuHandler}}
 };
 
@@ -2495,7 +2495,8 @@ void HelpMenuHandler(uint8 keyPressed, void* data)
 		{
 			DisplaySmartSensorInfo(INFO_ON_CHECK);
 
-			// Update unit sensor types with any new information read from the Smart Sensors
+			// Update sensor group and unit sensor types with any new information read from the Smart Sensors
+			DetermineCurrentSensorGroupBySmartSensor();
 			UpdateUnitSensorsWithSmartSensorTypes();
 		}
 		else if (helpMenu[newItemIndex].data == GPS_LOCATION_DISPLAY_CHOICE)
