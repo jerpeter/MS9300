@@ -521,7 +521,7 @@ void InitSoftwareSettings_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Init the input buffers and status flags for input craft data.
 	//-------------------------------------------------------------------------
-	CraftInitStatusFlags(); debug("Craft Status flags initilaized\r\n");
+	CraftInitStatusFlags(); debug("Craft Status flags initialized\r\n");
 
 	//-------------------------------------------------------------------------
 	// Signal remote end that RS232 Comm is available
@@ -537,7 +537,7 @@ void InitSoftwareSettings_MS9300(void)
 	//-------------------------------------------------------------------------
 	// Turn on the Green keypad LED when system init complete
 	//-------------------------------------------------------------------------
-	debug("Init complete, turning Kepypad LED Green...\r\n");
+	debug("Init complete, turning keypad LED Green...\r\n");
 	// Todo: Correct for the right LED once LED map is available (1&2=Red, 3&4=Green)
 	//PowerControl(LED??, ON);
 
