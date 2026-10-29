@@ -1292,7 +1292,7 @@ void HandleDSM(CMD_BUFFER_STRUCT* inCmd)
 			return;
 		}
 	}
-	else // Spare field does not specify a sub-range, use the total entires of the ram summary list
+	else // Spare field does not specify a sub-range, use the total entries of the ram summary list
 	{
 		g_dsmXferStructPtr->numOfSummaries = g_eventNumberCacheValidEntries;
 
