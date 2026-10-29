@@ -2963,6 +2963,9 @@ int setconfigCallback_Composite(MXC_USB_SetupPkt *sud, void *cbdata)
 #if 0 /* Test */
 		debugRaw("<msc/%d/%d,acm/%d/%d/%d>", msc_cfg.out_maxpacket, msc_cfg.in_maxpacket, acm_cfg.out_maxpacket, acm_cfg.in_maxpacket, acm_cfg.notify_maxpacket);
 #endif
+		debug("Debug Log: Flush debug cache before USB connection\r\n");
+		WriteDebugCacheToFile(1);
+		g_blockDebugLogForUsbMsc = YES;
 		OverlayMessage(getLangText(STATUS_TEXT), "USB CONNECTING...", 0);
 
 		if (g_mscDelayState == ON) { SoftUsecWait(1 * SOFT_SECS); }
@@ -3018,6 +3021,8 @@ int setconfigCallback_CDCACM(MXC_USB_SetupPkt *sud, void *cbdata)
 #if 0 /* Test */
 		debugRaw("<acm/%d/%d/%d>", acm_cfg.out_maxpacket, acm_cfg.in_maxpacket, acm_cfg.notify_maxpacket);
 #endif
+		OverlayMessage(getLangText(STATUS_TEXT), "USB CONNECTING...", 0);
+
 		return acm_configure(&acm_cfg); // Configure the device class
 	} else if (sud->wValue == 0) {
 		g_usbConfigured = 0;
@@ -3061,6 +3066,11 @@ int setconfigCallback_MSC(MXC_USB_SetupPkt *sud, void *cbdata)
 #if 0 /* Test */
 		debugRaw("<msc/%d/%d>", msc_cfg.out_maxpacket, msc_cfg.in_maxpacket);
 #endif
+		debug("Debug Log: Flush debug cache before USB connection\r\n");
+		WriteDebugCacheToFile(1);
+		g_blockDebugLogForUsbMsc = YES;
+		OverlayMessage(getLangText(STATUS_TEXT), "USB CONNECTING...", 0);
+
 		if (g_mscDelayState == ON) { SoftUsecWait(1 * SOFT_SECS); }
 		return msc_configure(&msc_cfg); // Configure the device class
 
@@ -3155,8 +3165,8 @@ int usbEventCallback_Composite(maxusb_event_t evt, void *data)
 		usbAppSleep();
 		break;
 	case MAXUSB_EVENT_BRST:
-#if 1 /* Test */
-		debug("Debug Cache: Flush before USB connection\r\n");
+#if 0 /* Test */
+		debug("Debug Log: Flush debug cache before USB connection\r\n");
 		WriteDebugCacheToFile(1);
 #endif
 		usbAppWakeup();
@@ -3222,8 +3232,8 @@ int usbEventCallback_CDCACM(maxusb_event_t evt, void *data)
 		usbAppSleep();
 		break;
 	case MAXUSB_EVENT_BRST:
-#if 1 /* Test */
-		debug("Debug Cache: Flush before USB connection\r\n");
+#if 0 /* Test */
+		debug("Debug Log: Flush debug cache before USB connection\r\n");
 		WriteDebugCacheToFile(1);
 #endif
 		usbAppWakeup();
@@ -3288,8 +3298,8 @@ int usbEventCallback_MSC(maxusb_event_t evt, void *data)
 		break;
 
 	case MAXUSB_EVENT_BRST:
-#if 1 /* Test */
-		debug("Debug Cache: Flush before USB connection\r\n");
+#if 0 /* Test */
+		debug("Debug Log: Flush debug cache before USB connection\r\n");
 		WriteDebugCacheToFile(1);
 #endif
 		usbAppWakeup();
@@ -3450,7 +3460,7 @@ void UsbReportEvents(void)
 			WriteDebugCacheToFile(1);
 		}
 #endif
-		else if (MXC_GETBIT(&g_usbEventFlags, MAXUSB_EVENT_SUSP)) { MXC_CLRBIT(&g_usbEventFlags, MAXUSB_EVENT_SUSP); debug("USB: Suspended\r\n"); }
+		else if (MXC_GETBIT(&g_usbEventFlags, MAXUSB_EVENT_SUSP)) { MXC_CLRBIT(&g_usbEventFlags, MAXUSB_EVENT_SUSP); debug("USB: Suspended\r\n"); g_blockDebugLogForUsbMsc = NO; debug("Debug Log: Re-enabled after USB disconnected\r\n"); }
 		else if (MXC_GETBIT(&g_usbEventFlags, MAXUSB_EVENT_DPACT)) { MXC_CLRBIT(&g_usbEventFlags, MAXUSB_EVENT_DPACT); debug("USB: Resume\r\n"); }
 		else if (MXC_GETBIT(&g_usbEventFlags, EVENT_ENUM_COMP)) { MXC_CLRBIT(&g_usbEventFlags, EVENT_ENUM_COMP); debug("USB: Enumeration complete...\r\n"); }
 		else if (MXC_GETBIT(&g_usbEventFlags, EVENT_REMOTE_WAKE)) { MXC_CLRBIT(&g_usbEventFlags, EVENT_REMOTE_WAKE); debug("USB: Remote Wakeup\r\n"); }

@@ -111,6 +111,11 @@ void MonitorMenuProc(INPUT_MSG_STRUCT msg, WND_LAYOUT_STRUCT *wnd_layout_ptr, MN
 #endif
 			// Special call before Monitoring to disable USB processing
 			MXC_USB_Disconnect();
+			if (g_blockDebugLogForUsbMsc == YES)
+			{
+				debug("Debug Log: Re-enabled after USB disconnected\r\n");
+				g_blockDebugLogForUsbMsc = NO;
+			}
 
 			if (recheckSpaceRemaining)
 			{

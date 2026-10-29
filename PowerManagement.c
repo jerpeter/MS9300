@@ -543,8 +543,8 @@ void PowerUnitOff(uint8 powerOffMode)
 	AddOnOffLogTimestamp(OFF);
 
 #if 1 /* Test */
-	debug("Debug Cache: Flush before turning off\r\n");
-
+	debug("Debug Log: Flush debug cache before USB connection\r\n");
+	g_blockDebugLogForUsbMsc = NO;
 	WriteDebugCacheToFile(1);
 #endif
 
