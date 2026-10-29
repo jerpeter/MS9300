@@ -1025,17 +1025,8 @@ void ProcessCraftDataDownload(void)
 ///----------------------------------------------------------------------------
 void FlushCraftData(void)
 {
-	*g_isrMessageBufferPtr->writePtr = '\n';
-
-	// Advance the buffer pointer
-	g_isrMessageBufferPtr->writePtr++;
-
-	// Check if buffer pointer goes beyond the end
-	if (g_isrMessageBufferPtr->writePtr >= (g_isrMessageBufferPtr->msg + CMD_BUFFER_SIZE))
-	{
-		// Reset the buffer pointer to the beginning of the buffer
-		g_isrMessageBufferPtr->writePtr = g_isrMessageBufferPtr->msg;
-	}
+	InitCraftInterruptBuffers();
+	RemoteCmdMessageHandlerInit();
 }
 
 ///----------------------------------------------------------------------------
@@ -1216,6 +1207,9 @@ uint8_t CheckforModemReady(uint16_t timeoutHalfSeconds)
 {
 	uint8_t modemFound = NO;
 	uint8_t modemPowered = NO;
+
+	// Call to flush any remaining (stale) data in the craft buffer
+	FlushCraftData();
 
 	if(GetPowerControlState(CELL_ENABLE) == OFF)
 	{
