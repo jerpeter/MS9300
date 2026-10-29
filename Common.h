@@ -33,6 +33,7 @@
 
 #define EVT_FILE		"Evt"
 #define EVTS_SUB_DIR	"Evts"
+#define DEBUG_DIR		"Debug"
 
 #define SUMMARY_LIST_FILE				"SummaryList.bin"
 #define MONITOR_LOG_BIN_FILE			"MonitorLog.ns8"
