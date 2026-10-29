@@ -276,6 +276,7 @@ uint32 g_transmitCRC;
 uint8 g_binaryXferFlag = CONVERT_DATA_TO_ASCII;
 uint8 g_modemResetStage = 0;
 uint8 g_updateResultsEventRecord = NO;
+uint8 g_blockDebugLogForUsbMsc = NO;
 uint16 g_resultsEventIndex;
 uint32 g_summaryEventNumber;
 uint8 g_summaryListMenuActive = NO;

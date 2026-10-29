@@ -191,6 +191,7 @@ extern uint32 	g_transmitCRC;
 extern uint8	g_binaryXferFlag;
 extern uint8 g_modemResetStage;
 extern uint8 g_updateResultsEventRecord;
+extern uint8 g_blockDebugLogForUsbMsc;
 extern uint16 g_resultsEventIndex;
 extern uint32 g_summaryEventNumber;
 extern uint8 g_summaryListMenuActive;
