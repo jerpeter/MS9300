@@ -481,6 +481,7 @@ void AddEventToSummaryList(EVT_RECORD* event)
 #endif
 		g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 		f_close(&file);
+		SetFileTimestamp(s_summaryListFileName);
 
 		debug("Added Event: %d to Summary List file\r\n", g_summaryList.cachedEntry.eventNumber);
 	}
@@ -690,6 +691,7 @@ void ParseAndCountSummaryListEntriesWithRewrite(void)
 	uint32 displacedEntries = 0;
 	uint16 totalEntries = 0;
 	uint32 halfSecondCompare = 0;
+	uint8_t writeFlagForTimestampUpdate = NO;
 
 	FIL file;
 	uint32_t rwSize;
@@ -753,6 +755,8 @@ void ParseAndCountSummaryListEntriesWithRewrite(void)
 	// Check if any entries were deleted
 	if (g_summaryList.deletedEntries)
 	{
+		writeFlagForTimestampUpdate = YES;
+
 		// Reset to the marked rewrite location of the summary list file
 		f_lseek(&file, startRewriteFileLocation);
 
@@ -776,6 +780,7 @@ void ParseAndCountSummaryListEntriesWithRewrite(void)
 	}
 
 	f_close(&file);
+	if (writeFlagForTimestampUpdate) { SetFileTimestamp(s_summaryListFileName); }
 
 	// Set the summary list total entries
 	g_summaryList.totalEntries = g_summaryList.validEntries;
@@ -786,7 +791,7 @@ void ParseAndCountSummaryListEntriesWithRewrite(void)
 	}
 	else
 	{
-		debug("Summary List file: Valid Entires: %d, Deleted Entries: %d (Total: %d)\r\n", g_summaryList.validEntries, g_summaryList.deletedEntries, g_summaryList.totalEntries);
+		debug("Summary List file: Valid Entries: %d, Deleted Entries: %d (Total: %d)\r\n", g_summaryList.validEntries, g_summaryList.deletedEntries, g_summaryList.totalEntries);
 	}
 }
 
@@ -1855,7 +1860,7 @@ uint32_t SetFileTimestamp(char* filename)
 
 	// Note: Need to sync up base year of system time to rebase against 1980 here
 	// Currently expect system year is from 2000
-	fno.fdate = (WORD)((((time.year + 20) - 1980) * 512U) | time.month * 32U | time.day);
+	fno.fdate = (WORD)(((time.year - 2028) * 512U) | time.month * 32U | time.day);
 	fno.ftime = (WORD)(time.hour * 2048U | time.min * 32U | time.sec / 2U);
 
 	return f_utime(filename, &fno);
@@ -2438,7 +2443,7 @@ void SaveRemoteEventDownloadStreamToFile(uint16 eventNumber)
 ///----------------------------------------------------------------------------
 void ValidateSummaryListFileWithEventCache(void)
 {
-	// Count g_eventNumberCache entires stored as EVENT_FILE_FOUND that weren't migrated to EVENT_REFERENCE_VALID
+	// Count g_eventNumberCache entries stored as EVENT_FILE_FOUND that weren't migrated to EVENT_REFERENCE_VALID
 	uint16 validEventFileCount = 0;
 	uint16 invalidEventFileCount = 0;
 	uint16 i = 0;
@@ -3059,10 +3064,10 @@ void WriteDebugCacheToFile(uint8_t flush)
 	uint32_t writeSize;
 	DATE_TIME_STRUCT currDateTime;
 	char monthString[5];
+	FRESULT err;
 
-	// Check if USB MSC is active
-extern volatile int g_usbConfigured;
-	if (g_usbConfigured & USB_MSC_OPTION_FLAG)
+	// Check if debug log disabled for USB MSC
+	if (g_blockDebugLogForUsbMsc == YES)
 	{
 		// Prevent writing out to the Flash which may conflict with PC access by skipping write out for now
 
@@ -3077,7 +3082,13 @@ extern volatile int g_usbConfigured;
 		currDateTime = GetExternalRtcTime();
 		GetDateString(monthString, currDateTime.month, sizeof(monthString));
 
-		sprintf((char*)g_spareFileName, "%s/%s-%s-%02d.%s", LOGS_PATH, "DebugLog", monthString, currDateTime.day, "txt");
+		err = f_stat(LOGS_PATH DEBUG_DIR, NULL);
+		if (err == FR_NO_FILE) {
+			debug("Creating directory (%s)...\r\n", LOGS_PATH DEBUG_DIR);
+			if ((err = f_mkdir(LOGS_PATH DEBUG_DIR)) != FR_OK) { debugErr("Unable to create directory: %s\r\n", LOGS_PATH DEBUG_DIR); }
+		}
+
+		sprintf((char*)g_spareFileName, "%s%s/%s-%s-%s-%02d.%s", LOGS_PATH, DEBUG_DIR, g_factorySetupRecord.unitSerialNumber, "DebugLog", monthString, currDateTime.day, "txt");
 
 		// Open file
 		if ((f_open(&file, (const TCHAR*)g_spareFileName, FA_OPEN_APPEND | FA_WRITE)) != FR_OK)
@@ -3108,6 +3119,7 @@ extern volatile int g_usbConfigured;
 
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 			f_close(&file);
+			SetFileTimestamp(g_spareFileName);
 		}
 	}
 }

@@ -646,6 +646,7 @@ void WriteDebugBufferToFile(void)
 			// Done writing, close the debug log file
 			g_testTimeSinceLastFSWrite = g_lifetimeHalfSecondTickCount;
 			f_close(&file);
+			SetFileTimestamp(LOGS_PATH"DebugLogReadable.txt");
 
 			memset(&g_debugBuffer, 0, sizeof(g_debugBuffer));
 			g_debugBufferCount = 0;
@@ -736,6 +737,7 @@ extern uint32_t testLifetimeCurrentAvgCount;
 
 		// Done writing, close the monitor log file
 		f_close(&file);
+		SetFileTimestamp(pathAndFilename);
 
 		if (eventType == EXT_CHARGE_VOLTAGE) { debug("Battery log: Charging %s\r\n", ((GetPowerGoodBatteryChargerState() == YES) ? "Started" : "Stopped")); }
 		else
@@ -779,8 +781,9 @@ void StartBatteryLog(void)
 			f_write(&file, g_spareBuffer, strlen((char*)g_spareBuffer), (UINT*)&writeSize);
 		}
 
-		// Done writing, close the monitor log file
+		// Done writing
 		f_close(&file);
+		SetFileTimestamp(pathAndFilename);
 	}
 
 	AppendBatteryLogEntryFile(BATTERY_VOLTAGE);
